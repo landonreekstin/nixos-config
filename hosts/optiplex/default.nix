@@ -37,6 +37,21 @@
   # For example:
   # services.openssh.settings.PermitRootLogin = "yes"; # (Don't actually do this!)
 
+  # ==> Home Manager Configuration for this Host <==
+  home-manager = {
+    # Use system's nixpkgs for Home Manager packages
+    useGlobalPkgs = true;
+    # Allow Home Manager to manage packages in user profile
+    useUserPackages = true;
+    # Define users managed by Home Manager on this host
+    users = {
+      # Manage the 'lando' user
+      lando = import ./home.nix; # Import user-specific settings from home.nix
+    };
+    # Optional: Pass flake inputs down to home.nix if needed there
+    # extraSpecialArgs = { inherit inputs; };
+  };
+
   # Nixpkgs configuration specific to this host (if any)
   nixpkgs.config = {
     allowUnfree = true; # Moved from the main config, applied via nvidia module now
