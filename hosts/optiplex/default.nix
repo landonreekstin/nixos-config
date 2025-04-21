@@ -24,7 +24,7 @@
 
       # Profile Modules (placeholder concept for later)
       # ../../modules/nixos/profiles/development.nix
-      # ../../modules/nixos/profiles/gaming.nix
+      ../../modules/nixos/profiles/gaming.nix
     ];
 
   # ==> Host Specific Settings <==
