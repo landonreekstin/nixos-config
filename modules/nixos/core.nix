@@ -65,7 +65,7 @@
     vim
     wget
     firefox
-    kitty # Good base terminal
+    kitty
     htop
     pavucontrol # Useful audio tool
   ];

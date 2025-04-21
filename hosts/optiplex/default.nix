@@ -1,5 +1,5 @@
 # ~/nixos-config/hosts/optiplex/default.nix
-{ config, pkgs, inputs, lib, ... }:
+{ config, pkgs, inputs, lib, nixos-vscode-server, nix-ld-rs, ... }:
 
 {
   imports =
@@ -22,6 +22,9 @@
       ../../modules/nixos/services/pipewire.nix
       ../../modules/nixos/services/ssh.nix
 
+      # vscode server for remote ssh
+      nixos-vscode-server.nixosModules.default
+
       # Profile Modules (placeholder concept for later)
       # ../../modules/nixos/profiles/development.nix
       ../../modules/nixos/profiles/gaming.nix
@@ -32,6 +35,15 @@
 
   # Set the state version for this host based on its initial install
   system.stateVersion = "24.11";
+
+  # Enable vscode server for remote ssh
+  services.vscode-server.enable = true; # Enable the service from the module
+  programs.nix-ld.enable = true;      # Enable the nix-ld wrapper environment
+  programs.nix-ld.libraries = with pkgs; [ # Add common libraries often needed by downloaded binaries
+      stdenv.cc.cc.lib
+      zlib
+      # Add others here if vscode server specifically complains later
+  ];
 
   # You could override module settings here if needed for this specific host
   # For example:
