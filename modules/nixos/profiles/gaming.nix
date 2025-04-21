@@ -34,8 +34,8 @@
 
     # 3. Enable 32-bit libraries (often needed by Steam/Wine/games)
     # Note: The Nvidia module might already enable this, but being explicit is fine.
-    hardware.opengl.enable = true; # Ensure base OpenGL is set up
-    hardware.opengl.driSupport32Bit = true;
+    hardware.graphics.enable = true; # Ensure base OpenGL is set up
+    hardware.graphics.enable32Bit = true;
 
     # 4. Configure Kernel (Placeholder)
     # boot.kernelPackages = pkgs.linuxPackages_latest; # Example: Using Nixpkgs latest stable
