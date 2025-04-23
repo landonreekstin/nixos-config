@@ -1,5 +1,5 @@
 # ~/nixos-config/hosts/optiplex/default.nix
-{ config, pkgs, inputs, lib, nixos-vscode-server, nix-ld-rs, ... }:
+{ config, pkgs, inputs, lib, ... }:
 
 {
   imports =
@@ -12,6 +12,8 @@
 
       # Desktop Environment
       ../../modules/nixos/desktop/cosmic.nix
+      ../../modules/nixos/desktop/kde.nix
+      ../../modules/nixos/desktop/display-manager.nix
 
       # Hardware Modules (GPU, etc.)
       ../../modules/nixos/hardware/nvidia.nix
@@ -23,12 +25,21 @@
       ../../modules/nixos/services/ssh.nix
 
       # vscode server for remote ssh
-      nixos-vscode-server.nixosModules.default
+      inputs.nixos-vscode-server.nixosModules.default
 
       # Profile Modules (placeholder concept for later)
       # ../../modules/nixos/profiles/development.nix
       ../../modules/nixos/profiles/gaming.nix
     ];
+
+  # ==> Enable Desktop Profiles for this Host <==
+  profiles.desktop.cosmic.enable = true;
+  profiles.desktop.kde.enable = true;
+
+  # ==> Select Display Manager for this Host <==
+  # Try cosmic-greeter first. If Plasma session doesn't appear/launch, change to "sddm".
+  profiles.desktop.displayManager = "cosmic";
+  # profiles.desktop.displayManager = "sddm"; # Alternative if cosmic-greeter fails
 
   # ==> Host Specific Settings <==
   networking.hostName = "optiplex"; # Set the hostname for this specific machine

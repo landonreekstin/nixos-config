@@ -1,21 +1,34 @@
 # ~/nixos-config/modules/nixos/desktop/cosmic.nix
-{ config, pkgs, lib, inputs, ... }: # Needs inputs for the import
+{ config, pkgs, lib, inputs, ... }:
 
 {
+  # ==> Option Definition <==
+  options.profiles.desktop.cosmic.enable = lib.mkEnableOption "COSMIC Desktop Environment profile";
+
+  # ==> Import necessary modules at the top level <==
   imports = [
     # Import the actual COSMIC module definition from the flake input
     inputs.nixos-cosmic.nixosModules.default
   ];
 
-  # Enable COSMIC Desktop Environment and Greeter
-  services.desktopManager.cosmic.enable = true;
-  services.displayManager.cosmic-greeter.enable = true;
+  # ==> Configuration (Applied only if profile is enabled) <==
+  config = lib.mkIf config.profiles.desktop.cosmic.enable {
 
-  # Ensure conflicting services are disabled
-  services.xserver.enable = false;
+    # Enable COSMIC Desktop Environment itself
+    services.desktopManager.cosmic.enable = true;
 
-  # Add packages useful for COSMIC environment
-  environment.systemPackages = with pkgs; [
-    networkmanagerapplet # May still be needed depending on cosmic panel features
-  ];
+    # If COSMIC is enabled, force Xserver off, as COSMIC is Wayland-only.
+    # mkForce ensures this wins if KDE profile (which might enable Xserver) is also enabled.
+    services.xserver.enable = lib.mkForce false;
+
+    # Enable cosmic-greeter *only if* it's selected as the display manager
+    # The actual selection happens via profiles.desktop.displayManager in host config
+    services.displayManager.cosmic-greeter.enable = lib.mkIf (config.profiles.desktop.displayManager == "cosmic") true;
+
+    # Add packages useful for COSMIC environment
+    environment.systemPackages = with pkgs; [
+      networkmanagerapplet # May still be needed depending on cosmic panel features
+    ];
+
+  };
 }
