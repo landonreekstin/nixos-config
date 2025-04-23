@@ -15,6 +15,7 @@
       # Launchers / Compatibility Layers
       steam # Check prerequisites (32-bit libs, vulkan drivers - nvidia module should handle these)
       lutris
+      heroic
       wineWowPackages.stable # Wine (stable branch, includes 32-bit/WoW64)
       winetricks
       protonup-qt # GUI for managing Proton-GE/Wine-GE versions
@@ -26,6 +27,9 @@
 
       # Vulkan Tools (Good for diagnostics)
       vulkan-tools
+      
+      # Games
+      superTuxKart
     ];
 
     # 2. Enable Gamemode Service
