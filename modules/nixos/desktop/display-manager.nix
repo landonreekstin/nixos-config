@@ -10,8 +10,25 @@
 
   config = {
     # This module itself doesn't enable services directly based on the option.
-    # It just defines the option. The individual DE modules (cosmic.nix, kde.nix)
+    # It just defines the option. The individual DE modules (cosmic.nix, hyprland.nix)
     # check this option's value to conditionally enable their preferred DM service.
+    # ==> Configure SDDM Service <==
+    services.displayManager.sddm = {
+      enable = lib.mkIf (config.profiles.desktop.displayManager == "sddm") true;
+      # Use mkDefault so other modules could potentially override if needed,
+      # though usually not necessary for the theme here.
+      theme = lib.mkDefault "breeze"; # Default theme, requires pkgs.plasma-workspace or similar
+      # Consider adding pkgs.plasma-workspace to systemPackages if using breeze theme
+      # Or install another SDDM theme package and set its name here.
+      # Example using wherevers-dark theme:
+      # theme = "wherevers-dark";
+      wayland.enable = lib.mkIf (config.profiles.desktop.displayManager == "sddm") true; # Enable Wayland session handling
+    };
+
+    # ==> Configure Cosmic Greeter Service <==
+    # (Move the conditional enable from cosmic.nix to here for consistency)
+    services.displayManager.cosmic-greeter.enable = lib.mkIf (config.profiles.desktop.displayManager == "cosmic") true;
+
 
     # Ensure only one display manager service is active by asserting that
     # the sum of enabled DM services is at most 1.

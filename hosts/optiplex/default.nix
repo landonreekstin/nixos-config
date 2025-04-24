@@ -12,7 +12,7 @@
 
       # Desktop Environment
       ../../modules/nixos/desktop/cosmic.nix
-      ../../modules/nixos/desktop/kde.nix
+      ../../modules/nixos/desktop/hyprland.nix
       ../../modules/nixos/desktop/display-manager.nix
 
       # Hardware Modules (GPU, etc.)
@@ -34,12 +34,16 @@
 
   # ==> Enable Desktop Profiles for this Host <==
   profiles.desktop.cosmic.enable = true;
-  profiles.desktop.kde.enable = false;
+  profiles.desktop.hyprland.enable = false;
 
   # ==> Select Display Manager for this Host <==
-  # Try cosmic-greeter first. If Plasma session doesn't appear/launch, change to "sddm".
-  profiles.desktop.displayManager = "cosmic";
-  # profiles.desktop.displayManager = "sddm"; # Alternative if cosmic-greeter fails
+  # profiles.desktop.displayManager = "cosmic";
+  profiles.desktop.displayManager = "sddm"; # Alternative if cosmic-greeter fails
+
+  # If using the default 'breeze' theme for SDDM, add plasma-workspace
+  environment.systemPackages = [ pkgs.kdePackages.plasma-workspace ];
+  # If using another theme like 'wherevers-dark', add that package instead:
+  # environment.systemPackages = [ pkgs.sddm-wherevers-dark-theme ];
 
   # ==> Host Specific Settings <==
   networking.hostName = "optiplex"; # Set the hostname for this specific machine
