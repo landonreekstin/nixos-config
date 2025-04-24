@@ -1,7 +1,8 @@
 # ~/nixos-config/hosts/optiplex/home.nix
-{ pkgs, config, lib, ... }:
+{ pkgs, config, lib, inputs, ... }:
 
 {
+
   # Home Manager needs its own state version. Start with the same version
   # as the system stateVersion for consistency.
   home.stateVersion = "24.11";

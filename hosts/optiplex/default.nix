@@ -34,7 +34,7 @@
 
   # ==> Enable Desktop Profiles for this Host <==
   profiles.desktop.cosmic.enable = true;
-  profiles.desktop.kde.enable = true;
+  profiles.desktop.kde.enable = false;
 
   # ==> Select Display Manager for this Host <==
   # Try cosmic-greeter first. If Plasma session doesn't appear/launch, change to "sddm".
@@ -62,17 +62,21 @@
 
   # ==> Home Manager Configuration for this Host <==
   home-manager = {
-    # Use system's nixpkgs for Home Manager packages
-    useGlobalPkgs = true;
-    # Allow Home Manager to manage packages in user profile
-    useUserPackages = true;
+    useGlobalPkgs = true; # Use system's nixpkgs for Home Manager packages
+    useUserPackages = true; # Allow Home Manager to manage packages in user profile
+    
     # Define users managed by Home Manager on this host
     users = {
       # Manage the 'lando' user
-      lando = import ./home.nix; # Import user-specific settings from home.nix
+      lando = { pkgs, config, lib, inputs, ... }: {
+        imports = [
+          ./home.nix
+        ];
+      };
     };
-    # Optional: Pass flake inputs down to home.nix if needed there
-    # extraSpecialArgs = { inherit inputs; };
+    
+    extraSpecialArgs = { inherit inputs; };
+
   };
 
   # Nixpkgs configuration specific to this host (if any)
