@@ -21,10 +21,6 @@
     # mkForce ensures this wins if KDE profile (which might enable Xserver) is also enabled.
     services.xserver.enable = lib.mkForce false;
 
-    # Enable cosmic-greeter *only if* it's selected as the display manager
-    # The actual selection happens via profiles.desktop.displayManager in host config
-    services.displayManager.cosmic-greeter.enable = lib.mkIf (config.profiles.desktop.displayManager == "cosmic") true;
-
     # Add packages useful for COSMIC environment
     environment.systemPackages = with pkgs; [
       networkmanagerapplet # May still be needed depending on cosmic panel features
