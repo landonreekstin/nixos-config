@@ -13,7 +13,6 @@
       enable = true;
       # Use NVIDIA patches if nvidia profile is also enabled
       # Note: This relies on the nvidia module setting hardware.nvidia.modesetting.enable = true;
-      nvidiaPatches = lib.mkIf config.hardware.nvidia.modesetting.enable true;
 
       # We can add package overrides or extra settings here later if needed
       # package = pkgs.hyprland;
@@ -54,7 +53,7 @@
 
       # Recommended font packages
       noto-fonts        # Good general coverage
-      noto-fonts-cjk    # For East Asian characters
+      noto-fonts-cjk-sans    # For East Asian characters
       noto-fonts-emoji  # For emoji
       # Add Nerd Fonts here if not handled by Home Manager rice later
       # (pkgs.nerdfonts.override { fonts = [ "JetBrainsMono" ]; })

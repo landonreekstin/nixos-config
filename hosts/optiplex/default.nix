@@ -34,7 +34,7 @@
 
   # ==> Enable Desktop Profiles for this Host <==
   profiles.desktop.cosmic.enable = true;
-  profiles.desktop.hyprland.enable = false;
+  profiles.desktop.hyprland.enable = true;
 
   # ==> Select Display Manager for this Host <==
   # profiles.desktop.displayManager = "cosmic";

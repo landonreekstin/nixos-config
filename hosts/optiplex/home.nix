@@ -20,6 +20,8 @@
     cowsay
     # Example: Add a tool for finding dotfiles later
     fd # find replacement
+    vscodium
+    librewolf
   ];
 
   # == Dotfile Management Example: Kitty Terminal ==
