@@ -9,7 +9,7 @@
     # ./style.nix
     # ./icons.nix
     # ./fonts.nix
-    # ./waybar.nix # Placeholder for later
+    ./waybar.nix
     # ./wofi.nix   # Placeholder for later
     # ./swaylock.nix # Placeholder for later
     # ./swaync.nix # Placeholder for later

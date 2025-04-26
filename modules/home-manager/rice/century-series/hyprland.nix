@@ -30,7 +30,7 @@
       # exec-once = waybar & swaybg -i ~/path/to/wallpaper.png & swaync
       # NOTE: We will configure these properly later via their own modules/options
       exec-once = ${pkgs.swaynotificationcenter}/bin/swaync & # Start notification daemon
-      # exec-once = ${pkgs.waybar}/bin/waybar # Start Waybar (configure first)
+      exec-once = ${pkgs.waybar}/bin/waybar # Start Waybar (configure first)
       exec-once = ${pkgs.wl-clipboard}/bin/wl-paste --watch ${pkgs.cliphist}/bin/cliphist store # Start clipboard manager
 
       # Source a file for colors allows easy overriding later
@@ -207,6 +207,6 @@
     wl-clipboard
     cliphist
     swaynotificationcenter
-    # waybar # Add when configured
+    waybar
   ];
 }
