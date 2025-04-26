@@ -68,6 +68,7 @@
   home-manager = {
     useGlobalPkgs = true; # Use system's nixpkgs for Home Manager packages
     useUserPackages = true; # Allow Home Manager to manage packages in user profile
+    backupFileExtension = "hm-backup"; # Backup existing dotfiles
     
     # Define users managed by Home Manager on this host
     users = {

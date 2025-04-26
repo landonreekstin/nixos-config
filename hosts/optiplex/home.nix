@@ -3,6 +3,10 @@
 
 {
 
+  imports = [
+    ../../modules/home-manager/rice/century-series/default.nix
+  ];
+
   # Home Manager needs its own state version. Start with the same version
   # as the system stateVersion for consistency.
   home.stateVersion = "24.11";

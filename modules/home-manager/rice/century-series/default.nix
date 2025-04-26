@@ -4,7 +4,7 @@
 {
   imports = [
     # ./konsole.nix # Still commented
-    ./colors.nix
+    # ./colors.nix
     ./hyprland.nix # <-- ADD THIS IMPORT
     # ./style.nix
     # ./icons.nix
@@ -16,7 +16,4 @@
     # ./wallpaper.nix # Placeholder for later
   ];
 
-  config = {
-    programs.plasma.enable = true; # Keep this for KDE color scheme integration if desired, or remove if purely Hyprland
-  };
 }

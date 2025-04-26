@@ -12,9 +12,15 @@
     text = ''
       # See https://wiki.hyprland.org/Configuring/Monitors/
       # Configure your monitor. Use 'hyprctl monitors' in a running session to get names.
+      # Configure monitors: Define settings for BOTH possible identifier pairs
+      # Pair 1
       # Vertical Left (HDMI-A-3), Normal Right (HDMI-A-1)
-      monitor=HDMI-A-3,preferred,0x0,1,transform,1   # Left monitor, rotated 90deg clockwise
+      monitor=HDMI-A-3,1920x1080,0x0,1,transform,1   # Left monitor, rotated 90deg clockwise
       monitor=HDMI-A-1,preferred,1080x0,1            # Right monitor, starting after rotated width of HDMI-A-3
+
+      # Pair 2
+      monitor=HDMI-A-4,1920x1080,0x0,1,transform,1
+      monitor=HDMI-A-2,preferred,1080x0,1
       # Example for second monitor: monitor=HDMI-A-1,preferred,auto,1,mirror,DP-1
       # Example for vertical monitor: monitor=DP-1,preferred,auto,1,transform,1 # 1=90deg clockwise
 
