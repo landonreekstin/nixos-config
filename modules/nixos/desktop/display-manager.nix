@@ -1,54 +1,81 @@
 # ~/nixos-config/modules/nixos/desktop/display-manager.nix
+# Handles selection and configuration of the display manager (SDDM or Cosmic Greeter)
 { config, pkgs, lib, ... }:
 
 {
+  # Option to choose the display manager in host configuration
   options.profiles.desktop.displayManager = lib.mkOption {
-    type = lib.types.enum [ "cosmic" "sddm" "none" ]; # Add others like "gdm" if needed later
-    default = "none"; # Default to none, force host to choose
+    type = lib.types.enum [ "cosmic" "sddm" "none" ]; # Available choices
+    default = "none"; # Default to none, requiring an explicit choice in host config
     description = "Which display manager to use for graphical login.";
   };
 
   config = {
-    # This module itself doesn't enable services directly based on the option.
-    # It just defines the option. The individual DE modules (cosmic.nix, hyprland.nix)
-    # check this option's value to conditionally enable their preferred DM service.
-    # ==> Configure SDDM Service <==
+    # == SDDM Configuration ==
     services.displayManager.sddm = {
+      # Enable SDDM service only if "sddm" is selected
       enable = lib.mkIf (config.profiles.desktop.displayManager == "sddm") true;
-      # Use mkDefault so other modules could potentially override if needed,
-      # though usually not necessary for the theme here.
-      theme = lib.mkDefault "breeze"; # Default theme, requires pkgs.plasma-workspace or similar
-      # Consider adding pkgs.plasma-workspace to systemPackages if using breeze theme
-      # Or install another SDDM theme package and set its name here.
-      # Example using wherevers-dark theme:
-      # theme = "wherevers-dark";
-      wayland.enable = lib.mkIf (config.profiles.desktop.displayManager == "sddm") true; # Enable Wayland session handling
-    };
 
-    # ==> Configure Cosmic Greeter Service <==
-    # (Move the conditional enable from cosmic.nix to here for consistency)
+      # Set the theme for SDDM (requires theme package to be installed)
+      theme = lib.mkDefault "breeze"; # Defaulting to Breeze theme
+
+      # Configure Wayland-specific settings for SDDM
+      wayland.enable = lib.mkIf (config.profiles.desktop.displayManager == "sddm") true;
+
+      # Define a script to run before the Wayland greeter starts, primarily for display setup
+      setupScript.text = lib.mkIf (config.profiles.desktop.displayManager == "sddm") ''
+        #!${pkgs.bash}/bin/bash
+        # Add PATH just in case wlr-randr isn't found otherwise
+        export PATH=${lib.makeBinPath [ pkgs.wlr-randr pkgs.coreutils ]}:$PATH
+
+        echo "SDDM Setup Script: Attempting display configuration..." >&2
+
+        # Check if WAYLAND_DISPLAY is set (might indicate Wayland context)
+        if [ -n "$WAYLAND_DISPLAY" ]; then
+          echo "WAYLAND_DISPLAY is set to $WAYLAND_DISPLAY. Running wlr-randr..." >&2
+          sleep 2 # Give displays time
+          # Attempt rotations
+          wlr-randr --output HDMI-A-3 --transform 90 || echo "Setup Script: HDMI-A-3 rotate failed." >&2
+          wlr-randr --output HDMI-A-4 --transform 90 || echo "Setup Script: HDMI-A-4 rotate failed." >&2
+          # Attempt primary (adjust name if needed)
+          wlr-randr --output HDMI-A-1 --primary || echo "Setup Script: HDMI-A-1 primary failed." >&2
+          wlr-randr --output HDMI-A-2 --primary || echo "Setup Script: HDMI-A-2 primary failed." >&2
+        else
+          echo "WAYLAND_DISPLAY not set in setupScript environment. Skipping wlr-randr." >&2
+          # Could potentially try Xrandr commands here if needed for X11 fallback
+          # xrandr --output HDMI-A-3 --rotate left ...
+        fi
+
+        echo "SDDM Setup Script: Finished." >&2
+        # Script should exit cleanly
+        exit 0
+      ''; # End setupScript.text
+    }; # End sddm block
+
+    # == Cosmic Greeter Configuration ==
+    # Enable Cosmic Greeter service only if "cosmic" is selected
     services.displayManager.cosmic-greeter.enable = lib.mkIf (config.profiles.desktop.displayManager == "cosmic") true;
 
-
-    # Ensure only one display manager service is active by asserting that
-    # the sum of enabled DM services is at most 1.
+    # == Assertions ==
+    # Ensure that configuration choices don't conflict
     assertions = [
+      # Assertion 1: Only allow one display manager to be enabled simultaneously
       {
         assertion = builtins.length (lib.filter (x: x == true) [
           config.services.displayManager.cosmic-greeter.enable
           config.services.displayManager.sddm.enable
-          # Add other DMs here if supported later (e.g., config.services.displayManager.gdm.enable)
+          # Add other potential display managers here if supported later
         ]) <= 1;
-        message = "Only one display manager service can be enabled at a time.";
+        message = "Configuration Error: Only one display manager (SDDM or Cosmic Greeter) can be enabled at a time. Check profiles.desktop.displayManager setting.";
       }
-      {
-        # Warn if a DE profile is enabled but no display manager is selected
-        assertion = !(
-             (config.profiles.desktop.cosmic.enable || config.profiles.desktop.kde.enable)
-          && (config.profiles.desktop.displayManager == "none")
-        );
-        message = "Warning: A desktop profile is enabled, but profiles.desktop.displayManager is set to 'none'. Choose 'cosmic' or 'sddm'.";
-      }
-    ];
-  };
+      # Assertion 2: Warn if a desktop profile is enabled but no display manager is selected (optional, can be noisy)
+      # {
+      #   assertion = !(
+      #        (config.profiles.desktop.cosmic.enable || config.profiles.desktop.hyprland.enable) # Check relevant profiles
+      #     && (config.profiles.desktop.displayManager == "none")
+      #   );
+      #   message = "Configuration Warning: A desktop profile (COSMIC or Hyprland) is enabled, but profiles.desktop.displayManager is set to 'none'. Graphical login might not work as expected.";
+      # }
+    ]; # End assertionssessionComman
+  }; # End main config block
 }
