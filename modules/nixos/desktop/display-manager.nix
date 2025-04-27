@@ -17,39 +17,11 @@
       enable = lib.mkIf (config.profiles.desktop.displayManager == "sddm") true;
 
       # Set the theme for SDDM (requires theme package to be installed)
-      theme = lib.mkDefault "breeze"; # Defaulting to Breeze theme
+      theme = lib.mkDefault "sugar-dark"; # Defaulting to Breeze theme
 
       # Configure Wayland-specific settings for SDDM
       wayland.enable = lib.mkIf (config.profiles.desktop.displayManager == "sddm") true;
 
-      # Define a script to run before the Wayland greeter starts, primarily for display setup
-      setupScript.text = lib.mkIf (config.profiles.desktop.displayManager == "sddm") ''
-        #!${pkgs.bash}/bin/bash
-        # Add PATH just in case wlr-randr isn't found otherwise
-        export PATH=${lib.makeBinPath [ pkgs.wlr-randr pkgs.coreutils ]}:$PATH
-
-        echo "SDDM Setup Script: Attempting display configuration..." >&2
-
-        # Check if WAYLAND_DISPLAY is set (might indicate Wayland context)
-        if [ -n "$WAYLAND_DISPLAY" ]; then
-          echo "WAYLAND_DISPLAY is set to $WAYLAND_DISPLAY. Running wlr-randr..." >&2
-          sleep 2 # Give displays time
-          # Attempt rotations
-          wlr-randr --output HDMI-A-3 --transform 90 || echo "Setup Script: HDMI-A-3 rotate failed." >&2
-          wlr-randr --output HDMI-A-4 --transform 90 || echo "Setup Script: HDMI-A-4 rotate failed." >&2
-          # Attempt primary (adjust name if needed)
-          wlr-randr --output HDMI-A-1 --primary || echo "Setup Script: HDMI-A-1 primary failed." >&2
-          wlr-randr --output HDMI-A-2 --primary || echo "Setup Script: HDMI-A-2 primary failed." >&2
-        else
-          echo "WAYLAND_DISPLAY not set in setupScript environment. Skipping wlr-randr." >&2
-          # Could potentially try Xrandr commands here if needed for X11 fallback
-          # xrandr --output HDMI-A-3 --rotate left ...
-        fi
-
-        echo "SDDM Setup Script: Finished." >&2
-        # Script should exit cleanly
-        exit 0
-      ''; # End setupScript.text
     }; # End sddm block
 
     # == Cosmic Greeter Configuration ==
