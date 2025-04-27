@@ -5,6 +5,13 @@
   # Manage hyprland.conf via home-manager
   # Ref: https://wiki.hyprland.org/Configuring/Configuring-Hyprland/
   # Ref: https://nix-community.github.io/home-manager/options.html#opt-xdg.configFile
+  
+  # Link wallpaper file into home directory
+  home.file.".local/share/wallpapers/soviet-dystopian-city.jpg" = {
+     source = ../../../../assets/wallpapers/soviet-retro-future.jpg; # Path relative to this nix file
+     recursive = true; # Ensure directory exists
+  };
+
   xdg.configFile."hypr/hyprland.conf" = {
     # Ensure directory ~/.config/hypr exists
     recursive = true;
@@ -32,6 +39,7 @@
       exec-once = ${pkgs.swaynotificationcenter}/bin/swaync & # Start notification daemon
       exec-once = ${pkgs.waybar}/bin/waybar # Start Waybar (configure first)
       exec-once = ${pkgs.wl-clipboard}/bin/wl-paste --watch ${pkgs.cliphist}/bin/cliphist store # Start clipboard manager
+      exec-once = ${pkgs.swaybg}/bin/swaybg -i ${config.home.homeDirectory}/.local/share/wallpapers/soviet-dystopian-city.jpg & # Set wallpaper using swaybg and the linked path
 
       # Source a file for colors allows easy overriding later
       # source = ~/.config/hypr/themes/theme.conf # We can manage themes later
@@ -208,5 +216,6 @@
     cliphist
     swaynotificationcenter
     waybar
+    swaybg
   ];
 }
