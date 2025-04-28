@@ -7,9 +7,13 @@
   # Ref: https://nix-community.github.io/home-manager/options.html#opt-xdg.configFile
   
   # Link wallpaper file into home directory
-  home.file.".local/share/wallpapers/soviet-dystopian-city.jpg" = {
-     source = ../../../../assets/wallpapers/soviet-retro-future.jpg; # Path relative to this nix file
+  home.file.".local/share/wallpapers/soviet-retro-future.jpg" = {
+     source = ../../../../assets/wallpapers/soviet-retro-future.jpg;
      recursive = true; # Ensure directory exists
+  };
+  home.file.".local/share/wallpapers/f104-retro-future.jpg" = {
+     source = ../../../../assets/wallpapers/f104-retro-future.jpg;
+     recursive = true;
   };
 
   xdg.configFile."hypr/hyprland.conf" = {
@@ -39,7 +43,7 @@
       exec-once = ${pkgs.swaynotificationcenter}/bin/swaync & # Start notification daemon
       exec-once = ${pkgs.waybar}/bin/waybar # Start Waybar (configure first)
       exec-once = ${pkgs.wl-clipboard}/bin/wl-paste --watch ${pkgs.cliphist}/bin/cliphist store # Start clipboard manager
-      exec-once = ${pkgs.swaybg}/bin/swaybg -i ${config.home.homeDirectory}/.local/share/wallpapers/soviet-dystopian-city.jpg & # Set wallpaper using swaybg and the linked path
+      exec-once = ${pkgs.hyprpaper}/bin/hyprpaper & # Set wallpaper using swaybg and the linked path
 
       # Source a file for colors allows easy overriding later
       # source = ~/.config/hypr/themes/theme.conf # We can manage themes later
@@ -76,9 +80,19 @@
           gaps_in = 5
           gaps_out = 10
           border_size = 2
-          # Use our palette colors later
-          col.active_border = rgba(33ccffee) rgba(00ff99ee) 45deg
-          col.inactive_border = rgba(595959aa)
+
+          # ==> Define Colors using RGBA Hex <==
+          # Base Tones
+          col.inactive_border = rgba(808080aa) # Medium Grey, semi-transparent AA alpha
+          # col.main_background = rgba(1A1A1AFF) # Near Black, fully opaque (optional, usually set by wallpaper)
+
+          # Accents
+          col.active_border = rgba(DAA520ff) # Gradient: Ochre, fully opaque
+
+          # Groups / Tabs (Examples, adjust based on Hyprland group features if used)
+          # col.group_border = rgba(5F9EA0ff) # Teal group border
+          # col.group_border_active = rgba(FFBF00ff) # Amber active group border
+
 
           layout = dwindle # master or dwindle
 
@@ -89,7 +103,11 @@
       decoration {
           # See https://wiki.hyprland.org/Configuring/Variables/ for more
 
-          rounding = 5
+          rounding = 3
+
+          # Opacity (can make terminals/windows slightly transparent)
+          # active_opacity = 0.95
+          # inactive_opacity = 0.85
 
           blur {
               enabled = true
@@ -100,7 +118,7 @@
           drop_shadow = yes
           shadow_range = 4
           shadow_render_power = 3
-          col.shadow = rgba(1a1a1aee)
+          col.shadow = rgba(1a1a1a99)
       }
 
       animations {
@@ -204,6 +222,33 @@
     ''; # End of hyprland.conf text
   }; # End xdg.configFile
 
+
+  xdg.configFile."hypr/hyprpaper.conf" = {
+    recursive = true;
+    text = ''
+      # Preload images for efficiency
+      preload = ${config.home.homeDirectory}/.local/share/wallpapers/soviet-retro-future.jpg
+      preload = ${config.home.homeDirectory}/.local/share/wallpapers/f104-retro-future.jpg
+
+      # Assign wallpapers to monitors (handling dual identifiers)
+      # Main Monitor (Horizontal - HDMI-A-1 or HDMI-A-2)
+      wallpaper = HDMI-A-1,${config.home.homeDirectory}/.local/share/wallpapers/soviet-retro-future.jpg
+      wallpaper = HDMI-A-2,${config.home.homeDirectory}/.local/share/wallpapers/soviet-retro-future.jpg
+
+      # Vertical Monitor (HDMI-A-3 or HDMI-A-4)
+      wallpaper = HDMI-A-3,${config.home.homeDirectory}/.local/share/wallpapers/f104-retro-future.jpg
+      wallpaper = HDMI-A-4,${config.home.homeDirectory}/.local/share/wallpapers/f104-retro-future.jpg
+
+      # Optional Fallback for any other monitors
+      # wallpaper = ,${config.home.homeDirectory}/.local/share/wallpapers/soviet-retro-future.jpg
+
+      # General settings
+      ipc = off
+      splash = false
+    '';
+  }; # End xdg.configFile."hypr/hyprpaper.conf"
+
+
   # Ensure necessary packages for the config are installed via HM
   home.packages = with pkgs; [
     # Packages referenced in hyprland.conf ($terminal, $menu, etc.)
@@ -216,6 +261,6 @@
     cliphist
     swaynotificationcenter
     waybar
-    swaybg
+    hyprpaper
   ];
 }
