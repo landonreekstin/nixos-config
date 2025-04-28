@@ -38,81 +38,12 @@
 
   # ==> Select Display Manager for this Host <==
   # profiles.desktop.displayManager = "cosmic";
-  profiles.desktop.displayManager = "none"; # Alternative if cosmic-greeter fails
+  profiles.desktop.displayManager = "greetd";
 
   # ==> Enable greetd <==
   services.greetd = {
     enable = true;
     # Settings will be configured below
-  };
-
-  # If using the default 'breeze' theme for SDDM, add plasma-workspace
-  environment.systemPackages = [ 
-    pkgs.greetd.greetd # The greetd daemon itself
-    pkgs.greetd.regreet # The graphical greeter application
-    pkgs.sddm-sugar-dark
-  ];
-  
-  environment.etc."greetd/hyprland-greeter.conf" = {
-    # Target path: /etc/greetd/hyprland-greeter.conf
-    # Source from text block:
-    text = ''
-      # Minimal Hyprland config for greetd + regreet
-
-      # Monitors (Copy from your main config, ensure rotation)
-      monitor=HDMI-A-3,1920x1080,0x0,1,transform,1
-      monitor=HDMI-A-1,preferred,1080x0,1
-      monitor=HDMI-A-4,1920x1080,0x0,1,transform,1
-      monitor=HDMI-A-2,preferred,1080x0,1
-
-      # Environment variables needed by regreet/wayland
-      env = XCURSOR_SIZE,24
-      env = QT_QPA_PLATFORMTHEME,qt6ct # Or qt5ct if regreet uses Qt5
-
-      # Minimal input settings (no custom binds needed here)
-      input {
-          kb_layout = us
-          follow_mouse = 1
-      }
-
-      # Basic appearance (no gaps, simple border)
-      general {
-          border_size = 1
-          col.active_border = rgba(ffffff66) # Simple white border
-          col.inactive_border = rgba(595959aa)
-          layout = dwindle
-      }
-      decoration {
-          rounding = 0
-          drop_shadow = no
-          blur { enabled = false }
-      }
-      animations { enabled = false } # No animations needed for greeter
-
-      # Execute ReGreet ONCE
-      # Need full path to regreet package
-      exec-once = ${pkgs.greetd.regreet}/bin/regreet
-
-      # Minimal misc settings
-      misc {
-        disable_hyprland_logo = true
-        force_default_wallpaper = -1
-      }
-
-      # NO user keybindings needed here
-    ''; # End text block
-  }; # End environment.etc
-
-  # ==> Configure greetd settings <==
-  services.greetd.settings = {
-    # Define the default session (the command greetd runs)
-    default_session = {
-       # Command launches Hyprland using the specific greeter config
-       command = ''
-         ${pkgs.hyprland}/bin/Hyprland -c /etc/greetd/hyprland-greeter.conf
-       '';
-       user = "greeter"; # Run Hyprland (and thus regreet) as 'greeter' user
-    };
   };
 
   # ==> Host Specific Settings <==
@@ -129,10 +60,6 @@
       zlib
       # Add others here if vscode server specifically complains later
   ];
-
-  # You could override module settings here if needed for this specific host
-  # For example:
-  # services.openssh.settings.PermitRootLogin = "yes"; # (Don't actually do this!)
 
   # ==> Home Manager Configuration for this Host <==
   home-manager = {
