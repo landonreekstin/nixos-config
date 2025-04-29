@@ -5,29 +5,63 @@
 {
   # Option to choose the display manager in host configuration
   options.profiles.desktop.displayManager = lib.mkOption {
-    type = lib.types.enum [ "cosmic" "greetd" "none" ]; # Available choices
+    type = lib.types.enum [ "cosmic" "sddm" "greetd" "none" ]; # Available choices
     default = "none"; # Default to none, requiring an explicit choice in host config
     description = "Which display manager to use for graphical login.";
   };
 
   config = {
+    # == SDDM Configuration ==
+    services.displayManager.sddm = {
+      enable = lib.mkIf (config.profiles.desktop.displayManager == "sddm") true;
+      # Set the theme name
+      theme = lib.mkIf (config.profiles.desktop.displayManager == "sddm") "sugar-dark"; # Use mkIf here too
+      wayland = {
+        enable = lib.mkIf (config.profiles.desktop.displayManager == "sddm") true;
+      };
+    };
+    
     # == Cosmic Greeter Configuration ==
-    # Enable Cosmic Greeter service only if "cosmic" is selected
     services.displayManager.cosmic-greeter.enable = lib.mkIf (config.profiles.desktop.displayManager == "cosmic") true;
 
     # == Greetd + ReGreet Configuration ==
-    services.greetd = {
-      # Enable greetd service only if "greetd" is selected
-      enable = lib.mkIf (config.profiles.desktop.displayManager == "greetd") true;
+    services.greetd = lib.mkIf (config.profiles.desktop.displayManager == "greetd") {
+      enable = true;
       settings = {
         default_session = {
-          # Command launches Hyprland using the specific greeter config
           command = ''
             ${pkgs.hyprland}/bin/Hyprland -c /etc/greetd/hyprland-greeter.conf
           '';
           user = "greeter";
         };
       };
+    };
+
+    # ==> Create /etc/regreet.toml directly using environment.etc <==
+    environment.etc."greetd/regreet.toml" = lib.mkIf (config.profiles.desktop.displayManager == "greetd") {
+      # Target path: /etc/greetd/regreet.toml
+      text = ''
+        # regreet configuration generated directly
+
+        [background]
+        path = "/etc/greetd/concorde-vertical-art.jpg"
+        fit = "cover"
+
+        # Add any other regreet settings directly here in TOML format
+        # [theme]
+        # name = "Adwaita-Dark" # Example
+
+        # [icons]
+        # name = "breeze" # Example
+      '';
+      mode = "0444"; # Read-only
+    };
+
+    # == Deploy Greeter Wallpaper File ==
+    environment.etc."greetd/concorde-vertical-art.jpg" = lib.mkIf (config.profiles.desktop.displayManager == "greetd") {
+      # Target path: /etc/greetd/concorde-vertical-art.jpg
+      source = ../../../assets/wallpapers/concorde-vertical-art.jpg; # Path relative to this Nix file
+      mode = "0444"; # Read-only is appropriate
     };
 
     # == Greeter Hyprland Config File (managed by environment.etc) ==
@@ -62,15 +96,20 @@
       ''; # End text block
     }; # End environment.etc definition
 
-    # == Packages needed for Greetd/ReGreet setup ==
-    # Add required packages only if greetd is selected
-    environment.systemPackages = lib.mkIf (config.profiles.desktop.displayManager == "greetd") [
+    # == Packages needed based on DM selection (Using lib.optionals) ==
+    environment.systemPackages =
+      # Use lib.optionals which returns a list or []
+      (lib.optionals (config.profiles.desktop.displayManager == "sddm") [
+        pkgs.sddm-sugar-dark
+      ])
+      ++ # Concatenate the lists
+      (lib.optionals (config.profiles.desktop.displayManager == "greetd") [
         pkgs.greetd.greetd
         pkgs.greetd.regreet
-        pkgs.hyprland # Needed for the greeter session
-        pkgs.qt6.qtwayland # Often needed by regreet/Qt apps under Wayland
-        # pkgs.qt5.qtwayland # Use if regreet uses Qt5
-    ];
+        pkgs.hyprland
+        pkgs.qt6.qtwayland
+        pkgs.libjpeg pkgs.gdk-pixbuf pkgs.librsvg pkgs.qt6.qtimageformats
+      ]);
 
     # == Assertions ==
     # Ensure that configuration choices don't conflict
@@ -78,11 +117,11 @@
       # Assertion 1: Only allow one display manager to be enabled simultaneously
       {
         assertion = builtins.length (lib.filter (x: x == true) [
-          config.services.displayManager.cosmic-greeter.enable
-          config.services.displayManager.sddm.enable
-          # Add other potential display managers here if supported later
+          config.services.displayManager.cosmic-greeter.enable or false # Use 'or false' in case module isn't evaluated
+          config.services.displayManager.sddm.enable or false
+          config.services.greetd.enable or false
         ]) <= 1;
-        message = "Configuration Error: Only one display manager (SDDM or Cosmic Greeter) can be enabled at a time. Check profiles.desktop.displayManager setting.";
+        message = "Configuration Error: Only one display manager (SDDM, Greetd, or Cosmic Greeter) can be enabled at a time. Check profiles.desktop.displayManager setting.";
       }
       # Assertion 2: Warn if a desktop profile is enabled but no display manager is selected (optional, can be noisy)
       # {

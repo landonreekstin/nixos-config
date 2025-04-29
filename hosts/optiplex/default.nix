@@ -37,14 +37,9 @@
   profiles.desktop.hyprland.enable = true;
 
   # ==> Select Display Manager for this Host <==
-  # profiles.desktop.displayManager = "cosmic";
-  profiles.desktop.displayManager = "greetd";
-
-  # ==> Enable greetd <==
-  services.greetd = {
-    enable = true;
-    # Settings will be configured below
-  };
+  #profiles.desktop.displayManager = "cosmic";
+  #profiles.desktop.displayManager = "greetd";
+  profiles.desktop.displayManager = "sddm";
 
   # ==> Host Specific Settings <==
   networking.hostName = "optiplex"; # Set the hostname for this specific machine
