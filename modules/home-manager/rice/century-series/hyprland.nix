@@ -44,6 +44,8 @@
       exec-once = ${pkgs.waybar}/bin/waybar # Start Waybar (configure first)
       exec-once = ${pkgs.wl-clipboard}/bin/wl-paste --watch ${pkgs.cliphist}/bin/cliphist store # Start clipboard manager
       exec-once = ${pkgs.hyprpaper}/bin/hyprpaper & # Set wallpaper using swaybg and the linked path
+      exec-once = ${pkgs.dbus}/bin/dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=Hyprland &
+      exec-once = ${pkgs.systemd}/bin/systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP &
 
       # Source a file for colors allows easy overriding later
       # source = ~/.config/hypr/themes/theme.conf # We can manage themes later
@@ -262,5 +264,7 @@
     swaynotificationcenter
     waybar
     hyprpaper
+    dbus
   ];
+  
 }

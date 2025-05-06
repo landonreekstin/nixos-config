@@ -39,7 +39,8 @@
   # ==> Select Display Manager for this Host <==
   #profiles.desktop.displayManager = "cosmic";
   #profiles.desktop.displayManager = "greetd";
-  profiles.desktop.displayManager = "sddm";
+  #profiles.desktop.displayManager = "sddm";
+  profiles.desktop.displayManager = "none"; # For ricing over VNC
 
   # ==> Host Specific Settings <==
   networking.hostName = "optiplex"; # Set the hostname for this specific machine

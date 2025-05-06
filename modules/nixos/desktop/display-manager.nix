@@ -14,8 +14,7 @@
     # == SDDM Configuration ==
     services.displayManager.sddm = {
       enable = lib.mkIf (config.profiles.desktop.displayManager == "sddm") true;
-      # Set the theme name
-      theme = lib.mkIf (config.profiles.desktop.displayManager == "sddm") "sugar-dark"; # Use mkIf here too
+      theme = lib.mkIf (config.profiles.desktop.displayManager == "sddm") "sugar-dark";
       wayland = {
         enable = lib.mkIf (config.profiles.desktop.displayManager == "sddm") true;
       };
@@ -36,6 +35,22 @@
         };
       };
     };
+
+    # == Auto-Login / Direct Session Start Configuration ==
+    # Enable these only if 'none' is selected AND a target desktop profile is enabled
+    # NOTE: This currently prioritizes Hyprland if both Cosmic and Hyprland are enabled.
+    #       A more complex setup could allow choosing the autologin target.
+    services.getty.autologinUser = lib.mkIf (config.profiles.desktop.displayManager == "none") "lando";
+
+    # Ensure XDG Desktop Portal for Hyprland is available when autologging into it
+    xdg.portal = lib.mkIf (config.profiles.desktop.displayManager == "none" && config.profiles.desktop.hyprland.enable) {
+      enable = true;
+      extraPortals = [ pkgs.xdg-desktop-portal-hyprland ];
+      # Optionally add GTK portal as fallback
+      # extraPortals = [ pkgs.xdg-desktop-portal-hyprland pkgs.xdg-desktop-portal-gtk ];
+    };
+     # Add portal config for COSMIC if needed when autologging into it
+
 
     # ==> Create /etc/regreet.toml directly using environment.etc <==
     environment.etc."greetd/regreet.toml" = lib.mkIf (config.profiles.desktop.displayManager == "greetd") {
@@ -109,6 +124,10 @@
         pkgs.hyprland
         pkgs.qt6.qtwayland
         pkgs.libjpeg pkgs.gdk-pixbuf pkgs.librsvg pkgs.qt6.qtimageformats
+      ])
+      ++
+      (lib.optionals (config.profiles.desktop.displayManager == "none" && config.profiles.desktop.hyprland.enable) [
+        pkgs.xdg-desktop-portal-hyprland
       ]);
 
     # == Assertions ==

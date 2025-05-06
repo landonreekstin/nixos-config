@@ -5,11 +5,14 @@
 
   imports = [
     ../../modules/home-manager/rice/century-series/default.nix
+    ../../modules/home-manager/services/remote-desktop.nix
   ];
 
   # Home Manager needs its own state version. Start with the same version
   # as the system stateVersion for consistency.
   home.stateVersion = "24.11";
+
+  xdg.enable = true;
 
   # Define the home directory and username for this configuration.
   # These are usually inferred correctly but setting explicitly is good practice.
@@ -74,6 +77,22 @@
     enable = true;
     userName = "Lando";
     userEmail = "landonreekstin@gmail.com";
+  };
+
+  # ==> Enable Bash management and configure login startup <==
+  programs.bash = {
+    enable = true; # Explicitly manage bash config files
+
+    # profileExtra appends to ~/.profile (or .bash_profile)
+    profileExtra = ''
+      # Start Hyprland automatically on TTY1 if not already in a graphical session
+      if [ -z "$DISPLAY" ] && [ -z "$WAYLAND_DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
+        echo "Attempting to start Hyprland from profileExtra on TTY1..."
+        # Use exec to replace the shell process with Hyprland
+        exec ${pkgs.hyprland}/bin/Hyprland
+      fi
+    ''; # End profileExtra
+
   };
 
   # == Enable Home Manager management ==
