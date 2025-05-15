@@ -5,7 +5,6 @@
 
   imports = [
     ../../modules/home-manager/rice/century-series/default.nix
-    ../../modules/home-manager/services/remote-desktop.nix
   ];
 
   # Home Manager needs its own state version. Start with the same version

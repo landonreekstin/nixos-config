@@ -7,6 +7,6 @@
 
   # Disable firewall for now (as in original config)
   # Enable and configure later if needed
-  networking.firewall.enable = false;
-  # networking.firewall.allowedTCPPorts = [ 22 ]; # Example if enabling
+  networking.firewall.enable = true;
+  networking.firewall.allowedTCPPorts = [ 22 ]; # Example if enabling
 }
