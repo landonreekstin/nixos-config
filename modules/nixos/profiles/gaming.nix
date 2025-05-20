@@ -23,6 +23,7 @@
       # Performance / Overlay / Utilities
       mangohud # Performance overlay
       gamemode # Performance optimization daemon
+      gamescope 
       # goverlay # GUI for MangoHud config (optional)
 
       # Vulkan Tools (Good for diagnostics)
@@ -35,6 +36,7 @@
     # 2. Enable Gamemode Service
     # Allows games (especially via Lutris/Steam) to request performance optimizations
     programs.gamemode.enable = true;
+    programs.gamescope.enable = true;
 
     # 3. Enable 32-bit libraries (often needed by Steam/Wine/games)
     # Note: The Nvidia module might already enable this, but being explicit is fine.
@@ -44,6 +46,9 @@
     # 4. Configure Kernel (Placeholder)
     # boot.kernelPackages = pkgs.linuxPackages_latest; # Example: Using Nixpkgs latest stable
     boot.kernelPackages = pkgs.linuxPackages_zen;
+
+    # Gamepad Input
+    hardware.xpadneo.enable = true;
 
     # 5. Ensure Graphics Drivers are sufficient (Handled by nvidia.nix module)
     # This module relies on another module (like nvidia.nix or amdgpu.nix)
