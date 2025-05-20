@@ -22,12 +22,10 @@
   # Packages installed here are available only to this user.
   # You could move user-specific tools like fastfetch, git from core.nix here.
   home.packages = with pkgs; [
-    # Example: Add a fun utility
-    cowsay
-    # Example: Add a tool for finding dotfiles later
     fd # find replacement
     vscodium
     librewolf
+    ungoogled-chromium
   ];
 
   # == Dotfile Management Example: Kitty Terminal ==
