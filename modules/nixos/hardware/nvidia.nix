@@ -10,6 +10,8 @@
     # package = config.boot.kernelPackages.nvidiaPackages.stable; # Or specify version if needed
   };
 
+  services.xserver.videoDrivers = [ "nvidia" ]; # Ensure X11 & Wayland use Nvidia driver
+
   # Ensure necessary firmware is available
   hardware.enableRedistributableFirmware = lib.mkDefault true; # Use mkDefault so host config can override to false if needed
 

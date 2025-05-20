@@ -99,6 +99,8 @@ in
       env = [
         "XCURSOR_SIZE,24"
         "QT_QPA_PLATFORMTHEME,qt6ct" # Or "kde" if heavily using KDE integration
+        "LIBVA_DRIVER_NAME,nvidia"  # For Nvidia users
+        "__GLX_VENDOR_LIBRARY_NAME,nvidia"
       ];
 
       # Input settings
