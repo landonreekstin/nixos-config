@@ -14,6 +14,7 @@ in
   # Enable Waybar program management via Home Manager
   programs.waybar = {
     enable = true;
+    systemd.enable = true;
 
     # Basic settings (JSON format)
     # Defines modules and their placement

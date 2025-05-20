@@ -1,270 +1,296 @@
 # ~/nixos-config/modules/home-manager/rice/century-series/hyprland.nix
 { config, pkgs, lib, ... }:
 
+let
+  # For services.hyprpaper and potentially other uses
+  wallpaperDir = config.home.homeDirectory + "/.local/share/wallpapers"; # Robust path
+  wallpaperF104 = wallpaperDir + "/f104-retro-future.jpg";
+  wallpaperHangar3 = wallpaperDir + "/future-aviation-hanger-3.jpg";
+  wallpaperHangar1 = wallpaperDir + "/future-aviation-hanger-1.jpg";
+  wallpaperSu47 = wallpaperDir + "/su-47-future.jpg";
+
+  # Monitor descriptions (used in hyprland.settings.monitor)
+  monitorDescMainDell = "Dell Inc. DELL S2721HGF DZR2123";
+  monitorDescLeftVirt = "Dell Inc. OptiPlex 7760 0x36419E0A";
+  monitorDescRightVirt = "Samsung Electric Company S27R65x H4TW800293";
+  monitorDescTV = "Hisense Electric Co. Ltd. 4Series43 0x00000278";
+
+in
 {
-  # Manage hyprland.conf via home-manager
-  # Ref: https://wiki.hyprland.org/Configuring/Configuring-Hyprland/
-  # Ref: https://nix-community.github.io/home-manager/options.html#opt-xdg.configFile
-  
-  # Link wallpaper file into home directory
-  home.file.".local/share/wallpapers/soviet-retro-future.jpg" = {
-     source = ../../../../assets/wallpapers/soviet-retro-future.jpg;
-     recursive = true; # Ensure directory exists
+  # -------------------------------------------------------------------------- #
+  # Wallpaper File Linking (remains the same)
+  # -------------------------------------------------------------------------- #
+  home.file.".local/share/wallpapers/future-aviation-hanger-3.jpg".source = ../../../../assets/wallpapers/future-aviation-hanger-3.jpg;
+  home.file.".local/share/wallpapers/f104-retro-future.jpg".source = ../../../../assets/wallpapers/f104-retro-future.jpg;
+  home.file.".local/share/wallpapers/su-47-future.jpg".source = ../../../../assets/wallpapers/su-47-future.jpg;
+  home.file.".local/share/wallpapers/future-aviation-hanger-1.jpg".source = ../../../../assets/wallpapers/future-aviation-hanger-1.jpg;
+
+  # -------------------------------------------------------------------------- #
+  # Hyprpaper Service (for setting wallpapers)
+  # -------------------------------------------------------------------------- #
+  services.hyprpaper = {
+    enable = true;
+    settings = {
+      preload = [ wallpaperF104 wallpaperHangar3 wallpaperHangar1 wallpaperSu47 ];
+      wallpaper = [
+        "desc:${monitorDescMainDell},${wallpaperHangar3}"  # Example: "DP-1,${wallpaperHangar3}"
+        "desc:${monitorDescLeftVirt},${wallpaperF104}" # Example: "HDMI-A-1,${wallpaperF104}"
+        "desc:${monitorDescRightVirt},${wallpaperSu47}" # Example: "DP-2,${wallpaperSu47}"
+        "desc:${monitorDescTV},${wallpaperHangar1}"     # Example: "HDMI-A-2,${wallpaperHangar1}"
+      ];
+      ipc = false;    # As per your previous setting
+      splash = false; # As per your previous setting
+    };
   };
-  home.file.".local/share/wallpapers/f104-retro-future.jpg" = {
-     source = ../../../../assets/wallpapers/f104-retro-future.jpg;
-     recursive = true;
+
+  # -------------------------------------------------------------------------- #
+  # Other Services (previously in exec-once)
+  # -------------------------------------------------------------------------- #
+
+  services.swaync = {
+    enable = true;
+    # Add any swaynotificationcenter specific config here if needed via its HM options.
   };
 
-  xdg.configFile."hypr/hyprland.conf" = {
-    # Ensure directory ~/.config/hypr exists
-    recursive = true;
-    # Use nix multiline string to define the content
-    text = ''
-      # See https://wiki.hyprland.org/Configuring/Monitors/
-      # Configure your monitor. Use 'hyprctl monitors' in a running session to get names.
-      # Configure monitors: Define settings for BOTH possible identifier pairs
-      # Pair 1
-      # Vertical Left (HDMI-A-3), Normal Right (HDMI-A-1)
-      monitor=HDMI-A-3,1920x1080,0x0,1,transform,1   # Left monitor, rotated 90deg clockwise
-      monitor=HDMI-A-1,preferred,1080x0,1            # Right monitor, starting after rotated width of HDMI-A-3
+  services.cliphist = {
+    enable = true; # This enables `wl-paste --watch cliphist store`
+  };
 
-      # Pair 2
-      monitor=HDMI-A-4,1920x1080,0x0,1,transform,1
-      monitor=HDMI-A-2,preferred,1080x0,1
-      # Example for second monitor: monitor=HDMI-A-1,preferred,auto,1,mirror,DP-1
-      # Example for vertical monitor: monitor=DP-1,preferred,auto,1,transform,1 # 1=90deg clockwise
+  # -------------------------------------------------------------------------- #
+  # Hyprland Configuration using Home Manager Module
+  # -------------------------------------------------------------------------- #
+  wayland.windowManager.hyprland = {
+    enable = true;
 
-      # See https://wiki.hyprland.org/Configuring/Keywords/ for more
+    # === IMPORTANT FOR NIXOS USERS ===
+    # If you have `programs.hyprland.enable = true;` in your NixOS system
+    # configuration (`configuration.nix`), set `package` to `null`.
+    # Otherwise, Home Manager will manage the Hyprland package.
+    package = null; # or `null` if using NixOS module for hyprland package
 
-      # Execute your favorite apps at launch
-      # exec-once = waybar & swaybg -i ~/path/to/wallpaper.png & swaync
-      # NOTE: We will configure these properly later via their own modules/options
-      exec-once = ${pkgs.swaynotificationcenter}/bin/swaync & # Start notification daemon
-      exec-once = ${pkgs.waybar}/bin/waybar # Start Waybar (configure first)
-      exec-once = ${pkgs.wl-clipboard}/bin/wl-paste --watch ${pkgs.cliphist}/bin/cliphist store # Start clipboard manager
-      exec-once = ${pkgs.hyprpaper}/bin/hyprpaper & # Set wallpaper using swaybg and the linked path
-      exec-once = ${pkgs.wayvnc}/bin/wayvnc --output=HDMI-A-3 --render-cursor localhost 5900
+    # xwayland.enable = true; # Default is true. Uncomment to explicitly set or change to false.
+    # systemd.enable = true; # Default is true, good for session management.
+    # systemd.enableXdgAutostart = false; # Default. Set to true if you use XDG autostart for some apps.
 
-      # Source a file for colors allows easy overriding later
-      # source = ~/.config/hypr/themes/theme.conf # We can manage themes later
+    settings = {
+      # Variables are typically placed at the top by the module.
+      "$mainMod" = "SUPER";
+      "$altMod" = "ALT";
+      "$ctrlMod" = "CONTROL";
+      "$terminal" = "${pkgs.kitty}/bin/kitty";
+      "$fileManager" = "${pkgs.cosmic-files}/bin/cosmic-files";
+      "$menu" = "${pkgs.wofi}/bin/wofi --show drun";
 
-      # Set programs that you use
-      $terminal = ${pkgs.kitty}/bin/kitty # Use kitty package from Nix store path
-      $fileManager = ${pkgs.kdePackages.dolphin}/bin/dolphin # Assuming Dolphin is installed system-wide
-      $menu = ${pkgs.wofi}/bin/wofi --show drun # Use wofi package path
+      # Monitor configuration (using descriptions from your original config)
+      # Note: These are for Hyprland's internal monitor setup, distinct from hyprpaper.
+      monitor = [
+        "desc:${monitorDescMainDell}, 1920x1080@144, 0x0, 1"
+        "desc:${monitorDescLeftVirt}, preferred, -1080x-410, 1, transform,1"
+        "desc:${monitorDescRightVirt}, preferred, 1920x-390, 1, transform,1"
+        "desc:${monitorDescTV}, preferred, 0x-1080, 1"
+      ];
 
-      # Some default env vars.
-      env = XCURSOR_SIZE,24
-      env = QT_QPA_PLATFORMTHEME,qt6ct # Or "kde" if using KDE integration heavily
+      # exec-once: For applications not managed by dedicated Home Manager services.
+      "exec-once" = [
+        "${pkgs.wayvnc}/bin/wayvnc --output=DP-1 --render-cursor localhost 5900"
+      ];
 
-      # For all categories, see https://wiki.hyprland.org/Configuring/Variables/
-      input {
-          kb_layout = us
-          kb_variant =
-          kb_model =
-          kb_options =
-          kb_rules =
+      # Environment variables
+      env = [
+        "XCURSOR_SIZE,24"
+        "QT_QPA_PLATFORMTHEME,qt6ct" # Or "kde" if heavily using KDE integration
+      ];
 
-          follow_mouse = 1
-
-          touchpad {
-              natural_scroll = no
-          }
-
-          sensitivity = 0 # -1.0 - 1.0, 0 means no modification.
-      }
-
-      general {
-          # See https://wiki.hyprland.org/Configuring/Variables/ for more
-
-          gaps_in = 5
-          gaps_out = 10
-          border_size = 2
-
-          # ==> Define Colors using RGBA Hex <==
-          # Base Tones
-          col.inactive_border = rgba(808080aa) # Medium Grey, semi-transparent AA alpha
-          # col.main_background = rgba(1A1A1AFF) # Near Black, fully opaque (optional, usually set by wallpaper)
-
-          # Accents
-          col.active_border = rgba(DAA520ff) # Gradient: Ochre, fully opaque
-
-          # Groups / Tabs (Examples, adjust based on Hyprland group features if used)
-          # col.group_border = rgba(5F9EA0ff) # Teal group border
-          # col.group_border_active = rgba(FFBF00ff) # Amber active group border
-
-
-          layout = dwindle # master or dwindle
-
-          # Please see https://wiki.hyprland.org/Configuring/Tearing/ before enabling
-          allow_tearing = false
-      }
-
-      decoration {
-          # See https://wiki.hyprland.org/Configuring/Variables/ for more
-
-          rounding = 3
-
-          # Opacity (can make terminals/windows slightly transparent)
-          # active_opacity = 0.95
-          # inactive_opacity = 0.85
-
-          blur {
-              enabled = true
-              size = 3
-              passes = 1
-          }
-
-          drop_shadow = yes
-          shadow_range = 4
-          shadow_render_power = 3
-          col.shadow = rgba(1a1a1a99)
-      }
-
-      animations {
-          enabled = yes
-
-          # Some default animations, see https://wiki.hyprland.org/Configuring/Animations/ for more
-
-          bezier = myBezier, 0.05, 0.9, 0.1, 1.05
-
-          animation = windows, 1, 7, myBezier
-          animation = windowsOut, 1, 7, default, popin 80%
-          animation = border, 1, 10, default
-          animation = borderangle, 1, 8, default
-          animation = fade, 1, 7, default
-          animation = workspaces, 1, 6, default
-      }
-
-      dwindle {
-          # See https://wiki.hyprland.org/Configuring/Dwindle-Layout/ for more
-          pseudotile = yes # master switch for pseudotiling. Enabling is bound to mainMod + P in the keybinds section below
-          preserve_split = yes # you probably want this
-      }
-
-      master {
-          # See https://wiki.hyprland.org/Configuring/Master-Layout/ for more
-          new_is_master = true
-      }
-
-      gestures {
-          # See https://wiki.hyprland.org/Configuring/Variables/ for more
-          workspace_swipe = off
-      }
-
-      misc {
-          # See https://wiki.hyprland.org/Configuring/Variables/ for more
-          force_default_wallpaper = -1 # Set to 0 or 1 to disable the anime mascot wallpapers
-          disable_hyprland_logo = true
-      }
-
-      # Example windowrule v1
-      # windowrule = float, ^(kitty)$
-      # Example windowrule v2
-      # windowrulev2 = float,class:^(kitty)$,title:^(kitty)$
-      # See https://wiki.hyprland.org/Configuring/Window-Rules/ for more
-
-
-      # See https://wiki.hyprland.org/Configuring/Keywords/ for more
-      $mainMod = SUPER # Sets "Windows" key as main modifier
-
-      # Example binds, see https://wiki.hyprland.org/Configuring/Binds/ for more
-      bind = $mainMod, Q, exec, $terminal
-      bind = $mainMod, C, killactive,
-      bind = $mainMod, M, exit, # WARNING: This exits Hyprland, use wlogout later
-      bind = $mainMod, E, exec, $fileManager
-      bind = $mainMod, V, togglefloating,
-      bind = $mainMod, R, exec, $menu
-      bind = $mainMod, P, pseudo, # dwindle
-      bind = $mainMod, J, togglesplit, # dwindle
-
-      # Move focus with mainMod + arrow keys
-      bind = $mainMod, left, movefocus, l
-      bind = $mainMod, right, movefocus, r
-      bind = $mainMod, up, movefocus, u
-      bind = $mainMod, down, movefocus, d
-
-      # Switch workspaces with mainMod + [0-9]
-      bind = $mainMod, 1, workspace, 1
-      bind = $mainMod, 2, workspace, 2
-      bind = $mainMod, 3, workspace, 3
-      bind = $mainMod, 4, workspace, 4
-      bind = $mainMod, 5, workspace, 5
-      bind = $mainMod, 6, workspace, 6
-      bind = $mainMod, 7, workspace, 7
-      bind = $mainMod, 8, workspace, 8
-      bind = $mainMod, 9, workspace, 9
-      bind = $mainMod, 0, workspace, 10
-
-      # Move active window to a workspace with mainMod + SHIFT + [0-9]
-      bind = $mainMod SHIFT, 1, movetoworkspace, 1
-      bind = $mainMod SHIFT, 2, movetoworkspace, 2
-      bind = $mainMod SHIFT, 3, movetoworkspace, 3
-      bind = $mainMod SHIFT, 4, movetoworkspace, 4
-      bind = $mainMod SHIFT, 5, movetoworkspace, 5
-      bind = $mainMod SHIFT, 6, movetoworkspace, 6
-      bind = $mainMod SHIFT, 7, movetoworkspace, 7
-      bind = $mainMod SHIFT, 8, movetoworkspace, 8
-      bind = $mainMod SHIFT, 9, movetoworkspace, 9
-      bind = $mainMod SHIFT, 0, movetoworkspace, 10
-
-      # Example special workspace (scratchpad)
-      # bind = $mainMod SHIFT, S, movetoworkspace, special
-      # bind = $mainMod, S, togglespecialworkspace,
-
-      # Scroll through existing workspaces with mainMod + scroll
-      bind = $mainMod, mouse_down, workspace, e+1
-      bind = $mainMod, mouse_up, workspace, e-1
-
-      # Move/resize windows with mainMod + LMB/RMB and dragging
-      bindm = $mainMod, mouse:272, movewindow
-      bindm = $mainMod, mouse:273, resizewindow
-    ''; # End of hyprland.conf text
-  }; # End xdg.configFile
-
-
-  xdg.configFile."hypr/hyprpaper.conf" = {
-    recursive = true;
-    text = ''
-      # Preload images for efficiency
-      preload = ${config.home.homeDirectory}/.local/share/wallpapers/soviet-retro-future.jpg
-      preload = ${config.home.homeDirectory}/.local/share/wallpapers/f104-retro-future.jpg
-
-      # Assign wallpapers to monitors (handling dual identifiers)
-      # Main Monitor (Horizontal - HDMI-A-1 or HDMI-A-2)
-      wallpaper = HDMI-A-1,${config.home.homeDirectory}/.local/share/wallpapers/soviet-retro-future.jpg
-      wallpaper = HDMI-A-2,${config.home.homeDirectory}/.local/share/wallpapers/soviet-retro-future.jpg
-
-      # Vertical Monitor (HDMI-A-3 or HDMI-A-4)
-      wallpaper = HDMI-A-3,${config.home.homeDirectory}/.local/share/wallpapers/f104-retro-future.jpg
-      wallpaper = HDMI-A-4,${config.home.homeDirectory}/.local/share/wallpapers/f104-retro-future.jpg
-
-      # Optional Fallback for any other monitors
-      # wallpaper = ,${config.home.homeDirectory}/.local/share/wallpapers/soviet-retro-future.jpg
+      # Input settings
+      input = {
+        kb_layout = "us";
+        kb_variant = "";
+        kb_model = "";
+        kb_options = "";
+        kb_rules = "";
+        follow_mouse = 1;
+        touchpad = {
+          natural_scroll = false; # Use boolean true/false
+        };
+        sensitivity = 0; # float, 0 means no modification
+      };
 
       # General settings
-      ipc = off
-      splash = false
-    '';
-  }; # End xdg.configFile."hypr/hyprpaper.conf"
+      general = {
+        gaps_in = 5;
+        gaps_out = 10;
+        border_size = 2;
+        "col.inactive_border" = "rgba(808080aa)";
+        "col.active_border" = "rgba(DAA520ff)";
+        layout = "dwindle";
+        allow_tearing = false;
+      };
 
+      # Decoration settings
+      decoration = {
+        rounding = 3;
+        blur = {
+          enabled = true;
+          size = 3;
+          passes = 1;
+        };
+        # drop_shadow = true; # Example if you want to enable
+        # shadow_range = 4;
+        # shadow_render_power = 3;
+        # "col.shadow" = "rgba(1a1a1a99)";
+      };
 
-  # Ensure necessary packages for the config are installed via HM
+      # Animations settings
+      animations = {
+        enabled = true; # Use boolean
+        # Bezier definition (will be placed near the top by the module)
+        bezier = "myBezier, 0.05, 0.9, 0.1, 1.05";
+        # Animation rules (list of strings)
+        animation = [
+          "windows, 1, 7, myBezier"
+          "windowsOut, 1, 7, default, popin 80%"
+          "border, 1, 10, default"
+          "borderangle, 1, 8, default"
+          "fade, 1, 7, default"
+          "workspaces, 1, 6, default"
+        ];
+      };
+
+      # Layout-specific settings
+      dwindle = {
+        pseudotile = true;     # Use boolean
+        preserve_split = true; # Use boolean
+      };
+      master = {
+        # new_is_master = true; # Use boolean
+      };
+
+      # Gestures settings
+      gestures = {
+        workspace_swipe = false; # Use boolean
+      };
+
+      # Miscellaneous settings
+      misc = {
+        force_default_wallpaper = -1; # Or 0 or 1
+        disable_hyprland_logo = true; # Use boolean
+      };
+
+      # Keybindings (list of strings)
+      bind = [
+        # Applications
+        "$mainMod, SPACE, exec, $menu"             # Uses $menu variable
+        "$mainMod, RETURN, exec, $terminal"        # Uses $terminal variable
+        "$mainMod, I, exec, ${pkgs.vscodium}/bin/vscodium" # Ensure pkgs.vscodium exists
+        "$mainMod, T, exec, ${pkgs.kdePackages.kate}/bin/kate"
+        "$mainMod, F, exec, $terminal -e ${pkgs.yazi}/bin/yazi" # Uses $terminal
+        "$mainMod SHIFT, F, exec, ${pkgs.cosmic-files}/bin/cosmic-files" # Ensure pkgs.cosmic-files exists
+        "$mainMod, B, exec, ${pkgs.librewolf}/bin/librewolf"
+        "$mainMod SHIFT, B, exec, ${pkgs.brave}/bin/brave"
+        "$mainMod, M, exec, ${pkgs.spotify}/bin/spotify --enable-features=UseOzonePlatform --ozone-platform=wayland"
+        "$mainMod, D, exec, ${pkgs.discord}/bin/discord"
+        "$mainMod, G, exec, ${pkgs.steam.run}/bin/steam" # Using steam.run for proper environment
+        "$mainMod SHIFT, G, exec, ${pkgs.lutris}/bin/lutris"
+
+        # Window Management
+        "$mainMod, Q, killactive,"
+        "$mainMod $ctrlMod, F, togglefloating,"
+        "$mainMod, left, swapwindow, l"
+        "$mainMod, right, swapwindow, r"
+        "$mainMod, up, swapwindow, u"
+        "$mainMod, down, swapwindow, d"
+        "$mainMod, H, movefocus, l"
+        "$mainMod, J, movefocus, d"
+        "$mainMod, K, movefocus, u"
+        "$mainMod, L, movefocus, r"
+        "$mainMod, bracketleft, exec, hyprctl keyword general:layout dwindle"
+        "$mainMod, bracketright, exec, hyprctl keyword general:layout master"
+
+        # Resize active window
+        "$mainMod SHIFT, H, resizeactive, -20 0"
+        "$mainMod SHIFT, J, resizeactive, 0 20"
+        "$mainMod SHIFT, K, resizeactive, 0 -20"
+        "$mainMod SHIFT, L, resizeactive, 20 0"
+
+        # Workspace Management (dynamically generated for 1-9)
+      ] ++ (lib.lists.concatMap (ws: [
+          "$mainMod $ctrlMod, ${toString ws}, workspace, ${toString ws}"
+          "$mainMod $ctrlMod SHIFT, ${toString ws}, movetoworkspace, ${toString ws}"
+        ]) (lib.lists.range 1 9)
+      ) ++ [ # Appending bindings for workspace 10 and next/prev
+        "$mainMod $ctrlMod, 0, workspace, 10"
+        "$mainMod $ctrlMod SHIFT, 0, movetoworkspace, 10"
+        "$mainMod $ctrlMod, greater, movetoworkspace, e+1"
+        "$mainMod $ctrlMod, less, movetoworkspace, e-1"
+
+        # System & Utility Bindings
+        "$ctrlMod, L, exec, ${pkgs.swaylock}/bin/swaylock" # Ensure swaylock is in home.packages
+        # Cliphist + Wofi example (adjust as needed):
+        "$mainMod, V, exec, ${pkgs.cliphist}/bin/cliphist list | ${pkgs.wofi}/bin/wofi --dmenu | ${pkgs.cliphist}/bin/cliphist decode | ${pkgs.wl-clipboard}/bin/wl-copy"
+        "$mainMod SHIFT, S, exec, ${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp)\" ${config.home.homeDirectory}/Pictures/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png" # Ensure grim, slurp in home.packages
+        "$mainMod SHIFT, R, exec, hyprctl reload"
+        "$mainMod SHIFT, Q, exit,"
+
+        # Media Keys (ensure playerctl and pactl/appropriate audio control are in home.packages)
+        # You might need to use `pkgs.pulseaudio}/bin/pactl` or `${pkgs.pipewire}/bin/pactl` depending on your audio setup.
+        # `pkgs.pactl` might be available directly if your system provides it.
+        ", XF86AudioPlay, exec, ${pkgs.playerctl}/bin/playerctl --player=spotify play-pause"
+        ", XF86AudioNext, exec, ${pkgs.playerctl}/bin/playerctl --player=spotify next"
+        ", XF86AudioPrev, exec, ${pkgs.playerctl}/bin/playerctl --player=spotify previous"
+        ", XF86AudioMute, exec, ${pkgs.pulseaudio}/bin/pactl set-sink-mute @DEFAULT_SINK@ toggle"
+        ", XF86AudioLowerVolume, exec, ${pkgs.pulseaudio}/bin/pactl set-sink-volume @DEFAULT_SINK@ -5%"
+        ", XF86AudioRaiseVolume, exec, ${pkgs.pulseaudio}/bin/pactl set-sink-volume @DEFAULT_SINK@ +5%"
+      ];
+
+      # Mouse bindings (list of strings)
+      bindm = [
+        "$mainMod, mouse:272, movewindow"
+        "$mainMod, mouse:273, resizewindow"
+      ];
+
+      # Window rules (list of strings, example from your original config)
+      # windowrulev2 = [
+      #   "float,class:^(kitty)$,title:^(kitty)$"
+      #   # Add other rules here
+      # ];
+    }; # End of wayland.windowManager.hyprland.settings
+
+    # Use `extraConfig` for any raw Hyprland config lines that are difficult
+    # or impossible to express in the structured `settings` above.
+    # extraConfig = ''
+    #   # Example: source = ~/.config/hypr/my_extra_settings.conf
+    # '';
+
+  }; # End of wayland.windowManager.hyprland
+
+  # -------------------------------------------------------------------------- #
+  # Home Manager Packages
+  # -------------------------------------------------------------------------- #
+  # List packages used in binds/execs if not handled by a service,
+  # or not automatically detected and pulled in by the hyprland module.
+  # Many packages like kitty, wofi, etc., referenced as ${pkgs...} in settings
+  # should be automatically included by the Hyprland module.
+  # This list is for explicit dependencies or general tools.
   home.packages = with pkgs; [
-    # Packages referenced in hyprland.conf ($terminal, $menu, etc.)
-    # Many are already in the system Hyprland profile module,
-    # but adding here ensures they are available if HM is used independently.
-    kitty
-    # dolphin # Already installed system-wide via kdePackages.plasma-workspace
-    wofi
-    wl-clipboard
-    cliphist
-    swaynotificationcenter
-    waybar
-    hyprpaper
-    dbus
+    # Core utilities from your original list, if not pulled by services:
+    yazi                 # For $terminal -e yazi
+    kdePackages.kate     # For editor binding
+    kdePackages.konsole  # Used by Kate
+    librewolf
+    brave
+    spotify
+    discord
+
+    # From Hyprland exec/binds not covered by services:
     wayvnc
+    (if pkgs ? vscodium then vscodium else null) # Check if pkgs.vscodium exists
+    (if pkgs ? cosmic-files then cosmic-files else null) # Check if pkgs.cosmic-files exists
+    swaylock
+    grim
+    slurp
+    playerctl
+    pulseaudio
+
   ];
-  
+
 }
