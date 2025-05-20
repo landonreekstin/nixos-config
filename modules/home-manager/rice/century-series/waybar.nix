@@ -11,6 +11,10 @@ let
   };
 in
 {
+
+  imports = [
+    ../../scripts/audio-switcher.nix # Audio sink switcher script
+  ];
   # Enable Waybar program management via Home Manager
   programs.waybar = {
     enable = true;
@@ -40,12 +44,11 @@ in
         # Modules displayed on the right
         modules-right = [
           "network"
-          "pulseaudio"
+          "pulseaudio#sink_switcher"
           "cpu"
           "memory"
           "clock"
           "tray"
-          # "battery" # Add if laptop
         ];
 
         # Module-specific configuration
@@ -85,7 +88,7 @@ in
           tooltip-format = "{ifname} via {gwaddr}";
           on-click = "${pkgs.networkmanager_dmenu}/bin/networkmanager_dmenu"; # Example action
         };
-        pulseaudio = {
+        "pulseaudio#sink_switcher" = {
           format = "{volume}% {icon}";
           format-bluetooth = "{volume}% {icon}";
           format-muted = " Muted";
@@ -99,6 +102,8 @@ in
             default = ["" ""];
           };
           scroll-step = 5;
+          on-click = "switch-audio-sink";
+          on-click-right = "${pkgs.pavucontrol}/bin/pavucontrol";
         };
         tray = {
           icon-size = 18;
@@ -185,5 +190,6 @@ in
     # playerctl # For MPRIS module
     networkmanagerapplet # If using NM tray icon
     networkmanager_dmenu # For network module on-click
+    pavucontrol
   ];
 }
