@@ -65,6 +65,18 @@
   # Basic console settings
   console.keyMap = "us";
 
+  # Security settings
+  security.sudo.extraConfig = ''
+    # Increase sudo timeout to 30 minutes
+    Defaults timestamp_timeout=30
+  '';
+
+  # Power management (disable suspend)
+  services.logind.extraConfig = ''
+    IdleAction=ignore
+    IdleActionSec=0
+  '';
+
   # Basic system packages (can be extended by profiles)
   environment.systemPackages = with pkgs; [
     vim
@@ -75,9 +87,4 @@
     pavucontrol # Useful audio tool
   ];
 
-  # Power management (disable suspend)
-  services.logind.extraConfig = ''
-    IdleAction=ignore
-    IdleActionSec=0
-  '';
 }
