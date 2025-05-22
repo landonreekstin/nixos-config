@@ -33,28 +33,26 @@
       superTuxKart
     ];
 
-    # 2. Enable Gamemode Service
+    # Enable gaming programs
     # Allows games (especially via Lutris/Steam) to request performance optimizations
+    programs.steam.enable = true;
+    programs.steam.gamescopeSession.enable = true;
     programs.gamemode.enable = true;
     programs.gamescope.enable = true;
 
-    # 3. Enable 32-bit libraries (often needed by Steam/Wine/games)
+    # Enable 32-bit libraries (often needed by Steam/Wine/games)
     # Note: The Nvidia module might already enable this, but being explicit is fine.
     hardware.graphics.enable = true; # Ensure base OpenGL is set up
     hardware.graphics.enable32Bit = true;
 
-    # 4. Configure Kernel (Placeholder)
+    # Configure Kernel
     # boot.kernelPackages = pkgs.linuxPackages_latest; # Example: Using Nixpkgs latest stable
     boot.kernelPackages = pkgs.linuxPackages_zen;
 
     # Gamepad Input
     hardware.xpadneo.enable = true;
 
-    # 5. Ensure Graphics Drivers are sufficient (Handled by nvidia.nix module)
-    # This module relies on another module (like nvidia.nix or amdgpu.nix)
-    # being imported by the host to provide the actual drivers.
-
-    # 6. Add user to 'video' group (often needed for Vulkan/DRI access)
+    # Add user to 'video' group (often needed for Vulkan/DRI access)
     # This might be handled automatically by driver modules/DEs, but explicit is safe.
     users.users.lando.extraGroups = lib.mkMerge [
       (lib.mkIf config.users.users.lando.isNormalUser [ "video" ])
