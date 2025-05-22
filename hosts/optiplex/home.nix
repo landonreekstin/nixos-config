@@ -4,7 +4,10 @@
 {
 
   imports = [
-    ../../modules/home-manager/rice/century-series/default.nix
+    ../../modules/home-manager/hyprland/default.nix # Imports hyprland functionality
+     # --- Active Theme ---
+    # This imports all ricing components for the selected theme
+    ../../modules/home-manager/themes/future-aviation/default.nix
   ];
 
   # Home Manager needs its own state version. Start with the same version
@@ -86,6 +89,11 @@
   # ==> Enable Bash management and configure login startup <==
   programs.bash = {
     enable = true; # Explicitly manage bash config files
+
+    shellAliases = {
+      # c for clear
+      c = "clear";
+    };
 
     # profileExtra appends to ~/.profile (or .bash_profile)
     profileExtra = ''
