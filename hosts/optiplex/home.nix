@@ -11,7 +11,14 @@
   # as the system stateVersion for consistency.
   home.stateVersion = "24.11";
 
-  xdg.enable = true;
+  xdg = {
+    enable = true;
+    portal.config = {
+      common = {
+        default = "*";
+      };
+    };
+  };
 
   # Define the home directory and username for this configuration.
   # These are usually inferred correctly but setting explicitly is good practice.
