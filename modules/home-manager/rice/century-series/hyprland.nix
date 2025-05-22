@@ -14,9 +14,16 @@ let
   monitorDescLeftVirt = "Dell Inc. OptiPlex 7760 0x36419E0A";
   monitorDescRightVirt = "Samsung Electric Company S27R65x H4TW800293";
   monitorDescTV = "Hisense Electric Co. Ltd. 4Series43 0x00000278";
+  targetWayvncMonitorDescription = monitorDescTV; # Example target monitor for wayvnc
 
 in
 {
+
+  imports = [
+    # Import the set-wayvnc-output script
+    ../../scripts/set-wayvnc-output.nix
+  ];
+
   # -------------------------------------------------------------------------- #
   # Wallpaper File Linking (remains the same)
   # -------------------------------------------------------------------------- #
@@ -68,9 +75,9 @@ in
     # Otherwise, Home Manager will manage the Hyprland package.
     package = null; # or `null` if using NixOS module for hyprland package
 
-    # xwayland.enable = true; # Default is true. Uncomment to explicitly set or change to false.
-    # systemd.enable = true; # Default is true, good for session management.
-    # systemd.enableXdgAutostart = false; # Default. Set to true if you use XDG autostart for some apps.
+    #xwayland.enable = true; # Default is true. Uncomment to explicitly set or change to false.
+    #systemd.enable = true; # Default is true, good for session management.
+    #systemd.enableXdgAutostart = true; # Default. Set to true if you use XDG autostart for some apps.
 
     settings = {
       # Variables are typically placed at the top by the module.
@@ -92,7 +99,8 @@ in
 
       # exec-once: For applications not managed by dedicated Home Manager services.
       "exec-once" = [
-        "${pkgs.wayvnc}/bin/wayvnc --output=DP-1 --render-cursor localhost 5900"
+        "${pkgs.wayvnc}/bin/wayvnc --render-cursor localhost 5900" # No output specified on startup, default output is set and then changed by wayvncctl
+        "set-wayvnc-output \"${targetWayvncMonitorDescription}\" > /tmp/set-wayvnc-output.log 2>&1"
       ];
 
       # Environment variables
