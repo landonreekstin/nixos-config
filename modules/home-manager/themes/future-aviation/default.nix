@@ -4,6 +4,6 @@
 {
   imports = [
     ./hyprland-rice.nix
-    # We will add ./waybar.nix here later
+    ./waybar-rice.nix
   ];
 }

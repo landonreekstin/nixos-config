@@ -5,7 +5,9 @@
 
   imports = [
     ../../modules/home-manager/hyprland/default.nix # Imports hyprland functionality
-     # --- Active Theme ---
+    ../../modules/home-manager/de-wm-components/waybar/default.nix # Imports waybar functionality
+    
+    # --- Active Theme ---
     # This imports all ricing components for the selected theme
     ../../modules/home-manager/themes/future-aviation/default.nix
   ];
