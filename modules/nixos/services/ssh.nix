@@ -1,8 +1,6 @@
 # ~/nixos-config/modules/nixos/services/ssh.nix
 { config, pkgs, lib, ... }:
-
-{
-  # Enable OpenSSH daemon
+lib.mkIf config.customConfig.services.ssh.enable {
   services.openssh = {
     enable = true;
     settings = {
