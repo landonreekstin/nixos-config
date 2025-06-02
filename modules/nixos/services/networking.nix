@@ -4,6 +4,7 @@
 {
   # Enable NetworkManager
   networking.networkmanager.enable = true;
+  networking.wireless.enable = true;
 
   # Disable firewall for now (as in original config)
   # Enable and configure later if needed
