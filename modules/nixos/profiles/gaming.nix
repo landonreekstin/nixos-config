@@ -28,6 +28,9 @@
 
       # Vulkan Tools (Good for diagnostics)
       vulkan-tools
+
+      # Mod Managers
+      r2modman # Lethal Company
       
       # Games
       superTuxKart
