@@ -3,16 +3,17 @@
 
 {
   imports = [
-    # 1. Hardware-specific configuration for this host
+    # Hardware-specific configuration for this host
     ./hardware-configuration.nix
+    # Define our custom options (makes `config.customConfig` available for use below)
+    ../../modules/nixos/common-options.nix
 
-    # 2. Define our custom options (makes `config.customConfig` available for use below)
-    ../../modules/nixos/common-options.nix # You created this in the previous step
+    # Universal host options
+    ../../modules/nixos/common/default.nix          # User, system basics, nix settings
 
-    # 3. Import ALL your shared NixOS modules.
+    # Import ALL shared NixOS modules.
     #    These modules will be refactored later to use `lib.mkIf` based on `config.customConfig`.
-    #    For now, they are imported, and their internal logic will be made conditional.
-    ../../modules/nixos/core.nix                   # User, system basics, nix settings
+    #    For now, they are imported, and their internal logic will be made conditional and imported with a default.nix.
     #../../modules/nixos/desktop/cosmic.nix         # COSMIC DE system settings
     #../../modules/nixos/desktop/hyprland.nix       # Hyprland system settings
     #../../modules/nixos/desktop/display-manager.nix# Display manager logic
@@ -150,6 +151,4 @@
     };
   };
 
-  # Ensure system state version is set (now driven by customConfig)
-  system.stateVersion = config.customConfig.system.stateVersion;
 }
