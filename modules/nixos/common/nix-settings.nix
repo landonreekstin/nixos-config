@@ -14,18 +14,18 @@
       "cosmic.cachix.org-1:Dya9IyXD4xdBehWjrkPv6rtxpmMdRel02smYzA85dPE="
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
     ];
-    auto-optimise-store = config.customConfig.nix.optimiseStore; # Driven by option
+    auto-optimise-store = true;
   };
 
   # Garbage collection
   nix.gc = {
-    automatic = config.customConfig.nix.gc.automatic; # Driven by option
+    automatic = true;
     dates = "weekly";
     options = "--delete-older-than 7d";
   };
 
   # Dynamic linked libraries
-  programs.nix-ld = lib.mkIf config.customConfig.nix.nix-ld.enable {
+  programs.nix-ld = {
     enable = true;
     libraries = with pkgs; [
       stdenv.cc.cc.lib

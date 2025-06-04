@@ -63,7 +63,20 @@
         default = "none";
         description = "The primary desktop environment or window manager to enable system-wide.";
       };
-      # You could add more general desktop options here, like default display manager, etc.
+      displayManager = {
+        enable = mkOption {
+          type = types.bool;
+          default = true; # Usually true if a graphical environment is selected, can be overridden
+          # Consider defaulting based on desktop.environment != "none"
+          # default = (config.customConfig.desktop.environment != "none");
+          description = "Whether to enable a display manager.";
+        };
+        type = mkOption {
+          type = types.enum [ "sddm" "gdm" "greetd" "none" ]; # Add more as needed
+          default = "sddm"; # A common default, adjust as preferred
+          description = "Which display manager to use if displayManager.enable is true. 'none' means no DM managed by this option.";
+        };
+      };
     };
 
     # Enables for specific system-level programs or services related to desktops
@@ -176,6 +189,22 @@
     };
 
     # -------------------------------------------------------------------------- #
+    #                             HARDWARE AND PERIPHERALS                       #
+    # -------------------------------------------------------------------------- #
+    hardware = {
+      nvidia = {
+        enable = mkOption {
+          type = types.bool;
+          default = false; # Default to false, enable explicitly on NVIDIA machines
+          description = "Enable NVIDIA drivers and related configuration.";
+        };
+        # You could add more nvidia options here: powerManagement, openDrivers, etc.
+      };
+      # Add options for amdgpu, intel, bluetooth etc. here later
+      # CORSAIR KEYBOARD, rgb management
+    };
+
+    # -------------------------------------------------------------------------- #
     #                             SERVICES (NixOS Level)                         #
     # -------------------------------------------------------------------------- #
     services = {
@@ -193,18 +222,6 @@
     # -------------------------------------------------------------------------- #
     #                        NIX & SYSTEM OPTIMIZATIONS                          #
     # -------------------------------------------------------------------------- #
-    nix = {
-      optimiseStore = mkOption { type = types.bool; default = true; description = "Enable nix store optimisation (nix.settings.auto-optimise-store)."; };
-      gc = {
-        automatic = mkOption { type = types.bool; default = true; description = "Enable automatic garbage collection."; };
-        # frequency = mkOption { type = types.str; default = "weekly"; };
-        # options = mkOption { type = types.str; default = "--delete-older-than 30d"; };
-      };
-      # For nix-ld-rs
-      nix-ld = {
-        enable = mkOption { type = types.bool; default = true; description = "Enable nix-ld for running unpatched binaries."; };
-      };
-    };
 
   }; # End of customConfig option set
   
