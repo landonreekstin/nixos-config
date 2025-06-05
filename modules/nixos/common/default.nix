@@ -9,5 +9,7 @@
     ./users-groups.nix
     ./system-tweaks.nix
     ./base-environment.nix
+    ./networking.nix
+    ./audio.nix
   ];
 }

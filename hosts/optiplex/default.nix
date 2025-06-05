@@ -5,27 +5,9 @@
   imports = [
     # Hardware-specific configuration for this host
     ./hardware-configuration.nix
-    # Define our custom options (makes `config.customConfig` available for use below)
-    ../../modules/nixos/common-options.nix
-
-    # Universal host options
-    ../../modules/nixos/common/default.nix          # User, system basics, nix settings
-
-    # Import ALL shared NixOS modules.
-    #    These modules will be refactored later to use `lib.mkIf` based on `config.customConfig`.
-    #    For now, they are imported, and their internal logic will be made conditional and imported with a default.nix.
-    ../../modules/nixos/desktop/cosmic.nix         # COSMIC DE system settings
-    ../../modules/nixos/desktop/hyprland.nix       # Hyprland system settings
-    ../../modules/nixos/desktop/display-manager.nix# Display manager logic
-    ../../modules/nixos/hardware/nvidia.nix        # NVIDIA GPU settings
-    #../../modules/nixos/services/networking.nix    # Network configuration
-    #../../modules/nixos/services/audio.nix      # Pipewire audio
-    ../../modules/nixos/services/ssh.nix           # SSH server
-    ../../modules/nixos/services/vscode-server.nix
-    ../../modules/nixos/profiles/gaming.nix        # Gaming profile (conditional import later)
-
-    inputs.nixos-vscode-server.nixosModules.default
-    inputs.nixos-cosmic.nixosModules.default
+    
+    # Top level nixos modules import. All other nixos modules and option definitions are nested.
+    ../../modules/nixos/default.nix
 
   ];
 
