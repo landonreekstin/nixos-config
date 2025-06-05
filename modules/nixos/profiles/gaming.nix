@@ -2,13 +2,9 @@
 { config, pkgs, lib, ... }:
 
 {
-  # == Options ==
-  # We could add options here later, e.g.:
-  # options.profiles.gaming.enableSteam = lib.mkEnableOption "Enable Steam";
 
   # == Configuration ==
-  config = lib.mkIf true { # We assume if this module is imported, gaming is enabled.
-                           # Could be tied to options.profiles.gaming.enable later.
+  config = lib.mkIf config.customConfig.profiles.gaming.enable {
 
     # 1. Add Core Gaming Packages
     environment.systemPackages = with pkgs; [

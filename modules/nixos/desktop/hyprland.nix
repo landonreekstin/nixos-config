@@ -2,11 +2,8 @@
 { config, pkgs, lib, ... }:
 
 {
-  # ==> Option Definition <==
-  options.profiles.desktop.hyprland.enable = lib.mkEnableOption "Hyprland Wayland Compositor profile";
-
   # ==> Configuration (Applied only if profile is enabled) <==
-  config = lib.mkIf config.profiles.desktop.hyprland.enable {
+  config = lib.mkIf config.customConfig.programs.hyprland.enable {
 
     # Enable Hyprland Wayland compositor
     programs.hyprland = {

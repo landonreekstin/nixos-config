@@ -58,6 +58,13 @@
     #                       DESKTOP ENVIRONMENT & COMPONENTS                     #
     # -------------------------------------------------------------------------- #
     desktop = {
+      enable = mkOption {
+          type = types.bool;
+          default = true; # Usually true if a graphical environment is selected, can be overridden
+          # Consider defaulting based on desktop.environment != "none"
+          # default = (config.customConfig.desktop.environment != "none");
+          description = "Whether to enable a desktop environment.";
+        };
       environment = mkOption {
         type = types.enum [ "hyprland" "cosmic" "none" ]; # Add more as you support them
         default = "none";
@@ -180,10 +187,12 @@
     #                             PROFILES / USE CASES                           #
     # -------------------------------------------------------------------------- #
     profiles = {
-      gaming = mkOption {
-        type = types.bool;
-        default = false; # Default to false, enable explicitly for gaming PCs
-        description = "Enable a comprehensive set of configurations and programs for an optimal gaming experience.";
+      gaming = {
+        enable = mkOption {
+          type = types.bool;
+          default = false; # Default to false, enable explicitly for gaming PCs
+          description = "Enable a comprehensive set of configurations and programs for an optimal gaming experience.";
+        };
       };
       # You could add other profiles like 'development', 'server', 'htpc' here later
     };
@@ -212,9 +221,9 @@
         enable = mkOption { type = types.bool; default = false; description = "Enable OpenSSH server."; };
         # port = mkOption { type = types.port; default = 22; };
       };
-      vscodeServer = { # For nixos-vscode-server
-        enable = mkOption { type = types.bool; default = false; description = "Enable VSCode Server via nixos-vscode-server."; };
-        # users = mkOption { type = with types; listOf str; default = []; description = "Users to enable VSCode server for."; };
+      vscodeServer = {
+        enable = mkOption { type = types.bool; default = false; description = "Enable vscode server."; };
+        # port = mkOption { type = types.port; default = 22; };
       };
       # Add options for other services like syncthing, printing, etc.
     };
