@@ -1,6 +1,7 @@
 # ~/nixos-config/modules/nixos/common/nix-settings.nix
 { config, pkgs, lib, ... }:
 {
+
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
     # Binary sources
@@ -17,6 +18,8 @@
     auto-optimise-store = true;
   };
 
+  nixpkgs.config.allowUnfree = true;
+
   # Garbage collection
   nix.gc = {
     automatic = true;
@@ -24,7 +27,7 @@
     options = "--delete-older-than 7d";
   };
 
-  # Dynamic linked libraries
+  # Dynamic linked binaries
   programs.nix-ld = {
     enable = true;
     libraries = with pkgs; [
