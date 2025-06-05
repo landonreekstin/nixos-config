@@ -3,7 +3,6 @@
   description = "Lando's Modular NixOS Configuration";
 
   inputs = {
-
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     
     nixos-cosmic = {
@@ -21,22 +20,16 @@
        # It might need its own nixpkgs, or follow yours. Following is usually safer.
        inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    nix-ld-rs = { # Using the newer nix-ld-rs flake
-        url = "github:nix-community/nix-ld-rs";
-        inputs.nixpkgs.follows = "nixpkgs";
-    };
-
   };
 
-  outputs = { self, nixpkgs, nixos-cosmic, home-manager, nixos-vscode-server, nix-ld-rs, ... }@inputs: {
+  outputs = { self, nixpkgs, nixos-cosmic, home-manager, nixos-vscode-server, ... }@inputs: {
     # Define NixOS configurations for each host
     nixosConfigurations = {
       # Configuration for the Optiplex host
       optiplex = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         # Pass flake inputs down to the modules if needed (good practice)
-        specialArgs = { inherit inputs nixos-vscode-server nix-ld-rs; };
+        specialArgs = { inherit inputs; };
         modules = [
           # Host-specific entrypoint
           ./hosts/optiplex/default.nix
