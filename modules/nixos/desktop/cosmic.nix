@@ -2,6 +2,9 @@
 { config, pkgs, lib, inputs, ... }:
 
 {
+  imports = [
+    inputs.nixos-cosmic.nixosModules.default # Import the COSMIC module from the flake input
+  ];
   # ==> Configuration (Applied only if profile is enabled) <==
   config = lib.mkIf config.customConfig.programs.cosmic.enable {
 

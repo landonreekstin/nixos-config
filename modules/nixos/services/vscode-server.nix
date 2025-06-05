@@ -6,6 +6,9 @@ let
   vscodeCfg = config.customConfig.services.vscodeServer;
 in
 {
+  imports = [
+    inputs.nixos-vscode-server.nixosModules.default
+  ];
   # Conditionally configure the VSCode server service
   config = lib.mkIf vscodeCfg.enable {
     services.vscode-server = {
