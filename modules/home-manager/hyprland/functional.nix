@@ -109,14 +109,14 @@ in
         # Applications
         "$mainMod, SPACE, exec, $menu"
         "$mainMod, RETURN, exec, $terminal"
-        "$mainMod, I, exec, ${pkgs.vscodium}/bin/vscodium"
+        "$mainMod, I, exec, ${pkgs.vscodium}/bin/vscode"
         "$mainMod, T, exec, ${pkgs.kdePackages.kate}/bin/kate"
         "$mainMod, F, exec, $terminal -e ${pkgs.yazi}/bin/yazi"
         "$mainMod SHIFT, F, exec, ${pkgs.cosmic-files}/bin/cosmic-files"
         "$mainMod, B, exec, ${pkgs.librewolf}/bin/librewolf"
         "$mainMod SHIFT, B, exec, ${pkgs.brave}/bin/brave"
         "$mainMod, M, exec, ${pkgs.spotify}/bin/spotify --enable-features=UseOzonePlatform --ozone-platform=wayland"
-        "$mainMod, D, exec, ${pkgs.discord}/bin/discord"
+        "$mainMod, D, exec, ${pkgs.discord}/bin/discord-canary"
         "$mainMod, G, exec, ${pkgs.steam.run}/bin/steam"
         "$mainMod SHIFT, G, exec, ${pkgs.lutris}/bin/lutris"
 
@@ -195,11 +195,11 @@ in
     librewolf
     brave
     spotify
-    discord
+    discord-canary
 
     # From Hyprland exec/binds not covered by services:
     wayvnc
-    (if pkgs ? vscodium then vscodium else null) # Conditional if package might not exist
+    (if pkgs ? vscode then vscode else null) # Conditional if package might not exist
     swaylock
     grim
     slurp
