@@ -18,6 +18,7 @@
     user = {
       name = "lando"; # Your username for the Optiplex
       # home = "/home/lando"; # Defaults correctly based on user.name
+      email = "landonreekstin@gmail.com";
       shell = pkgs.bash; # Or your preferred shell for Optiplex user
     };
     
@@ -72,6 +73,7 @@
         # From old core.nix:
         vim
         wget
+        fd
         firefox
         kitty
         htop
@@ -81,6 +83,10 @@
       homeManager = with pkgs; [ # Optiplex-specific user packages (previously in core.nix user packages)
         jamesdsp
         remmina
+        vscode
+        librewolf
+        ungoogled-chromium
+        discord-canary
       ];
     };
 
@@ -99,24 +105,37 @@
 
   };
 
-  # === Settings driven by customConfig that might not be in a separate module yet ===
-
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {
     useGlobalPkgs = true;
     useUserPackages = true;
     backupFileExtension = "hm-backup"; # Your existing setting
-    extraSpecialArgs = { # Pass inputs and the evaluated `customConfig` to HM modules
-      inherit inputs;
-      customConfig = config.customConfig; # Pass the host-specific evaluated options
-    };
+    extraSpecialArgs = { inherit inputs; };
     # Use the username from customConfig
-    users.${config.customConfig.user.name} = {
+    users.${config.customConfig.user.name} = { pkgs', lib', config'', ... }: { # config'' here is the HM config being built for this user
       imports = [
-        # This points to Optiplex's specific home.nix
+        # 1. Import the module that DEFINES options.hmCustomConfig
+        ../../modules/home-manager/common-options.nix
+
+        # 2. Import the main home.nix for this user.
+        #    It can now access config''.hmCustomConfig if values are set below.
         ./home.nix
       ];
+
+      # Set the VALUES for hmCustomConfig options
+      # These will be part of the 'config''' object that ./home.nix receives
+      hmCustomConfig = {
+        user = {
+          name = config.customConfig.user.name; # 'config' here is the outer NixOS config
+          email = config.customConfig.user.email;
+          loginName = config.customConfig.user.name;
+          homeDirectory = "/home/${config.customConfig.user.name}";
+          shell = config.customConfig.user.shell;
+        };
+        theme = config.customConfig.homeManager.theme.name;
+        systemStateVersion = config.customConfig.system.stateVersion;
+        packages = config.customConfig.packages.homeManager;
+      };
     };
   };
-
 }

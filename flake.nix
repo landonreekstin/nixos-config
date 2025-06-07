@@ -33,7 +33,8 @@
         modules = [
           # Host-specific entrypoint
           ./hosts/optiplex/default.nix
-          home-manager.nixosModules.home-manager
+          # home-manager module
+          inputs.home-manager.nixosModules.default
         ];
       };
 

@@ -15,6 +15,11 @@
         description = "The primary username for this host.";
         example = "landon";
       };
+      email = mkOption {
+        type = types.str;
+        description = "The email for using git.";
+        example = "example@gmail.com";
+      };
       home = mkOption {
         type = types.str;
         # Default home directory path based on the username.
@@ -25,7 +30,7 @@
       shell = mkOption {
         type = types.nullOr types.package; # Allows specifying a shell package or using system default.
         default = pkgs.bash; # Example default, you can change to pkgs.bash or null.
-        description = "The default shell for the primary user.";
+        description = "The default shell for the primary user. Ex. 'bash', 'zsh', 'fish'.";
         example = "pkgs.fish";
       };
     };
