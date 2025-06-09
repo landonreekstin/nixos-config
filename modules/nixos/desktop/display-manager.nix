@@ -19,6 +19,9 @@ lib.mkIf cfg.enable {
   # == Cosmic Greeter Configuration ==
   services.displayManager.cosmic-greeter.enable = lib.mkIf (cfg.type == "cosmic") true;
 
+  # == Cosmic Greeter Configuration ==
+  services.displayManager.ly.enable = lib.mkIf (cfg.type == "ly") true;
+
   # == Greetd + ReGreet Configuration ==
   services.greetd = lib.mkIf (cfg.type == "greetd") {
     enable = true;
@@ -135,6 +138,7 @@ lib.mkIf cfg.enable {
       assertion = builtins.length (lib.filter (x: x == true) [
         config.services.displayManager.cosmic-greeter.enable or false # Use 'or false' in case module isn't evaluated
         config.services.displayManager.sddm.enable or false
+        config.services.displayManager.ly.enable or false
         config.services.greetd.enable or false
       ]) <= 1;
       message = "Configuration Error: Only one display manager (SDDM, Greetd, or Cosmic Greeter) can be enabled at a time. Check profiles.desktop.displayManager setting.";
