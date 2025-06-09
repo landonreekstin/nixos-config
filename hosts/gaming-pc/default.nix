@@ -64,7 +64,7 @@
       };
       modules = {
         # hyprland.enable = true; # Defaults if desktop.environment is "hyprland"
-        # waybar.enable = true;   # Defaults if desktop.environment is "hyprland"
+        waybar.enable = false;   # Defaults if desktop.environment is "hyprland"
       };
     };
 
@@ -143,7 +143,6 @@
 
   # === Additional configuration for this host ===
   hardware.ckb-next.enable = true;
-  services.geoclue2.enable = true; # For gammastep
   services.mullvad-vpn.enable = true;
 
   services.desktopManager.plasma6.enable = true;
