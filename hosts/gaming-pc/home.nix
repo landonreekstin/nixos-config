@@ -9,8 +9,7 @@
 
     # === Common User Environment Modules ===
     ../../modules/home-manager/common/git.nix
-    ../../modules/home-manager/system/bash.nix
-    ../../modules/home-manager/system/xdg.nix
+    ../../modules/home-manager/system/default.nix
 
     # === Program Modules ===
     # Import kitty if it's generally used on this type of host,
