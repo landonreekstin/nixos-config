@@ -39,11 +39,11 @@
       };
 
       # Configuration for the Gaming PC (placeholder for now)
-      # gamingpc = nixpkgs.lib.nixosSystem {
-      #   system = "x86_64-linux";
-      #   specialArgs = { inherit inputs; };
-      #   modules = [ ./hosts/gamingpc/default.nix /* ... */ ];
-      # };
+      gaming-pc = nixpkgs.lib.nixosSystem {
+         system = "x86_64-linux";
+         specialArgs = { inherit inputs; };
+         modules = [ ./hosts/gaming-pc/default.nix inputs.home-manager.nixosModules.default ];
+      };
     };
 
     # Define Home Manager configurations later (optional alternative structure)
