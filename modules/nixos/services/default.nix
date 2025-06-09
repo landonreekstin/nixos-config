@@ -5,5 +5,6 @@
   imports = [
     ./ssh.nix
     ./vscode-server.nix
+    ./geoclue2.nix
   ];
 }
