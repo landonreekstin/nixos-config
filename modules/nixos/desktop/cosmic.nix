@@ -13,7 +13,7 @@
 
     # If COSMIC is enabled, force Xserver off, as COSMIC is Wayland-only.
     # mkForce ensures this wins if KDE profile (which might enable Xserver) is also enabled.
-    services.xserver.enable = lib.mkForce false;
+    #services.xserver.enable = lib.mkForce false;
 
     # Add packages useful for COSMIC environment
     environment.systemPackages = with pkgs; [

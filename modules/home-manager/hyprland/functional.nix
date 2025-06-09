@@ -131,6 +131,7 @@ in
         "$mainMod, J, movefocus, d"
         "$mainMod, K, movefocus, u"
         "$mainMod, L, movefocus, r"
+        "$mainMod, F11, fullscreen,"
         "$mainMod, bracketleft, exec, hyprctl keyword general:layout dwindle"
         "$mainMod, bracketright, exec, hyprctl keyword general:layout master"
 
