@@ -1,4 +1,4 @@
-# ~/nixos-config/hosts/optiplex/default.nix
+# ~/nixos-config/hosts/gaming-pc/default.nix
 { inputs, pkgs, lib, config, ... }: # Standard module arguments. `config` is the final NixOS config.
 
 {
@@ -11,26 +11,26 @@
 
   ];
 
-  # === Optiplex Specific Values for `customConfig` ===
+  # === Gaming PC Specific Values for `customConfig` ===
   # These values are for the options defined in `../../modules/nixos/common-options.nix`.
   customConfig = {
     
     user = {
-      name = "lando"; # Your username for the Optiplex
+      name = "lando";
       # home = "/home/lando"; # Defaults correctly based on user.name
       email = "landonreekstin@gmail.com";
-      shell = pkgs.bash; # Or your preferred shell for Optiplex user
+      shell = pkgs.bash;
     };
     
     system = {
       hostName = "optiplex"; # Actual hostname for this machine
       stateVersion = "24.11"; # DO NOT CHANGE
-      timeZone = "America/Chicago"; # As per your old core.nix
-      locale = "en_US.UTF-8"; # As per your old core.nix
+      timeZone = "America/Chicago";
+      locale = "en_US.UTF-8";
     };
     
     desktop = {
-      environment = "cosmic"; # Set Optiplex to use Hyprland
+      environment = "kde";
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
         type = "ly"; # Or "greetd", "gdm", or "none" based on your preference for Optiplex
@@ -44,8 +44,9 @@
     };
 
     programs = {
-      hyprland.enable = false; # Defaults based on desktop.environment
+      hyprland.enable = true; # Defaults based on desktop.environment
       cosmic.enable = true;   # Set this true if desktop.environment is "cosmic"
+      kde.enable = true; # Enable KDE Plasma as the desktop environment
                                 # You had both enabled before, decide which is primary
                                 # or if both can be installed system-wide and chosen at login.
                                 # For now, let's assume only one is active for its full setup.
@@ -63,8 +64,8 @@
         name = "future-aviation"; # Your current theme
       };
       modules = {
-        # hyprland.enable = true; # Defaults if desktop.environment is "hyprland"
-        waybar.enable = false;   # Defaults if desktop.environment is "hyprland"
+        hyprland.enable = true; # Defaults if desktop.environment is "hyprland"
+        waybar.enable = true;   # Defaults if desktop.environment is "hyprland"
       };
     };
 
@@ -86,6 +87,7 @@
         remmina
         vscode
         librewolf
+        brave
         ungoogled-chromium
         discord
         spotify
@@ -134,6 +136,7 @@
           homeDirectory = "/home/${config.customConfig.user.name}";
           shell = config.customConfig.user.shell;
         };
+        desktop = config.customConfig.desktop.environment;
         theme = config.customConfig.homeManager.theme.name;
         systemStateVersion = config.customConfig.system.stateVersion;
         packages = config.customConfig.packages.homeManager;
