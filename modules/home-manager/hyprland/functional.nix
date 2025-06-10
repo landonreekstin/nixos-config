@@ -33,6 +33,8 @@ in
     enable = true;
     package = null; # Assuming you manage Hyprland package via NixOS config
 
+    #enableNvidiaPatches = true; no longer has any effect
+
     settings = {
       # Variables for tools and modifiers
       "$mainMod" = "SUPER";

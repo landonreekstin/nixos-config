@@ -30,6 +30,11 @@
                 description = "HM: User's shell."; 
             };
         };
+        desktop = mkOption { 
+            type = types.str; 
+            default = "hyprland"; 
+            description = "HM: Desktop environment or window manager."; 
+        };
         theme = mkOption { 
             type = types.str; 
             default = "future-aviation"; 
