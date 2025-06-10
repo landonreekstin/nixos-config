@@ -38,11 +38,18 @@
         ];
       };
 
-      # Configuration for the Gaming PC (placeholder for now)
+      # Configuration for the Gaming PC
       gaming-pc = nixpkgs.lib.nixosSystem {
          system = "x86_64-linux";
          specialArgs = { inherit inputs; };
          modules = [ ./hosts/gaming-pc/default.nix inputs.home-manager.nixosModules.default ];
+      };
+
+      # Configuration for Blaney's PC
+      blaney-pc = nixpkgs.lib.nixosSystem {
+         system = "x86_64-linux";
+         specialArgs = { inherit inputs; };
+         modules = [ ./hosts/blaney-pc/default.nix inputs.home-manager.nixosModules.default ];
       };
     };
 
