@@ -71,7 +71,7 @@
           description = "Whether to enable a desktop environment.";
         };
       environment = mkOption {
-        type = types.enum [ "hyprland" "cosmic" "none" ]; # Add more as you support them
+        type = types.enum [ "hyprland" "cosmic" "kde" "none" ]; # Add more as you support them
         default = "none";
         description = "The primary desktop environment or window manager to enable system-wide.";
       };
@@ -110,7 +110,14 @@
           description = "Whether to enable system-level COSMIC DE configurations.";
         };
       };
-      # Add enables for other system programs like Display Managers (SDDM, GDM) if needed
+      kde = { # System-level setup for Plasma6 DE
+        enable = mkOption {
+          type = types.bool;
+          default = (config.customConfig.desktop.environment == "kde");
+          defaultText = literalExpression ''(config.customConfig.desktop.environment == "cosmic")'';
+          description = "Whether to enable system-level COSMIC DE configurations.";
+        };
+      };
     };
 
     # -------------------------------------------------------------------------- #

@@ -6,5 +6,6 @@
     ./display-manager.nix
     ./cosmic.nix
     ./hyprland.nix
+    ./kde.nix
   ];
 }
