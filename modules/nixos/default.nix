@@ -9,5 +9,6 @@
     ./profiles/default.nix
     ./hardware/default.nix
     ./desktop/default.nix
+    ./development/default.nix
   ];
 }
