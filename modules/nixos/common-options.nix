@@ -43,8 +43,8 @@
       };
       stateVersion = mkOption {
         type = types.str;
-        default = "25.05"; # Set your preferred default NixOS state version.
-        description = "NixOS system state version.";
+        default = "24.11"; # Set your preferred default NixOS state version.
+        description = "NixOS system state version from first install. DO NOT CHANGE EVEN AFTER SYSTEM UPGRADE.";
       };
       timeZone = mkOption {
         type = types.nullOr types.str;
@@ -197,6 +197,16 @@
           type = types.bool;
           default = false; # Default to false, enable explicitly for gaming PCs
           description = "Enable a comprehensive set of configurations and programs for an optimal gaming experience.";
+        };
+      };
+
+      development = {
+        fpga-ice40 = {
+          enable = mkOption {
+            type = types.bool;
+            default = false; # Default to false, enable explicitly for FPGA development
+            description = "Enable FPGA development tools and configurations for ice40 series.";
+          };
         };
       };
       # You could add other profiles like 'development', 'server', 'htpc' here later

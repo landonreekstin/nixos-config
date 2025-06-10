@@ -24,7 +24,7 @@
     
     system = {
       hostName = "optiplex"; # Actual hostname for this machine
-      stateVersion = "24.11"; # As per your old config (can be "23.11" or "24.05" too)
+      stateVersion = "24.11"; # DO NOT CHANGE
       timeZone = "America/Chicago"; # As per your old core.nix
       locale = "en_US.UTF-8"; # As per your old core.nix
     };
@@ -96,6 +96,7 @@
 
     profiles = {
       gaming.enable = true;
+      development.fpga-ice40.enable = false; # Enable FPGA Ice40 profile
     };
 
     services = {
