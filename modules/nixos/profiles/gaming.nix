@@ -27,6 +27,7 @@
 
       # Mod Managers
       r2modman # Lethal Company
+      atlauncher # Minecraft
       
       # Games
       superTuxKart
@@ -34,8 +35,15 @@
 
     # Enable gaming programs
     # Allows games (especially via Lutris/Steam) to request performance optimizations
-    programs.steam.enable = true;
-    programs.steam.gamescopeSession.enable = true;
+    programs.steam = {
+      enable = true;
+      extraCompatPackages = with pkgs; [
+        # Add any additional compatibility packages needed by Steam
+        proton-ge-bin
+      ];
+      gamescopeSession.enable = true;
+      localNetworkGameTransfers.openFirewall = true; # Allow local network game transfers
+    };
     programs.gamemode.enable = true;
     programs.gamescope.enable = true;
 

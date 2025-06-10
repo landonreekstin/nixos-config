@@ -7,5 +7,5 @@
 
   # Disable firewall for now (as in original config)
   # Enable and configure later if needed
-  networking.firewall.enable = false;
+  networking.firewall.enable = true;
 }
