@@ -11,5 +11,6 @@
     ./base-environment.nix
     ./networking.nix
     ./audio.nix
+    ./commands.nix
   ];
 }
