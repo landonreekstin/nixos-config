@@ -2,6 +2,8 @@
 { config, pkgs, lib, ... }:
 
 {
+  networking.hostName = config.customConfig.system.hostName;
+
   # Enable NetworkManager
   networking.networkmanager.enable = true; # Handles wired and wireless connections
 

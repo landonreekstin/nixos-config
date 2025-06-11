@@ -23,7 +23,7 @@
     };
     
     system = {
-      hostName = "optiplex"; # Actual hostname for this machine
+      hostName = "gaming-pc"; # Actual hostname for this machine
       stateVersion = "24.11"; # DO NOT CHANGE
       timeZone = "America/Chicago";
       locale = "en_US.UTF-8";
@@ -147,7 +147,5 @@
   # === Additional configuration for this host ===
   hardware.ckb-next.enable = true;
   services.mullvad-vpn.enable = true;
-
-  services.desktopManager.plasma6.enable = true;
   
 }
