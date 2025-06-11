@@ -4,5 +4,6 @@
 {
   imports = [
     ./git.nix
+    ./home-base.nix
   ];
 }

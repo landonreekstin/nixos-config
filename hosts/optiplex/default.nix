@@ -114,14 +114,7 @@
     extraSpecialArgs = { inherit inputs; };
     # Use the username from customConfig
     users.${config.customConfig.user.name} = { pkgs', lib', config'', ... }: { # config'' here is the HM config being built for this user
-      imports = [
-        # 1. Import the module that DEFINES options.hmCustomConfig
-        ../../modules/home-manager/common-options.nix
-
-        # 2. Import the main home.nix for this user.
-        #    It can now access config''.hmCustomConfig if values are set below.
-        ./home.nix
-      ];
+      imports = [ ./home.nix ];
 
       # Set the VALUES for hmCustomConfig options
       # These will be part of the 'config''' object that ./home.nix receives
@@ -133,6 +126,7 @@
           homeDirectory = "/home/${config.customConfig.user.name}";
           shell = config.customConfig.user.shell;
         };
+        desktop = config.customConfig.desktop.environment;
         theme = config.customConfig.homeManager.theme.name;
         systemStateVersion = config.customConfig.system.stateVersion;
         packages = config.customConfig.packages.homeManager;
