@@ -81,7 +81,7 @@
         vscode
         librewolf
         brave
-        discord
+        discord-canary
         spotify
         notes
         CuboCore.corepaint
