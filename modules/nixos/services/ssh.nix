@@ -10,6 +10,7 @@ in
   config = lib.mkIf sshIsEnabled {
     services.openssh = {
       enable = true; # Enable the actual SSH service
+      authorizedKeysInHomedir = true;
       settings = {
         PasswordAuthentication = false;
         PermitRootLogin = "no";
