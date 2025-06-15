@@ -4,16 +4,10 @@
 {
 
   imports = [
-    # ====== Custom Option Definitions ======
-    #../../modules/home-manager/common-options.nix
-
     # === Common User Environment Modules ===
     ../../modules/home-manager/default.nix
 
     # === Theme Module ===
-    # Dynamically import the theme based on customConfig.
-    # Ensure config.customConfig.theme is defined in your NixOS/HM options
-    # and set for this host.
     ../../modules/home-manager/themes/future-aviation/default.nix
   ];
 
