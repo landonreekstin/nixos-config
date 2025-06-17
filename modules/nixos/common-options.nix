@@ -129,42 +129,6 @@
         default = true; # Generally, if using this structure, HM is enabled for the user.
         description = "Whether Home Manager is configured for the primary user.";
       };
-      theme = {
-        enable = mkOption {
-          type = types.bool;
-          default = true;
-          description = "Whether to apply any custom theming via Home Manager.";
-        };
-        name = mkOption {
-          type = types.nullOr types.str;
-          default = "future-aviation"; # Your current default theme
-          description = "The name of the Home Manager theme to apply (must match a theme dir).";
-          example = "another-theme";
-        };
-      };
-      # Granular enables for Home Manager functional modules
-      modules = {
-        hyprland = { # User-level Hyprland settings (keybinds, window rules, etc.)
-          enable = mkOption {
-            type = types.bool;
-            default = (config.customConfig.desktop.environment == "hyprland");
-            defaultText = literalExpression ''(config.customConfig.desktop.environment == "hyprland")'';
-            description = "Enable Hyprland functional module in Home Manager.";
-          };
-        };
-        waybar = {
-          enable = mkOption {
-            type = types.bool;
-            default = (config.customConfig.desktop.environment == "hyprland"); # Common pairing
-            defaultText = literalExpression ''(config.customConfig.desktop.environment == "hyprland")'';
-            description = "Enable Waybar functional module in Home Manager.";
-          };
-        };
-        # Add wofi, foot, kitty, swaync etc. here as you create options for them.
-        # Example:
-        # wofi = mkOption { type = types.bool; default = false; description = "Enable Wofi."; };
-        # alacritty = mkOption { type = types.bool; default = false; description = "Enable Alacritty."; };
-      };
     };
 
     # -------------------------------------------------------------------------- #

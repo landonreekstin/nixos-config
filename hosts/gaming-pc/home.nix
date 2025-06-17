@@ -4,39 +4,39 @@
 {
 
   imports = [
-    # ====== Custom Option Definitions ======
-    #../../modules/home-manager/common-options.nix
-
     # === Common User Environment Modules ===
-    ../../modules/home-manager/common/git.nix
-    ../../modules/home-manager/system/default.nix
+    ../../modules/home-manager/default.nix
 
-    # === Program Modules ===
-    # Import kitty if it's generally used on this type of host,
-    # or make its import conditional via lib.mkIf based on customConfig.
-    ../../modules/home-manager/programs/kitty.nix
-
-    # === Desktop Environment / Window Manager Specific Modules ===
-    # These are specific to this host's setup (Hyprland desktop)
-    ../../modules/home-manager/hyprland/default.nix # Imports hyprland functionality
-    ../../modules/home-manager/de-wm-components/waybar/default.nix # Imports waybar functionality
-    
     # === Theme Module ===
-    # Dynamically import the theme based on customConfig.
-    # Ensure config.customConfig.theme is defined in your NixOS/HM options
-    # and set for this host.
     ../../modules/home-manager/themes/future-aviation/default.nix
   ];
 
-  # === User and Home Configuration (from customConfig) ===
-  # These must be defined in your customConfig for this host/user.
-  home.username = config.hmCustomConfig.user.loginName;
-  home.homeDirectory = config.hmCustomConfig.user.homeDirectory;
-  home.stateVersion = config.hmCustomConfig.systemStateVersion;
-  home.packages = config.hmCustomConfig.packages;
+  # Home Manager configuration for this Host
+  home-manager = lib.mkIf config.customConfig.homeManager.enable {
+    useGlobalPkgs = true;
+    useUserPackages = true;
+    backupFileExtension = "hm-backup"; # Your existing setting
+    extraSpecialArgs = { inherit inputs; };
+    # Use the username from customConfig
+    users.${config.customConfig.user.name} = { pkgs', lib', config'', ... }: { # config'' here is the HM config being built for this user
+      imports = [ ./home.nix ];
 
-  # == Enable Home Manager management ==
-  # This must be enabled for Home Manager to work.
-  programs.home-manager.enable = true;
+      # Set the VALUES for hmCustomConfig options
+      # These will be part of the 'config''' object that ./home.nix receives
+      hmCustomConfig = {
+        user = {
+          name = config.customConfig.user.name; # 'config' here is the outer NixOS config
+          email = config.customConfig.user.email;
+          loginName = config.customConfig.user.name;
+          homeDirectory = "/home/${config.customConfig.user.name}";
+          shell = config.customConfig.user.shell;
+        };
+        desktop = config.customConfig.desktop.environment;
+        theme = config.customConfig.homeManager.theme.name;
+        systemStateVersion = config.customConfig.system.stateVersion;
+        packages = config.customConfig.packages.homeManager;
+      };
+    };
+  };
 
 }

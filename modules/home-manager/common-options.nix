@@ -50,6 +50,13 @@
             default = []; 
             description = "HM: List of packages."; 
         };
+        services = {
+            gammastep = mkOption { 
+                type = types.bool; 
+                default = config.customConfig.desktop.environment == "hyprland"; 
+                description = "HM: Enable Gammastep for night light adjustment."; 
+            };
+        };
         # Add other HM specific options as needed
         # For example, if your Hyprland HM module needs an enable flag:
         # hyprland.enable = mkOption { type = types.bool; default = false; };

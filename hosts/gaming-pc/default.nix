@@ -59,14 +59,6 @@
 
     homeManager = {
       enable = true;
-      theme = {
-        enable = true;
-        name = "future-aviation"; # Your current theme
-      };
-      modules = {
-        hyprland.enable = true; # Defaults if desktop.environment is "hyprland"
-        waybar.enable = true;   # Defaults if desktop.environment is "hyprland"
-      };
     };
 
     packages = {
@@ -107,41 +99,6 @@
       vscodeServer.enable = true;
     };
 
-  };
-
-  # Home Manager configuration for this Host
-  home-manager = lib.mkIf config.customConfig.homeManager.enable {
-    useGlobalPkgs = true;
-    useUserPackages = true;
-    backupFileExtension = "hm-backup"; # Your existing setting
-    extraSpecialArgs = { inherit inputs; };
-    # Use the username from customConfig
-    users.${config.customConfig.user.name} = { pkgs', lib', config'', ... }: { # config'' here is the HM config being built for this user
-      imports = [
-        # 1. Import the module that DEFINES options.hmCustomConfig
-        ../../modules/home-manager/common-options.nix
-
-        # 2. Import the main home.nix for this user.
-        #    It can now access config''.hmCustomConfig if values are set below.
-        ./home.nix
-      ];
-
-      # Set the VALUES for hmCustomConfig options
-      # These will be part of the 'config''' object that ./home.nix receives
-      hmCustomConfig = {
-        user = {
-          name = config.customConfig.user.name; # 'config' here is the outer NixOS config
-          email = config.customConfig.user.email;
-          loginName = config.customConfig.user.name;
-          homeDirectory = "/home/${config.customConfig.user.name}";
-          shell = config.customConfig.user.shell;
-        };
-        desktop = config.customConfig.desktop.environment;
-        theme = config.customConfig.homeManager.theme.name;
-        systemStateVersion = config.customConfig.system.stateVersion;
-        packages = config.customConfig.packages.homeManager;
-      };
-    };
   };
 
   # === Additional configuration for this host ===
