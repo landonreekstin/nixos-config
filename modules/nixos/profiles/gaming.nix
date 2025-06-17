@@ -43,6 +43,7 @@
       ];
       gamescopeSession.enable = true;
       localNetworkGameTransfers.openFirewall = true; # Allow local network game transfers
+      remotePlay.openFirewall = true; # Allow remote play connections
     };
     programs.gamemode.enable = true;
     programs.gamescope.enable = true;
