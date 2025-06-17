@@ -58,14 +58,6 @@
 
     homeManager = {
       enable = true;
-      theme = {
-        enable = true;
-        name = "future-aviation"; # Your current theme
-      };
-      modules = {
-        # hyprland.enable = true; # Defaults if desktop.environment is "hyprland"
-        # waybar.enable = true;   # Defaults if desktop.environment is "hyprland"
-      };
     };
 
     packages = {

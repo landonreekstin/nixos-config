@@ -4,7 +4,7 @@
 {
   # The 'programs.bash' attribute set itself is made conditional.
   # This is the correct way to do it.
-  programs.bash = lib.mkIf (config.hmCustomConfig.user.shell == "bash") {
+  programs.bash = lib.mkIf (config.hmCustomConfig.user.shell == pkgs.bash) {
     enable = true; # Explicitly manage bash config files
 
     shellAliases = {
