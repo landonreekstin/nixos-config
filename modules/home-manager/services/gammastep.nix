@@ -1,21 +1,16 @@
 # ~/nixos-config/modules/home-manager/system/gammastep
-{ pkgs, ... }:
+{ config, lib, ... }:
 
 {
-  imports = [
-    pkgs.geoclue2
-  ];
-  
-  config = config.hmCustomConfig.services.gammastep {
-    services.gammastep = {
-      enable = true;
-      provider = "geoclue2";
-      tray = true;
-      temperature = {
-        night = 2500;
-      };
-      # Optional: Enable verbose logging for troubleshooting
-      # enableVerboseLogging = true;
+
+  services.gammastep = lib.mkIf config.hmCustomConfig.services.gammastep {
+    enable = true;
+    provider = "geoclue2";
+    tray = true;
+    temperature = {
+      night = 2500;
     };
+    # Optional: Enable verbose logging for troubleshooting
+    # enableVerboseLogging = true;
   };
 }

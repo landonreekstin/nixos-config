@@ -31,7 +31,7 @@
             };
         };
         desktop = mkOption { 
-            type = types.str; 
+            type = types.enum [ "hyprland" "cosmic" "kde" "none" ]; 
             default = "hyprland"; 
             description = "HM: Desktop environment or window manager."; 
         };
@@ -53,7 +53,7 @@
         services = {
             gammastep = mkOption { 
                 type = types.bool; 
-                default = config.customConfig.desktop.environment == "hyprland"; 
+                default = false; 
                 description = "HM: Enable Gammastep for night light adjustment."; 
             };
         };
