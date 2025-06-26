@@ -104,6 +104,10 @@
 
   };
 
+  # === Additional nixos configuration for this host ===
+  services.mullvad-vpn.enable = true;
+  services.g810-led.enable = true; # Enable Logitech G810 keyboard LED control
+
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {
     useGlobalPkgs = true;
@@ -113,12 +117,11 @@
     # Use the username from customConfig
     users.${config.customConfig.user.name} = { pkgs', lib', config'', ... }: { # config'' here is the HM config being built for this user
       imports = [
-        # 1. Import the module that DEFINES options.hmCustomConfig
-        ../../modules/home-manager/common-options.nix
+        # === Common User Environment Modules ===
+        ../../modules/home-manager/default.nix
 
-        # 2. Import the main home.nix for this user.
-        #    It can now access config''.hmCustomConfig if values are set below.
-        ./home.nix
+        # === Theme Module ===
+        ../../modules/home-manager/themes/future-aviation/default.nix
       ];
 
       # Set the VALUES for hmCustomConfig options
@@ -135,13 +138,9 @@
         theme = config.customConfig.homeManager.theme.name;
         systemStateVersion = config.customConfig.system.stateVersion;
         packages = config.customConfig.packages.homeManager;
+        services.gammastep = (config.customConfig.desktop.environment == "hyprland");
       };
     };
   };
-
-  # === Additional configuration for this host ===
-  services.mullvad-vpn.enable = true;
-
-  services.g810-led.enable = true; # Enable Logitech G810 keyboard LED control
   
 }
