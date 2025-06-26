@@ -24,7 +24,7 @@
     
     system = {
       hostName = "blaney-pc"; # Actual hostname for this machine
-      stateVersion = "24.11"; # DO NOT CHANGE
+      stateVersion = "25.05"; # DO NOT CHANGE
       timeZone = "America/New_York"; # As per your old core.nix
       locale = "en_US.UTF-8"; # As per your old core.nix
     };
