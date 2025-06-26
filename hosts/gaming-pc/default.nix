@@ -71,7 +71,6 @@
         kitty
         htop
         pavucontrol
-        gammastep
         # Add any other system packages specific to Optiplex
       ];
       homeManager = with pkgs; [ # Optiplex-specific user packages (previously in core.nix user packages)

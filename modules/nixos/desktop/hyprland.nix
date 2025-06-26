@@ -34,6 +34,7 @@
       grim              # Screenshot tool for Wayland
       slurp             # Screen region selection tool (works with grim)
       swaynotificationcenter # Notification daemon (or mako)
+      gammastep         # Night light adjustment tool (like redshift)
       # mako            # Alternative notification daemon
 
       # Need a Wayland-compatible screen locker
