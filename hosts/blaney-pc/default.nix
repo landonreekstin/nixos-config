@@ -16,7 +16,7 @@
   customConfig = {
     
     user = {
-      name = "insideabush";
+      name = "lando";
       # home = "/home/lando"; # Defaults correctly based on user.name
       email = "cblaney00@gmail.com";
       shell = pkgs.bash; # Or your preferred shell for Optiplex user
@@ -68,6 +68,7 @@
         fd
         htop
         pavucontrol
+        g810-led
       ];
       homeManager = with pkgs; [
         vscode
