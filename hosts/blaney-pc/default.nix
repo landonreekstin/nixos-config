@@ -30,7 +30,7 @@
     };
     
     desktop = {
-      environment = "kde";
+      environment = "hyprland";
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
         type = "ly"; # Or "greetd", "gdm", or "none" based on your preference for Optiplex
@@ -129,7 +129,6 @@
           shell = config.customConfig.user.shell;
         };
         desktop = config.customConfig.desktop.environment;
-        theme = config.customConfig.homeManager.theme.name;
         systemStateVersion = config.customConfig.system.stateVersion;
         packages = config.customConfig.packages.homeManager;
         services.gammastep = (config.customConfig.desktop.environment == "hyprland");
