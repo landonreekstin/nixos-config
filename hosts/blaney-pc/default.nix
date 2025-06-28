@@ -75,6 +75,7 @@
         librewolf
         brave
         discord-canary
+        discord
         spotify
         notes
         CuboCore.corepaint
