@@ -69,6 +69,7 @@
         htop
         pavucontrol
         g810-led
+        openrgb
       ];
       homeManager = with pkgs; [
         vscode
@@ -100,6 +101,7 @@
 
   # === Additional nixos configuration for this host ===
   services.mullvad-vpn.enable = true;
+  services.hardware.openrgb.enable = true; # Enable OpenRGB for RGB control
   #services.g810-led.package = pkgs.g810-led; # Ensure the g810-led package is available
   #services.g810-led.enable = true; # Enable Logitech G810 keyboard LED control
 
