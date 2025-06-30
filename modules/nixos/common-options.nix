@@ -114,8 +114,8 @@
         enable = mkOption {
           type = types.bool;
           default = (config.customConfig.desktop.environment == "kde");
-          defaultText = literalExpression ''(config.customConfig.desktop.environment == "cosmic")'';
-          description = "Whether to enable system-level COSMIC DE configurations.";
+          defaultText = literalExpression ''(config.customConfig.desktop.environment == "kde")'';
+          description = "Whether to enable system-level KDE PLasma DE configurations.";
         };
       };
     };
@@ -128,6 +128,15 @@
         type = types.bool;
         default = true; # Generally, if using this structure, HM is enabled for the user.
         description = "Whether Home Manager is configured for the primary user.";
+      };
+      services = {
+        gammastep = {
+          enable = mkOption {
+            type = types.bool;
+            default = (config.customConfig.desktop.environment == "hyprland"); # Enable by default, can be overridden in user config
+            description = "Whether to enable gammastep for night light adjustments.";
+          };
+        };
       };
     };
 

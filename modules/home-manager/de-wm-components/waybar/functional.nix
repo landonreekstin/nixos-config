@@ -1,5 +1,5 @@
 # ~/nixos-config/modules/home-manager/de-wm-components/waybar/functional.nix
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, customConfig, ... }:
 
 {
   imports = [
@@ -7,7 +7,7 @@
     ../../scripts/audio-switcher.nix # Audio sink switcher script
   ];
 
-  config = lib.mkIf (config.hmCustomConfig.desktop == "hyprland") {
+  config = lib.mkIf (customConfig.desktop.environment == "hyprland") {
     programs.waybar = {
       enable = true;
       systemd.enable = true; # Ensures Waybar is managed as a systemd service

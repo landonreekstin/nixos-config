@@ -1,9 +1,9 @@
 # ~/nixos-config/modules/home-manager/system/gammastep
-{ config, lib, ... }:
+{ config, lib, customConfig, ... }:
 
 {
 
-  services.gammastep = lib.mkIf config.hmCustomConfig.services.gammastep {
+  services.gammastep = lib.mkIf (customConfig.homeManager.enable && customConfig.homeManager.services.gammastep.enable) {
     enable = true;
     provider = "geoclue2";
     tray = true;

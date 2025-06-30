@@ -1,17 +1,14 @@
 # ~/nixos-config/modules/home-manager/common/home-base.nix
-{ pkgs, config, lib, inputs, ... }:
+# vvv Add `customConfig` to the function arguments vvv
+{ pkgs, config, lib, inputs, customConfig, ... }:
 
 {
-
-  # === User and Home Configuration (from customConfig) ===
-  # These must be defined in your customConfig for this host/user.
-  home.username = config.hmCustomConfig.user.loginName;
-  home.homeDirectory = config.hmCustomConfig.user.homeDirectory;
-  home.stateVersion = config.hmCustomConfig.systemStateVersion;
-  home.packages = config.hmCustomConfig.packages;
+  # === User and Home Configuration (now read directly from `customConfig`) ===
+  home.username = customConfig.user.name;
+  home.homeDirectory = customConfig.user.home;
+  home.stateVersion = customConfig.system.stateVersion;
+  home.packages = customConfig.packages.homeManager;
 
   # == Enable Home Manager management ==
-  # This must be enabled for Home Manager to work.
   programs.home-manager.enable = true;
-
 }
