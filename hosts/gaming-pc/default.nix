@@ -121,25 +121,6 @@
         # === Theme Module ===
         ../../modules/home-manager/themes/future-aviation/default.nix
       ];
-<<<<<<< HEAD
-
-      # Set the VALUES for hmCustomConfig options
-      # These will be part of the 'config''' object that ./home.nix receives
-      hmCustomConfig = {
-        user = {
-          name = config.customConfig.user.name; # 'config' here is the outer NixOS config
-          email = config.customConfig.user.email;
-          loginName = config.customConfig.user.name;
-          homeDirectory = "/home/${config.customConfig.user.name}";
-          shell = config.customConfig.user.shell;
-        };
-        desktop = config.customConfig.desktop.environment;
-        systemStateVersion = config.customConfig.system.stateVersion;
-        packages = config.customConfig.packages.homeManager;
-        services.gammastep = (config.customConfig.desktop.environment == "hyprland");
-      };
-=======
->>>>>>> c6997fbd48f3a4bb5fba500202d03470354bdb3b
     };
   };
   
