@@ -10,6 +10,7 @@
 
     # Enable Plasma6 Desktop Environment itself
     services.desktopManager.plasma6.enable = true;
+    programs.xwayland.enable = true;
 
     # Add packages useful for KDE environment
     environment.systemPackages = with pkgs; [
