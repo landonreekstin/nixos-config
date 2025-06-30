@@ -111,7 +111,7 @@
     useGlobalPkgs = true;
     useUserPackages = true;
     backupFileExtension = "hm-backup"; # Your existing setting
-    extraSpecialArgs = { inherit inputs; };
+    extraSpecialArgs = { inherit inputs; customConfig = config.customConfig; };
     # Use the username from customConfig
     users.${config.customConfig.user.name} = { pkgs', lib', config'', ... }: { # config'' here is the HM config being built for this user
       imports = [ 
@@ -121,6 +121,7 @@
         # === Theme Module ===
         ../../modules/home-manager/themes/future-aviation/default.nix
       ];
+<<<<<<< HEAD
 
       # Set the VALUES for hmCustomConfig options
       # These will be part of the 'config''' object that ./home.nix receives
@@ -137,7 +138,9 @@
         packages = config.customConfig.packages.homeManager;
         services.gammastep = (config.customConfig.desktop.environment == "hyprland");
       };
+=======
+>>>>>>> c6997fbd48f3a4bb5fba500202d03470354bdb3b
     };
   };
-
+  
 }

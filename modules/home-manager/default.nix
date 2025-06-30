@@ -3,7 +3,6 @@
 { ... }: # No specific args needed here usually, they are passed to the individual modules
 {
   imports = [
-    ./common-options.nix # HM custom options, must be imported first
     ./common/default.nix  # Sets home options and home-manager.enable from above options, must be imported second
     ./de-wm-components/default.nix
     ./hyprland/default.nix
