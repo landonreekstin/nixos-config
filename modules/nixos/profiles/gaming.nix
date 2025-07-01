@@ -62,8 +62,8 @@
 
     # Add user to 'video' group (often needed for Vulkan/DRI access)
     # This might be handled automatically by driver modules/DEs, but explicit is safe.
-    users.users.lando.extraGroups = lib.mkMerge [
-      (lib.mkIf config.users.users.lando.isNormalUser [ "video" ])
+    users.users.${config.customConfig.user.name}.extraGroups = lib.mkMerge [
+      (lib.mkIf config.users.users.${config.customConfig.user.name}.isNormalUser [ "video" ])
     ];
     # Note: We reference the user defined in core.nix dynamically.
 
