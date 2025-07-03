@@ -111,7 +111,7 @@ in
         # Applications
         "$mainMod, SPACE, exec, $menu"
         "$mainMod, RETURN, exec, $terminal"
-        "$mainMod, I, exec, ${pkgs.vscodium}/bin/vscode"
+        "$mainMod, I, exec, ${pkgs.vscode}/bin/vscode"
         "$mainMod, T, exec, ${pkgs.kdePackages.kate}/bin/kate"
         "$mainMod, F, exec, $terminal -e ${pkgs.yazi}/bin/yazi"
         "$mainMod SHIFT, F, exec, ${pkgs.cosmic-files}/bin/cosmic-files"
