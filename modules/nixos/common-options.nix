@@ -33,6 +33,11 @@
         description = "The default shell for the primary user. Ex. 'bash', 'zsh', 'fish'.";
         example = "pkgs.fish";
       };
+      updateCmdPermission = mkOption {
+        type = types.bool;
+        default = true;
+        description = "Whether to allow the user to run the custom update/upgrade commands.";
+      };
     };
 
     system = {

@@ -10,7 +10,11 @@ in
 {
 
   # Add the custom command scripts to the system's PATH
-  environment.systemPackages = with pkgs; [
+  # ~/nixos-config/modules/nixos/common/commands.nix
+
+  # Add the custom command scripts to the system's PATH
+  environment.systemPackages = (with pkgs; [
+    # --- Unconditional Commands ---
     git # Ensure git is available for the 'sync' command
 
     (writeShellScriptBin "sync" ''
@@ -68,9 +72,12 @@ in
       sudo nixos-rebuild switch --flake "$FLAKE_PATH"
       echo "Rebuild complete."
     '')
-
-    (writeShellScriptBin "update" ''
-      #!${stdenv.shell}
+  ]) ++ (lib.optionals cfg.user.updateCmdPermission [
+    # --- Conditional Commands ---
+    # These will be included only if cfg.user.updateCmdPermission is true.
+    
+    (pkgs.writeShellScriptBin "update" ''
+      #!${pkgs.stdenv.shell}
       set -e
       echo "--- Updating Flake Inputs ---"
       NIXOS_CONFIG_DIR="${nixosConfigDir}" # Value injected by Nix
@@ -89,18 +96,13 @@ in
       cd "$NIXOS_CONFIG_DIR"
 
       echo "Updating flake inputs..."
-      # Now that we are in the correct directory, 'nix flake update' or 'nix flake update .' will work.
-      # Using 'nix flake update' (which defaults to the current directory) is idiomatic here.
       nix flake update
 
       echo "Flake update complete. Run 'rebuild' or 'upgrade' to apply the changes to your system."
-      # Optionally, cd back to the original directory, though for this script it's not strictly necessary
-      # as the script will exit. If it were part of a larger script, you'd use:
-      # cd - > /dev/null
     '')
 
-    (writeShellScriptBin "upgrade" ''
-      #!${stdenv.shell}
+    (pkgs.writeShellScriptBin "upgrade" ''
+      #!${pkgs.stdenv.shell}
       set -e
       echo "--- Upgrading System (Update Flake Inputs & Rebuild) ---"
       FLAKE_PATH="${nixosConfigDir}#${hostName}" # Value injected by Nix
@@ -109,9 +111,8 @@ in
       echo "This will update all flake inputs and then rebuild the system."
       echo "Using flake: $FLAKE_PATH"
 
-      # nixos-rebuild switch --upgrade will update the flake's inputs first, then build
       sudo nixos-rebuild switch --upgrade --flake "$FLAKE_PATH"
       echo "System upgrade complete."
     '')
-  ];
+  ]);
 }
