@@ -20,9 +20,14 @@
        # It might need its own nixpkgs, or follow yours. Following is usually safer.
        inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    nixai = {
+      url = "github:olafkfreund/nix-ai-help";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, nixos-cosmic, home-manager, nixos-vscode-server, ... }@inputs: {
+  outputs = { self, nixpkgs, nixos-cosmic, home-manager, nixos-vscode-server, nixai, ... }@inputs: {
     # Define NixOS configurations for each host
     nixosConfigurations = {
       # Configuration for the Optiplex host

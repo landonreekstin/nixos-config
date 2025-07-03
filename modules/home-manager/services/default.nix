@@ -4,5 +4,6 @@
 {
   imports = [
     ./gammastep.nix
+    ./nixai.nix
   ];
 }

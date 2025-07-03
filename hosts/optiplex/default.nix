@@ -8,7 +8,6 @@
     
     # Top level nixos modules import. All other nixos modules and option definitions are nested.
     ../../modules/nixos/default.nix
-
   ];
 
   # === Optiplex Specific Values for `customConfig` ===
@@ -94,6 +93,7 @@
     services = {
       ssh.enable = true;
       vscodeServer.enable = true;
+      nixai.enable = true;
     };
 
   };

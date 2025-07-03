@@ -220,6 +220,10 @@
         enable = mkOption { type = types.bool; default = false; description = "Enable vscode server."; };
         # port = mkOption { type = types.port; default = 22; };
       };
+      nixai = {
+        enable = mkOption { type = types.bool; default = false; description = "Enable NixAI MCP server."; };
+        # You can add more options for NixAI here, like model, port, etc.
+      };
       # Add options for other services like syncthing, printing, etc.
     };
 
