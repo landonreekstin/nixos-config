@@ -15,6 +15,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    plasma-manager = {
+      url = "github:nix-community/plasma-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "home-manager";
+    };
+
     nixos-vscode-server = {
        url = "github:nix-community/nixos-vscode-server";
        # It might need its own nixpkgs, or follow yours. Following is usually safer.
