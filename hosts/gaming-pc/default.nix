@@ -93,6 +93,7 @@
 
     profiles = {
       gaming.enable = true;
+      development.kernel.enable = true;
     };
 
     services = {

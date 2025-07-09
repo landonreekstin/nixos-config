@@ -206,6 +206,13 @@
             description = "Enable FPGA development tools and configurations for ice40 series.";
           };
         };
+        kernel = {
+          enable = mkOption {
+            type = types.bool;
+            default = false; # Default to false, enable explicitly for kernel development
+            description = "Enable Linux kernel development tools and configurations.";
+          };
+        };
       };
       # You could add other profiles like 'development', 'server', 'htpc' here later
     };

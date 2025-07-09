@@ -27,7 +27,21 @@
     };
   };
 
-  outputs = { self, nixpkgs, nixos-cosmic, home-manager, nixos-vscode-server, nixai, ... }@inputs: {
+  outputs = { self, nixpkgs, nixos-cosmic, home-manager, plasma-manager, nixos-vscode-server, nixai, ... }@inputs:
+    let
+      # Define the target system
+      system = "x86_64-linux";
+      
+      # Create the package set for our system. This is the correct way.
+      pkgs = nixpkgs.legacyPackages.${system};
+
+      # --- Reference Host for Flake Outputs ---
+      # Some flake-level outputs like devShells need a complete NixOS configuration
+      # to pull values from. We'll use 'gaming-pc' as our reference host because
+      # that is the primary machine for kernel development.
+      referenceHostConfig = self.nixosConfigurations."gaming-pc".config;
+    in
+  {
     # Define NixOS configurations for each host
     nixosConfigurations = {
       # Configuration for the Optiplex host
@@ -58,10 +72,12 @@
       };
     };
 
-    # Define Home Manager configurations later (optional alternative structure)
-    # homeConfigurations = {
-    #   "lando@optiplex" = home-manager.lib.homeManagerConfiguration { /* ... */ };
-    #   "lando@gamingpc" = home-manager.lib.homeManagerConfiguration { /* ... */ };
-    # };
+    # Development Shells provided by this flake
+    devShells.x86_64-linux = {
+      # The 'kernel-dev' shell is sourced from our new module.
+      # We take the configuration from the evaluated optiplex host.
+      kernel-dev = pkgs.mkShell referenceHostConfig.customConfig.profiles.development.kernel.devShell;
+    };
+
   };
 }
