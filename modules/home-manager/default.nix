@@ -9,6 +9,7 @@
     ./programs/default.nix
     ./services/default.nix
     ./system/default.nix
+    ./themes/default.nix
   ];
 }
 

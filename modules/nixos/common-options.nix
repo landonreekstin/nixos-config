@@ -143,6 +143,19 @@
           };
         };
       };
+      themes = {
+        kde = mkOption {
+            type = types.enum [ "windows7" "none" ];
+            default = "none";
+            description = "Set the Plasma theme for Home Manager.";
+          };
+        hyprland = mkOption {
+          type = types.enum [ "future-aviation" "none" ];
+          default = "none";
+          description = "Set the Hyprland theme for Home Manager.";
+        };
+      };
+      # You can add more themes here later, e.g., 'cosmic', 'kde', etc.
     };
 
     # -------------------------------------------------------------------------- #
