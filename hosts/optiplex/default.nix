@@ -29,10 +29,10 @@
     };
     
     desktop = {
-      environment = "hyprland"; # Set Optiplex to use Hyprland
+      environment = "kde"; # Set Optiplex to use Hyprland
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "none"; # Or "greetd", "gdm", or "none" based on your preference for Optiplex
+        type = "ly"; # Or "greetd", "gdm", or "none" based on your preference for Optiplex
       };
     };
 
@@ -44,6 +44,7 @@
 
     programs = {
       hyprland.enable = true; # Defaults based on desktop.environment
+      kde.enable = true; # Set to false for Optiplex, as it uses Hyprland
       # cosmic.enable = true;   # Set this true if desktop.environment is "cosmic"
                                 # You had both enabled before, decide which is primary
                                 # or if both can be installed system-wide and chosen at login.
@@ -57,6 +58,10 @@
 
     homeManager = {
       enable = true;
+      themes = {
+        kde = "windows7";
+        hyprland = "future-aviation";
+      };
     };
 
     packages = {
@@ -87,13 +92,14 @@
 
     profiles = {
       gaming.enable = true;
-      development.fpga-ice40.enable = false; # Enable FPGA Ice40 profile
+      development.fpga-ice40.enable = false;
+      development.kernel.enable = false;
     };
 
     services = {
       ssh.enable = true;
       vscodeServer.enable = true;
-      nixai.enable = true;
+      nixai.enable = false;
     };
 
   };
