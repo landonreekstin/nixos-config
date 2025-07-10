@@ -20,4 +20,12 @@
       fi
     ''; # End profileExtra
   }; # End of lib.mkIf for programs.bash
+
+  # === Enable direnv ===
+  programs.direnv = {
+    enable = true;
+    # This is the crucial part that integrates direnv with Nix Flakes
+    nix-direnv.enable = true;
+  };
+  
 }
