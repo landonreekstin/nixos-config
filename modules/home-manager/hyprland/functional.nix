@@ -197,7 +197,6 @@ in
     kdePackages.konsole # Often a dependency for Kate or other KDE apps
     librewolf
     brave
-    spotify
     discord-canary
 
     # From Hyprland exec/binds not covered by services:
