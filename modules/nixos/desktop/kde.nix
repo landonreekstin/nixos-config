@@ -12,6 +12,18 @@
     services.desktopManager.plasma6.enable = true;
     programs.xwayland.enable = true;
 
+    xdg.portal = {
+      enable = true;
+      extraPortals = with pkgs; [
+        kdePackages.xdg-desktop-portal-kde
+        xdg-desktop-portal-gtk
+      ];
+    };
+
+    environment.sessionVariables = {
+      NIXOS_OZONE_WLAN = "1"; # Enable Ozone Wayland for KDE
+    };
+
     # Add packages useful for KDE environment
     environment.systemPackages = with pkgs; [
       
