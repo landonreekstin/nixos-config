@@ -4,10 +4,24 @@ let
   cfg = config.customConfig; # Shortcut
 in
 {
+  assertions = [
+    {
+      assertion = !cfg.user.isNewHost || (lib.pathExists cfg.user.initialPasswordFile);
+      message = ''
+        [New Host Setup] customConfig.user.isNewHost is true, but the password file is missing.
+        
+        To fix this during a new installation:
+        1. Create a secret file in the installer environment (e.g., `echo "secret-password" > /tmp/secret`).
+        2. Set `customConfig.user.initialPasswordFile = "/tmp/secret";` in your host's configuration file.
+      '';
+    }
+  ];
+
   users.users.${cfg.user.name} = {
     isNormalUser = true;
     description = cfg.user.name;
     extraGroups = [ "networkmanager" "wheel" "video" "audio" ]; # Common groups, can be an option
+    initialPasswordFile = lib.mkIf (cfg.user.initialPasswordFile != "") cfg.user.initialPasswordFile;
     openssh.authorizedKeys.keys = lib.mkIf (cfg.services.ssh.enable) [ # Simpler: if SSH service is on for host, apply these keys for this user
       # Ensure this user is the one these keys are for. If keys are specific to 'lando'
       # you might need: lib.mkIf (cfg.services.ssh.enable && cfg.user.name == "lando")
