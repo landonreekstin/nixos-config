@@ -1,13 +1,24 @@
 # ~/nixos-config/modules/nixos/hardware/nvidia.nix
 { config, pkgs, lib, ... }:
+
+let
+  cfg = config.customConfig.hardware.nvidia;
+
+in
 {
-  config = lib.mkIf config.customConfig.hardware.nvidia.enable {
+  config = lib.mkIf cfg.enable {
+
     # Enable proprietary Nvidia drivers
     hardware.nvidia = {
       open = false; # Use proprietary driver
       modesetting.enable = true; # Needed for Wayland
       powerManagement.enable = true; # Recommended
       # package = config.boot.kernelPackages.nvidiaPackages.stable; # Or specify version if needed
+      # === Laptop-specific options ===
+      prime = {
+        offload.enable = lib.mkDefault cfg.laptop.enable;
+        sync.enable = lib.mkDefault cfg.laptop.enable;
+      };
     };
 
     services.xserver.videoDrivers = [ "nvidia" ]; # Ensure X11 & Wayland use Nvidia driver
@@ -17,5 +28,6 @@
 
     # Allow unfree packages (required for Nvidia drivers)
     nixpkgs.config.allowUnfree = lib.mkDefault true; # Use mkDefault
+
   };
 }

@@ -226,6 +226,13 @@
           type = types.bool;
           default = false; # Default to false, enable explicitly on NVIDIA machines
           description = "Enable NVIDIA drivers and related configuration.";
+};
+        laptop = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable dual GPU and PRIME for Nvidia laptops.";
+          };
         };
         # You could add more nvidia options here: powerManagement, openDrivers, etc.
       };
