@@ -42,7 +42,9 @@
       nvidia = {
         enable = true;
         laptop = {
-          enable = true; # This new option will activate PRIME settings
+          enable = true;
+          amdgpuID = "PCI:4:0:0";
+          nvidiaID = "PCI:1:0:0"; 
         };
       };
     };

@@ -16,8 +16,10 @@ in
       # package = config.boot.kernelPackages.nvidiaPackages.stable; # Or specify version if needed
       # === Laptop-specific options ===
       prime = {
-        offload.enable = lib.mkDefault cfg.laptop.enable;
+        #offload.enable = lib.mkDefault cfg.laptop.enable;
         sync.enable = lib.mkDefault cfg.laptop.enable;
+        amdgpuBusID = lib.mkDefault cfg.amdgpuID; # AMD GPU ID for PRIME
+        nvidiaBusID = lib.mkDefault cfg.nvidiaID; # Nvidia GPU ID for
       };
     };
 
