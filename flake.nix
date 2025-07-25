@@ -4,6 +4,10 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+
+    nixos-hardware = {
+      url = "github:Nixos/nixos-hardware";
+    };
     
     nixos-cosmic = {
       url = "github:lilyinstarlight/nixos-cosmic";
@@ -33,7 +37,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, nixos-cosmic, home-manager, plasma-manager, nixos-vscode-server, nixai, ... }@inputs:
+  outputs = { self, nixpkgs, nixos-hardware, nixos-cosmic, home-manager, plasma-manager, nixos-vscode-server, nixai, ... }@inputs:
     let
       # Define the target system
       system = "x86_64-linux";
@@ -75,6 +79,13 @@
          system = "x86_64-linux";
          specialArgs = { inherit inputs; };
          modules = [ ./hosts/blaney-pc/default.nix inputs.home-manager.nixosModules.default ];
+      };
+
+      # Configuration for the Asus ROG Zephyrus G14 Laptop
+      asus-laptop = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        specialArgs = { inherit inputs; };
+        modules = [ ./hosts/asus-laptop/default.nix inputs.home-manager.nixosModules.default ];
       };
     };
 
