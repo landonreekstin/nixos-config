@@ -81,7 +81,7 @@ if [[ -f "$HARDWARE_CONFIG_PATH" ]]; then
     fi
 else
     nixos-generate-config --root /mnt
-    mv /mnt/e/nixos/hardware-configuration.nix "$HARDWARE_CONFIG_PATH"
+    mv /mnt/etc/nixos/hardware-configuration.nix "$HARDWARE_CONFIG_PATH"
     rm /mnt/etc/nixos/configuration.nix
     echo "✅ Hardware configuration generated and moved to hosts/$HOST_NAME/."
 fi
