@@ -6,13 +6,13 @@ in
 {
   assertions = [
     {
-      assertion = !cfg.user.isNewHost || (lib.pathExists cfg.user.initialPasswordFile);
+      assertion = !cfg.user.isNewHost || (cfg.user.initialPasswordFile != "" && lib.pathExists cfg.user.initialPasswordFile);
       message = ''
-        [New Host Setup] customConfig.user.isNewHost is true, but the password file is missing.
+        [New Host Setup] customConfig.user.isNewHost is true, but the initialPasswordFile is not set or the file is missing.
         
         To fix this during a new installation:
-        1. Create a secret file in the installer environment (e.g., `echo "secret-password" > /tmp/secret`).
-        2. Set `customConfig.user.initialPasswordFile = "/tmp/secret";` in your host's configuration file.
+        1. Set `customConfig.user.initialPasswordFile` in your host's configuration file.
+        2. Ensure the file exists in the installer environment before running the install script.
       '';
     }
   ];
@@ -21,7 +21,7 @@ in
     isNormalUser = true;
     description = cfg.user.name;
     extraGroups = [ "networkmanager" "wheel" "video" "audio" ]; # Common groups, can be an option
-    initialPasswordFile = lib.mkIf (cfg.user.initialPasswordFile != "") cfg.user.initialPasswordFile;
+    initialPassword = lib.mkIf (cfg.user.isNewHost) (builtins.readFile cfg.user.initialPasswordFile);
     openssh.authorizedKeys.keys = lib.mkIf (cfg.services.ssh.enable) [ # Simpler: if SSH service is on for host, apply these keys for this user
       # Ensure this user is the one these keys are for. If keys are specific to 'lando'
       # you might need: lib.mkIf (cfg.services.ssh.enable && cfg.user.name == "lando")
