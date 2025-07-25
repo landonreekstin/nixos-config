@@ -18,8 +18,8 @@ in
       prime = {
         #offload.enable = lib.mkDefault cfg.laptop.enable;
         sync.enable = lib.mkDefault cfg.laptop.enable;
-        amdgpuBusID = lib.mkDefault cfg.laptop.amdgpuID; # AMD GPU ID for PRIME
-        nvidiaBusID = lib.mkDefault cfg.laptop.nvidiaID; # Nvidia GPU ID for
+        amdgpuBusId = lib.mkDefault cfg.laptop.amdgpuID; # AMD GPU ID for PRIME
+        nvidiaBusId = lib.mkDefault cfg.laptop.nvidiaID; # Nvidia GPU ID for
       };
     };
 
