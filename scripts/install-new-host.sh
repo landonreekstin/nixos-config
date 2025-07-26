@@ -99,3 +99,9 @@ nixos-install --no-root-passwd --flake "$CONFIG_ROOT#$HOST_NAME" --impure
 # The 'trap' at the top of the script handles all cleanup automatically.
 # When this script ends, the trap will run and restore your original file.
 echo "✅ Installation command finished."
+echo ""
+echo "🔴 IMPORTANT POST-BOOT STEPS:"
+echo "1. Log in as the new user."
+echo "2. The configuration from the installer is now at '/etc/nixos'."
+echo "3. To move it to your home directory, run the following command:"
+echo "   /etc/nixos/scripts/post-install.sh"
