@@ -11,4 +11,5 @@
     LC_TIME = "en_US.UTF-8";
   };
   console.keyMap = "us"; # Universal console keymap
+  services.xserver.layout = "us"
 }
