@@ -38,7 +38,7 @@
         default = true;
         description = "Whether to allow the user to run the custom update/upgrade commands.";
       };
-initialPasswordFile = lib.mkOption {
+      initialPasswordFile = lib.mkOption {
         type = lib.types.str;
         default = ""; # An empty default is safe
         description = "Path to a file containing the initial user password. For initial setup only.";
@@ -206,6 +206,13 @@ initialPasswordFile = lib.mkOption {
           default = false; # Default to false, enable explicitly for gaming PCs
           description = "Enable a comprehensive set of configurations and programs for an optimal gaming experience.";
         };
+        partydeck = {
+          enable = mkOption {
+            type = types.bool;
+            default = false; # Default to false, enable explicitly for PartyDeck
+            description = "Enable PartyDeck, a splitscreen gaming application for KDE.";
+          };
+        };
       };
 
       development = {
@@ -232,18 +239,18 @@ initialPasswordFile = lib.mkOption {
     # -------------------------------------------------------------------------- #
     hardware = {
       nvidia = {
-        enable = mkOption {
-          type = types.bool;
-          default = false; # Default to false, enable explicitly on NVIDIA machines
-          description = "Enable NVIDIA drivers and related configuration.";
-};
+          enable = mkOption {
+            type = types.bool;
+            default = false; # Default to false, enable explicitly on NVIDIA machines
+            description = "Enable NVIDIA drivers and related configuration.";
+          };
         laptop = {
           enable = mkOption {
             type = types.bool;
             default = false;
             description = "Enable dual GPU and PRIME for Nvidia laptops.";
           };
-nvidiaID = mkOption {
+          nvidiaID = mkOption {
             type = types.str;
             default = ""; # Default to empty, can be set to specific GPU ID if needed
             description = "The NVIDIA GPU ID for PRIME configurations on laptops.";

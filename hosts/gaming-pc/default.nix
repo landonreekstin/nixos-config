@@ -94,7 +94,10 @@
     };
 
     profiles = {
-      gaming.enable = true;
+      gaming = {
+        enable = true;
+        partydeck.enable = true;
+      };
       development.kernel.enable = true;
     };
 
