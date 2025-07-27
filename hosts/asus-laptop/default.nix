@@ -105,6 +105,24 @@
   services.mullvad-vpn.enable = true;
   # In your NixOS configuration
   services.flatpak.enable = true;
+  services.keyd = {
+    enable = true;
+    keyboards = {
+      # This name comes from your keyd monitor output
+      "Asus Keyboard" = {
+        ids = [ "*" ]; # Match any ID for this named device
+
+        # 'settings' is the correct option that builds the .conf file.
+        # This block will generate a config file with a [main] section.
+        settings = {
+          main = {
+            # This line creates the entry 'f4 = minus' inside the [main] section.
+            f4 = "minus";
+          };
+        };
+      };
+    };
+  };
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {
