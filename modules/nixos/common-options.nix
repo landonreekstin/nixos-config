@@ -238,6 +238,19 @@
     #                             HARDWARE AND PERIPHERALS                       #
     # -------------------------------------------------------------------------- #
     hardware = {
+disko-default = {
+        enable = mkOption {
+          type = types.bool;
+          default = false; # Default to false, enable explicitly for disko support
+          description = "Enable the default disko preset for this host.";
+        };
+        device = lib.mkOption {
+          type = lib.types.str;
+          default = "";
+          example = "/dev/sda";
+          description = "The block device to be partitioned by the default preset.";
+        };
+      };
       nvidia = {
           enable = mkOption {
             type = types.bool;
