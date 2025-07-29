@@ -1,10 +1,8 @@
 # ~/nixos-config/modules/nixos/desktop/cosmic.nix
 { config, pkgs, lib, inputs, ... }:
 
+# Must also import inputs.nixos-cosmic.nixosModules.default in flake host entry.
 {
-  imports = [
-    inputs.nixos-cosmic.nixosModules.default # Import the COSMIC module from the flake input
-  ];
   # ==> Configuration (Applied only if profile is enabled) <==
   config = lib.mkIf config.customConfig.programs.cosmic.enable {
 

@@ -77,7 +77,11 @@
       gaming-pc = nixpkgs.lib.nixosSystem {
          system = "x86_64-linux";
          specialArgs = { inherit inputs; };
-         modules = [ ./hosts/gaming-pc/default.nix inputs.home-manager.nixosModules.default ];
+         modules = [ 
+          ./hosts/gaming-pc/default.nix 
+          inputs.home-manager.nixosModules.default
+          inputs.nixos-cosmic.nixosModules.default 
+        ];
       };
 
       # Configuration for Blaney's PC

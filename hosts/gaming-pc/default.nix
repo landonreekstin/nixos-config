@@ -45,7 +45,7 @@
 
     programs = {
       hyprland.enable = true; # Defaults based on desktop.environment
-      cosmic.enable = true;   # Set this true if desktop.environment is "cosmic"
+      cosmic.enable = false;   # Set this true if desktop.environment is "cosmic"
       kde.enable = true; # Enable KDE Plasma as the desktop environment
                                 # You had both enabled before, decide which is primary
                                 # or if both can be installed system-wide and chosen at login.

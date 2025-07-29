@@ -117,7 +117,7 @@
           type = types.bool;
           default = (config.customConfig.desktop.environment == "cosmic");
           defaultText = literalExpression ''(config.customConfig.desktop.environment == "cosmic")'';
-          description = "Whether to enable system-level COSMIC DE configurations.";
+          description = "Whether to enable system-level COSMIC DE configurations. Must also import inputs.nixos-cosmic.nixosModules.default in flake host entry.";
         };
       };
       kde = { # System-level setup for Plasma6 DE
