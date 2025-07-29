@@ -12,38 +12,53 @@ let
     set -e
 
     # =============================================================================
-    # NixOS Post-Install Setup Script (v2 - with Git Automation)
+    # NixOS Post-Install Setup Script (v4.1 - Hardcoded Repo)
     # =============================================================================
 
-    # --- Step 1: Move Configuration ---
-    if [[ ! -d "/etc/nixos" ]]; then
-      echo "✅ Configuration already moved. Proceeding to Git setup."
-    else
-      echo "--- Starting Post-Install Setup ---"
-      if [[ -d "$HOME/nixos-config" ]]; then
-        echo "ℹ️ Found an existing '$HOME/nixos-config'. Removing it for a clean move."
-        rm -rf "$HOME/nixos-config"
-      fi
-      echo "Moving system configuration from /etc/nixos to $HOME/nixos-config..."
-      sudo mv /etc/nixos "$HOME/nixos-config"
-      echo "Changing ownership to user '$(whoami)'..."
-      sudo chown -R "$(whoami):$(id -gn)" "$HOME/nixos-config"
-      echo "✅ Configuration successfully moved to ~/nixos-config."
-    fi
-    
-    # Change into the configuration directory for all subsequent git commands
-    cd "$HOME/nixos-config"
+    # --- Configuration ---
+    # The Git repository URL is now hardcoded for simplicity.
+    GIT_REPO_URL="git@github.com:landonreekstin/nixos-config.git"
 
-    # --- Step 2: SSH Key Setup ---
+    # --- Pre-flight Checks ---
+    if [[ "$EUID" -eq 0 ]]; then
+      echo "❌ This script should be run as your normal user, not as root."
+      exit 1
+    fi
+
+    # --- Step 1: Clone the True Source Repository ---
+    echo "--- Cloning from $GIT_REPO_URL ---"
+    
+    if [[ -d "$HOME/nixos-config" ]]; then
+        echo "ℹ️ Found an existing '$HOME/nixos-config'. Removing it for a clean clone."
+        rm -rf "$HOME/nixos-config"
+    fi
+
+    git clone "$GIT_REPO_URL" "$HOME/nixos-config"
+    cd "$HOME/nixos-config"
+    echo "✅ Repository cloned successfully to ~/nixos-config."
+    echo "-----------------------------------------"
+
+    # --- Step 2: Re-generate Hardware Configuration ---
+    echo "--- Generating final hardware configuration on the new system ---"
+    
+    DEST_HARDWARE_CONFIG="$HOME/nixos-config/hosts/$(hostname)/hardware-configuration.nix"
+    
+    sudo nixos-generate-config --no-filesystems
+    sudo mv /etc/nixos/hardware-configuration.nix "$DEST_HARDWARE_CONFIG"
+    sudo chown "$(whoami):$(id -gn)" "$DEST_HARDWARE_CONFIG"
+    sudo rm -rf /etc/nixos
+    echo "✅ Hardware configuration generated and moved successfully."
+    echo "----------------------------------------------------------"
+
+    # --- Step 3: SSH Key and Git Push Automation ---
     echo ""
     echo "--- GitHub SSH Key Setup ---"
     SSH_KEY_PATH="$HOME/.ssh/id_ed25519"
 
     if [ -f "$SSH_KEY_PATH" ]; then
-      echo "ℹ️ SSH key already exists at $SSH_KEY_PATH. Skipping generation."
+      echo "ℹ️ SSH key already exists. Skipping generation."
     else
       echo "Generating a new SSH key..."
-      # Generate a key with a generic comment and no passphrase for automation
       ssh-keygen -t ed25519 -C "$(whoami)@$(hostname)" -f "$SSH_KEY_PATH" -N ""
       echo "✅ New SSH key generated."
     fi
@@ -57,13 +72,8 @@ let
     echo "--------------------------------------------------------------------"
     echo ""
     read -p "Press [Enter] to continue once you have added the key to GitHub..."
-
-    # --- Step 3: Git Operations ---
-    echo ""
-    echo "--- Finalizing Git Configuration ---"
     
     echo "Testing SSH connection to GitHub..."
-    # Use -o StrictHostKeyChecking=accept-new to auto-accept GitHub's host key
     if ssh -o StrictHostKeyChecking=accept-new -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
       echo "✅ SSH connection to GitHub successful."
     else
@@ -71,18 +81,7 @@ let
       exit 1
     fi
 
-    # Convert remote URL from HTTPS to SSH if necessary
-    CURRENT_REMOTE=$(git remote get-url origin)
-    if [[ "$CURRENT_REMOTE" == https* ]]; then
-      echo "Converting Git remote from HTTPS to SSH..."
-      SSH_REMOTE=$(echo "$CURRENT_REMOTE" | sed 's|https://github.com/|git@github.com:|')
-      git remote set-url origin "$SSH_REMOTE"
-      echo "✅ Remote URL updated."
-    fi
-
-    # Add, commit, and push the hardware configuration
-    echo "Adding and committing hardware configuration..."
-    git add "hosts/$(hostname)/hardware-configuration.nix"
+    git add "$DEST_HARDWARE_CONFIG"
     git commit -m "feat(hosts): Add hardware configuration for $(hostname)"
     
     echo "Pushing changes to the repository..."
@@ -91,6 +90,7 @@ let
     echo ""
     echo "🎉 All done! Your new machine is fully configured and your repository is up-to-date."
   '';
+
 in
 {
 
