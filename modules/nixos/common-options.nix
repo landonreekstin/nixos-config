@@ -238,19 +238,6 @@
     #                             HARDWARE AND PERIPHERALS                       #
     # -------------------------------------------------------------------------- #
     hardware = {
-disko-default = {
-        enable = mkOption {
-          type = types.bool;
-          default = false; # Default to false, enable explicitly for disko support
-          description = "Enable the default disko preset for this host.";
-        };
-        device = lib.mkOption {
-          type = lib.types.str;
-          default = "";
-          example = "/dev/sda";
-          description = "The block device to be partitioned by the default preset.";
-        };
-      };
       nvidia = {
           enable = mkOption {
             type = types.bool;
@@ -285,18 +272,55 @@ disko-default = {
     # -------------------------------------------------------------------------- #
     services = {
       ssh = {
-        enable = mkOption { type = types.bool; default = false; description = "Enable OpenSSH server."; };
+        enable = mkOption { 
+          type = types.bool; 
+          default = false; 
+          description = "Enable OpenSSH server."; 
+        };
         # port = mkOption { type = types.port; default = 22; };
       };
       vscodeServer = {
-        enable = mkOption { type = types.bool; default = false; description = "Enable vscode server."; };
+        enable = mkOption { 
+          type = types.bool; 
+          default = false; 
+          description = "Enable vscode server."; 
+        };
         # port = mkOption { type = types.port; default = 22; };
       };
       nixai = {
-        enable = mkOption { type = types.bool; default = false; description = "Enable NixAI MCP server."; };
+        enable = mkOption { 
+          type = types.bool; 
+          default = false; 
+          description = "Enable NixAI MCP server."; 
+        };
         # You can add more options for NixAI here, like model, port, etc.
       };
       # Add options for other services like syncthing, printing, etc.
+    };
+
+    # -------------------------------------------------------------------------- #
+    #                           HOMELAB CONFIGURATION                            #
+    # -------------------------------------------------------------------------- #
+    homelab = {
+      samba = {
+        enable = mkOption { 
+          type = types.bool; 
+          default = false; 
+          description = "Enable Samba file sharing service."; 
+        };
+      };
+      jellyfin = {
+        enable = mkOption {
+          type = types.bool;
+          default = false; # Default to false, enable explicitly for Jellyfin
+          description = "Enable Jellyfin media server.";
+        };
+        hwTranscoding = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable hardware video transcoding.";
+        };
+      };
     };
 
     # -------------------------------------------------------------------------- #

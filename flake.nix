@@ -92,6 +92,17 @@ disko = {
         specialArgs = { inherit inputs; };
         modules = [ ./hosts/asus-laptop/default.nix inputs.home-manager.nixosModules.default ];
       };
+
+      # Configuration for the Optiplex NAS
+      optiplex-nas = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        specialArgs = { inherit inputs; };
+        modules = [
+          ./hosts/optiplex-nas/default.nix
+          inputs.home-manager.nixosModules.default
+          inputs.disko.nixosModules.default
+        ];
+      };
     };
 
     # Development Shells provided by this flake

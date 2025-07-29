@@ -10,5 +10,6 @@
     ./hardware/default.nix
     ./desktop/default.nix
     ./development/default.nix
+    ./homelab/default.nix
   ];
 }
