@@ -8,8 +8,8 @@
     nixos-hardware = {
       url = "github:Nixos/nixos-hardware";
     };
-    
-disko = {
+
+    disko = {
       url = "github:nix-community/disko/latest";
       inputs.nixpkgs.follows = "nixpkgs";
     };
@@ -59,6 +59,7 @@ disko = {
   {
     # Define NixOS configurations for each host
     nixosConfigurations = {
+
       # Configuration for the Optiplex host
       optiplex = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
@@ -84,6 +85,17 @@ disko = {
          system = "x86_64-linux";
          specialArgs = { inherit inputs; };
          modules = [ ./hosts/blaney-pc/default.nix inputs.home-manager.nixosModules.default ];
+      };
+
+      # Configuration for Justus's PC
+      justus-pc = nixpkgs.lib.nixosSystem {
+         system = "x86_64-linux";
+         specialArgs = { inherit inputs; };
+         modules = [
+          ./hosts/justus-pc/default.nix
+          inputs.home-manager.nixosModules.default 
+          inputs.disko.nixosModules.default
+        ];
       };
 
       # Configuration for the Asus ROG Zephyrus G14 Laptop
