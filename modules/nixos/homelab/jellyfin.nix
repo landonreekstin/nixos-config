@@ -5,33 +5,28 @@ let
   cfg = config.customConfig.homelab.jellyfin;
 in
 {
-  # Define our custom options for the Jellyfin module
-  options.customConfig.homelab.jellyfin = {
-    enable = lib.mkEnableOption "Enable the Jellyfin media server";
-    
-    hwTranscoding = lib.mkEnableOption "Enable hardware video transcoding";
-  };
-
-  # Configure the system if Jellyfin is enabled
+  # Configure the system if Jellyfin is enabled.
   config = lib.mkIf cfg.enable {
     
-    # Enable the Jellyfin service itself.
+    # Enable the Jellyfin service.
     services.jellyfin = {
       enable = true;
-      # Open the default port (8096) in the firewall.
       openFirewall = true;
     };
 
-    # This block will be applied only if hwTranscoding is also enabled.
-    hardware.vaapi = lib.mkIf cfg.hwTranscoding {
-      # Enables the VA-API drivers needed for Intel Quick Sync.
-      enable = true;
-      # Some applications require this specific driver.
-      drivers = [ pkgs.intel-media-driver ];
+    # This block is now the corrected way to enable hardware transcoding.
+    nixpkgs.config.packageOverrides = pkgs: {
+      vaapiIntel = pkgs.vaapiIntel.override { enableHybridCodec = true; };
+    };
+    hardware.graphics = lib.mkIf cfg.hwTranscoding {
+      # Add the correct Intel VA-API driver to the system.
+      # The Dell Optiplex 7040 has a 6th Gen Intel CPU, so intel-media-driver is correct.
+      extraPackages = with pkgs; [
+        intel-media-driver
+      ];
     };
 
-    # Add the jellyfin user to the 'render' group to grant it permission
-    # to use the hardware transcoding device.
+    # This part remains correct: grant the 'jellyfin' user access to the render device.
     users.users.jellyfin.extraGroups = lib.mkIf cfg.hwTranscoding [ "render" ];
   };
 }
