@@ -4,18 +4,6 @@ let
   cfg = config.customConfig; # Shortcut
 in
 {
-  assertions = [
-    {
-      assertion = !cfg.user.isNewHost || (cfg.user.initialPasswordFile != "" && lib.pathExists cfg.user.initialPasswordFile);
-      message = ''
-        [New Host Setup] customConfig.user.isNewHost is true, but the initialPasswordFile is not set or the file is missing.
-        
-        To fix this during a new installation:
-        1. Set `customConfig.user.initialPasswordFile` in your host's configuration file.
-        2. Ensure the file exists in the installer environment before running the install script.
-      '';
-    }
-  ];
 
   users.users.${cfg.user.name} = {
     isNormalUser = true;

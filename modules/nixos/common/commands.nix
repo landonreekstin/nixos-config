@@ -156,7 +156,7 @@ in
       echo "Rebuilding NixOS configuration for host: '${hostName}'"
       echo "Using flake: $FLAKE_PATH"
 
-      sudo nixos-rebuild switch --flake "$FLAKE_PATH"
+      sudo nixos-rebuild switch --flake "$FLAKE_PATH" --impure
       echo "Rebuild complete."
     '')
   ]) ++ (lib.optionals cfg.user.updateCmdPermission [
