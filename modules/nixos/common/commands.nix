@@ -15,6 +15,10 @@ let
     # NixOS Post-Install Setup Script (v4.1 - Hardcoded Repo)
     # =============================================================================
 
+    # Change to the home directory to ensure a safe execution environment.
+    # This prevents errors if the script is called from within ~/nixos-config.
+    cd ~
+
     # --- Configuration ---
     # The Git repository URL is now hardcoded for simplicity.
     GIT_REPO_URL="git@github.com:landonreekstin/nixos-config.git"
