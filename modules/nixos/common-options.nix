@@ -43,11 +43,6 @@
         default = ""; # An empty default is safe
         description = "Path to a file containing the initial user password. For initial setup only.";
       };
-      isNewHost = lib.mkOption {
-        type = lib.types.bool;
-        default = false; # This is crucial. It defaults to 'off'.
-        description = "Set to true only when installing a new host to enforce initial password creation.";
-      };
     };
 
     system = {

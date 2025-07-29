@@ -1,42 +1,42 @@
 #!/usr/bin/env bash
 
 # =============================================================================
-# NixOS Flake-Based Host Installer (v3 - Disko Automated)
-#
-# This script fully automates the installation of a new NixOS host.
-# It uses Disko to partition drives, then proceeds with the installation.
+# NixOS Flake-Based Host Installer (v5 - Correct Order of Operations)
 # =============================================================================
-
-# Stop immediately if any command fails
 set -e
 
-# --- Configuration ---
+# --- Configuration & Paths ---
 CONFIG_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." >/dev/null 2>&1 && pwd )"
-SECRET_FILE="/tmp/secret-password"
-HOST_NAME="$1" # Get hostname from the first argument
-
-# --- File Paths ---
-HOST_CONFIG_FILE="$CONFIG_ROOT/hosts/$HOST_NAME/default.nix"
-BACKUP_FILE="$HOST_CONFIG_FILE.bak" # Backup of the original config
-
-# --- Safety Trap ---
-# This command is GUARANTEED to run when the script exits for any reason.
-# It restores the original configuration file, ensuring the git repo is clean.
-trap 'echo; echo "--- Restoring original configuration ---"; if [ -f "$BACKUP_FILE" ]; then mv -f "$BACKUP_FILE" "$HOST_CONFIG_FILE"; echo "✅ Restore complete."; fi; exit' EXIT HUP INT QUIT PIPE TERM
+HOST_NAME="$1"
+SECRET_FILE="/tmp/secret-password" 
 
 # --- Pre-flight Checks ---
 echo "--- Running Pre-flight Checks ---"
 if [[ "$EUID" -ne 0 ]]; then echo "❌ Error: Must be run as root."; exit 1; fi
 if [[ -z "$HOST_NAME" ]]; then echo "❌ Error: No hostname specified. Usage: $0 <hostname>"; exit 1; fi
-if [[ ! -f "$HOST_CONFIG_FILE" ]]; then echo "❌ Error: Host config not found at $HOST_CONFIG_FILE"; exit 1; fi
+if [[ ! -f "$CONFIG_ROOT/hosts/$HOST_NAME/default.nix" ]]; then echo "❌ Error: Host config not found for '$HOST_NAME'"; exit 1; fi
 echo "✅ Pre-flight checks passed."
 echo "---------------------------------"
 
+# --- Step 1: DRAFT Hardware Configuration Generation ---
+echo "--- Generating DRAFT Hardware Configuration (so disko can evaluate) ---"
+HARDWARE_CONFIG_PATH="$CONFIG_ROOT/hosts/$HOST_NAME/hardware-configuration.nix"
+if [[ -f "$HARDWARE_CONFIG_PATH" ]]; then
+    echo "ℹ️ A hardware configuration already exists. Skipping draft generation."
+else
+    # We generate a temporary config based on the LIVE installer environment.
+    # This file MUST exist for the disko evaluation to pass.
+    # We do NOT use --root /mnt because nothing is mounted yet.
+    nixos-generate-config --no-filesystems
+    mv /etc/nixos/hardware-configuration.nix "$HARDWARE_CONFIG_PATH"
+    rm /etc/nixos/configuration.nix
+    echo "✅ Draft hardware configuration created."
+fi
+echo "---------------------------------------------------------------------"
 
-# --- DISKO AUTOMATED PARTITIONING ---
+# --- Step 2: DISKO AUTOMATED PARTITIONING ---
 echo "--- Starting Automated Disk Partitioning with Disko ---"
-echo "ℹ️ Disko will read the configuration for '$HOST_NAME' from your flake."
-echo "⚠️ WARNING: This will WIPE the target disk defined in your host's config."
+echo "ℹ️ This will WIPE the target disk defined in your host's config."
 read -p "ARE YOU SURE YOU WANT TO CONTINUE? (y/N) " -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
@@ -44,30 +44,22 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 1
 fi
 
-# This command runs disko, which finds the config in your flake for the specified
-# host and applies it, partitioning, formatting, and mounting everything to /mnt.
-nix --extra-experimental-features "nix-command flakes" run github:nix-community/disko/latest -- --mode disko "$CONFIG_ROOT#$HOST_NAME"
+nix --extra-experimental-features "nix-command flakes" run github:nix-community/disko/latest -- --mode disko --flake "$CONFIG_ROOT#$HOST_NAME"
 
 echo "✅ Disko partitioning complete. Disks are now mounted at /mnt."
 echo "---------------------------------------------------------"
 
-
-# --- Hardware Configuration Generation ---
-echo "--- Generating Hardware Configuration ---"
-# This now runs on the freshly prepared /mnt directory
-HARDWARE_CONFIG_PATH="$CONFIG_ROOT/hosts/$HOST_NAME/hardware-configuration.nix"
-if [[ -f "$HARDWARE_CONFIG_PATH" ]]; then
-    echo "ℹ️ Hardware configuration already exists. Skipping generation."
-else
-    nixos-generate-config --no-filesystems --root /mnt
-    mv /mnt/etc/nixos/hardware-configuration.nix "$HARDWARE_CONFIG_PATH"
-    rm /mnt/etc/nixos/configuration.nix
-    echo "✅ Hardware configuration generated and moved."
-fi
+# --- Step 3: FINAL Hardware Configuration Generation ---
+echo "--- Generating FINAL Hardware Configuration ---"
+# Now that /mnt is prepared, we run the command again on the REAL mountpoint
+# to get the most accurate configuration, overwriting the draft.
+nixos-generate-config --no-filesystems --root /mnt
+mv /mnt/etc/nixos/hardware-configuration.nix "$HARDWARE_CONFIG_PATH"
+rm /mnt/etc/nixos/configuration.nix
+echo "✅ Final hardware configuration generated."
 echo "---------------------------------------"
 
-
-# --- Gather User Information ---
+# --- Step 4: Gather User Information ---
 echo "--- Gathering User Information ---"
 echo "🔑 Please choose an initial password for the user being created on '$HOST_NAME'."
 read -s -p "   Enter password: " password
@@ -76,48 +68,17 @@ read -s -p "Confirm password: " password_confirm
 echo
 if [[ "$password" != "$password_confirm" ]]; then echo "❌ Error: Passwords do not match."; exit 1; fi
 echo "$password" > "$SECRET_FILE"
-echo "✅ Secret password file created."
+echo "✅ Secret password file created at '$SECRET_FILE'."
 echo "----------------------------------"
 
-
-# --- Prepare Installation (The "Swap" Method) ---
-echo "--- Preparing Installation ---"
-echo "Backing up original configuration to $BACKUP_FILE..."
-mv "$HOST_CONFIG_FILE" "$BACKUP_FILE"
-echo "✅ Backup complete."
-
-echo "Creating temporary installation config..."
-cat > "$HOST_CONFIG_FILE" <<EOF
-# DO NOT EDIT - This file is temporary and will be restored by the script.
-{ ... }: {
-  imports = [
-    # Import the actual configuration from the backup
-    "$BACKUP_FILE"
-  ];
-
-  # Override with settings for the initial installation.
-  customConfig.user = {
-    isNewHost = true;
-    initialPasswordFile = "$SECRET_FILE";
-  };
-}
-EOF
-echo "✅ Temporary config created."
-echo "----------------------------"
-
-
-# --- Execute Installation ---
-echo "🚀 Starting NixOS installation for host: $HOST_NAME..."
-# We MUST use --impure so the flake can see the untracked, newly generated
-# hardware-configuration.nix file.
+# --- Step 5: Execute Installation ---
+echo "🚀 Installing NixOS for host: $HOST_NAME..."
 nixos-install --no-root-passwd --flake "$CONFIG_ROOT#$HOST_NAME" --impure
 
 # --- Cleanup ---
-# The 'trap' at the top of the script handles all cleanup automatically.
-# When this script ends, the trap will run and restore your original file.
-echo "✅ Installation command finished."
+rm -f "$SECRET_FILE"
+echo "✅ Installation complete and temporary secret file removed."
 echo ""
 echo "🔴 IMPORTANT POST-BOOT STEPS:"
 echo "1. Log in as the new user."
-echo "2. Run the following command to finalize your configuration setup:"
-echo "   post-install"
+echo "2. Run the command 'post-install' to finalize setup and push to Git."
