@@ -21,6 +21,7 @@
       name = "justus";
       email = "cblaney00@gmail.com";
       shell = pkgs.bash;
+      initialPasswordFile = "/tmp/secret-password";
       updateCmdPermission = false; 
     };
     
