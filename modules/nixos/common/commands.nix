@@ -12,16 +12,18 @@ let
     set -e
 
     # =============================================================================
-    # NixOS Post-Install Setup Script (v4.1 - Hardcoded Repo)
+    # NixOS Post-Install Setup Script (v5 - HTTPS Clone Method, Final)
     # =============================================================================
 
     # Change to the home directory to ensure a safe execution environment.
-    # This prevents errors if the script is called from within ~/nixos-config.
     cd ~
 
     # --- Configuration ---
-    # The Git repository URL is now hardcoded for simplicity.
-    GIT_REPO_URL="git@github.com:landonreekstin/nixos-config.git"
+    # We use the public HTTPS URL for the initial clone, which requires no auth.
+    GIT_HTTPS_URL="https://github.com/landonreekstin/nixos-config.git"
+    # We define the SSH URL for when we need to push later.
+    GIT_SSH_URL="git@github.com:landonreekstin/nixos-config.git"
+    CONFIG_DIR="$HOME/nixos-config"
 
     # --- Pre-flight Checks ---
     if [[ "$EUID" -eq 0 ]]; then
@@ -29,23 +31,23 @@ let
       exit 1
     fi
 
-    # --- Step 1: Clone the True Source Repository ---
-    echo "--- Cloning from $GIT_REPO_URL ---"
+    # --- Step 1: Clone the Repository via HTTPS ---
+    echo "--- Cloning from $GIT_HTTPS_URL ---"
     
-    if [[ -d "$HOME/nixos-config" ]]; then
-        echo "ℹ️ Found an existing '$HOME/nixos-config'. Removing it for a clean clone."
-        rm -rf "$HOME/nixos-config"
+    if [[ -d "$CONFIG_DIR" ]]; then
+        echo "ℹ️ Found an existing '$CONFIG_DIR'. Removing it for a clean clone."
+        rm -rf "$CONFIG_DIR"
     fi
 
-    git clone "$GIT_REPO_URL" "$HOME/nixos-config"
-    cd "$HOME/nixos-config"
-    echo "✅ Repository cloned successfully to ~/nixos-config."
+    git clone "$GIT_HTTPS_URL" "$CONFIG_DIR"
+    cd "$CONFIG_DIR" # Now we cd into the new repository for all subsequent commands.
+    echo "✅ Repository cloned successfully."
     echo "-----------------------------------------"
 
     # --- Step 2: Re-generate Hardware Configuration ---
     echo "--- Generating final hardware configuration on the new system ---"
     
-    DEST_HARDWARE_CONFIG="$HOME/nixos-config/hosts/$(hostname)/hardware-configuration.nix"
+    DEST_HARDWARE_CONFIG="$CONFIG_DIR/hosts/$(hostname)/hardware-configuration.nix"
     
     sudo nixos-generate-config --no-filesystems
     sudo mv /etc/nixos/hardware-configuration.nix "$DEST_HARDWARE_CONFIG"
@@ -54,7 +56,7 @@ let
     echo "✅ Hardware configuration generated and moved successfully."
     echo "----------------------------------------------------------"
 
-    # --- Step 3: SSH Key and Git Push Automation ---
+    # --- Step 3: SSH Key Setup ---
     echo ""
     echo "--- GitHub SSH Key Setup ---"
     SSH_KEY_PATH="$HOME/.ssh/id_ed25519"
@@ -77,6 +79,10 @@ let
     echo ""
     read -p "Press [Enter] to continue once you have added the key to GitHub..."
     
+    # --- Step 4: Finalize Git Configuration and Push ---
+    echo ""
+    echo "--- Finalizing Git Configuration for Pushing ---"
+    
     echo "Testing SSH connection to GitHub..."
     if ssh -o StrictHostKeyChecking=accept-new -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
       echo "✅ SSH connection to GitHub successful."
@@ -84,6 +90,10 @@ let
       echo "❌ SSH connection to GitHub failed. Please check the key and try again."
       exit 1
     fi
+    
+    echo "Switching Git remote from HTTPS to SSH for push access..."
+    git remote set-url origin "$GIT_SSH_URL"
+    echo "✅ Remote URL updated."
 
     git add "$DEST_HARDWARE_CONFIG"
     git commit -m "feat(hosts): Add hardware configuration for $(hostname)"
