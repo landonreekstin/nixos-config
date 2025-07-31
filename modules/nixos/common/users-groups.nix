@@ -9,14 +9,6 @@ in
     isNormalUser = true;
     description = cfg.user.name;
     extraGroups = [ "networkmanager" "wheel" "video" "audio" ]; # Common groups, can be an option
-    # This line only sets the initialPassword if the file specified in the
-    # custom option actually exists.
-    # - On a new install, the script creates the file, so this runs.
-    # - On an existing host, the file doesn't exist, so this entire line is
-    #   safely ignored by the NixOS module system.
-    initialPassword = lib.mkIf (cfg.user.initialPasswordFile != "" && lib.pathExists cfg.user.initialPasswordFile)
-      (builtins.readFile cfg.user.initialPasswordFile);
-      
     openssh.authorizedKeys.keys = lib.mkIf (cfg.services.ssh.enable) [ # Simpler: if SSH service is on for host, apply these keys for this user
       # Ensure this user is the one these keys are for. If keys are specific to 'lando'
       # you might need: lib.mkIf (cfg.services.ssh.enable && cfg.user.name == "lando")

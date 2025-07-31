@@ -21,7 +21,6 @@
       name = "lando"; # Or whatever user your script creates
       email = "landonreekstin@gmail.com";
       shell = pkgs.bash;
-      initialPasswordFile = "/tmp/secret-password";
     };
     
     system = {

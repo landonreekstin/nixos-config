@@ -38,11 +38,6 @@
         default = true;
         description = "Whether to allow the user to run the custom update/upgrade commands.";
       };
-      initialPasswordFile = lib.mkOption {
-        type = lib.types.str;
-        default = ""; # An empty default is safe
-        description = "Path to a file containing the initial user password. For initial setup only.";
-      };
     };
 
     system = {
@@ -314,6 +309,36 @@
           type = types.bool;
           default = false;
           description = "Enable hardware video transcoding.";
+        };
+      };
+      arr = {
+        prowlarr = {
+          enable = mkOption {
+            type = types.bool;
+            default = false; # Default to false, enable explicitly for Prowlarr
+            description = "Enable Prowlarr, an indexer manager for Radarr and Sonarr.";
+          };
+        };
+        radarr = {
+          enable = mkOption {
+            type = types.bool;
+            default = false; # Default to false, enable explicitly for Radarr
+            description = "Enable Radarr, a movie collection manager.";
+          };
+        };
+        sonarr = {
+          enable = mkOption {
+            type = types.bool;
+            default = false; # Default to false, enable explicitly for Sonarr
+            description = "Enable Sonarr, a TV series collection manager.";
+          };
+        };
+        bazarr = {
+          enable = mkOption {
+            type = types.bool;
+            default = false; # Default to false, enable explicitly for Bazarr
+            description = "Enable Bazarr, a subtitle manager for Radarr and Sonarr.";
+          };
         };
       };
     };
