@@ -10,7 +10,7 @@
     ../../modules/nixos/default.nix
 
     # Host specific disk configuration
-    ./test-disko.nix
+    ./disko-config.nix
   ];
 
   # === Optiplex NAS Specific Values for `customConfig` ===
