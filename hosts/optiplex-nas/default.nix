@@ -13,6 +13,17 @@
     ./disko-config.nix
   ];
 
+  # 1. Tell the boot process to include Btrfs support
+  boot.initrd.supportedFilesystems = [ "btrfs" ];
+
+  # 2. Create and enable a swap file on our dedicated swap subvolume
+  swapDevices = [
+    {
+      device = "/swap/swapfile";
+      size = 8 * 1024; # 8GB swap file, adjust as needed
+    }
+  ];
+
   # === Optiplex NAS Specific Values for `customConfig` ===
   customConfig = {
     
