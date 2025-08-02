@@ -16,6 +16,21 @@
   # 1. Tell the boot process to include Btrfs support
   boot.initrd.supportedFilesystems = [ "btrfs" ];
 
+  # Define the mount options for the external HDD storage pool.
+  fileSystems."/mnt/storage" = {
+    # This device path comes from the partlabel we set in Disko.
+    device = "/dev/disk/by-partlabel/disk-hdd1-storage";
+    fsType = "btrfs";
+    options = [
+      # Standard options for BTRFS
+      "noatime"
+      "compress=zstd"
+      # This is the crucial option:
+      # It tells systemd not to halt the boot process if this device isn't ready.
+      "nofail"
+    ];
+  };
+
   # 2. Create and enable a swap file on our dedicated swap subvolume
   swapDevices = [
     {
