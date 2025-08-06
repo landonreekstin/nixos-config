@@ -5,5 +5,6 @@
   imports = [
     ./gaming.nix
     ./partydeck.nix
+    ./flatpak.nix
   ];
 }

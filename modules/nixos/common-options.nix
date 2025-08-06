@@ -123,7 +123,7 @@
           description = "Whether to enable system-level KDE PLasma DE configurations.";
         };
       };
-pantheon = { # System-level setup for Pantheon DE
+      pantheon = { # System-level setup for Pantheon DE
         enable = mkOption {
           type = types.bool;
           default = (config.customConfig.desktop.environment == "pantheon");
@@ -210,6 +210,14 @@ pantheon = { # System-level setup for Pantheon DE
             default = false; # Default to false, enable explicitly for PartyDeck
             description = "Enable PartyDeck, a splitscreen gaming application for KDE.";
           };
+        };
+      };
+
+      flatpak = {
+        enable = mkOption {
+          type = types.bool;
+          default = false; # Default to false, enable explicitly for Flatpak support
+          description = "Enable Flatpak packages for Spotify and Discord.";
         };
       };
 
