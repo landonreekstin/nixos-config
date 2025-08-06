@@ -76,7 +76,7 @@
           description = "Whether to enable a desktop environment.";
         };
       environment = mkOption {
-        type = types.enum [ "hyprland" "cosmic" "kde" "none" ]; # Add more as you support them
+        type = types.enum [ "hyprland" "cosmic" "kde" "pantheon" "none" ]; # Add more as you support them
         default = "none";
         description = "The primary desktop environment or window manager to enable system-wide.";
       };
@@ -89,7 +89,7 @@
           description = "Whether to enable a display manager.";
         };
         type = mkOption {
-          type = types.enum [ "sddm" "gdm" "greetd" "ly" "none" ]; # Add more as needed
+          type = types.enum [ "sddm" "gdm" "greetd" "ly" "pantheon" "none" ]; # Add more as needed
           default = "sddm"; # A common default, adjust as preferred
           description = "Which display manager to use if displayManager.enable is true. 'none' means no DM managed by this option.";
         };
@@ -121,6 +121,14 @@
           default = (config.customConfig.desktop.environment == "kde");
           defaultText = literalExpression ''(config.customConfig.desktop.environment == "kde")'';
           description = "Whether to enable system-level KDE PLasma DE configurations.";
+        };
+      };
+pantheon = { # System-level setup for Pantheon DE
+        enable = mkOption {
+          type = types.bool;
+          default = (config.customConfig.desktop.environment == "pantheon");
+          defaultText = literalExpression ''(config.customConfig.desktop.environment == "pantheon")'';
+          description = "Whether to enable system-level Pantheon DE configurations.";
         };
       };
     };

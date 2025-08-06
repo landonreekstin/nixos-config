@@ -7,5 +7,6 @@
     ./cosmic.nix
     ./hyprland.nix
     ./kde.nix
+    ./pantheon.nix
   ];
 }
