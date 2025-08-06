@@ -161,6 +161,57 @@ EOF
     echo "--- LKM run complete."
   '';
 
+  shutdown-guest = pkgs.writeShellScriptBin "shutdown-guest" ''
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    QEMU_PROCESS_PATTERN="qemu-system-x86_64.*bullseye.img"
+
+    # 1. Check if the VM process exists
+    if ! pgrep -f "$QEMU_PROCESS_PATTERN" > /dev/null; then
+        echo "Guest VM does not appear to be running."
+        exit 0
+    fi
+
+    echo "--- Attempting a graceful shutdown via SSH..."
+    
+    # 2. Try to send the poweroff command with a 5-second timeout.
+    # We add '|| true' because 'timeout' will exit with a non-zero code on timeout,
+    # and we want to handle that failure case ourselves.
+    EXIT_CODE=0
+    timeout 5 ssh-guest "poweroff" || EXIT_CODE=$?
+
+    # 3. Check the result
+    if [ $EXIT_CODE -eq 0 ]; then
+        echo "Shutdown command sent successfully. The guest VM is powering off."
+        # Wait a moment for the process to terminate
+        sleep 2
+        # Check again
+        if ! pgrep -f "$QEMU_PROCESS_PATTERN" > /dev/null; then
+            echo "VM has shut down."
+            exit 0
+        fi
+    elif [ $EXIT_CODE -eq 124 ]; then
+        echo "[!] Graceful shutdown timed out."
+        echo "    This usually means GDB has the VM frozen."
+        echo "    Hint: Go to your gdb-run terminal and type 'detach' first."
+    else
+        echo "[!] Graceful shutdown failed with an unexpected error (code: $EXIT_CODE)."
+    fi
+
+    # 4. Offer a forceful shutdown if the graceful one failed
+    echo ""
+    read -p "Forcefully kill the QEMU process? (y/N) " -n 1 -r
+    echo "" # Move to a new line
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo "--- Forcefully killing the QEMU process..."
+        pkill -f "$QEMU_PROCESS_PATTERN"
+        echo "Process killed."
+    else
+        echo "Shutdown aborted. The VM is likely still running."
+    fi
+  '';
+
 in
 {
   # === MODULE OPTIONS ===
@@ -186,6 +237,7 @@ in
         ssh-guest
         lkm-run
         load-module
+        shutdown-guest
       ];
 
       shellHook = ''
@@ -200,6 +252,7 @@ in
         echo "  qemu-run               # Run in kernel source dir"
         echo "  lkm-run my_module      # Run in module source dir"
         echo "  ssh-guest              # Run anywhere"
+        echo "  shutdown-guest         # Run anywhere to stop the VM"
         echo "--------------------------------------------------------"
       '';
     };
