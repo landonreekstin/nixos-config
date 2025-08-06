@@ -59,7 +59,7 @@
     homeManager = {
       enable = true;
       themes = {
-        kde = "windows7";
+        kde = "none";
         hyprland = "future-aviation";
       };
     };
