@@ -34,7 +34,7 @@
   # 2. Create and enable a swap file on our dedicated swap subvolume
   swapDevices = [
     {
-      device = "/swap/swapfile";
+      device = "/.swapvol/swapfile";
       size = 8 * 1024; # 8GB swap file, adjust as needed
     }
   ];
