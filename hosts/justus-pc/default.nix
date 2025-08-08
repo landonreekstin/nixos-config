@@ -84,6 +84,7 @@
 
     profiles = {
       gaming.enable = true;
+      flatpak.enable = true;
     };
 
     services = {
