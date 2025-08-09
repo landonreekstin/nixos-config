@@ -18,7 +18,7 @@
       name = "lando"; # Your username for the Optiplex
       # home = "/home/lando"; # Defaults correctly based on user.name
       email = "landonreekstin@gmail.com";
-      shell.bash.color = "green";
+      shell.bash.color = "cyan";
     };
     
     system = {
