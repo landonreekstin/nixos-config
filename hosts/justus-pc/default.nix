@@ -20,7 +20,6 @@
     user = {
       name = "justus";
       email = "cblaney00@gmail.com";
-      shell = pkgs.bash;
       updateCmdPermission = false; 
     };
     

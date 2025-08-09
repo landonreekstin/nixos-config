@@ -19,7 +19,7 @@
       name = "lando";
       # home = "/home/lando"; # Defaults correctly based on user.name
       email = "landonreekstin@gmail.com";
-      shell = pkgs.bash;
+      shell.bash.color = "blue";
     };
 
     system = {

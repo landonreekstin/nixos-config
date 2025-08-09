@@ -3,6 +3,17 @@
 
 # This top-level option group will hold all our custom configurations.
 # We use 'customConfig' to avoid potential conflicts with existing NixOS 'config' attributes.
+let
+  
+  colorMap = {
+    "black" = "0;30"; "red" = "0;31"; "green" = "0;32"; "yellow" = "0;33";
+    "blue" = "0;34"; "magenta" = "0;35"; "cyan" = "0;36"; "white" = "0;37";
+    "bright-black" = "1;30"; "bright-red" = "1;31"; "bright-green" = "1;32";
+    "bright-yellow" = "1;33"; "bright-blue" = "1;34"; "bright-magenta" = "1;35";
+    "bright-cyan" = "1;36"; "bright-white" = "1;37";
+  };
+
+in
 {
   options.customConfig = with lib; { # Define the 'customConfig' option set
 
@@ -27,11 +38,25 @@
         defaultText = literalExpression ''"/home/''${config.customConfig.user.name}"'';
         description = "The absolute path to the primary user's home directory.";
       };
-      shell = mkOption {
-        type = types.nullOr types.package; # Allows specifying a shell package or using system default.
-        default = pkgs.bash; # Example default, you can change to pkgs.bash or null.
-        description = "The default shell for the primary user. Ex. 'bash', 'zsh', 'fish'.";
-        example = "pkgs.fish";
+      shell = {
+        bash = {
+          enable = mkOption {
+            type = types.bool;
+            default = true; # Default to true if bash is the chosen shell
+            description = "Whether to configure bash as the user's shell.";
+          };
+          color = mkOption {
+            type = types.enum (attrNames colorMap);
+            default = "green";
+            description = "The color name for the bash prompt.";
+            example = "blue";
+          };
+          pkg = mkOption {
+            type = types.package;
+            default = pkgs.bash; # Default to bash from pkgs
+            description = "The shell package to use for the user.";
+          };
+        };
       };
       updateCmdPermission = mkOption {
         type = types.bool;

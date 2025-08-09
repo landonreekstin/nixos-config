@@ -20,7 +20,6 @@
     user = {
       name = "lando";
       email = "landonreekstin@gmail.com";
-      shell = pkgs.bash;
     };
     
     system = {

@@ -22,7 +22,7 @@ in
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEz8NPkwVxknQBd5TQFRoYJoX9wc5mgiN9d+5VXU3J5u"
 
     ];
-    shell = cfg.user.shell;
+    shell = cfg.user.shell.bash.pkg;
     home = cfg.user.home;
   };
 }

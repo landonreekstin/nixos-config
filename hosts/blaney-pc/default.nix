@@ -11,15 +11,11 @@
 
   ];
 
-  # === Optiplex Specific Values for `customConfig` ===
-  # These values are for the options defined in `../../modules/nixos/common-options.nix`.
   customConfig = {
     
     user = {
       name = "insideabush";
-      # home = "/home/lando"; # Defaults correctly based on user.name
       email = "cblaney00@gmail.com";
-      shell = pkgs.bash; # Or your preferred shell for Optiplex user
       updateCmdPermission = false; 
     };
     
