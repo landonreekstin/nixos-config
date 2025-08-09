@@ -46,7 +46,7 @@
       # This will be created during your installation.
       name = "lando"; # Or whatever user your script creates
       email = "landonreekstin@gmail.com";
-      shell.bash.color = "light-blue";
+      shell.bash.color = "bright-blue";
     };
     
     system = {
