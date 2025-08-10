@@ -45,6 +45,8 @@
       localNetworkGameTransfers.openFirewall = true; # Allow local network game transfers
       remotePlay.openFirewall = true; # Allow remote play connections
     };
+    networking.firewall.allowedUDPPorts = [ 2757 2759 ]; # SuperTuxKarts networking ports
+    
     programs.gamemode.enable = true;
     programs.gamescope.enable = true;
 

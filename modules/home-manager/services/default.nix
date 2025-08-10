@@ -5,5 +5,6 @@
   imports = [
     ./gammastep.nix
     ./nixai.nix
+    ./ssh.nix
   ];
 }

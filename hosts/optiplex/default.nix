@@ -18,7 +18,7 @@
       name = "lando"; # Your username for the Optiplex
       # home = "/home/lando"; # Defaults correctly based on user.name
       email = "landonreekstin@gmail.com";
-      shell = pkgs.bash; # Or your preferred shell for Optiplex user
+      shell.bash.color = "cyan";
     };
     
     system = {

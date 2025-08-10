@@ -19,9 +19,10 @@ in
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICSrv2XS/TnsS3msswQl7jvaGK6luOoca2HExxT1Hwip"
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOIskZoPWjwNZiMshj1N4qsotaRneJH7Noa195EiZj3e"
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP2HwEWfiXzoAxXnMiP9FLZAbOgcdxhTtcWtxYxooNEQ"
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEz8NPkwVxknQBd5TQFRoYJoX9wc5mgiN9d+5VXU3J5u"
 
     ];
-    shell = cfg.user.shell;
+    shell = cfg.user.shell.bash.pkg;
     home = cfg.user.home;
   };
 }

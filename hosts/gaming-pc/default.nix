@@ -19,7 +19,7 @@
       name = "lando";
       # home = "/home/lando"; # Defaults correctly based on user.name
       email = "landonreekstin@gmail.com";
-      shell = pkgs.bash;
+      shell.bash.color = "blue";
     };
 
     system = {
@@ -44,7 +44,7 @@
     };
 
     programs = {
-      hyprland.enable = true; # Defaults based on desktop.environment
+      hyprland.enable = false; # Defaults based on desktop.environment
       cosmic.enable = false;   # Set this true if desktop.environment is "cosmic"
       kde.enable = true; # Enable KDE Plasma as the desktop environment
                                 # You had both enabled before, decide which is primary
@@ -98,6 +98,7 @@
         enable = true;
         partydeck.enable = true;
       };
+      flatpak.enable = true;
       development.kernel.enable = true;
     };
 

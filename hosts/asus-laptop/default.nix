@@ -20,7 +20,6 @@
     user = {
       name = "lando";
       email = "landonreekstin@gmail.com";
-      shell = pkgs.bash;
     };
     
     system = {
@@ -89,6 +88,7 @@
     profiles = {
       gaming.enable = true; # Enable the gaming profile
       #gaming.partydeck.enable = true; # Enable PartyDeck for splitscreen gaming
+      flatpak.enable = true;
       development.fpga-ice40.enable = false;
       development.kernel.enable = false;
     };

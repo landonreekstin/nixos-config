@@ -34,7 +34,7 @@
   # 2. Create and enable a swap file on our dedicated swap subvolume
   swapDevices = [
     {
-      device = "/swap/swapfile";
+      device = "/.swapvol/swapfile";
       size = 8 * 1024; # 8GB swap file, adjust as needed
     }
   ];
@@ -46,7 +46,7 @@
       # This will be created during your installation.
       name = "lando"; # Or whatever user your script creates
       email = "landonreekstin@gmail.com";
-      shell = pkgs.bash;
+      shell.bash.color = "bright-blue";
     };
     
     system = {

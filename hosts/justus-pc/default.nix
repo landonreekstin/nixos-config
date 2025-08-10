@@ -20,7 +20,6 @@
     user = {
       name = "justus";
       email = "cblaney00@gmail.com";
-      shell = pkgs.bash;
       updateCmdPermission = false; 
     };
     
@@ -84,6 +83,7 @@
 
     profiles = {
       gaming.enable = true;
+      flatpak.enable = true;
     };
 
     services = {

@@ -61,13 +61,26 @@ echo "--------------------------------------------------------------"
 # --- Step 5: Gather User Information ---
 echo "--- Gathering User Information ---"
 echo "🔑 Please choose a password for the user '$USER_NAME'."
-read -s -p "   Enter password: " password
-echo
-read -s -p "Confirm password: " password_confirm
-echo
-if [[ "$password" != "$password_confirm" ]]; then
-  echo "❌ Error: Passwords do not match."; exit 1;
-fi
+
+# Start an infinite loop that will run until the passwords match.
+while true; do
+  read -s -p "   Enter password: " password
+  echo
+  read -s -p "Confirm password: " password_confirm
+  echo
+
+  # Check if the passwords are the same string.
+  if [[ "$password" == "$password_confirm" ]]; then
+    # If they match, break out of the while loop.
+    break
+  else
+    # If they don't match, print an error and the loop will repeat.
+    echo "❌ Error: Passwords do not match. Please try again."
+    echo
+  fi
+done
+
+# This line is now only reached after the loop is successfully broken.
 echo "✅ Password captured."
 
 # --- Step 6: Execute NixOS Installation ---
