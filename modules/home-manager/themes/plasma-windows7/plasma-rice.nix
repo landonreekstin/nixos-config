@@ -5,8 +5,8 @@ let
 
   aerothemeplasma-src = pkgs.fetchgit {
     url = "https://gitgud.io/wackyideas/AeroThemePlasma.git";
-    rev = "master";
-    sha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    rev = "6.3.4";
+    sha256 = "sha256-PGWpLKXanZ+miN9dE0+SThTAGutFdHMMRmCNcD5myx8=";
   };
 
   segoe-ui-font = pkgs.stdenv.mkDerivation {
@@ -179,6 +179,7 @@ aerotheme-assets = pkgs.stdenv.mkDerivation {
       kdePackages.kwindowsystem
       kdePackages.plasma-activities
       kdePackages.plasma-wayland-protocols
+      kdePackages.qttools
     ];
 
     # This flag is still essential to prevent RPATH errors later.
@@ -192,14 +193,6 @@ in
   imports = [ inputs.plasma-manager.homeManagerModules.plasma-manager ];
 
   config = lib.mkIf (plasmaWindows7Condition) {
-    systemd.user.services."plasma-polkit-agent" = {
-      # This section remains the same
-      serviceConfig = {
-        # --- THE FIX IS HERE ---
-        # Point to the correct path of the executable in the 'bin' directory
-        ExecStart = "${aerotheme-polkit-agent}/bin/polkit-kde-authentication-agent-1";
-      };
-    };
 
     home.packages = with pkgs; [ 
       # --- COMPILED COMPONENTS ---
@@ -238,14 +231,15 @@ in
       "${aerothemeplasma-src}/misc/branding/kcminfo.png";
 
 
+
     # --- PLASMA MANAGER CONFIGURATION ---
 
     programs.plasma = {
       enable = true;
-      overrideConfig = true;
+      overrideConfig = false;
 
       workspace = {
-        theme = "Seven-Black"; # Plasma Style
+        theme = "Seven-White"; # Plasma Style
         colorScheme = "AeroColorScheme1";
         iconTheme = "Windows 7 Aero";
         soundTheme = "Windows 7";
@@ -259,7 +253,6 @@ in
           library = "org.kde.kwin.aurorae";
           theme = "__aurorae__svg__smod";
         };
-        wallpaper = ../../../../assets/wallpapers/windows7-wallpaper.jpg;
       };
 
       fonts = {
@@ -277,7 +270,8 @@ in
         height = 40;
         widgets = [
           "io.gitgud.wackyideas.SevenStart"
-          "io.gitgud.wackyideas.seventasks"
+          #"io.gitgud.wackyideas.seventasks"
+          "org.kde.plasma.icontasks"
           "org.kde.plasma.panelspacer" # Pushes subsequent items to the right
 
           # The INSTALL.md says to use a custom systray layout.
