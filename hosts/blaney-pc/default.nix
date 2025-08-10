@@ -59,6 +59,7 @@
         wget
         fd
         htop
+        kitty
         pavucontrol
         g810-led
         openrgb
