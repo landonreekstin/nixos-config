@@ -1,11 +1,14 @@
 # ../../modules/home-manager/system/xdg.nix
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, osConfig, ... }:
 {
   # Configure XDG user directories (Desktop, Documents, etc.)
   xdg.userDirs = {
     enable = true;
     createDirectories = true; # Optional: create them if they don't exist
   };
+
+  # Fixes KDE screen share
+  xdg.portal.extraPortals = osConfig.xdg.portal.extraPortals;
 
   # Configure XDG Portals
   xdg = {
