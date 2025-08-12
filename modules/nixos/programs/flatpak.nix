@@ -7,7 +7,7 @@
     inputs.nix-flatpak.nixosModules.nix-flatpak
   ];
 
-  config = lib.mkIf config.customConfig.profiles.flatpak.enable {
+  config = lib.mkIf config.customConfig.programs.flatpak.enable {
     # Required to install flatpak
     xdg.portal = {
         enable = true;

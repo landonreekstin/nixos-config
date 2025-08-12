@@ -2,7 +2,7 @@
 { lib, config, pkgs, ... }:
 
 let
-  partydeckCondition = config.customConfig.profiles.gaming.partydeck.enable
+  partydeckCondition = config.customConfig.programs.partydeck.enable
                    && config.customConfig.profiles.gaming.enable
                    && config.customConfig.desktop.environment == "kde";
 

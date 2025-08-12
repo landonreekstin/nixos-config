@@ -156,6 +156,22 @@ in
           description = "Whether to enable system-level Pantheon DE configurations.";
         };
       };
+
+      partydeck = {
+        enable = mkOption {
+          type = types.bool;
+          default = false; # Default to false, enable explicitly for PartyDeck
+          description = "Enable PartyDeck, a splitscreen gaming application for KDE.";
+        };
+      };
+
+      flatpak = {
+        enable = mkOption {
+          type = types.bool;
+          default = false; # Default to false, enable explicitly for Flatpak support
+          description = "Enable Flatpak packages for Spotify and Discord.";
+        };
+      };
     };
 
     # -------------------------------------------------------------------------- #
@@ -229,23 +245,7 @@ in
           default = false; # Default to false, enable explicitly for gaming PCs
           description = "Enable a comprehensive set of configurations and programs for an optimal gaming experience.";
         };
-        partydeck = {
-          enable = mkOption {
-            type = types.bool;
-            default = false; # Default to false, enable explicitly for PartyDeck
-            description = "Enable PartyDeck, a splitscreen gaming application for KDE.";
-          };
-        };
       };
-
-      flatpak = {
-        enable = mkOption {
-          type = types.bool;
-          default = false; # Default to false, enable explicitly for Flatpak support
-          description = "Enable Flatpak packages for Spotify and Discord.";
-        };
-      };
-
       development = {
         fpga-ice40 = {
           enable = mkOption {

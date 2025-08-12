@@ -52,6 +52,9 @@
       hyprland.enable = false;
       kde.enable = true;
       cosmic.enable = false;
+
+      partydeck.enable = false;
+      flatpak.enable = true;
     };
 
     homeManager = {
@@ -86,9 +89,7 @@
     };
 
     profiles = {
-      gaming.enable = true; # Enable the gaming profile
-      #gaming.partydeck.enable = true; # Enable PartyDeck for splitscreen gaming
-      flatpak.enable = true;
+      gaming.enable = true;
       development.fpga-ice40.enable = false;
       development.kernel.enable = false;
     };

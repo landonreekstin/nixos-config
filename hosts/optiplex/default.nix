@@ -44,16 +44,9 @@
 
     programs = {
       hyprland.enable = true; # Defaults based on desktop.environment
-      kde.enable = true; # Set to false for Optiplex, as it uses Hyprland
-      # cosmic.enable = true;   # Set this true if desktop.environment is "cosmic"
-                                # You had both enabled before, decide which is primary
-                                # or if both can be installed system-wide and chosen at login.
-                                # For now, let's assume only one is active for its full setup.
-      # If you want both *installed* but only one *active* for session management,
-      # the enable flags here could control installation, and another option for session.
-      # Based on your old default.nix, you were trying to set 'displayManager = "none"'
-      # which implies Hyprland might be started manually or via a login shell.
-      # Let's assume hyprland.enable takes precedence if desktop.environment is "hyprland".
+      kde.enable = true;
+      partydeck.enable = false;
+      flatpak.enable = true;
     };
 
     homeManager = {

@@ -44,6 +44,9 @@
       hyprland.enable = true; # Defaults based on desktop.environment
       cosmic.enable = false;
       kde.enable = true;
+
+      partydeck.enable = false;
+      flatpak.enable = true;
     };
 
     homeManager = {
@@ -83,7 +86,6 @@
 
     profiles = {
       gaming.enable = true;
-      flatpak.enable = true;
     };
 
     services = {
