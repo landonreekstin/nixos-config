@@ -6,6 +6,8 @@ let
 
   guest-kernel-config-fragment = ./kernel-files/guest_kernel.config;
 
+  c_cpp_template = ./kernel-files/c_cpp_properties.json.template;
+
   create-image-script = pkgs.fetchurl {
     url = "https://raw.githubusercontent.com/google/syzkaller/master/tools/create-image.sh";
     sha256 = "sha256-KkCDTT6vN4UWgHflpP4a7W7RdFZLPvhyzKYh10PEP3c=";
@@ -212,6 +214,42 @@ EOF
     fi
   '';
 
+  vscode-setup = pkgs.writeShellScriptBin "vscode-setup" ''
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "''${LKP_KSRC}" ]]; then
+        echo "ERROR: LKP_KSRC environment variable is not set." >&2
+        exit 1
+    fi
+
+    echo "--- Generating compile_commands.json with 'bear'..."
+    make -k -C "''${LKP_KSRC}" M="$PWD" clean || true
+    set +e
+    bear -- make -k -C "''${LKP_KSRC}" M="$PWD"
+    set -e
+
+    if [[ ! -f "compile_commands.json" ]]; then
+        echo "[!] ERROR: Failed to generate compile_commands.json" >&2
+        exit 1
+    fi
+
+    echo "--- Creating VS Code C/C++ extension configuration from template..."
+    mkdir -p .vscode
+    
+    # This is the new, robust logic:
+    # 1. Define the path to the compiler from the Nix variable.
+    # 2. Use 'sed' to replace the placeholder in the template file.
+    # 3. Save the result to the final destination.
+    GCC_PATH="${pkgs.gcc}/bin/gcc"
+    sed "s|__GCC_PATH_PLACEHOLDER__|''${GCC_PATH}|" "${c_cpp_template}" > .vscode/c_cpp_properties.json
+
+    echo ""
+    echo "--- VS Code setup complete! ---"
+    echo "Please reload the VS Code window (Ctrl+Shift+P -> 'Developer: Reload Window')"
+    echo "to activate the new IntelliSense configuration."
+  '';
+
 in
 {
   # === MODULE OPTIONS ===
@@ -230,6 +268,7 @@ in
         cppcheck cscope curl fakeroot flawfinder indent sparse
         gnuplot hwloc numad man-db numactl psmisc python3 perl pahole rt-tests
         smem stress sysfsutils trace-cmd tree tuna virt-what zlib tldr
+        bear
         create-guest-image
         configure-guest-kernel
         qemu-run
@@ -238,6 +277,7 @@ in
         lkm-run
         load-module
         shutdown-guest
+        vscode-setup
       ];
 
       shellHook = ''
@@ -253,6 +293,7 @@ in
         echo "  lkm-run my_module      # Run in module source dir"
         echo "  ssh-guest              # Run anywhere"
         echo "  shutdown-guest         # Run anywhere to stop the VM"
+        echo "  vscode-setup           # Run once in your module project root for extra VS Code support"
         echo "--------------------------------------------------------"
       '';
     };

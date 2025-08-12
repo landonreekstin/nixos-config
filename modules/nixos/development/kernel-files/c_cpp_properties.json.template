@@ -1,0 +1,12 @@
+{
+  "configurations": [
+    {
+      "name": "Linux Kernel Module",
+      "compilerPath": "__GCC_PATH_PLACEHOLDER__",
+      "compileCommands": "${workspaceFolder}/compile_commands.json",
+      "intelliSenseMode": "linux-gcc-x64",
+      "cStandard": "gnu11"
+    }
+  ],
+  "version": 4
+}
