@@ -67,6 +67,7 @@
         g810-led
         openrgb
         solaar
+        openrazer-daemon
       ];
       homeManager = with pkgs; [
         vscode
