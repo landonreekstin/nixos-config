@@ -68,6 +68,7 @@
         openrgb
         solaar
         openrazer-daemon
+        polychromatic
       ];
       homeManager = with pkgs; [
         vscode
