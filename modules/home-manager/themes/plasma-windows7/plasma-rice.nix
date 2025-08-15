@@ -246,7 +246,7 @@ in
         lookAndFeel = "authui7"; # Applies lock screen
         cursor = {
           theme = "aero-drop";
-          size = 24;
+          size = 48;
         };
         # This sets the SMOD window border theme
         windowDecorations = {
