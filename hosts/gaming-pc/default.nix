@@ -81,6 +81,7 @@
         ungoogled-chromium
         discord-canary
         qbittorrent
+        obs-studio
       ];
     };
 
