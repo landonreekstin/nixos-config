@@ -41,6 +41,12 @@
       nvidia = {
         enable = true; # Set to true if Optiplex has an NVIDIA GPU needing proprietary drivers
       };
+      peripherals = {
+        enable = true; # Enable peripheral configurations
+        openrgb.enable = true; # Enable OpenRGB for RGB control
+        openrazer.enable = false; # Enable OpenRazer for Razer device support
+        ckb-next.enable = true; # Enable CKB-Next for Corsair device support
+      };
     };
 
     programs = {
