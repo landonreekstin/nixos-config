@@ -28,6 +28,9 @@
     environment.systemPackages = with pkgs; [
       kdePackages.xdg-desktop-portal-kde
       kdePackages.xwaylandvideobridge
+
+      # Default KDE applications
+      kdePackages.kcalc
     ];
 
     # 4. Keep other necessary services and variables
