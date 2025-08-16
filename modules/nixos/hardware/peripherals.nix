@@ -21,6 +21,11 @@ in
         users = [ config.customConfig.user.name ]; # Ensure OpenRazer runs for the user
     };
 
+    users.users.${config.customConfig.user.name}.extraGroups = lib.mkIf cfg.openrazer.enable [
+      "plugdev" # Add user to plugdev group for OpenRazer
+      "openrazer"
+    ];
+
     # === Enable Corsair Device Support ===
     hardware.ckb-next.enable = cfg.ckb-next.enable or false;
 
