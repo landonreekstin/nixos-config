@@ -3,7 +3,12 @@
 {
   environment.systemPackages = with pkgs; [
     git
+    vim
     fastfetch
+    nettools
+    wget
+    fd
+    htop
     # Any other truly universal CLI packages
   ] ++ config.customConfig.packages.nixos; # Appends host-specific system packages
 

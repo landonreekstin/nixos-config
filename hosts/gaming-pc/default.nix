@@ -44,7 +44,7 @@
     };
 
     programs = {
-      hyprland.enable = false;
+      hyprland.enable = true;
       cosmic.enable = false;
       kde.enable = true;
 
@@ -60,14 +60,8 @@
     };
 
     packages = {
-      nixos = with pkgs; [ # Optiplex-specific system packages (previously in core.nix or default.nix)
-        # From old core.nix:
-        vim
-        wget
-        fd
-        firefox
+      nixos = with pkgs; [
         kitty
-        htop
         pavucontrol
         mullvad-vpn
         # Add any other system packages specific to Optiplex
