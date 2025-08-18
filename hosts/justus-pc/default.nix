@@ -31,7 +31,7 @@
     };
     
     desktop = {
-      environments = [ "hyprland" "kde" ];
+      environments = [ "kde" ];
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
         type = "ly";
