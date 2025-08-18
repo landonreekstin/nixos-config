@@ -6,7 +6,7 @@
     
   ];
   # ==> Configuration (Applied only if profile is enabled) <==
-  config = lib.mkIf config.customConfig.programs.pantheon.enable {
+  config = lib.mkIf (lib.elem "pantheon" config.customConfig.desktop.environments) {
 
     # Enable Pantheon Desktop Environment itself
     services.xserver.desktopManager.pantheon.enable = true;

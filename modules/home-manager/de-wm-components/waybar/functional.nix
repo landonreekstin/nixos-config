@@ -1,13 +1,18 @@
 # ~/nixos-config/modules/home-manager/de-wm-components/waybar/functional.nix
 { config, pkgs, lib, customConfig, ... }:
 
+let
+
+  isHyprlandHost = lib.elem "hyprland" customConfig.desktop.environments;
+
+in
 {
   imports = [
     # Relative path from de-wm-components/waybar/ to scripts/
     ../../scripts/audio-switcher.nix # Audio sink switcher script
   ];
 
-  config = lib.mkIf (customConfig.desktop.environment == "hyprland") {
+  config = lib.mkIf isHyprlandHost {
     programs.waybar = {
       enable = true;
       systemd.enable = true; # Ensures Waybar is managed as a systemd service
@@ -99,5 +104,15 @@
       pavucontrol          # For pulseaudio module on-click-right
       # audio-switcher script dependencies should be handled by its own module if it has any non-pkgs ones
     ];
+
+    systemd.user.services.waybar = {
+      # These options are added to the [Unit] section of the systemd service file.
+      UnitConfig = {
+        # This tells systemd: "Only start this service if the
+        # XDG_CURRENT_DESKTOP environment variable is present and set to Hyprland".
+        # This check happens at login time, not at build time.
+        ConditionEnvironment = "XDG_CURRENT_DESKTOP=Hyprland";
+      };
+    };
   };
 }

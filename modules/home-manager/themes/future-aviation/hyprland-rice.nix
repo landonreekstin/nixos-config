@@ -17,7 +17,7 @@ let
   monitorDescTV = "Hisense Electric Co. Ltd. 4Series43 0x00000278";
 
   # Check if home-manager, Hyprland, and the Future Aviation theme are enabled
-  futureAviationThemeCondition = customConfig.homeManager.enable && customConfig.programs.hyprland.enable
+  futureAviationThemeCondition = lib.elem "hyprland" customConfig.desktop.environments
     && customConfig.homeManager.themes.hyprland == "future-aviation";
 in
 {

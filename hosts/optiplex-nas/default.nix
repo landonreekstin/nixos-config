@@ -58,7 +58,7 @@
     
     # This is a server, so we disable the desktop environment.
     desktop = {
-      environment = "none";
+      environments =  [ "none" ];
       displayManager = {
         enable = false;
         type = "none";

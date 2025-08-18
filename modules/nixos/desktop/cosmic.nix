@@ -4,7 +4,7 @@
 # Must also import inputs.nixos-cosmic.nixosModules.default in flake host entry.
 {
   # ==> Configuration (Applied only if profile is enabled) <==
-  config = lib.mkIf config.customConfig.programs.cosmic.enable {
+  config = lib.mkIf (lib.elem "cosmic" config.customConfig.desktop.environments) {
 
     # Enable COSMIC Desktop Environment itself
     services.desktopManager.cosmic.enable = true;

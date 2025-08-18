@@ -30,7 +30,7 @@
     };
     
     desktop = {
-      environment = "kde";
+      environments = [ "kde" ];
       displayManager = {
         enable = true;
         type = "ly";
@@ -49,10 +49,6 @@
     };
 
     programs = {
-      hyprland.enable = false;
-      kde.enable = true;
-      cosmic.enable = false;
-
       partydeck.enable = false;
       flatpak.enable = true;
     };

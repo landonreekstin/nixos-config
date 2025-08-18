@@ -27,7 +27,7 @@
     };
     
     desktop = {
-      environment = "kde";
+      environments = [ "hyprland" "kde" ];
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
         type = "ly"; # Or "greetd", "gdm", or "none" based on your preference for Optiplex
@@ -41,10 +41,6 @@
     };
 
     programs = {
-      hyprland.enable = true; # Defaults based on desktop.environment
-      cosmic.enable = false;
-      kde.enable = true;
-
       partydeck.enable = false;
       flatpak.enable = true;
     };

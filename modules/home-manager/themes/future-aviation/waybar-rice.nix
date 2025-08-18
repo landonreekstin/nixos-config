@@ -8,8 +8,7 @@ let
     accent_cyan_light = "#7FFFD4"; accent_amber = "#FFBF00"; accent_green = "#32CD32";
     accent_blue = "#4682B4"; accent_blue_light = "#87CEEB"; accent_red_neg = "#CD5C5C";
   };
-  futureAviationCondition = customConfig.homeManager.enable
-    && customConfig.desktop.environment == "hyprland"
+  futureAviationCondition = lib.elem "hyprland" customConfig.desktop.environments
     && customConfig.homeManager.themes.hyprland == "future-aviation"; # For now this is only used with Hyprland, in the future as other Wayland DEs are added, this can be expanded
 in
 {

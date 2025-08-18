@@ -41,7 +41,7 @@ in
     '';
 
     # This condition checks if Home Manager's Hyprland module is enabled
-    profileExtra = lib.mkIf (customConfig.desktop.environment == "hyprland") ''
+    profileExtra = lib.mkIf (lib.elem "hyprland" customConfig.desktop.environments) ''
       # Start Hyprland automatically on TTY1 if not already in a graphical session
       if [ -z "$DISPLAY" ] && [ -z "$WAYLAND_DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
         echo "Attempting to start Hyprland from profileExtra on TTY1..."

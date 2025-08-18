@@ -31,7 +31,7 @@
     };
     
     desktop = {
-      environment = "kde";
+      environments = [ "hyprland" "kde" ];
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
         type = "ly";
@@ -45,10 +45,6 @@
     };
 
     programs = {
-      hyprland.enable = true;
-      cosmic.enable = false;
-      kde.enable = true; 
-
       partydeck.enable = false;
       flatpak.enable = true;
     };
