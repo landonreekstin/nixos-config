@@ -16,7 +16,7 @@
     user = {
       name = "insideabush";
       email = "cblaney00@gmail.com";
-      updateCmdPermission = false; 
+      updateCmdPermission = true; 
     };
     
     system = {
@@ -40,7 +40,7 @@
       };
       peripherals = {
         enable = true; # Enable peripheral configurations
-        openrgb.enable = true; # Enable OpenRGB for RGB control
+        openrgb.enable = false; # Enable OpenRGB for RGB control
         openrazer.enable = true; # Enable OpenRazer for Razer device support
         ckb-next.enable = false; # Enable CKB-Next for Corsair device support
       };
@@ -103,6 +103,18 @@
     };
 
   };
+
+  nixpkgs.overlays = [
+    (final: prev: {
+      # We are overriding the existing openrazer-daemon package
+      openrazer-daemon = prev.openrazer-daemon.overrideAttrs (oldAttrs: {
+        # Replace its original source with the latest from GitHub
+        src = inputs.openrazer-source;
+        # The version is dynamic, let's reflect that
+        version = "latest-${inputs.openrazer-source.shortRev or "dirty"}";
+      });
+    })
+  ];
 
   # === Additional nixos configuration for this host ===
   services.mullvad-vpn.enable = true;
