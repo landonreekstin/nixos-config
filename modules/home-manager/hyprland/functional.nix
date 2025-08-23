@@ -35,6 +35,8 @@ in
 
     #enableNvidiaPatches = true; no longer has any effect
 
+    systemd.enable = false;
+
     settings = {
       # Variables for tools and modifiers
       "$mainMod" = "SUPER";
@@ -56,6 +58,7 @@ in
       "exec-once" = [
         "${pkgs.wayvnc}/bin/wayvnc --render-cursor localhost 5900"
         "set-wayvnc-output \"${targetWayvncMonitorDescription}\" > /tmp/set-wayvnc-output.log 2>&1"
+        "${pkgs.wayvnc}/bin/waybar &"
       ];
 
       # Environment variables
@@ -181,6 +184,7 @@ in
       # ];
     }; # End of wayland.windowManager.hyprland.settings
   }; # End of wayland.windowManager.hyprland
+
 
   # -------------------------------------------------------------------------- #
   # Home Manager Packages for Functional Elements
