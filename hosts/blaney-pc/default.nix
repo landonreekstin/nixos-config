@@ -103,19 +103,7 @@
     };
 
   };
-
-  nixpkgs.overlays = [
-    (final: prev: {
-      # We are overriding the existing openrazer-daemon package
-      openrazer-daemon = prev.openrazer-daemon.overrideAttrs (oldAttrs: {
-        # Replace its original source with the latest from GitHub
-        src = inputs.openrazer-source;
-        # The version is dynamic, let's reflect that
-        version = "latest-${inputs.openrazer-source.shortRev or "dirty"}";
-      });
-    })
-  ];
-
+  
   # === Additional nixos configuration for this host ===
   services.mullvad-vpn.enable = true;
   #services.g810-led.package = pkgs.g810-led; # Ensure the g810-led package is available
