@@ -65,6 +65,7 @@
         solaar
         openrazer-daemon
         polychromatic
+        obs-studio
       ];
       homeManager = with pkgs; [
         vscode
