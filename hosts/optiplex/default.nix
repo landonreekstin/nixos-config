@@ -18,7 +18,7 @@
       name = "lando"; # Your username for the Optiplex
       # home = "/home/lando"; # Defaults correctly based on user.name
       email = "landonreekstin@gmail.com";
-      shell.bash.color = "cyan";
+      shell.bash.color = "bright-cyan";
     };
     
     system = {
@@ -32,7 +32,7 @@
       environments = [ "hyprland" "kde" ];
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "sddm"; # Or "greetd", "gdm", or "none" based on your preference for Optiplex
+        type = "ly"; # Or "greetd", "gdm", or "none" based on your preference for Optiplex
       };
     };
 
@@ -106,9 +106,6 @@
       imports = [
         # === Common User Environment Modules ===
         ../../modules/home-manager/default.nix
-
-        # === Theme Module ===
-        ../../modules/home-manager/themes/future-aviation/default.nix
       ];
     };
   };

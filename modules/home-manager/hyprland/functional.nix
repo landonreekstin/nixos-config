@@ -35,7 +35,7 @@ in
 
     #enableNvidiaPatches = true; no longer has any effect
 
-    systemd.enable = true;
+    systemd.enable = false;
 
     settings = {
       # Variables for tools and modifiers
@@ -59,6 +59,8 @@ in
         "${pkgs.wayvnc}/bin/wayvnc --render-cursor localhost 5900"
         "set-wayvnc-output \"${targetWayvncMonitorDescription}\" > /tmp/set-wayvnc-output.log 2>&1"
         "${pkgs.waybar}/bin/waybar &"
+        "${pkgs.hyprpaper}/bin/hyprpaper &"
+        "${pkgs.gammastep}/bin/gammastep &"
       ];
 
       # Environment variables
