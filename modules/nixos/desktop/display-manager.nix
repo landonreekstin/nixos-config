@@ -44,7 +44,7 @@ config = lib.mkIf cfg.enable {
     services.getty.autologinUser = lib.mkIf (cfg.type == "none" && config.customConfig.desktop.enable) config.customConfig.user.name;
 
     # Ensure XDG Desktop Portal for Hyprland is available when autologging into it
-    xdg.portal = lib.mkIf (cfg.type == "none" && config.customConfig.programs.hyprland.enable && config.customConfig.desktop.environment == "hyprland") {
+    xdg.portal = lib.mkIf ((cfg.type == "none") && (lib.elem "hyprland" config.customConfig.desktop.environments)) {
       enable = true;
       extraPortals = [ pkgs.xdg-desktop-portal-hyprland ];
       # Optionally add GTK portal as fallback
@@ -127,7 +127,7 @@ config = lib.mkIf cfg.enable {
         pkgs.libjpeg pkgs.gdk-pixbuf pkgs.librsvg pkgs.qt6.qtimageformats
       ])
       ++
-      (lib.optionals (cfg.type == "none" && config.customConfig.programs.hyprland.enable) [
+      (lib.optionals (cfg.type == "none" && (lib.elem "hyprland" config.customConfig.desktop.environments)) [
         pkgs.xdg-desktop-portal-hyprland
       ]);
 

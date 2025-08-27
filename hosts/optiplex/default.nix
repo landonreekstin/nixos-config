@@ -29,10 +29,10 @@
     };
     
     desktop = {
-      environments = [ "hyprland" "kde" ];
+      environments = [ "hyprland" ];
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "ly"; # Or "greetd", "gdm", or "none" based on your preference for Optiplex
+        type = "none"; # Or "greetd", "gdm", or "none" based on your preference for Optiplex
       };
     };
 
