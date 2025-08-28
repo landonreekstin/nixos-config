@@ -15,7 +15,7 @@ in
   config = lib.mkIf isHyprlandHost {
     programs.waybar = {
       enable = true;
-      systemd.enable = true; # Ensures Waybar is managed as a systemd service
+      systemd.enable = false; # Ensures Waybar must be launched implicitly by the wayland compositor such as Hyprland
 
       settings = {
         mainBar = { # Assuming a single bar named "mainBar"

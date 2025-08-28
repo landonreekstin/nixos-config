@@ -30,10 +30,10 @@
     };
 
     desktop = {
-      environments = [ "kde" ]; # Set to "hyprland", "cosmic", or "kde" based on your preference
+      environments = [ "hyprland" "kde" ]; # Set to "hyprland", "cosmic", or "kde" based on your preference
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "ly"; # Or "greetd", "gdm", or "none" based on your preference for Optiplex
+        type = "sddm"; # Or "greetd", "gdm", or "none" based on your preference for Optiplex
       };
     };
 
