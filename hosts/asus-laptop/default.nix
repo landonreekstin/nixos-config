@@ -46,6 +46,7 @@
           nvidiaID = "PCI:1:0:0"; 
         };
       };
+      powerManagement.enable = true;
     };
 
     programs = {
@@ -77,6 +78,7 @@
         librewolf
         brave
         discord-canary
+        kdePackages.okular
       ];
     };
 

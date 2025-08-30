@@ -4,5 +4,6 @@
 {
   imports = [
     ./nvidia.nix
+    ./power-management.nix
   ];
 }

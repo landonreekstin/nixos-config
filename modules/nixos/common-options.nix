@@ -261,6 +261,20 @@ in
         };
         # You could add more nvidia options here: powerManagement, openDrivers, etc.
       };
+      powerManagement = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable power management. May overwrite session GUI-set settings.";
+        };
+        tlp = {
+          enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable tlp power optimiztion tool.";
+        };
+        };
+      };
       # Add options for amdgpu, intel, bluetooth etc. here later
       # CORSAIR KEYBOARD, rgb management
     };
