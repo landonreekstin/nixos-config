@@ -49,7 +49,7 @@
     };
 
     programs = {
-      partydeck.enable = false;
+      partydeck.enable = true;
       flatpak.enable = true;
     };
 

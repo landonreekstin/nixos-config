@@ -27,60 +27,51 @@ let
     background = "./res/default_background.png"
   '';
   
-  partydeck-pkg = pkgs.stdenv.mkDerivation {
+    partydeck-pkg = 
+      let
+      pversion = "0.5.2"; # Define version here
+    in
+    pkgs.rustPlatform.buildRustPackage {
     pname = "partydeck-rs";
-    version = "0.5.2";
+    version = pversion;
 
-    src = pkgs.fetchurl {
-      url = "https://github.com/wunnr/partydeck-rs/releases/download/v0.5.2/PartyDeck-0.5.2.tar.gz";
-      hash = "sha256-HQ4rEOPgfFdRLz+uARpaX4f6tFzDmFndX1Soy1CzObA=";
+    src = pkgs.fetchFromGitHub {
+      owner = "wunnr";
+      repo = "partydeck"; # Note: The repo is named 'partydeck', not 'partydeck-rs'
+      rev = "v${pversion}";
+      hash = "sha256-3v/JGh6aX/zd5gMxKe4Cwlmwn9jREo1MklyIZaqS7ZI=";
     };
 
-    nativeBuildInputs = [ 
-      pkgs.autoPatchelfHook
+    cargoHash = "sha256-3hO5ZtTX3uNqQBnSpm0rK3YsmgCRM7jcwPDb3J0aKVQ=";
+
+    # These are needed by dependencies of partydeck
+    nativeBuildInputs = [
+      pkgs.pkg-config
     ];
 
-    buildInputs = with pkgs; [
-      # For partydeck-rs
-      libarchive
-      libgcc
-      openssl
-
-      # For the vendored gamescope and bubblewrap
-      libavif
-      libcap
-      libdrm
-      libei            # Corrected: was libeis
-      libglvnd
-      libinput
-      seatd
-      libxkbcommon
-      luajit
-      pixman
-      SDL2
-      vulkan-loader
-      wayland
-      xorg.libX11
-      xorg.libXcomposite
-      xorg.libXcursor
-      xorg.libXdamage
-      xorg.libXext
-      xorg.libXfixes
-      xorg.libXmu
-      xorg.libXrender
-      xorg.libXres
-      xorg.libXtst
-      xorg.libXxf86vm
+    # These are the libraries partydeck links against
+    buildInputs = [
+      pkgs.openssl
+      pkgs.libarchive
+      pkgs.wayland
+      pkgs.libxkbcommon
+      pkgs.xorg.libX11
+      pkgs.xorg.libXcursor
+      pkgs.xorg.libXrandr
+      pkgs.xorg.libXi
+      pkgs.vulkan-loader
     ];
 
-    installPhase = ''
-      runHook preInstall
-      mkdir -p $out/bin
-      cp ../partydeck-rs $out/bin/partydeck
-      cp -r ../res $out/bin/
-      # Install the default config.toml right next to the executable.
-      cp ${default-config} $out/bin/config.toml
-      runHook postInstall
+    # This is the crucial part. We patch the source code before building.
+    postPatch = ''
+      substituteInPlace src/main.rs \
+        --replace 'current_exe.join("gamescope")' 'PathBuf::from("${pkgs.gamescope}/bin/gamescope")'
+    '';
+
+    postInstall = ''
+      # Copy the resources and default config to the output directory
+      cp -r ${pkgs.writeText "config.toml" (builtins.readFile ./partydeck-default-config.toml)} $out/bin/config.toml
+      cp -r $src/res $out/bin/
     '';
 
     meta = with lib; {
@@ -94,9 +85,13 @@ let
 
 in
 {
+  # We now also need to ensure gamescope and bubblewrap are in the system path
+  # for the patched executable to find and run.
   config = lib.mkIf partydeckCondition {
     environment.systemPackages = [
       partydeck-pkg
+      pkgs.gamescope
+      pkgs.bubblewrap
     ];
   };
 }

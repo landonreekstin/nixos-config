@@ -1,0 +1,17 @@
+# The amount of players to show on the screen
+# Allowed values: 1, 2, 3, 4
+players = 4
+
+# The list of applications to show in the launcher
+# For each application, you can specify the following:
+# - name: The name of the application
+# - command: The command to execute (required)
+# - icon: The path to the icon to show (optional)
+# - background: The path to the background to show (optional)
+[[apps]]
+name = "Steam"
+command = "steam"
+# You can also use flatpak apps
+# command = "flatpak run com.valvesoftware.Steam"
+icon = "./res/default_icon.png"
+background = "./res/default_background.png"
