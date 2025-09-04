@@ -114,7 +114,7 @@
         settings = {
           main = {
             # This line creates the entry 'f4 = minus' inside the [main] section.
-            f4 = "minus";
+            f9 = "minus";
           };
         };
       };
