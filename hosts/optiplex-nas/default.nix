@@ -65,11 +65,8 @@
       };
     };
     
-    # Disable graphical programs
     programs = {
-      hyprland.enable = false;
-      kde.enable = false;
-      cosmic.enable = false;
+
     };
 
     homeManager = {
