@@ -85,7 +85,9 @@
         vim
         htop
       ];
-      homeManager = with pkgs; [ ];
+      homeManager = with pkgs; [ 
+        vscode
+      ];
     };
 
     apps = {
