@@ -307,6 +307,21 @@ in
           description = "Enable Samba file sharing service."; 
         };
       };
+      mediaSetup = {
+        enable = lib.mkEnableOption "Enable the shared media setup";
+        user = lib.mkOption {
+          type = lib.types.str;
+          description = "The primary user account for media ownership.";
+        };
+        storagePath = lib.mkOption {
+          type = lib.types.str;
+          description = "The path to the main storage pool.";
+        };
+        cachePath = lib.mkOption {
+          type = lib.types.str;
+          description = "The path to the fast cache drive.";
+        };
+      };
       jellyfin = {
         enable = mkOption {
           type = types.bool;

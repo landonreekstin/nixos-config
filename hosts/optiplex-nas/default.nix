@@ -107,8 +107,15 @@
     };
 
     homelab = {
-      samba.enable = false;
+      samba.enable = true;
       jellyfin.enable = false;
+
+      mediaSetup = {
+        enable = true;
+        user = config.customConfig.user.name; # This pulls "lando" from the user section
+        storagePath = "/mnt/storage";
+        cachePath = "/mnt/cache";
+      };
     };
   };
 

@@ -16,7 +16,7 @@ in
       openFirewall = true;
 
       # Define the shared folders.
-      shares = {
+      settings = {
         # We'll name our main share "storage"
         storage = {
           # This share points to the Btrfs RAID1 mount point we planned.

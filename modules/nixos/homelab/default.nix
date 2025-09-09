@@ -5,5 +5,6 @@
   imports = [
     ./samba.nix
     ./jellyfin.nix
+    ./media-setup.nix
   ];
 }
