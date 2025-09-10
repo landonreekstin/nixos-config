@@ -17,9 +17,8 @@ in
             };
 
             "optiplex-nas" = {
-                hostname = "192.168.100.101";
+                hostname = "192.168.1.76";
                 user = "lando";
-                proxyJump = "openbsd-t620";
             };
 
             "mini-server" = {
