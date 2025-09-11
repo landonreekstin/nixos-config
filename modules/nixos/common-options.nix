@@ -161,7 +161,7 @@ in
       };
       themes = {
         kde = mkOption {
-            type = types.enum [ "windows7" "none" ];
+            type = types.enum [ "windows7" "windows10" "none" ];
             default = "none";
             description = "Set the Plasma theme for Home Manager.";
           };
