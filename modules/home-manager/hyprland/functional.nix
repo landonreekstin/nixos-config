@@ -1,5 +1,5 @@
 # ~/nixos-config/modules/home-manager/hyprland/functional.nix
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, customConfig, ... }:
 
 let
   # Monitor descriptions (functional, as they define layout)
@@ -15,7 +15,7 @@ in
     ../scripts/set-wayvnc-output.nix
   ];
 
-  config = lib.mkIf config.customConfig.desktop.enable && lib.elem "hyprland" config.customConfig.desktop.environments {
+  config = lib.mkIf ((customConfig.desktop.enable) && (lib.elem "hyprland" customConfig.desktop.environments)) {
 
     # -------------------------------------------------------------------------- #
     # Functional Services
