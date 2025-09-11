@@ -34,7 +34,7 @@
       environments = [ "kde" ];
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "cosmic";
+        type = "sddm";
       };
     };
 
