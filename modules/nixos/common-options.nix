@@ -115,7 +115,7 @@ in
           description = "Whether to enable a display manager.";
         };
         type = mkOption {
-          type = types.enum [ "sddm" "gdm" "greetd" "ly" "pantheon" "none" ]; # Add more as needed
+          type = types.enum [ "sddm" "cosmic" "gdm" "greetd" "ly" "pantheon" "none" ]; # Add more as needed
           default = "sddm"; # A common default, adjust as preferred
           description = "Which display manager to use if displayManager.enable is true. 'none' means no DM managed by this option.";
         };
