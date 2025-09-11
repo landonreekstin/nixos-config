@@ -14,6 +14,11 @@ config = lib.mkIf cfg.enable {
       enable = true;
     };
 
+    # == SDDM Configuration ==
+    services.displayManager.sddm = lib.mkIf (cfg.type == "sddm") {
+      enable = true;
+    };
+
     # == Ly Greeter Configuration ==
     services.displayManager.ly = lib.mkIf (cfg.type == "ly") {
       enable = true;
