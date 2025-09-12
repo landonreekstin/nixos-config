@@ -115,7 +115,7 @@ in
           description = "Whether to enable a display manager.";
         };
         type = mkOption {
-          type = types.enum [ "sddm" "gdm" "greetd" "ly" "pantheon" "none" ]; # Add more as needed
+          type = types.enum [ "sddm" "cosmic" "gdm" "greetd" "ly" "pantheon" "none" ]; # Add more as needed
           default = "sddm"; # A common default, adjust as preferred
           description = "Which display manager to use if displayManager.enable is true. 'none' means no DM managed by this option.";
         };
@@ -293,7 +293,66 @@ in
         };
         # You can add more options for NixAI here, like model, port, etc.
       };
-      # Add options for other services like syncthing, printing, etc.
+      wireguard = {
+        server = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable the WireGuard server host configuration.";
+          };
+          
+          interfaceName = mkOption {
+            type = types.str;
+            default = "wg0";
+            description = "The name of the WireGuard network interface.";
+          };
+
+          address = mkOption {
+            type = types.str;
+            example = "10.100.100.1/24";
+            description = "The IP address and subnet for the WireGuard server itself.";
+          };
+
+          listenPort = mkOption {
+            type = types.port;
+            default = 51820;
+            description = "The UDP port on which the WireGuard server will listen.";
+          };
+
+          privateKeyFile = mkOption {
+            type = types.path;
+            description = "Absolute path to the file containing the server's private key.";
+            example = "/etc/nixos/secrets/wireguard/private";
+          };
+
+          peers = mkOption {
+            type = with types; listOf (submodule {
+              options = {
+                publicKey = mkOption {
+                  type = types.str;
+                  description = "The public key of the peer.";
+                };
+                allowedIPs = mkOption {
+                  type = with types; listOf str;
+                  description = "List of IP addresses this peer is allowed to use within the tunnel.";
+                  example = [ "10.100.100.2/32" ];
+                };
+                presharedKeyFile = mkOption {
+                  type = types.nullOr types.path;
+                  default = null;
+                  description = "Optional: Absolute path to a pre-shared key for this peer for extra security.";
+                };
+              };
+            });
+            default = [];
+            description = "A list of peers (clients) that are allowed to connect to this server.";
+          };
+        };
+        # This structure allows for a client module to be added later, like so:
+        # client = {
+        #   enable = mkOption { ... };
+        # };
+      };
     };
 
     # -------------------------------------------------------------------------- #

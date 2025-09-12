@@ -7,5 +7,6 @@
     ./vscode-server.nix
     ./geoclue2.nix
     ./nixai.nix
+    ./wireguard-server.nix
   ];
 }

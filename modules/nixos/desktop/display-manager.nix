@@ -10,7 +10,14 @@ in
 config = lib.mkIf cfg.enable {
     
     # == Cosmic Greeter Configuration ==
-    services.displayManager.cosmic-greeter.enable = lib.mkIf (cfg.type == "cosmic") true;
+    services.displayManager.cosmic-greeter = lib.mkIf (cfg.type == "cosmic") {
+      enable = true;
+    };
+
+    # == SDDM Configuration ==
+    services.displayManager.sddm = lib.mkIf (cfg.type == "sddm") {
+      enable = true;
+    };
 
     # == Ly Greeter Configuration ==
     services.displayManager.ly = lib.mkIf (cfg.type == "ly") {

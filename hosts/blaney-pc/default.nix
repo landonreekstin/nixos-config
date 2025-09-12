@@ -68,6 +68,7 @@
         obs-studio
       ];
       homeManager = with pkgs; [
+        kitty
         vscode
         librewolf
         brave
