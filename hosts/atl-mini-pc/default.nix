@@ -51,6 +51,10 @@
 
     homeManager = {
       enable = true; # Enable Home Manager for this host
+      themes = {
+        kde = "default";
+        wallpaper = ../../assets/wallpapers/soviet-retro-future.jpg;
+      };
     };
 
     packages = {
@@ -97,7 +101,12 @@
 
   };
 
+  # === Host-specific NixOS configuration ===
   services.xserver.videoDrivers = [ "i810" ];
+  boot.initrd.verbose = false;
+  boot.loader.timeout = 0;
+  boot.consoleLogLevel = 0;
+  boot.kernelParams = [ "quiet" "udev.log_level=3" ];
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {

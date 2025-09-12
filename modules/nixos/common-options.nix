@@ -161,14 +161,20 @@ in
       };
       themes = {
         kde = mkOption {
-            type = types.enum [ "windows7" "none" ];
-            default = "none";
-            description = "Set the Plasma theme for Home Manager.";
-          };
+          type = types.enum [ "windows7" "default" "none" ];
+          default = "none";
+          description = "Set the Plasma theme for Home Manager.";
+        };
         hyprland = mkOption {
           type = types.enum [ "future-aviation" "none" ];
           default = "none";
           description = "Set the Hyprland theme for Home Manager.";
+        };
+        wallpaper = mkOption {
+          type = types.nullOr types.path;
+          default = null;
+          description = "Absolute path to the desktop wallpaper. If null, a default will be used.";
+          example = "/path/to/my/wallpaper.png";
         };
       };
       # You can add more themes here later, e.g., 'cosmic', 'kde', etc.
