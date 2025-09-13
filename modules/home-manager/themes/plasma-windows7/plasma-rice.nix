@@ -1,7 +1,8 @@
 { pkgs, lib, config, customConfig, inputs, ...}:
 
 let
-  plasmaWindows7Condition = (customConfig.programs.kde.enable && customConfig.homeManager.enable && customConfig.homeManager.themes.kde == "windows7");
+  plasmaWindows7Condition = (lib.elem "kde" customConfig.desktop.environments
+    && customConfig.homeManager.enable && customConfig.homeManager.themes.kde == "windows7");
 
   aerothemeplasma-src = pkgs.fetchgit {
     url = "https://gitgud.io/wackyideas/AeroThemePlasma.git";

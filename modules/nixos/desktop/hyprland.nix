@@ -3,7 +3,7 @@
 
 {
   # ==> Configuration (Applied only if profile is enabled) <==
-  config = lib.mkIf config.customConfig.programs.hyprland.enable {
+  config = lib.mkIf (lib.elem "hyprland" config.customConfig.desktop.environments) {
 
     # Enable Hyprland Wayland compositor
     programs.hyprland = {

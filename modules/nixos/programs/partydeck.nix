@@ -4,7 +4,7 @@
 let
   partydeckCondition = config.customConfig.programs.partydeck.enable
                    && config.customConfig.profiles.gaming.enable
-                   && config.customConfig.desktop.environment == "kde";
+                   && lib.elem "kde" config.customConfig.desktop.environments;
 
   partydeck-pkg = pkgs.stdenv.mkDerivation {
     pname = "partydeck-rs";

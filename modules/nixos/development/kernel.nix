@@ -5,8 +5,8 @@ let
   cfg = config.customConfig.profiles.development.kernel;
 
   guest-kernel-config-fragment = ./kernel-files/guest_kernel.config;
-
   c_cpp_template = ./kernel-files/c_cpp_properties.json.template;
+  guest_aliases_file = ./kernel-files/guest_aliases.sh;
 
   create-image-script = pkgs.fetchurl {
     url = "https://raw.githubusercontent.com/google/syzkaller/master/tools/create-image.sh";
@@ -16,9 +16,19 @@ let
   create-guest-image = pkgs.writeShellScriptBin "create-guest-image" ''
     #!/usr/bin/env bash
     set -euo pipefail
+    
+    # We must expand LKP_GUEST_PATH before sudo, as it may not be available after.
+    # The '|| true' handles the case where the variable is not set and we exit gracefully.
+    GUEST_PATH_CHECK="''${LKP_GUEST_PATH:?LKP_GUEST_PATH is not set or empty. Please ensure your .envrc is active.}" || true
+
     cd "''${LKP_GUEST_PATH}"
+
     echo "This script will create a Debian (Bullseye) disk image in ''${LKP_GUEST_PATH}"
-    if [[ "$EUID" -ne 0 ]]; then exec sudo /usr/bin/env bash "$0" "$@"; fi
+    if [[ "$EUID" -ne 0 ]]; then
+      # CORRECTED: Tell sudo to preserve the LKP_GUEST_PATH variable.
+      exec sudo --preserve-env=LKP_GUEST_PATH /usr/bin/env bash "$0" "$@"
+    fi
+    
     ORIGINAL_USER=''${SUDO_USER:-$(logname)}
     cp ${create-image-script} ./create-image.sh && chmod +x ./create-image.sh
     echo "--- Running the syzkaller create-image.sh script..."
@@ -42,6 +52,11 @@ EOF
     rm -f "''${MOUNT_DIR}/etc/systemd/system/network-online.target.wants/networking.service"
     rm ./create-image.sh
     chown "$ORIGINAL_USER" bullseye.img bullseye.id_rsa bullseye.id_rsa.pub
+
+    # Copy the aliases file into the guest's profile directory
+    echo "--- Installing custom shell aliases..."
+    cp "${guest_aliases_file}" "''${MOUNT_DIR}/etc/profile.d/99-lkp-aliases.sh"
+    chmod +x "''${MOUNT_DIR}/etc/profile.d/99-lkp-aliases.sh"
 
     echo "Setup complete. Guest image is in ''${LKP_GUEST_PATH}"
   '';

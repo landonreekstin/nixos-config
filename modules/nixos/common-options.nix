@@ -100,10 +100,11 @@ in
           # default = (config.customConfig.desktop.environment != "none");
           description = "Whether to enable a desktop environment.";
         };
-      environment = mkOption {
-        type = types.enum [ "hyprland" "cosmic" "kde" "pantheon" "none" ]; # Add more as you support them
-        default = "none";
-        description = "The primary desktop environment or window manager to enable system-wide.";
+      environments = mkOption {
+        type = types.listOf (types.enum [ "hyprland" "cosmic" "kde" "pantheon" "none" ]);
+        default = []; # Default to an empty list
+        example = [ "kde" "hyprland" ];
+        description = "A list of desktop environments or window managers to make available on the system.";
       };
       displayManager = {
         enable = mkOption {
@@ -114,7 +115,7 @@ in
           description = "Whether to enable a display manager.";
         };
         type = mkOption {
-          type = types.enum [ "sddm" "gdm" "greetd" "ly" "pantheon" "none" ]; # Add more as needed
+          type = types.enum [ "sddm" "cosmic" "gdm" "greetd" "ly" "pantheon" "none" ]; # Add more as needed
           default = "sddm"; # A common default, adjust as preferred
           description = "Which display manager to use if displayManager.enable is true. 'none' means no DM managed by this option.";
         };
@@ -124,39 +125,6 @@ in
     # Enables for specific system-level programs or services related to desktops
     # These are distinct from homeManagerModules which are user-level.
     programs = {
-      hyprland = { # System-level setup for Hyprland (e.g., programs.hyprland.enable)
-        enable = mkOption {
-          type = types.bool;
-          default = (config.customConfig.desktop.environment == "hyprland");
-          defaultText = literalExpression ''(config.customConfig.desktop.environment == "hyprland")'';
-          description = "Whether to enable system-level Hyprland configurations (e.g., NixOS module for Hyprland).";
-        };
-      };
-      cosmic = { # System-level setup for COSMIC DE
-        enable = mkOption {
-          type = types.bool;
-          default = (config.customConfig.desktop.environment == "cosmic");
-          defaultText = literalExpression ''(config.customConfig.desktop.environment == "cosmic")'';
-          description = "Whether to enable system-level COSMIC DE configurations. Must also import inputs.nixos-cosmic.nixosModules.default in flake host entry.";
-        };
-      };
-      kde = { # System-level setup for Plasma6 DE
-        enable = mkOption {
-          type = types.bool;
-          default = (config.customConfig.desktop.environment == "kde");
-          defaultText = literalExpression ''(config.customConfig.desktop.environment == "kde")'';
-          description = "Whether to enable system-level KDE PLasma DE configurations.";
-        };
-      };
-      pantheon = { # System-level setup for Pantheon DE
-        enable = mkOption {
-          type = types.bool;
-          default = (config.customConfig.desktop.environment == "pantheon");
-          defaultText = literalExpression ''(config.customConfig.desktop.environment == "pantheon")'';
-          description = "Whether to enable system-level Pantheon DE configurations.";
-        };
-      };
-
       partydeck = {
         enable = mkOption {
           type = types.bool;
@@ -164,7 +132,6 @@ in
           description = "Enable PartyDeck, a splitscreen gaming application for KDE.";
         };
       };
-
       flatpak = {
         enable = mkOption {
           type = types.bool;
@@ -187,21 +154,27 @@ in
         gammastep = {
           enable = mkOption {
             type = types.bool;
-            default = (config.customConfig.desktop.environment == "hyprland"); # Enable by default, can be overridden in user config
+            default = (lib.elem "hyprland" config.customConfig.desktop.environments); # Enable by default, can be overridden in user config
             description = "Whether to enable gammastep for night light adjustments.";
           };
         };
       };
       themes = {
         kde = mkOption {
-            type = types.enum [ "windows7" "none" ];
-            default = "none";
-            description = "Set the Plasma theme for Home Manager.";
-          };
+          type = types.enum [ "windows7" "default" "none" ];
+          default = "none";
+          description = "Set the Plasma theme for Home Manager.";
+        };
         hyprland = mkOption {
           type = types.enum [ "future-aviation" "none" ];
           default = "none";
           description = "Set the Hyprland theme for Home Manager.";
+        };
+        wallpaper = mkOption {
+          type = types.nullOr types.path;
+          default = null;
+          description = "Absolute path to the desktop wallpaper. If null, a default will be used.";
+          example = "/path/to/my/wallpaper.png";
         };
       };
       # You can add more themes here later, e.g., 'cosmic', 'kde', etc.
@@ -357,7 +330,66 @@ in
         };
         # You can add more options for NixAI here, like model, port, etc.
       };
-      # Add options for other services like syncthing, printing, etc.
+      wireguard = {
+        server = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable the WireGuard server host configuration.";
+          };
+          
+          interfaceName = mkOption {
+            type = types.str;
+            default = "wg0";
+            description = "The name of the WireGuard network interface.";
+          };
+
+          address = mkOption {
+            type = types.str;
+            example = "10.100.100.1/24";
+            description = "The IP address and subnet for the WireGuard server itself.";
+          };
+
+          listenPort = mkOption {
+            type = types.port;
+            default = 51820;
+            description = "The UDP port on which the WireGuard server will listen.";
+          };
+
+          privateKeyFile = mkOption {
+            type = types.path;
+            description = "Absolute path to the file containing the server's private key.";
+            example = "/etc/nixos/secrets/wireguard/private";
+          };
+
+          peers = mkOption {
+            type = with types; listOf (submodule {
+              options = {
+                publicKey = mkOption {
+                  type = types.str;
+                  description = "The public key of the peer.";
+                };
+                allowedIPs = mkOption {
+                  type = with types; listOf str;
+                  description = "List of IP addresses this peer is allowed to use within the tunnel.";
+                  example = [ "10.100.100.2/32" ];
+                };
+                presharedKeyFile = mkOption {
+                  type = types.nullOr types.path;
+                  default = null;
+                  description = "Optional: Absolute path to a pre-shared key for this peer for extra security.";
+                };
+              };
+            });
+            default = [];
+            description = "A list of peers (clients) that are allowed to connect to this server.";
+          };
+        };
+        # This structure allows for a client module to be added later, like so:
+        # client = {
+        #   enable = mkOption { ... };
+        # };
+      };
     };
 
     # -------------------------------------------------------------------------- #

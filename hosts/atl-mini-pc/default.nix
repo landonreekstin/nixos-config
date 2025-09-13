@@ -1,4 +1,4 @@
-# ~/nixos-config/hosts/justus-pc/default.nix
+# ~/nixos-config/hosts/atl-mini-pc/default.nix
 { inputs, pkgs, lib, config, ... }: # Standard module arguments. `config` is the final NixOS config.
 
 {
@@ -18,13 +18,13 @@
   customConfig = {
     
     user = {
-      name = "justus";
-      email = "cblaney00@gmail.com";
+      name = "heather";
+      email = "landonreekstin@gmail.com";
       updateCmdPermission = false; 
     };
     
     system = {
-      hostName = "justus-pc"; # Actual hostname for this machine
+      hostName = "atl-mini-pc"; # Actual hostname for this machine
       stateVersion = "25.05"; # DO NOT CHANGE
       timeZone = "America/New_York";
       locale = "en_US.UTF-8"; 
@@ -34,13 +34,13 @@
       environments = [ "kde" ];
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "ly";
+        type = "sddm";
       };
     };
 
     hardware = {
       nvidia = {
-        enable = true;
+        enable = false;
       };
     };
 
@@ -51,6 +51,10 @@
 
     homeManager = {
       enable = true; # Enable Home Manager for this host
+      themes = {
+        kde = "default";
+        wallpaper = ../../assets/wallpapers/soviet-retro-future.jpg;
+      };
     };
 
     packages = {
@@ -60,42 +64,49 @@
         fd
         htop
         pavucontrol
-        g810-led
-        openrgb
       ];
       homeManager = with pkgs; [
-        vscode
-        librewolf
-        brave
-        discord-canary
-        discord
-        spotify
         notes
-        CuboCore.corepaint
-        kdePackages.kdenlive
+        chromium
+        firefox
+        libreoffice
       ];
     };
 
     apps = {
-      defaultBrowser = "librewolf";
+      defaultBrowser = "firefox";
     };
 
     profiles = {
-      gaming.enable = true;
+      gaming.enable = false;
     };
 
     services = {
-      ssh.enable = false;
-      vscodeServer.enable = false;
+      ssh.enable = true;
+      vscodeServer.enable = true;
+      wireguard.server = {
+        enable = false;
+        address = "10.100.100.1/24";
+        listenPort = 51824;
+        privateKeyFile = "/etc/nixos/secrets/wireguard/server-privatekey"; # IMPORTANT: Use a secret path
+        peers = [
+          {
+            # Example Peer 1: A Phone
+            publicKey = "PKvb7VKgYKXobS0MjVg68NbkObZVO9Bdakjv7Hi5NGw=";
+            allowedIPs = [ "10.200.200.2/32" ];
+          }
+        ];
+      };
     };
 
   };
 
-  # === Additional nixos configuration for this host ===
-  services.mullvad-vpn.enable = true;
-  services.hardware.openrgb.enable = true; # Enable OpenRGB for RGB control
-  #services.g810-led.package = pkgs.g810-led; # Ensure the g810-led package is available
-  #services.g810-led.enable = true; # Enable Logitech G810 keyboard LED control
+  # === Host-specific NixOS configuration ===
+  services.xserver.videoDrivers = [ "i810" ];
+  boot.initrd.verbose = false;
+  boot.loader.timeout = 0;
+  boot.consoleLogLevel = 0;
+  boot.kernelParams = [ "quiet" "udev.log_level=3" ];
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {

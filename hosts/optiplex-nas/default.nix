@@ -58,18 +58,15 @@
     
     # This is a server, so we disable the desktop environment.
     desktop = {
-      environment = "none";
+      environments =  [ "none" ];
       displayManager = {
         enable = false;
         type = "none";
       };
     };
     
-    # Disable graphical programs
     programs = {
-      hyprland.enable = false;
-      kde.enable = false;
-      cosmic.enable = false;
+
     };
 
     homeManager = {
@@ -88,7 +85,9 @@
         vim
         htop
       ];
-      homeManager = with pkgs; [ ];
+      homeManager = with pkgs; [ 
+        vscode
+      ];
     };
 
     apps = {

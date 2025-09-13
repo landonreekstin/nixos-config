@@ -30,7 +30,7 @@
     };
     
     desktop = {
-      environment = "kde";
+      environments = [ "kde" ];
       displayManager = {
         enable = true;
         type = "ly";
@@ -49,10 +49,6 @@
     };
 
     programs = {
-      hyprland.enable = false;
-      kde.enable = true;
-      cosmic.enable = false;
-
       partydeck.enable = false;
       flatpak.enable = true;
     };
@@ -118,7 +114,7 @@
         settings = {
           main = {
             # This line creates the entry 'f4 = minus' inside the [main] section.
-            f4 = "minus";
+            f9 = "minus";
           };
         };
       };
