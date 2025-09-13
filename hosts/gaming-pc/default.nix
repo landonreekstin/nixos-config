@@ -29,6 +29,10 @@
       locale = "en_US.UTF-8";
     };
 
+    bootloader = {
+      quietBoot = false; # show boot messages
+    };
+
     desktop = {
       environments = [ "hyprland" "kde" ]; # Set to "hyprland", "cosmic", or "kde" based on your preference
       displayManager = {
