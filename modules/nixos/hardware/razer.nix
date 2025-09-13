@@ -7,7 +7,7 @@
         #polychromatic
         openrazer-daemon
         razergenie
-
+        input-remapper
     ];
 
     # This option is the main switch. It automatically handles the
