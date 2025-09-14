@@ -29,6 +29,10 @@
       timeZone = "America/New_York";
       locale = "en_US.UTF-8"; 
     };
+
+    bootloader = {
+      quietBoot = true;
+    };
     
     desktop = {
       environments = [ "kde" ];
@@ -103,10 +107,6 @@
 
   # === Host-specific NixOS configuration ===
   services.xserver.videoDrivers = [ "i810" ];
-  boot.initrd.verbose = false;
-  boot.loader.timeout = 0;
-  boot.consoleLogLevel = 0;
-  boot.kernelParams = [ "quiet" "udev.log_level=3" ];
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {

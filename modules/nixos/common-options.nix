@@ -65,6 +65,14 @@ in
       };
     };
 
+    bootloader = {
+      quietBoot = mkOption {
+        type = types.bool;
+        default = false; # Default to false, enable explicitly for quiet boot
+        description = "Whether to enable quiet boot (suppress boot messages).";
+      };
+    };
+
     system = {
       hostName = mkOption {
         type = types.str;
