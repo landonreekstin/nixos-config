@@ -9,10 +9,6 @@ in
   config = lib.mkIf cfg.enable {
 
     # === Enable General Peripheral Support ===
-    #environment.systemPackages = with pkgs; [
-    #    openrgb
-    #    solaar
-    #];
     services.hardware.openrgb.enable = cfg.openrgb.enable or false; # Enable OpenRGB for RGB control
 
     # === Enable Razer Device Support ===
@@ -29,11 +25,13 @@ in
     # === Enable Corsair Device Support ===
     hardware.ckb-next.enable = cfg.ckb-next.enable or false;
 
+    # === Install Peripheral Management Tools ===
     environment.systemPackages = with pkgs; [
-        openrgb
+        #openrgb
         solaar
         openrazer-daemon
         polychromatic
+        input-remapper
     ];
 
   };

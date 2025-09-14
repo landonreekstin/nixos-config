@@ -66,11 +66,11 @@
         htop
         kitty
         pavucontrol
-        g810-led
-        openrgb
-        solaar
-        openrazer-daemon
-        polychromatic
+        #g810-led
+        #openrgb
+        #solaar
+        #openrazer-daemon
+        #polychromatic
         obs-studio
       ];
       homeManager = with pkgs; [

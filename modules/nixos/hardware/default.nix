@@ -4,7 +4,7 @@
 {
   imports = [
     ./nvidia.nix
-    #./peripherals.nix
-    ./razer.nix
+    ./peripherals.nix
+    #./razer.nix
   ];
 }
