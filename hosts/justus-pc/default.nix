@@ -29,12 +29,16 @@
       timeZone = "America/New_York";
       locale = "en_US.UTF-8"; 
     };
+
+    bootloader = {
+      quietBoot = true;
+    };
     
     desktop = {
       environments = [ "kde" ];
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "ly";
+        type = "sddm";
       };
     };
 
