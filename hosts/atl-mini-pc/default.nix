@@ -29,12 +29,16 @@
       timeZone = "America/New_York";
       locale = "en_US.UTF-8"; 
     };
+
+    bootloader = {
+      quietBoot = true;
+    };
     
     desktop = {
       environments = [ "kde" ];
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "ly";
+        type = "sddm";
       };
     };
 
@@ -51,6 +55,10 @@
 
     homeManager = {
       enable = true; # Enable Home Manager for this host
+      themes = {
+        kde = "default";
+        wallpaper = ../../assets/wallpapers/soviet-retro-future.jpg;
+      };
     };
 
     packages = {
@@ -80,9 +88,25 @@
     services = {
       ssh.enable = true;
       vscodeServer.enable = true;
+      wireguard.server = {
+        enable = false;
+        address = "10.100.100.1/24";
+        listenPort = 51824;
+        privateKeyFile = "/etc/nixos/secrets/wireguard/server-privatekey"; # IMPORTANT: Use a secret path
+        peers = [
+          {
+            # Example Peer 1: A Phone
+            publicKey = "PKvb7VKgYKXobS0MjVg68NbkObZVO9Bdakjv7Hi5NGw=";
+            allowedIPs = [ "10.200.200.2/32" ];
+          }
+        ];
+      };
     };
 
   };
+
+  # === Host-specific NixOS configuration ===
+  services.xserver.videoDrivers = [ "i810" ];
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {

@@ -21,6 +21,11 @@ in
                 user = "lando";
             };
 
+            "atl-mini-pc" = {
+                hostname = "192.168.1.206";
+                user = "heather";
+            };
+
             "mini-server" = {
                 hostname = "192.168.100.103";
                 user = "lando";

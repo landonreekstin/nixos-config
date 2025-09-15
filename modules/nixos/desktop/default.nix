@@ -8,5 +8,6 @@
     ./hyprland.nix
     ./kde.nix
     ./pantheon.nix
+    ./sddm-astronaut-theme.nix
   ];
 }
