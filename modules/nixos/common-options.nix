@@ -89,6 +89,46 @@ in
       };
     };
 
+    networking = {
+      networkmanager = {
+        enable = mkOption {
+          type = types.bool;
+          default = true; # Default to true to use NetworkManager for most desktop setups
+          description = "Whether to enable NetworkManager for handling network connections.";
+        };
+      };
+      staticIP = {
+        enable = mkOption {
+          type = types.bool;
+          default = false; # Default to false, enable explicitly for static IP setups
+          description = "Whether to configure a static IP address.";
+        };
+        interface = mkOption {
+          type = types.nullOr types.str;
+          default = null; # No default, must be set if staticIP.enable is true
+          description = "The network interface to configure with a static IP (e.g., 'enp3s0', 'wlp2s0').";
+        };
+        address = mkOption {
+          type = types.nullOr types.str;
+          default = null; # No default, must be set if staticIP.enable is true
+          description = "The static IPv4 address to assign (e.g., '192.168.1.100')";
+        };
+        gateway = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = "The gateway for the static IP configuration.";
+        };
+      };
+      firewall = {
+        enable = mkOption {
+          type = types.bool;
+          default = true; # Default to true to have basic firewall enabled
+          description = "Whether to enable the NixOS firewall.";
+        };
+      };
+      # You can add more networking options here later, e.g., firewall, ssh, etc.
+    };
+
     # -------------------------------------------------------------------------- #
     #                       DESKTOP ENVIRONMENT & COMPONENTS                     #
     # -------------------------------------------------------------------------- #

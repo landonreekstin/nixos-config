@@ -55,6 +55,19 @@
       timeZone = "America/Chicago";
       locale = "en_US.UTF-8";
     };
+
+    networking = {
+      networkmanager = {
+        enable = false; # Disable NetworkManager for static IP
+      };
+      staticIP = {
+        enable = true;
+        interface = "enp0s31f6";
+        address = "192.168.1.76";
+        gateway = "192.168.1.1";
+      };
+      firewall = { enable = false; };
+    };
     
     # This is a server, so we disable the desktop environment.
     desktop = {
