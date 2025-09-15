@@ -141,6 +141,17 @@
         modules = [ ./hosts/asus-laptop/default.nix inputs.home-manager.nixosModules.default ];
       };
 
+      # Configuration for Atlanta Mini PC
+      atl-mini-pc = nixpkgs.lib.nixosSystem {
+         system = "x86_64-linux";
+         specialArgs = { inherit inputs; };
+         modules = [
+          ./hosts/atl-mini-pc/default.nix
+          inputs.home-manager.nixosModules.default 
+          inputs.disko.nixosModules.default
+        ];
+      };
+
       # Configuration for the Optiplex NAS
       optiplex-nas = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";

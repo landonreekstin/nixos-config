@@ -1,4 +1,4 @@
-# ~/nixos-config/hosts/blaney-pc/default.nix
+# ~/nixos-config/hosts/atl-mini-pc/default.nix
 { inputs, pkgs, lib, config, ... }: # Standard module arguments. `config` is the final NixOS config.
 
 {
@@ -9,34 +9,38 @@
     # Top level nixos modules import. All other nixos modules and option definitions are nested.
     ../../modules/nixos/default.nix
 
+    # Host specific disk configuration
+    ./disko-config.nix
+
   ];
 
+  # These values are for the options defined in `../../modules/nixos/common-options.nix`.
   customConfig = {
     
     user = {
-      name = "insideabush";
-      email = "cblaney00@gmail.com";
+      name = "heather";
+      email = "landonreekstin@gmail.com";
       updateCmdPermission = false; 
     };
     
     system = {
-      hostName = "blaney-pc"; # Actual hostname for this machine
+      hostName = "atl-mini-pc"; # Actual hostname for this machine
       stateVersion = "25.05"; # DO NOT CHANGE
-      timeZone = "America/New_York"; # As per your old core.nix
-      locale = "en_US.UTF-8"; # As per your old core.nix
+      timeZone = "America/New_York";
+      locale = "en_US.UTF-8"; 
     };
     
     desktop = {
       environments = [ "kde" ];
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "ly"; # Or "greetd", "gdm", or "none" based on your preference for Optiplex
+        type = "ly";
       };
     };
 
     hardware = {
       nvidia = {
-        enable = true; # Set to true if Optiplex has an NVIDIA GPU needing proprietary drivers
+        enable = false;
       };
     };
 
@@ -47,9 +51,6 @@
 
     homeManager = {
       enable = true; # Enable Home Manager for this host
-      themes = {
-        kde = "windows7";
-      };
     };
 
     packages = {
@@ -58,51 +59,30 @@
         wget
         fd
         htop
-        kitty
         pavucontrol
-        g810-led
-        openrgb
-        solaar
-        openrazer-daemon
-        polychromatic
-        obs-studio
       ];
       homeManager = with pkgs; [
-        kitty
-        vscode
-        librewolf
-        brave
-        discord-canary
-        discord
-        spotify
         notes
-        CuboCore.corepaint
-        kdePackages.kdenlive
+        chromium
+        firefox
+        libreoffice
       ];
     };
 
     apps = {
-      defaultBrowser = "librewolf";
+      defaultBrowser = "firefox";
     };
 
     profiles = {
-      gaming.enable = true;
+      gaming.enable = false;
     };
 
     services = {
-      ssh.enable = false;
-      vscodeServer.enable = false;
+      ssh.enable = true;
+      vscodeServer.enable = true;
     };
 
   };
-
-  # === Additional nixos configuration for this host ===
-  services.mullvad-vpn.enable = true;
-  services.hardware.openrgb.enable = true; # Enable OpenRGB for RGB control
-  hardware.openrazer.enable = true; # Enable OpenRazer for Razer device support
-  hardware.openrazer.users = [ config.customConfig.user.name ]; # Ensure OpenRazer runs for the user
-  #services.g810-led.package = pkgs.g810-led; # Ensure the g810-led package is available
-  #services.g810-led.enable = true; # Enable Logitech G810 keyboard LED control
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {
