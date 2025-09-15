@@ -30,7 +30,9 @@
       environments = [ "kde" ];
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "ly"; # Or "greetd", "gdm", or "none" based on your preference for Optiplex
+        type = "sddm";
+        sddmTheme = "sddm-astronaut";
+        sddmEmbeddedTheme = "pixel_sakura";
       };
     };
 
