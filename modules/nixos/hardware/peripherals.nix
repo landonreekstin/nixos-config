@@ -28,7 +28,7 @@ in
     # === Install Peripheral Management Tools ===
     environment.systemPackages = with pkgs; [
         #openrgb
-        solaar
+        #solaar
         openrazer-daemon
         polychromatic
         input-remapper
