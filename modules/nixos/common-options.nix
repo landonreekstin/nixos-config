@@ -127,6 +127,16 @@ in
           default = "sddm"; # A common default, adjust as preferred
           description = "Which display manager to use if displayManager.enable is true. 'none' means no DM managed by this option.";
         };
+        sddmTheme = mkOption {
+          type = types.str;
+          default = null; # A popular SDDM theme, adjust as preferred
+          description = "The SDDM theme to use if sddm is selected as the display manager.";
+        };
+        sddmEmbeddedTheme = mkOption {
+          type = types.nullOr types.str;
+          default = null; # Default to null, can be set to a specific embedded theme if desired
+          description = "The embedded theme for SDDM astronaut theme (e.g., 'pixel_sakura', 'astronaut'). If null, the default theme is used.";
+        };
       };
     };
 
