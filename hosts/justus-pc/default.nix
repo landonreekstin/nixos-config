@@ -39,6 +39,8 @@
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
         type = "sddm";
+        sddmTheme = "sddm-astronaut";
+        sddmEmbeddedTheme = "hyprland_kath";
       };
     };
 
