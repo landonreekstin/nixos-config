@@ -101,8 +101,6 @@
   # === Additional nixos configuration for this host ===
   hardware.ckb-next.enable = true;
   services.mullvad-vpn.enable = true;
-  # In your NixOS configuration
-  services.flatpak.enable = true;
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {
