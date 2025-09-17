@@ -39,6 +39,30 @@
     }
   ];
 
+  # === Encrypted Drive for Private Samba Share ===
+  boot.initrd.systemd.enable = true; # Ensure systemd is used in initrd for handling encrypted volumes
+  # copies the keyfile into the initrd so it's available at boot time
+  boot.initrd.secrets."/secrets/private_luks.key" = "/root/secrets/private_luks.key";
+  fileSystems."/mnt/private" = {
+    fsType = "ext4";
+    # This specifies the decrypted device that will be mounted.
+    device = "/dev/mapper/private";
+    # These options are crucial for removable drives.
+    # 'nofail' prevents an error if the device isn't present at boot.
+    # 'x-systemd.device-timeout=1' tells systemd to only wait 1 second
+    # for the device to appear, preventing long boot delays.
+    options = [ "nofail" "x-systemd.device-timeout=10s" ];
+
+    # This section tells NixOS how to create the "/dev/mapper/private" device.
+    encrypted = {
+      enable = true;
+      label = "private";
+      # Point to the actual, physical encrypted partition.
+      blkDev = "/dev/disk/by-uuid/2ec75d33-7943-47d2-a9c3-dd11d996f9f0";
+      keyFile = "/secrets/private_luks.key";
+    };
+  };
+
   # === Optiplex NAS Specific Values for `customConfig` ===
   customConfig = {
     
