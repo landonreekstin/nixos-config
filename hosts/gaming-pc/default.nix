@@ -94,6 +94,7 @@
     services = {
       ssh.enable = true;
       vscodeServer.enable = true;
+      passwordManager.enable = true;
     };
 
   };

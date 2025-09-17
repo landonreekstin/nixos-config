@@ -377,6 +377,20 @@ in
         #   enable = mkOption { ... };
         # };
       };
+      passwordManager = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable KeePassXC and Syncthing for password management.";
+        };
+        folderPath = mkOption {
+          type = types.str;
+          # This default path requires the user to create the 'Sync' directory.
+          default = "${config.customConfig.user.home}/Sync/KeePass";
+          defaultText = literalExpression ''"''${config.customConfig.user.home}/Sync/KeePass"'';
+          description = "The absolute path for the Syncthing folder to store the KeePassXC database.";
+        };
+      };
     };
 
     # -------------------------------------------------------------------------- #
