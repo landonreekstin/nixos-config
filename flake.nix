@@ -5,6 +5,11 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
+    nur = {
+      url = "github:nix-community/NUR";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     nixos-hardware = {
       url = "github:Nixos/nixos-hardware";
     };
@@ -113,6 +118,7 @@
           ./hosts/gaming-pc/default.nix 
           inputs.home-manager.nixosModules.default
           inputs.nixos-cosmic.nixosModules.default 
+          inputs.nur.modules.nixos.default
         ];
       };
 
