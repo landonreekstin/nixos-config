@@ -129,7 +129,7 @@ in
         };
         sddmTheme = mkOption {
           type = types.str;
-          default = null; # A popular SDDM theme, adjust as preferred
+          default = "none"; # A popular SDDM theme, adjust as preferred
           description = "The SDDM theme to use if sddm is selected as the display manager.";
         };
         sddmEmbeddedTheme = mkOption {
@@ -230,6 +230,7 @@ in
           default = "none";
           description = "Set the Plasma theme for Home Manager.";
         };
+        plasmaOverride = mkEnableOption "Override user-session set Plasma configuration.";
         hyprland = mkOption {
           type = types.enum [ "future-aviation" "none" ];
           default = "none";
