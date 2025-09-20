@@ -52,6 +52,22 @@
     programs = {
       partydeck.enable = false;
       flatpak.enable = true;
+      firefox = {
+        enable = true;
+        package = pkgs.firefox;
+
+        extensions = with pkgs.nur.repos.rycee.firefox-addons; [
+          ublock-origin
+          darkreader
+          facebook-container
+        ];
+
+        bookmarks = [
+          { name = "YouTube"; url = "https://www.youtube.com"; }
+          { name = "Netflix"; url = "https://www.netflix.com"; }
+          { name = "GitHub";  url = "https://github.com"; }
+        ];
+      };
     };
 
     homeManager = {
@@ -104,7 +120,7 @@
   };
 
   # === Additional nixos configuration for this host ===
-  hardware.ckb-next.enable = true;
+  #hardware.ckb-next.enable = true;
   services.mullvad-vpn.enable = true;
   # Enable the Samba client-side name resolution daemon (nmbd).
   # This allows the PC to discover other Samba hosts (like optiplex-nas)
