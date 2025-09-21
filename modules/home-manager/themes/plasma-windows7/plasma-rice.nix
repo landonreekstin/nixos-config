@@ -237,7 +237,7 @@ in
 
     programs.plasma = {
       enable = true;
-      overrideConfig = false;
+      overrideConfig = customConfig.homeManager.themes.plasmaOverride;
 
       workspace = {
         theme = "Seven-White"; # Plasma Style
