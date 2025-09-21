@@ -129,7 +129,7 @@ in
         };
         sddmTheme = mkOption {
           type = types.str;
-          default = null; # A popular SDDM theme, adjust as preferred
+          default = "none"; # A popular SDDM theme, adjust as preferred
           description = "The SDDM theme to use if sddm is selected as the display manager.";
         };
         sddmEmbeddedTheme = mkOption {
@@ -155,6 +155,53 @@ in
           type = types.bool;
           default = false; # Default to false, enable explicitly for Flatpak support
           description = "Enable Flatpak packages for Spotify and Discord.";
+        };
+      };
+      firefox = {
+        enable = lib.mkEnableOption "Enable Firefox/Librewolf configuration via Home Manager.";
+
+        package = lib.mkOption {
+          type = with lib.types; package;
+          default = pkgs.firefox;
+          defaultText = "pkgs.firefox";
+          description = "The package to use for the Firefox configuration (e.g., pkgs.librewolf or pkgs.firefox).";
+        };
+
+        extensions = lib.mkOption {
+          type = with lib.types; listOf package;
+          default = [];
+          description = "List of Firefox extensions to install.";
+          example = ''
+            with pkgs.nur.repos.rycee.firefox-addons; [
+              ublock-origin
+              privacy-badger
+            ];
+          '';
+        };
+
+        bookmarks = lib.mkOption {
+          # The actual type is very complex, so 'anything' is sufficient here
+          # since the firefox module itself will validate the structure.
+          type = with lib.types; anything;
+          default = [];
+          description = "A declarative list of bookmarks and folders to configure.";
+          example = ''
+            [
+              {
+                name = "NixOS Search";
+                url = "https://search.nixos.org/";
+                keyword = "nix";
+              }
+              "separator"
+              {
+                name = "Reading List";
+                toolbar = true; # Add this folder to the bookmarks toolbar
+                bookmarks = [
+                  { name = "Some Blog"; url = "https://example.com"; }
+                ];
+              }
+            ]
+          '';
         };
       };
     };
@@ -183,6 +230,7 @@ in
           default = "none";
           description = "Set the Plasma theme for Home Manager.";
         };
+        plasmaOverride = mkEnableOption "Override user-session set Plasma configuration.";
         hyprland = mkOption {
           type = types.enum [ "future-aviation" "none" ];
           default = "none";
@@ -407,6 +455,20 @@ in
         # client = {
         #   enable = mkOption { ... };
         # };
+      };
+      passwordManager = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable KeePassXC and Syncthing for password management.";
+        };
+        folderPath = mkOption {
+          type = types.str;
+          # This default path requires the user to create the 'Sync' directory.
+          default = "${config.customConfig.user.home}/Sync/KeePass";
+          defaultText = literalExpression ''"''${config.customConfig.user.home}/Sync/KeePass"'';
+          description = "The absolute path for the Syncthing folder to store the KeePassXC database.";
+        };
       };
     };
 
