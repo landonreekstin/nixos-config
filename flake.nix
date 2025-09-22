@@ -153,7 +153,8 @@
         specialArgs = { inherit inputs; };
         modules = [ 
           ./hosts/asus-m15/default.nix 
-          inputs.home-manager.nixosModules.default 
+          inputs.home-manager.nixosModules.default
+          inputs.nur.modules.nixos.default 
           inputs.disko.nixosModules.default
         ];
       };
