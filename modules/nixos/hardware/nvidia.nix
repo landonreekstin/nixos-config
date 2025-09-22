@@ -1,5 +1,5 @@
 # ~/nixos-config/modules/nixos/hardware/nvidia.nix
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, unstablePkgs, ... }:
 
 let
   cfg = config.customConfig.hardware.nvidia;
@@ -7,6 +7,8 @@ let
 in
 {
   config = lib.mkIf cfg.enable {
+
+    #boot.kernelPackages = lib.mkDefault unstablePkgs.linuxPackages_latest;
 
     # Enable proprietary Nvidia drivers
     hardware.nvidia = {

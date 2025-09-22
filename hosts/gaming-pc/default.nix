@@ -88,6 +88,7 @@
         cifs-utils
         samba
       ];
+      unstable-override = [ "discord-canary" "obs-studio" ];
       homeManager = with pkgs; [ # Optiplex-specific user packages (previously in core.nix user packages)
         jamesdsp
         remmina

@@ -4,6 +4,7 @@
 {
   imports = [
     ./common-options.nix
+    ./unstable-overlay.nix
     ./common/default.nix
     ./services/default.nix
     ./profiles/default.nix
