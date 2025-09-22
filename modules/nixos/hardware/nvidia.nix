@@ -15,14 +15,26 @@ in
       powerManagement.enable = true; # Recommended
       # package = config.boot.kernelPackages.nvidiaPackages.stable; # Or specify version if needed
       # === Laptop-specific options ===
-      prime = {
-        #offload.enable = lib.mkDefault cfg.laptop.enable;
-        sync.enable = lib.mkDefault cfg.laptop.enable;
-        offload.enable = false;
-        amdgpuBusId = lib.mkDefault cfg.laptop.amdgpuID or null; # AMD GPU ID for PRIME
-        intelBusId = lib.mkDefault cfg.laptop.intelBusID or null; # Intel GPU ID for PRIME (if applicable)
-        nvidiaBusId = lib.mkDefault cfg.laptop.nvidiaID; # Nvidia GPU ID for
-      };
+      prime = lib.mkMerge [
+        # --- Unconditional prime settings for laptops ---
+        (lib.mkIf cfg.laptop.enable {
+          sync.enable = true;
+          offload.enable = false; # Set your desired default for offload
+          # This assumes nvidiaID will always be set for a prime setup
+          nvidiaBusId = cfg.laptop.nvidiaID;
+        })
+
+        # --- Conditional bus ID settings ---
+        # Only add amdgpuBusId if a value is provided
+        (lib.mkIf (cfg.laptop.amdgpuID != null) {
+          amdgpuBusId = cfg.laptop.amdgpuID;
+        })
+
+        # Only add intelBusId if a value is provided
+        (lib.mkIf (cfg.laptop.intelBusID != null) {
+          intelBusId = cfg.laptop.intelBusID;
+        })
+      ];
     };
 
     services.xserver.videoDrivers = [ "nvidia" ]; # Ensure X11 & Wayland use Nvidia driver

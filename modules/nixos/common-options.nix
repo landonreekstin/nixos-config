@@ -321,18 +321,18 @@ in
             description = "Enable dual GPU and PRIME for Nvidia laptops.";
           };
           nvidiaID = mkOption {
-            type = types.str;
-            default = ""; # Default to empty, can be set to specific GPU ID if needed
+            type = types.nullOr types.str;
+            default = null; # Default to empty, can be set to specific GPU ID if needed
             description = "The NVIDIA GPU ID for PRIME configurations on laptops.";
           };
           intelBusID = mkOption {
-            type = types.str;
-            default = ""; # Default to empty, can be set to specific GPU ID if needed
+            type = types.nullOr types.str;
+            default = null; # Default to empty, can be set to specific GPU ID if needed
             description = "The Intel GPU ID for PRIME configurations on laptops.";
           };
           amdgpuID = mkOption {
-            type = types.str;
-            default = ""; # Default to empty, can be set to specific GPU ID if needed
+            type = types.nullOr types.str;
+            default = null; # Default to empty, can be set to specific GPU ID if needed
             description = "The AMD GPU ID for PRIME configurations on laptops.";
           };
         };
