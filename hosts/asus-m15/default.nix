@@ -42,7 +42,7 @@
         enable = true;
         laptop = {
           enable = true;
-          amdgpuID = "PCI:4:0:0";
+          intelBusID = "PCI:0:2:0";
           nvidiaID = "PCI:1:0:0"; 
         };
       };
