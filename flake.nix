@@ -151,7 +151,11 @@
       asus-m15 = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         specialArgs = { inherit inputs; };
-        modules = [ ./hosts/asus-m15/default.nix inputs.home-manager.nixosModules.default ];
+        modules = [ 
+          ./hosts/asus-m15/default.nix 
+          inputs.home-manager.nixosModules.default 
+          inputs.disko.nixosModules.default
+        ];
       };
 
       # Configuration for Atlanta Mini PC
