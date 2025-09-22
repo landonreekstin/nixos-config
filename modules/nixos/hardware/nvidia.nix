@@ -19,8 +19,8 @@ in
         #offload.enable = lib.mkDefault cfg.laptop.enable;
         sync.enable = lib.mkDefault cfg.laptop.enable;
         offload.enable = false;
-        amdgpuBusId = lib.mkDefault cfg.laptop.amdgpuID; # AMD GPU ID for PRIME
-        intelBusId = lib.mkDefault cfg.laptop.intelBusID; # Intel GPU ID for PRIME (if applicable)
+        amdgpuBusId = lib.mkDefault cfg.laptop.amdgpuID or null; # AMD GPU ID for PRIME
+        intelBusId = lib.mkDefault cfg.laptop.intelBusID or null; # Intel GPU ID for PRIME (if applicable)
         nvidiaBusId = lib.mkDefault cfg.laptop.nvidiaID; # Nvidia GPU ID for
       };
     };
