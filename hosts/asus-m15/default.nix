@@ -4,7 +4,7 @@
 {
   imports = [
     # Import the hardware profile for the Zephyrus M15 (GA502 model)
-    inputs.nixos-hardware.nixosModules.asus-zephyrus-ga502
+    inputs.nixos-hardware.nixosModules.asus-zephyrus-gu605my
 
     # Hardware-specific configuration generated for this host.
     # We will generate this file in the install script.
