@@ -1,0 +1,133 @@
+# ~/nixos-config/hosts/asus-m15/default.nix
+{ inputs, pkgs, lib, config, ... }:
+
+{
+  imports = [
+    # Import the hardware profile for the Zephyrus M15 (GA502 model)
+    inputs.nixos-hardware.nixosModules.asus-zephyrus-ga502
+
+    # Hardware-specific configuration generated for this host.
+    # We will generate this file in the install script.
+    ./hardware-configuration.nix
+    
+    # Top level nixos modules import.
+    ../../modules/nixos/default.nix
+  ];
+
+  # === Zephyrus G14 Specific Values for `customConfig` ===
+  customConfig = {
+    
+    user = {
+      name = "lando";
+      email = "landonreekstin@gmail.com";
+    };
+    
+    system = {
+      hostName = "asus-m15";
+      stateVersion = "25.05"; # DO NOT CHANGE
+      timeZone = "America/Chicago";
+      locale = "en_US.UTF-8";
+    };
+    
+    desktop = {
+      environments = [ "kde" ];
+      displayManager = {
+        enable = true;
+        type = "sddm";
+      };
+    };
+
+    hardware = {
+      nvidia = {
+        enable = true;
+        laptop = {
+          enable = true;
+          amdgpuID = "PCI:4:0:0";
+          nvidiaID = "PCI:1:0:0"; 
+        };
+      };
+    };
+
+    programs = {
+      partydeck.enable = false;
+      flatpak.enable = true;
+      firefox = {
+        enable = true;
+        package = pkgs.librewolf;
+
+        extensions = with pkgs.nur.repos.rycee.firefox-addons; [
+          ublock-origin
+          darkreader
+          facebook-container
+        ];
+
+        bookmarks = [
+          { name = "YouTube"; url = "https://www.youtube.com"; }
+          { name = "Netflix"; url = "https://www.netflix.com"; }
+          { name = "GitHub";  url = "https://github.com"; }
+        ];
+      };
+    };
+
+    homeManager = {
+      enable = true;
+      themes = {
+        kde = "default";
+        plasmaOverride = true;
+      };
+    };
+
+    packages = {
+      nixos = with pkgs; [ 
+        wget
+        fd
+        kitty
+        htop
+        pavucontrol
+        mullvad-vpn
+      ];
+      homeManager = with pkgs; [ 
+        jamesdsp
+        remmina
+        vscode
+        brave
+        discord-canary
+      ];
+    };
+
+    apps = {
+      defaultBrowser = "librewolf";
+    };
+
+    profiles = {
+      gaming.enable = true;
+      development.fpga-ice40.enable = false;
+      development.kernel.enable = false;
+    };
+
+    services = {
+      ssh.enable = true;
+      vscodeServer.enable = true;
+      nixai.enable = false;
+    };
+
+  };
+
+  # === Additional nixos configuration for this host ===
+  services.mullvad-vpn.enable = true;
+
+  # Home Manager configuration for this Host
+  home-manager = lib.mkIf config.customConfig.homeManager.enable {
+    useGlobalPkgs = true;
+    useUserPackages = true;
+    backupFileExtension = "hm-backup";
+    extraSpecialArgs = { inherit inputs; customConfig = config.customConfig; };
+    users.${config.customConfig.user.name} = {
+      imports = [
+        ../../modules/home-manager/default.nix
+        ../../modules/home-manager/themes/future-aviation/default.nix
+      ];
+    };
+  };
+  
+}
