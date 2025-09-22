@@ -9,6 +9,8 @@
     # Hardware-specific configuration generated for this host.
     # We will generate this file in the install script.
     ./hardware-configuration.nix
+
+    ./disko-config.nix
     
     # Top level nixos modules import.
     ../../modules/nixos/default.nix
