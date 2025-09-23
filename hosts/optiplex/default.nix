@@ -1,5 +1,5 @@
 # ~/nixos-config/hosts/optiplex/default.nix
-{ inputs, pkgs, lib, config, ... }: # Standard module arguments. `config` is the final NixOS config.
+{ inputs, pkgs, lib, config, unstablePkgs, ... }: # Standard module arguments. `config` is the final NixOS config.
 
 {
   imports = [
@@ -29,12 +29,10 @@
     };
     
     desktop = {
-      environments = [ "hyprland" ];
+      environments = [ "hyprland" "kde" ];
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "sddm"; # Or "greetd", "gdm", or "none" based on your preference for Optiplex
-        sddmTheme = "sddm-astronaut";
-        sddmEmbeddedTheme = "jake_the_dog";
+        type = "none";
       };
     };
 
@@ -58,18 +56,17 @@
     };
 
     packages = {
-      nixos = with pkgs; [ # Optiplex-specific system packages (previously in core.nix or default.nix)
-        # From old core.nix:
-        vim
-        wget
-        fd
+      nixos = with pkgs; [
         firefox
         kitty
-        htop
-        pavucontrol
-        # Add any other system packages specific to Optiplex
       ];
-      homeManager = with pkgs; [ # Optiplex-specific user packages (previously in core.nix user packages)
+      unstable-override = [ 
+        "discord-canary"  
+        "vscode"
+        "librewolf"
+        "ungoogled-chromium"
+      ];
+      homeManager = with pkgs; [ 
         jamesdsp
         remmina
         vscode
@@ -102,7 +99,7 @@
     useGlobalPkgs = true;
     useUserPackages = true;
     backupFileExtension = "hm-backup"; # Your existing setting
-    extraSpecialArgs = { inherit inputs; customConfig = config.customConfig; };
+    extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
     # Use the username from customConfig
     users.${config.customConfig.user.name} = { pkgs', lib', config'', ... }: { # config'' here is the HM config being built for this user
       imports = [

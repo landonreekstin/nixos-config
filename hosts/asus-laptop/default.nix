@@ -1,5 +1,5 @@
 # ~/nixos-config/hosts/zephyrus-g14/default.nix
-{ inputs, pkgs, lib, config, ... }:
+{ inputs, pkgs, lib, config, unstablePkgs, ... }:
 
 {
   imports = [
@@ -63,12 +63,13 @@
 
     packages = {
       nixos = with pkgs; [ 
-        wget
-        fd
         kitty
-        htop
-        pavucontrol
-        mullvad-vpn
+      ];
+      unstable-override = [ 
+        "discord-canary"  
+        "vscode"
+        "librewolf"
+        "brave"
       ];
       homeManager = with pkgs; [ 
         jamesdsp
@@ -126,11 +127,10 @@
     useGlobalPkgs = true;
     useUserPackages = true;
     backupFileExtension = "hm-backup";
-    extraSpecialArgs = { inherit inputs; customConfig = config.customConfig; };
+    extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
     users.${config.customConfig.user.name} = {
       imports = [
         ../../modules/home-manager/default.nix
-        ../../modules/home-manager/themes/future-aviation/default.nix
       ];
     };
   };
