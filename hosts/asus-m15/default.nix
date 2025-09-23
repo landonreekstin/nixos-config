@@ -76,6 +76,7 @@
       themes = {
         kde = "bigsur";
         plasmaOverride = true;
+        wallpaper = ../../assets/wallpapers/big-sur.jpg;
       };
     };
 
