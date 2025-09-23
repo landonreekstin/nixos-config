@@ -75,7 +75,7 @@ in
 
     # Use an unstable kernel for the latest hardware support/fixes
     #boot.kernelPackages = unstablePkgs.linuxPackages_latest;
-    boot.initrd.availableKernelModules = [ "nvme" ];
+    #boot.initrd.availableKernelModules = [ "nvme" ];
 
     # Gamepad Input
     hardware.xpadneo.enable = true;
