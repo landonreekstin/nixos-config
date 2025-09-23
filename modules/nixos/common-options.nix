@@ -226,7 +226,7 @@ in
       };
       themes = {
         kde = mkOption {
-          type = types.enum [ "windows7" "default" "none" ];
+          type = types.enum [ "windows7" "default" "bigsur" "none" ];
           default = "none";
           description = "Set the Plasma theme for Home Manager.";
         };
