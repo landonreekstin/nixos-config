@@ -5,6 +5,5 @@
   imports = [
     ./nvidia.nix
     ./peripherals.nix
-    #./razer.nix
   ];
 }
