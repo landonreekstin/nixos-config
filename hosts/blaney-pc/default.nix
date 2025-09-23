@@ -40,6 +40,12 @@
       nvidia = {
         enable = true; # Set to true if Optiplex has an NVIDIA GPU needing proprietary drivers
       };
+      peripherals = {
+        enable = true; # Enable peripheral configurations
+        openrgb.enable = false; # Enable OpenRGB for RGB control
+        openrazer.enable = true; # Enable OpenRazer for Razer device support
+        ckb-next.enable = false; # Enable CKB-Next for Corsair device support
+      };
     };
 
     programs = {
@@ -62,11 +68,11 @@
         htop
         kitty
         pavucontrol
-        g810-led
-        openrgb
-        solaar
-        openrazer-daemon
-        polychromatic
+        #g810-led
+        #openrgb
+        #solaar
+        #openrazer-daemon
+        #polychromatic
         obs-studio
       ];
       homeManager = with pkgs; [
@@ -94,15 +100,13 @@
     services = {
       ssh.enable = false;
       vscodeServer.enable = false;
+      passwordManager.enable = true;
     };
 
   };
-
+  
   # === Additional nixos configuration for this host ===
   services.mullvad-vpn.enable = true;
-  services.hardware.openrgb.enable = true; # Enable OpenRGB for RGB control
-  hardware.openrazer.enable = true; # Enable OpenRazer for Razer device support
-  hardware.openrazer.users = [ config.customConfig.user.name ]; # Ensure OpenRazer runs for the user
   #services.g810-led.package = pkgs.g810-led; # Ensure the g810-led package is available
   #services.g810-led.enable = true; # Enable Logitech G810 keyboard LED control
 

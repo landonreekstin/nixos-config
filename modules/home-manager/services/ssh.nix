@@ -26,6 +26,11 @@ in
                 user = "heather";
             };
 
+            "asus-m15" = {
+                hostname = "192.168.1.57";
+                user = "lando";
+            };
+
             "mini-server" = {
                 hostname = "192.168.100.103";
                 user = "lando";
