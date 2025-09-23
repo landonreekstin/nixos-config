@@ -166,6 +166,18 @@
         ];
       };
 
+      # Configuration for the Asus ROG Zephyrus M15 Laptop
+      asus-m15 = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        specialArgs = { inherit inputs; };
+        modules = [ 
+          ./hosts/asus-m15/default.nix 
+          inputs.home-manager.nixosModules.default
+          inputs.nur.modules.nixos.default 
+          inputs.disko.nixosModules.default
+        ];
+      };
+
       # Configuration for Atlanta Mini PC
       atl-mini-pc = nixpkgs.lib.nixosSystem {
          system = "x86_64-linux";
