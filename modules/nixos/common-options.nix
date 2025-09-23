@@ -315,11 +315,11 @@ in
     # -------------------------------------------------------------------------- #
     hardware = {
       nvidia = {
-          enable = mkOption {
-            type = types.bool;
-            default = false; # Default to false, enable explicitly on NVIDIA machines
-            description = "Enable NVIDIA drivers and related configuration.";
-          };
+        enable = mkOption {
+          type = types.bool;
+          default = false; # Default to false, enable explicitly on NVIDIA machines
+          description = "Enable NVIDIA drivers and related configuration.";
+        };
         laptop = {
           enable = mkOption {
             type = types.bool;
@@ -338,6 +338,37 @@ in
           };
         };
         # You could add more nvidia options here: powerManagement, openDrivers, etc.
+      };
+      peripherals = {
+        enable = mkOption {
+          type = types.bool;
+          default = false; # Default to false, enable explicitly for peripheral configurations
+          description = "Enable configurations for hardware peripherals like keyboards, mice, etc.";
+        };
+        openrgb = {
+          enable = mkOption {
+            type = types.bool;
+            default = false; # Default to false, enable explicitly for OpenRGB support
+            description = "Enable OpenRGB for RGB lighting control.";
+          };
+        };
+        openrazer = {
+          enable = mkOption {
+            type = types.bool;
+            default = false; # Default to false, enable explicitly for Razer device support
+            description = "Enable OpenRazer for Razer device support.";
+          };
+        };
+        ckb-next = {
+          enable = mkOption {
+            type = types.bool;
+            default = false; # Default to false, enable explicitly for Razer device support
+            description = "Enable OpenRazer for Razer device support.";
+          };
+        };
+        
+        # You can add more options for specific peripherals here later
+        # e.g., amdgpu, intel, bluetooth, corsair keyboard RGB management, etc.
       };
       # Add options for amdgpu, intel, bluetooth etc. here later
       # CORSAIR KEYBOARD, rgb management
