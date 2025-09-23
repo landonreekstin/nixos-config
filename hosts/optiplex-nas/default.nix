@@ -1,5 +1,5 @@
 # ~/nixos-config/hosts/optiplex-nas/default.nix
-{ inputs, pkgs, lib, config, ... }:
+{ inputs, pkgs, lib, config, unstablePkgs, ... }:
 
 {
   imports = [
@@ -117,7 +117,7 @@
     useGlobalPkgs = true;
     useUserPackages = true;
     backupFileExtension = "hm-backup";
-    extraSpecialArgs = { inherit inputs; customConfig = config.customConfig; };
+    extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
     users.${config.customConfig.user.name} = { pkgs', lib', config'', ... }: {
       imports = [
         ../../modules/home-manager/default.nix

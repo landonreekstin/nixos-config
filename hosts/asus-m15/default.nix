@@ -1,5 +1,5 @@
 # ~/nixos-config/hosts/asus-m15/default.nix
-{ inputs, pkgs, lib, config, ... }:
+{ inputs, pkgs, lib, config, unstablePkgs, ... }:
 
 {
   imports = [
@@ -123,11 +123,10 @@
     useGlobalPkgs = true;
     useUserPackages = true;
     backupFileExtension = "hm-backup";
-    extraSpecialArgs = { inherit inputs; customConfig = config.customConfig; };
+    extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
     users.${config.customConfig.user.name} = {
       imports = [
         ../../modules/home-manager/default.nix
-        ../../modules/home-manager/themes/future-aviation/default.nix
       ];
     };
   };
