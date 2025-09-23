@@ -81,18 +81,18 @@
 
     packages = {
       nixos = with pkgs; [ 
-        wget
-        fd
-        kitty
-        htop
-        pavucontrol
-        mullvad-vpn
+      
+      ];
+      unstable-override = [ 
+        "discord-canary" 
+        "vscode"
+        "librewolf"
+        "chromium"
+        "ungoogled-chromium"
       ];
       homeManager = with pkgs; [ 
-        jamesdsp
-        remmina
         vscode
-        brave
+        chromium
         discord-canary
       ];
     };
