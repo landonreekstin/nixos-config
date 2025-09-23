@@ -1,6 +1,10 @@
-{ pkgs, lib, config, customConfig, inputs, ...}:
+{ pkgs, lib, config, customConfig, inputs, unstablePkgs, ...}:
 
 let
+  # redefine 'pkgs' for this entire file's scope
+  # to be the unstable package set.
+  pkgs = unstablePkgs;
+
   plasmaWindows7Condition = (lib.elem "kde" customConfig.desktop.environments
     && customConfig.homeManager.enable && customConfig.homeManager.themes.kde == "windows7");
 
