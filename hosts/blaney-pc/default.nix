@@ -16,7 +16,7 @@
     user = {
       name = "insideabush";
       email = "cblaney00@gmail.com";
-      updateCmdPermission = true; 
+      updateCmdPermission = false; 
     };
     
     system = {
