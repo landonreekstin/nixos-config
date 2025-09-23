@@ -80,7 +80,6 @@
     packages = {
       nixos = with pkgs; [
         kitty
-        pavucontrol
         mullvad-vpn
 
         # smbclient and kio-extras for Dolphin network shares
@@ -88,7 +87,14 @@
         cifs-utils
         samba
       ];
-      unstable-override = [ "discord-canary" "obs-studio" ];
+      unstable-override = [ 
+        "discord-canary" 
+        "obs-studio" 
+        "vscode"
+        "librewolf"
+        "brave"
+        "ungoogled-chromium"
+      ];
       homeManager = with pkgs; [ # Optiplex-specific user packages (previously in core.nix user packages)
         jamesdsp
         remmina
