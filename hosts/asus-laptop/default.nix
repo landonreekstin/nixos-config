@@ -50,7 +50,6 @@
 
     programs = {
       partydeck.enable = false;
-      flatpak.enable = true;
     };
 
     homeManager = {
@@ -79,6 +78,12 @@
         brave
         discord-canary
       ];
+      flatpak = {
+        enable = true;
+        packages = [
+          "com.spotify.Client"
+        ];
+      };
     };
 
     apps = {

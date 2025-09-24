@@ -50,7 +50,6 @@
 
     programs = {
       partydeck.enable = false;
-      flatpak.enable = true;
     };
 
     homeManager = {
@@ -84,6 +83,12 @@
         CuboCore.corepaint
         kdePackages.kdenlive
       ];
+      flatpak = {
+        enable = true;
+        packages = [
+          "com.spotify.Client"
+        ];
+      };
     };
 
     apps = {

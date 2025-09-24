@@ -150,13 +150,6 @@ in
           description = "Enable PartyDeck, a splitscreen gaming application for KDE.";
         };
       };
-      flatpak = {
-        enable = mkOption {
-          type = types.bool;
-          default = false; # Default to false, enable explicitly for Flatpak support
-          description = "Enable Flatpak packages for Spotify and Discord.";
-        };
-      };
       firefox = {
         enable = lib.mkEnableOption "Enable Firefox/Librewolf configuration via Home Manager.";
 
@@ -267,6 +260,24 @@ in
         default = [];
         description = "List of additional user-specific packages to install via Home Manager.";
         example = "with pkgs; [ cowsay neofetch ]";
+      };
+      flatpak = {
+        enable = mkOption {
+          type = types.bool;
+          default = false; # Default to false, enable explicitly for Flatpak support
+          description = "Enable Flatpak packages for Spotify and Discord.";
+        };
+        packages = mkOption {
+          type = with lib.types; listOf str;
+          default = [];
+          description = "List of Flatpak packages to install if flatpak is enabled.";
+          example = "[ { appId = \"com.brave.Browser\"; origin = \"flathub\"; }
+            \"com.obsproject.Studio\"
+            \"im.riot.Riot\"
+            \"com.spotify.Client\"
+            \"com.discordapp.Discord\" 
+          ]";
+        };
       };
     };
 

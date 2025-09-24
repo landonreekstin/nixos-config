@@ -57,7 +57,6 @@
 
     programs = {
       partydeck.enable = false;
-      flatpak.enable = true;
       firefox = {
         enable = true;
         package = pkgs.firefox;
@@ -113,6 +112,12 @@
         obs-studio
         kdePackages.konversation
       ];
+      flatpak = {
+        enable = true;
+        packages = [
+          "com.spotify.Client"
+        ];
+      };
     };
 
     apps = {

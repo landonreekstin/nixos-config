@@ -7,7 +7,7 @@
     inputs.nix-flatpak.nixosModules.nix-flatpak
   ];
 
-  config = lib.mkIf config.customConfig.programs.flatpak.enable {
+  config = lib.mkIf config.customConfig.packages.flatpak.enable {
     # Required to install flatpak
     xdg.portal = {
         enable = true;
@@ -38,13 +38,7 @@
     services.flatpak.uninstallUnmanaged = false;
 
     # Add here the flatpaks you want to install
-    services.flatpak.packages = [
-        #{ appId = "com.brave.Browser"; origin = "flathub"; }
-        #"com.obsproject.Studio"
-        #"im.riot.Riot"
-        "com.spotify.Client"
-        #"com.discordapp.Discord"
-    ];
+    services.flatpak.packages = config.customConfig.packages.flatpak.packages;
 
   };
 }
