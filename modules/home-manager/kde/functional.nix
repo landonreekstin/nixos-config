@@ -1,5 +1,5 @@
 # ~/nixos-config/modules/home-manager/kde/functional.nix
-{ lib, customConfig, ... }:
+{ lib, config, customConfig, ... }:
 
 let
   # A reference to the custom screensaver options we defined.
@@ -10,18 +10,27 @@ let
   isKdeDesktop = lib.elem "kde" customConfig.desktop.environments;
 in
 {
-  # We only apply these settings if the user is on a KDE desktop
-  # AND has enabled the custom SDDM screensaver in their host config.
-  config = lib.mkIf (isKdeDesktop && screensaverCfg.enable) {
+    config = lib.mkIf (isKdeDesktop) {
 
-    # Enable plasma-manager so we can configure its settings.
-    programs.plasma.enable = true;
+        programs.plasma = {
+            enable = true;
+            kscreenlocker = {
+                # disable KDE's built-in idle timer to prevent it from conflicting with `xautolock` screensaver service.
+                autoLock = screensaverCfg.enable;
+                lockOnResume = !screensaverCfg.enable;
+                timeout = if screensaverCfg.enable then null else 25; # In minutes
+            };
 
-    # Configure the kscreenlocker component of plasma-manager.
-    programs.plasma.kscreenlocker = {
-      # This is the key part: we disable KDE's built-in idle timer
-      # to prevent it from conflicting with our `xautolock` service.
-      autoLock = false;
+            # Power Management
+            powerdevil.AC = {
+                autoSuspend = {
+                    action = "nothing";
+                };
+                # Only turn off display if screensaver is disabled
+                turnOffDisplay = lib.mkIf !screensaverCfg.enable {
+                    idleTimeout = 900; # 15 minutes in seconds
+                };
+            };
+        };
     };
-  };
 }
