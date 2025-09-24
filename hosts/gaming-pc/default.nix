@@ -38,8 +38,14 @@
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
         type = "sddm"; # Or "greetd", "gdm", or "none" based on your preference for Optiplex
-        sddmTheme = "sddm-astronaut";
-        sddmEmbeddedTheme = "pixel_sakura";
+        sddm = {
+          theme = "sddm-astronaut";
+          embeddedTheme = "pixel_sakura";
+          screensaver = {
+            enable = true;
+            timeout = 10; # e.g., 10 minutes
+          };
+        };
       };
     };
 
