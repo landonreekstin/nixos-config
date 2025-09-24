@@ -22,6 +22,7 @@
     user = {
       name = "em";
       email = "landonreekstin@gmail.com";
+      sudoPassword = true;
     };
     
     system = {
