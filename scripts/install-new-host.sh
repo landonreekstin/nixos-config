@@ -60,7 +60,22 @@ echo "--------------------------------------------------------------"
 
 # --- Step 5: Gather User Information ---
 echo "--- Gathering User Information ---"
-echo "🔑 Please choose a password for the user '$USER_NAME'."
+# MODIFICATION: Check if the separate sudo password feature is enabled for this host.
+# We evaluate the flake directly to get the configuration value.
+echo "ℹ️ Checking for separate sudo password configuration..."
+SUDO_PASSWORD_ENABLED=$(nix --extra-experimental-features "nix-command flakes" eval ".#nixosConfigurations.$HOST_NAME.config.customConfig.user.sudoPassword")
+
+if [[ "$SUDO_PASSWORD_ENABLED" == "true" ]]; then
+  echo "✅ Separate sudo password enabled for '$HOST_NAME'."
+else
+  echo "ℹ️ Using standard user password for sudo."
+fi
+echo
+
+# MODIFICATION: Changed prompt to be specific about "LOGIN" password
+echo "🔑 Please choose a LOGIN password for the user '$USER_NAME'."
+echo "   This will be used for the graphical login and screen locker."
+
 
 # Start an infinite loop that will run until the passwords match.
 while true; do
@@ -81,7 +96,30 @@ while true; do
 done
 
 # This line is now only reached after the loop is successfully broken.
-echo "✅ Password captured."
+echo "✅ Login password captured."
+echo
+
+# MODIFICATION: New block to prompt for the sudo password if the feature is enabled.
+if [[ "$SUDO_PASSWORD_ENABLED" == "true" ]]; then
+  echo "🔑 Please choose a SUDO password for the user '$USER_NAME'."
+  echo "   This should be a STRONG password for administrative tasks."
+
+  while true; do
+    read -s -p "   Enter sudo password: " sudo_password
+    echo
+    read -s -p "Confirm sudo password: " sudo_password_confirm
+    echo
+
+    if [[ "$sudo_password" == "$sudo_password_confirm" ]]; then
+      break
+    else
+      echo "❌ Error: Passwords do not match. Please try again."
+      echo
+    fi
+  done
+  echo "✅ Sudo password captured."
+  echo
+fi
 
 # --- Step 6: Execute NixOS Installation ---
 echo "--- Installing NixOS for host: $HOST_NAME ---"
@@ -90,15 +128,29 @@ echo "--- Installing NixOS for host: $HOST_NAME ---"
 nixos-install --no-root-passwd --flake "$CONFIG_ROOT#$HOST_NAME" --impure
 echo "✅ Base system installed."
 
-# --- Step 7: Set Password Directly with nixos-enter ---
-echo "--- Setting User Password Directly ---"
-echo "Entering the new system to set password for '$USER_NAME'..."
+# --- Step 7: Set Passwords on the New System ---
+# MODIFICATION: Step title changed and logic added for second password
+echo "--- Setting User Passwords ---"
+
+# Set the primary (login) password using chpasswd.
+echo "Entering the new system to set LOGIN password for '$USER_NAME'..."
 nixos-enter --root /mnt --command "echo \"$USER_NAME:$password\" | chpasswd"
-echo "✅ Password for '$USER_NAME' has been set successfully."
+echo "✅ Login password for '$USER_NAME' has been set successfully."
+
+# If the sudo password feature is enabled, create the separate password file.
+if [[ "$SUDO_PASSWORD_ENABLED" == "true" ]]; then
+  echo "Creating separate SUDO password file..."
+  # The NixOS module activation script will have already created the directory and
+  # file with the correct permissions. `htpasswd -c` will create/overwrite it.
+  # We use `nix run` to temporarily get htpasswd from the httpd-tools package.
+  # We use -B for bcrypt, a strong hashing algorithm.
+  nix run nixpkgs#apacheHttpd.tools -- htpasswd -cbB "/mnt/etc/security/sudo_passwd" "$USER_NAME" "$sudo_password"
+  echo "✅ Sudo password for '$USER_NAME' has been set successfully."
+fi
 echo "----------------------------------"
 
 echo "🎉 Installation complete!"
 echo ""
 echo "🔴 IMPORTANT POST-BOOT STEPS:"
 echo "1. Log in as '$USER_NAME'."
-echo "2. Run 'post-install <repo-url>' to finalize setup, correct the Git history, and push."
+echo "2. Run 'post-install' to finalize setup, correct the Git history, and push."

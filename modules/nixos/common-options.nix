@@ -63,6 +63,11 @@ in
         default = true;
         description = "Whether to allow the user to run the custom update/upgrade commands.";
       };
+      sudoPassword = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Enable a separate, stronger password for sudo authentication, managed via a secondary password file.";
+      };
     };
 
     bootloader = {
