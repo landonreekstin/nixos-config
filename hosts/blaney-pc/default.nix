@@ -108,9 +108,6 @@
   };
   
   # === Additional nixos configuration for this host ===
-  services.mullvad-vpn.enable = true;
-  #services.g810-led.package = pkgs.g810-led; # Ensure the g810-led package is available
-  #services.g810-led.enable = true; # Enable Logitech G810 keyboard LED control
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {
