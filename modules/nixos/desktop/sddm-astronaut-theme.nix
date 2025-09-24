@@ -38,7 +38,7 @@ in
       #  };
       #};
       extraPackages = with pkgs; [
-        sddm-astronaut
+        sddm-astronaut-custom
         kdePackages.qtmultimedia # For video backgrounds
         kdePackages.qtsvg        # For SVG icons and elements
         # qtvirtualkeyboard is often needed for the on-screen keyboard in the theme
@@ -46,7 +46,7 @@ in
       ];
     };
     environment.systemPackages = with pkgs; [
-      sddm-astronaut
+      sddm-astronaut-custom
     ];
 
     # === Part 2: SDDM Screensaver Logic ===
