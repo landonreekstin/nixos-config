@@ -58,7 +58,7 @@
     homeManager = {
       enable = true;
       themes = {
-        kde = "bigsur";
+        kde = "default";
         plasmaOverride = true;
       };
     };
