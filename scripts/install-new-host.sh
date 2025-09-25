@@ -49,9 +49,7 @@ echo "✅ Final hardware configuration generated."
 
 # --- Step 4: Commit Hardware Config Locally ---
 echo "--- Committing hardware configuration to local Git repository ---"
-# This step is CRITICAL. It makes the flake "pure" for nixos-install.
 git add "$HARDWARE_CONFIG_PATH"
-# We must configure a temporary git user for the commit to succeed.
 git config user.name "NixOS Installer"
 git config user.email "installer@nixos.org"
 git commit -m "feat(hosts): Add temporary hardware config for installation"
@@ -60,8 +58,7 @@ echo "--------------------------------------------------------------"
 
 # --- Step 5: Gather User Information ---
 echo "--- Gathering User Information ---"
-# MODIFICATION: Check if the separate sudo password feature is enabled for this host.
-# We evaluate the flake directly to get the configuration value.
+
 echo "ℹ️ Checking for separate sudo password configuration..."
 SUDO_PASSWORD_ENABLED=$(nix --extra-experimental-features "nix-command flakes" eval ".#nixosConfigurations.$HOST_NAME.config.customConfig.user.sudoPassword")
 
@@ -72,34 +69,26 @@ else
 fi
 echo
 
-# MODIFICATION: Changed prompt to be specific about "LOGIN" password
 echo "🔑 Please choose a LOGIN password for the user '$USER_NAME'."
 echo "   This will be used for the graphical login and screen locker."
 
-
-# Start an infinite loop that will run until the passwords match.
 while true; do
-  read -s -p "   Enter password: " password
+  read -s -p "   Enter login password: " password
   echo
-  read -s -p "Confirm password: " password_confirm
+  read -s -p "Confirm login password: " password_confirm
   echo
 
-  # Check if the passwords are the same string.
   if [[ "$password" == "$password_confirm" ]]; then
-    # If they match, break out of the while loop.
     break
   else
-    # If they don't match, print an error and the loop will repeat.
     echo "❌ Error: Passwords do not match. Please try again."
     echo
   fi
 done
 
-# This line is now only reached after the loop is successfully broken.
 echo "✅ Login password captured."
 echo
 
-# MODIFICATION: New block to prompt for the sudo password if the feature is enabled.
 if [[ "$SUDO_PASSWORD_ENABLED" == "true" ]]; then
   echo "🔑 Please choose a SUDO password for the user '$USER_NAME'."
   echo "   This should be a STRONG password for administrative tasks."
@@ -123,16 +112,13 @@ fi
 
 # --- Step 6: Execute NixOS Installation ---
 echo "--- Installing NixOS for host: $HOST_NAME ---"
-# The --impure flag is no longer needed as the repo is now clean,
-# but it provides robustness against other potential issues.
 nixos-install --no-root-passwd --flake "$CONFIG_ROOT#$HOST_NAME" --impure
 echo "✅ Base system installed."
 
 # --- Step 7: Set Passwords on the New System ---
-# MODIFICATION: Step title changed and logic added for second password
 echo "--- Setting User Passwords ---"
 
-# Set the primary (login) password using chpasswd.
+# Set the primary (login) password using chpasswd inside the new system.
 echo "Entering the new system to set LOGIN password for '$USER_NAME'..."
 nixos-enter --root /mnt --command "echo \"$USER_NAME:$password\" | chpasswd"
 echo "✅ Login password for '$USER_NAME' has been set successfully."
@@ -140,11 +126,9 @@ echo "✅ Login password for '$USER_NAME' has been set successfully."
 # If the sudo password feature is enabled, create the separate password file.
 if [[ "$SUDO_PASSWORD_ENABLED" == "true" ]]; then
   echo "Creating separate SUDO password file..."
-  # The NixOS module activation script will have already created the directory and
-  # file with the correct permissions. `htpasswd -c` will create/overwrite it.
-  # We use `nix run` to temporarily get htpasswd from the httpd-tools package.
-  # We use -B for bcrypt, a strong hashing algorithm.
-  nix run nixpkgs#apacheHttpd.tools -- htpasswd -cbB "/mnt/etc/security/sudo_passwd" "$USER_NAME" "$sudo_password"
+  # MODIFICATION: This command is now run from the installer environment,
+  # which already has experimental features enabled. It targets the mounted filesystem.
+  nix --extra-experimental-features "nix-command flakes" run nixpkgs#apacheHttpd.tools -- htpasswd -cbB "/mnt/etc/security/sudo_passwd" "$USER_NAME" "$sudo_password"
   echo "✅ Sudo password for '$USER_NAME' has been set successfully."
 fi
 echo "----------------------------------"
