@@ -1,5 +1,5 @@
 # ~/nixos-config/modules/nixos/common/sudo-password.nix
-{ config, lib, ... }:
+{ config, lib, unstablePkgs, ... }:
 
 let
   cfg = config.customConfig;
