@@ -10,6 +10,8 @@ in
   # Only apply these changes if the feature is enabled for the host.
   config = lib.mkIf cfg.user.sudoPassword {
 
+    security.pam.enablePasswordQualityChecks = false;
+
     security.pam.services.sudo = {
       text = ''
         # Use pam_pwdfile to authenticate against a separate password file.
