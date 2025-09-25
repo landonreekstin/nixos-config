@@ -16,6 +16,9 @@
     ../../modules/nixos/default.nix
   ];
 
+  # This makes 'unstablePkgs' available to modules imported above.
+  _module.args = { inherit unstablePkgs; };
+
   # === Zephyrus G14 Specific Values for `customConfig` ===
   customConfig = {
     
