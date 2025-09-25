@@ -43,7 +43,7 @@
           embeddedTheme = "pixel_sakura";
           screensaver = {
             enable = true;
-            timeout = 10; # e.g., 10 minutes
+            timeout = 1; # e.g., 10 minutes
           };
         };
       };
