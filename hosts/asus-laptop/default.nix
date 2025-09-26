@@ -33,7 +33,15 @@
       environments = [ "kde" ];
       displayManager = {
         enable = true;
-        type = "ly";
+        type = "sddm";
+        sddm = {
+          theme = "sddm-astronaut";
+          embeddedTheme = "pixel_sakura";
+          screensaver = {
+            enable = true;
+            timeout = 1; # e.g., 10 minutes
+          };
+        };
       };
     };
 
