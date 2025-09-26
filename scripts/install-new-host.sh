@@ -79,11 +79,10 @@ git add "$HARDWARE_CONFIG_PATH"
 echo "✅ Hardware configuration staged."
 
 # --- Step 5: Gather User Information (Unchanged) ---
-# ... (password logic remains the same) ...
 echo "--- Gathering User Information ---"
 
 echo "ℹ️ Checking for separate sudo password configuration..."
-SUDO_PASSWORD_ENABLED=$(nix --extra-experimental-features "nix-command flakes" eval ".#nixosConfigurations.$HOST_NAME.config.customConfig.user.sudoPassword")
+SUDO_PASSWORD_ENABLED=$(nix --extra-experimental-features "nix-command flakes" eval ".#nixosConfigurations.$HOST_NAME.config.customConfig.user.sudoRequiresRootPassword")
 
 if [[ "$SUDO_PASSWORD_ENABLED" == "true" ]]; then
   echo "✅ Separate sudo password enabled for '$HOST_NAME'."
@@ -141,7 +140,6 @@ nixos-install --no-root-passwd --flake "$CONFIG_ROOT#$HOST_NAME" --impure
 echo "✅ Base system installed."
 
 # --- Step 7: Set Passwords on the New System (Unchanged) ---
-# ... (password logic remains the same) ...
 echo "--- Setting User Passwords ---"
 
 echo "Entering the new system to set LOGIN password for '$USER_NAME'..."
@@ -150,7 +148,7 @@ echo "✅ Login password for '$USER_NAME' has been set successfully."
 
 if [[ "$SUDO_PASSWORD_ENABLED" == "true" ]]; then
   echo "Creating separate SUDO password file..."
-  nix --extra-experimental-features "nix-command flakes" shell nixpkgs#apacheHttpd -c htpasswd -cbB "/mnt/etc/security/sudo_passwd" "$USER_NAME" "$sudo_password"
+  nixos-enter --root /mnt --command "printf 'root:%s' '$sudo_password' | chpasswd"
   echo "✅ Sudo password for '$USER_NAME' has been set successfully."
 fi
 echo "----------------------------------"
