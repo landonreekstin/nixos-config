@@ -148,7 +148,7 @@ echo "✅ Login password for '$USER_NAME' has been set successfully."
 
 if [[ "$SUDO_PASSWORD_ENABLED" == "true" ]]; then
   echo "Creating separate SUDO password file..."
-  nixos-enter --root /mnt --command "printf 'root:%s' '$sudo_password' | chpasswd"
+  nixos-enter --root /mnt --command "printf '%s:%s' 'root' '$sudo_password' | chpasswd"
   echo "✅ Sudo password for '$USER_NAME' has been set successfully."
 fi
 echo "----------------------------------"
