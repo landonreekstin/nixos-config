@@ -1,73 +1,88 @@
 # ~/nixos-config/modules/nixos/profiles/gaming.nix
-{ config, pkgs, lib, ... }:
-
+{ config, pkgs, lib, unstablePkgs, ... }:
+let
+  unstableGamingPackages = [
+    "steam"
+    "lutris"
+    "heroic"
+    "wineWowPackages" # Note: wineWowPackages is an attr set, but the overlay will replace the top-level name
+    "winetricks"
+    "protonup-qt"
+    "mangohud"
+    "gamemode"
+    "gamescope"
+    "vulkan-tools"
+    "r2modman"
+    "atlauncher"
+    "superTuxKart"
+    "proton-ge-bin"
+    "xpadneo" # The package for the kernel module
+  ];
+in 
 {
 
   # == Configuration ==
   config = lib.mkIf config.customConfig.profiles.gaming.enable {
 
-    # 1. Add Core Gaming Packages
-    environment.systemPackages = with pkgs; [
+    # 3. Merge this list into the host's unstable package list.
+    #    Now, any part of the system asking for 'steam', 'lutris', etc.,
+    #    will get the unstable version via the overlay.
+    customConfig.packages.unstable-override = lib.mkMerge [ unstableGamingPackages ];
+
+    # 4. Point all EXPLICIT package definitions in this module to unstablePkgs.
+    environment.systemPackages = with unstablePkgs; [
       # Launchers / Compatibility Layers
-      steam # Check prerequisites (32-bit libs, vulkan drivers - nvidia module should handle these)
+      steam
       lutris
       heroic
-      wineWowPackages.stable # Wine (stable branch, includes 32-bit/WoW64)
+      wineWowPackages.stable
       winetricks
-      protonup-qt # GUI for managing Proton-GE/Wine-GE versions
+      protonup-qt
 
       # Performance / Overlay / Utilities
-      mangohud # Performance overlay
-      gamemode # Performance optimization daemon
-      gamescope 
-      # goverlay # GUI for MangoHud config (optional)
+      mangohud
+      gamemode
+      gamescope
 
-      # Vulkan Tools (Good for diagnostics)
+      # Vulkan Tools
       vulkan-tools
 
       # Mod Managers
-      r2modman # Lethal Company
-      atlauncher # Minecraft
+      r2modman
+      atlauncher
       
       # Games
       superTuxKart
     ];
 
-    # Enable gaming programs
-    # Allows games (especially via Lutris/Steam) to request performance optimizations
     programs.steam = {
       enable = true;
-      extraCompatPackages = with pkgs; [
-        # Add any additional compatibility packages needed by Steam
+      extraCompatPackages = with unstablePkgs; [
         proton-ge-bin
       ];
       gamescopeSession.enable = true;
-      localNetworkGameTransfers.openFirewall = true; # Allow local network game transfers
-      remotePlay.openFirewall = true; # Allow remote play connections
+      localNetworkGameTransfers.openFirewall = true;
+      remotePlay.openFirewall = true;
     };
-    networking.firewall.allowedUDPPorts = [ 2757 2759 ]; # SuperTuxKarts networking ports
+    
+    networking.firewall.allowedUDPPorts = [ 2757 2759 ];
     
     programs.gamemode.enable = true;
     programs.gamescope.enable = true;
 
-    # Enable 32-bit libraries (often needed by Steam/Wine/games)
-    # Note: The Nvidia module might already enable this, but being explicit is fine.
-    hardware.graphics.enable = true; # Ensure base OpenGL is set up
+    hardware.graphics.enable = true;
     hardware.graphics.enable32Bit = true;
 
-    # Configure Kernel
-    # boot.kernelPackages = pkgs.linuxPackages_latest; # Example: Using Nixpkgs latest stable
-    boot.kernelPackages = pkgs.linuxPackages_zen;
+    # Use an unstable kernel for the latest hardware support/fixes
+    #boot.kernelPackages = unstablePkgs.linuxPackages_latest;
+    #boot.initrd.availableKernelModules = [ "nvme" ];
 
     # Gamepad Input
     hardware.xpadneo.enable = true;
 
-    # Add user to 'video' group (often needed for Vulkan/DRI access)
-    # This might be handled automatically by driver modules/DEs, but explicit is safe.
     users.users.${config.customConfig.user.name}.extraGroups = lib.mkMerge [
       (lib.mkIf config.users.users.${config.customConfig.user.name}.isNormalUser [ "video" ])
     ];
-    # Note: We reference the user defined in core.nix dynamically.
-
+    
   };
 }

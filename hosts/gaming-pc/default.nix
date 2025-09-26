@@ -86,13 +86,20 @@
     packages = {
       nixos = with pkgs; [
         kitty
-        pavucontrol
         mullvad-vpn
 
         # smbclient and kio-extras for Dolphin network shares
         kdePackages.kio-extras
         cifs-utils
         samba
+      ];
+      unstable-override = [ 
+        "discord-canary" 
+        "obs-studio" 
+        "vscode"
+        "librewolf"
+        "brave"
+        "ungoogled-chromium"
       ];
       homeManager = with pkgs; [ # Optiplex-specific user packages (previously in core.nix user packages)
         jamesdsp
@@ -126,8 +133,7 @@
   };
 
   # === Additional nixos configuration for this host ===
-  #hardware.ckb-next.enable = true;
-  services.mullvad-vpn.enable = true;
+  #services.mullvad-vpn.enable = true;
   # Enable the Samba client-side name resolution daemon (nmbd).
   # This allows the PC to discover other Samba hosts (like optiplex-nas)
   # on the local network by their hostname.

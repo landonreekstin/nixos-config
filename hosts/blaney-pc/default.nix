@@ -62,18 +62,15 @@
 
     packages = {
       nixos = with pkgs; [
-        vim
-        wget
-        fd
-        htop
-        kitty
-        pavucontrol
-        #g810-led
-        #openrgb
-        #solaar
-        #openrazer-daemon
-        #polychromatic
-        obs-studio
+
+      ];
+      unstable-override = [ 
+        "discord-canary" 
+        "obs-studio" 
+        "vscode"
+        "librewolf"
+        "brave"
+        "ungoogled-chromium"
       ];
       homeManager = with pkgs; [
         kitty
@@ -82,7 +79,7 @@
         brave
         discord-canary
         discord
-        spotify
+        obs-studio
         notes
         CuboCore.corepaint
         kdePackages.kdenlive

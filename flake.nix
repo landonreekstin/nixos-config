@@ -3,7 +3,11 @@
   description = "Lando's Modular NixOS Configuration";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+
+    nixpkgs-unstable = {
+      url = "github:NixOS/nixpkgs/nixos-unstable";
+    };
 
     nur = {
       url = "github:nix-community/NUR";
@@ -16,16 +20,16 @@
 
     disko = {
       url = "github:nix-community/disko/latest";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
     
     nixos-cosmic = {
       url = "github:lilyinstarlight/nixos-cosmic";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
 
     home-manager = {
-      url = "github:nix-community/home-manager";
+      url = "github:nix-community/home-manager/release-25.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -38,18 +42,18 @@
     nixos-vscode-server = {
        url = "github:nix-community/nixos-vscode-server";
        # It might need its own nixpkgs, or follow yours. Following is usually safer.
-       inputs.nixpkgs.follows = "nixpkgs";
+       inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
 
     nixai = {
       url = "github:olafkfreund/nix-ai-help";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
 
     nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=latest";
   };
 
-  outputs = { self, nixpkgs, disko, nixos-hardware, nixos-cosmic, home-manager, plasma-manager, nixos-vscode-server, nixai, nix-flatpak, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-unstable, disko, nixos-hardware, nixos-cosmic, home-manager, plasma-manager, nixos-vscode-server, nixai, nix-flatpak, ... }@inputs:
     let
       # Define the target system
       system = "x86_64-linux";
@@ -57,6 +61,12 @@
       # Create the package set for our system. This is the correct way.
       pkgs = nixpkgs.legacyPackages.${system};
       lib = nixpkgs.lib;
+
+      unstablePkgs = import nixpkgs-unstable {
+        system = system;
+        # Apply the unfree setting directly to this package set
+        config.allowUnfree = true;
+      };
 
       aerothemeplasma-src = pkgs.fetchgit {
         url = "https://gitgud.io/wackyideas/AeroThemePlasma.git";
@@ -92,6 +102,9 @@
       # to pull values from. We'll use 'gaming-pc' as our reference host because
       # that is the primary machine for kernel development.
       referenceHostConfig = self.nixosConfigurations."gaming-pc".config;
+
+      # Define specialArgs once to pass to all hosts
+      specialArgs = { inherit inputs unstablePkgs; };
     in
   {
     # Define NixOS configurations for each host
@@ -101,7 +114,7 @@
       optiplex = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         # Pass flake inputs down to the modules if needed (good practice)
-        specialArgs = { inherit inputs; };
+        specialArgs = specialArgs;
         modules = [
           # Host-specific entrypoint
           ./hosts/optiplex/default.nix
@@ -113,7 +126,7 @@
       # Configuration for the Gaming PC
       gaming-pc = nixpkgs.lib.nixosSystem {
          system = "x86_64-linux";
-         specialArgs = { inherit inputs; };
+         specialArgs = specialArgs;
          modules = [ 
           ./hosts/gaming-pc/default.nix 
           inputs.home-manager.nixosModules.default
@@ -125,14 +138,17 @@
       # Configuration for Blaney's PC
       blaney-pc = nixpkgs.lib.nixosSystem {
          system = "x86_64-linux";
-         specialArgs = { inherit inputs; };
-         modules = [ ./hosts/blaney-pc/default.nix inputs.home-manager.nixosModules.default ];
+         specialArgs = specialArgs;
+         modules = [ 
+          ./hosts/blaney-pc/default.nix 
+          inputs.home-manager.nixosModules.default 
+        ];
       };
 
       # Configuration for Justus's PC
       justus-pc = nixpkgs.lib.nixosSystem {
          system = "x86_64-linux";
-         specialArgs = { inherit inputs; };
+         specialArgs = specialArgs;
          modules = [
           ./hosts/justus-pc/default.nix
           inputs.home-manager.nixosModules.default 
@@ -143,14 +159,29 @@
       # Configuration for the Asus ROG Zephyrus G14 Laptop
       asus-laptop = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
+        specialArgs = specialArgs;
+        modules = [ 
+          ./hosts/asus-laptop/default.nix 
+          inputs.home-manager.nixosModules.default 
+        ];
+      };
+
+      # Configuration for the Asus ROG Zephyrus M15 Laptop
+      asus-m15 = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
         specialArgs = { inherit inputs; };
-        modules = [ ./hosts/asus-laptop/default.nix inputs.home-manager.nixosModules.default ];
+        modules = [ 
+          ./hosts/asus-m15/default.nix 
+          inputs.home-manager.nixosModules.default
+          inputs.nur.modules.nixos.default 
+          inputs.disko.nixosModules.default
+        ];
       };
 
       # Configuration for Atlanta Mini PC
       atl-mini-pc = nixpkgs.lib.nixosSystem {
          system = "x86_64-linux";
-         specialArgs = { inherit inputs; };
+         specialArgs = specialArgs;
          modules = [
           ./hosts/atl-mini-pc/default.nix
           inputs.home-manager.nixosModules.default 
@@ -161,7 +192,7 @@
       # Configuration for the Optiplex NAS
       optiplex-nas = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
-        specialArgs = { inherit inputs; };
+        specialArgs = specialArgs;
         modules = [
           ./hosts/optiplex-nas/default.nix
           inputs.home-manager.nixosModules.default
