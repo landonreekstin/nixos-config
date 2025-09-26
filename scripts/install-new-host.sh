@@ -82,7 +82,7 @@ echo "✅ Hardware configuration staged."
 echo "--- Gathering User Information ---"
 
 echo "ℹ️ Checking for separate sudo password configuration..."
-SUDO_PASSWORD_ENABLED=$(nix --extra-experimental-features "nix-command flakes" eval ".#nixosConfigurations.$HOST_NAME.config.customConfig.user.sudoRequiresRootPassword")
+SUDO_PASSWORD_ENABLED=$(nix --extra-experimental-features "nix-command flakes" eval ".#nixosConfigurations.$HOST_NAME.config.customConfig.user.sudoPassword")
 
 if [[ "$SUDO_PASSWORD_ENABLED" == "true" ]]; then
   echo "✅ Separate sudo password enabled for '$HOST_NAME'."
