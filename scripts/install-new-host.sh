@@ -150,7 +150,7 @@ echo "✅ Login password for '$USER_NAME' has been set successfully."
 
 if [[ "$SUDO_PASSWORD_ENABLED" == "true" ]]; then
   echo "Creating separate SUDO password file..."
-  nix --extra-experimental-features "nix-command flakes" run nixpkgs#apacheHttpd.tools -- htpasswd -cbB "/mnt/etc/security/sudo_passwd" "$USER_NAME" "$sudo_password"
+  nix --extra-experimental-features "nix-command flakes" run nixpkgs#apacheHttpd -- htpasswd -cbB "/mnt/etc/security/sudo_passwd" "$USER_NAME" "$sudo_password"
   echo "✅ Sudo password for '$USER_NAME' has been set successfully."
 fi
 echo "----------------------------------"
