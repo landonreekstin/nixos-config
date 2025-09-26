@@ -57,7 +57,7 @@
       enable = true; # Enable Home Manager for this host
       themes = {
         kde = "default";
-        wallpaper = /home/heather/Pictures/Wallpapers/atl_family_xmas_2025.jpeg;
+        wallpaper = ../../assets/wallpapers/soviet-retro-future.jpg;
       };
     };
 

@@ -47,33 +47,11 @@
       nvidia = {
         enable = true; # Set to true if Optiplex has an NVIDIA GPU needing proprietary drivers
       };
-      peripherals = {
-        enable = true; # Enable peripheral configurations
-        openrgb.enable = true; # Enable OpenRGB for RGB control
-        openrazer.enable = false; # Enable OpenRazer for Razer device support
-        ckb-next.enable = true; # Enable CKB-Next for Corsair device support
-      };
     };
 
     programs = {
       partydeck.enable = false;
       flatpak.enable = true;
-      firefox = {
-        enable = true;
-        package = pkgs.firefox;
-
-        extensions = with pkgs.nur.repos.rycee.firefox-addons; [
-          ublock-origin
-          darkreader
-          facebook-container
-        ];
-
-        bookmarks = [
-          { name = "YouTube"; url = "https://www.youtube.com"; }
-          { name = "Netflix"; url = "https://www.netflix.com"; }
-          { name = "GitHub";  url = "https://github.com"; }
-        ];
-      };
     };
 
     homeManager = {
@@ -88,11 +66,7 @@
         kitty
         pavucontrol
         mullvad-vpn
-
-        # smbclient and kio-extras for Dolphin network shares
-        kdePackages.kio-extras
-        cifs-utils
-        samba
+        # Add any other system packages specific to Optiplex
       ];
       homeManager = with pkgs; [ # Optiplex-specific user packages (previously in core.nix user packages)
         jamesdsp
@@ -120,23 +94,15 @@
     services = {
       ssh.enable = true;
       vscodeServer.enable = true;
-      passwordManager.enable = true;
     };
 
   };
 
   # === Additional nixos configuration for this host ===
-  #hardware.ckb-next.enable = true;
+  hardware.ckb-next.enable = true;
   services.mullvad-vpn.enable = true;
-  # Enable the Samba client-side name resolution daemon (nmbd).
-  # This allows the PC to discover other Samba hosts (like optiplex-nas)
-  # on the local network by their hostname.
-  services.samba.nmbd.enable = true;
-  networking.firewall.allowedTCPPorts = [ 139 445 4445 ];
-  networking.firewall.allowedUDPPorts = [ 137 138 ];
-  networking.extraHosts = ''
-    192.168.1.76  optiplex-nas
-  '';
+  # In your NixOS configuration
+  services.flatpak.enable = true;
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {
