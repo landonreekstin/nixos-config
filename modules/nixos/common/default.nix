@@ -7,6 +7,7 @@
     ./nix-settings.nix
     ./internationalisation.nix
     ./users-groups.nix
+    ./sudo-password.nix
     ./system-tweaks.nix
     ./base-environment.nix
     ./networking.nix

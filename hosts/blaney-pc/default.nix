@@ -48,7 +48,7 @@
       };
       peripherals = {
         enable = true; # Enable peripheral configurations
-        openrgb.enable = false; # Enable OpenRGB for RGB control
+        openrgb.enable = true; # Enable OpenRGB for RGB control
         openrazer.enable = true; # Enable OpenRazer for Razer device support
         ckb-next.enable = false; # Enable CKB-Next for Corsair device support
       };
@@ -56,7 +56,6 @@
 
     programs = {
       partydeck.enable = false;
-      flatpak.enable = true;
     };
 
     homeManager = {
@@ -83,13 +82,20 @@
         vscode
         librewolf
         brave
-        discord-canary
-        discord
+        #discord-canary
+        #discord
         obs-studio
         notes
         CuboCore.corepaint
         kdePackages.kdenlive
       ];
+      flatpak = {
+        enable = true;
+        packages = [
+          "com.spotify.Client"
+          "com.discordapp.Discord"
+        ];
+      };
     };
 
     apps = {
@@ -109,9 +115,6 @@
   };
   
   # === Additional nixos configuration for this host ===
-  services.mullvad-vpn.enable = true;
-  #services.g810-led.package = pkgs.g810-led; # Ensure the g810-led package is available
-  #services.g810-led.enable = true; # Enable Logitech G810 keyboard LED control
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {

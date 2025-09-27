@@ -53,7 +53,12 @@ in
       
       # Games
       superTuxKart
+
+      # Screen Recorder
+      gpu-screen-recorder-gtk
     ];
+
+    programs.gpu-screen-recorder.enable = true;
 
     programs.steam = {
       enable = true;
