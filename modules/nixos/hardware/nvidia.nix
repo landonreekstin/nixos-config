@@ -16,7 +16,7 @@ in
       modesetting.enable = true; # Needed for Wayland
       powerManagement = {
         enable = true; # Recommended
-        finegrained = cfg.laptop.enable;
+        finegrained = !cfg.laptop.enable;
       };
       # package = config.boot.kernelPackages.nvidiaPackages.stable; # Or specify version if needed
       # === Laptop-specific options ===
