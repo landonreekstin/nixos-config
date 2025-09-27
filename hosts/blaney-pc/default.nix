@@ -42,7 +42,7 @@
       };
       peripherals = {
         enable = true; # Enable peripheral configurations
-        openrgb.enable = false; # Enable OpenRGB for RGB control
+        openrgb.enable = true; # Enable OpenRGB for RGB control
         openrazer.enable = true; # Enable OpenRazer for Razer device support
         ckb-next.enable = false; # Enable CKB-Next for Corsair device support
       };
@@ -76,8 +76,8 @@
         vscode
         librewolf
         brave
-        discord-canary
-        discord
+        #discord-canary
+        #discord
         obs-studio
         notes
         CuboCore.corepaint
@@ -87,6 +87,7 @@
         enable = true;
         packages = [
           "com.spotify.Client"
+          "com.discordapp.Discord"
         ];
       };
     };
