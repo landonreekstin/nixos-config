@@ -39,16 +39,18 @@ in
       sddm-astronaut-custom
     ];
 
-    # === Part 2: Final Corrected Wayland Idle Service ===
+    # === Part 2: Definitive Idle Service with Correct Process Control ===
     systemd.user.services.sddm-screensaver = lib.mkIf sddmScreensaverEnabled {
       wantedBy = [ "graphical-session.target" ];
       
+      # This script correctly backgrounds the greeter and uses a PID file to kill it.
+      # The '-w' flag is NOT present, which is critical.
       script = ''
-        # The problematic '-w' flag has been REMOVED.
-        # This allows swayidle's default behavior to terminate the process on activity.
         ${pkgs.swayidle}/bin/swayidle \
           timeout ${toString (sddmCfg.screensaver.timeout * 60)} \
-            '${pkgs.kdePackages.sddm}/bin/sddm-greeter-qt6 --test-mode --theme ${sddm-astronaut-custom}/share/sddm/themes/sddm-astronaut-theme'
+            '${pkgs.kdePackages.sddm}/bin/sddm-greeter-qt6 --test-mode --theme ${sddm-astronaut-custom}/share/sddm/themes/sddm-astronaut-theme & echo $! > /tmp/sddm_greeter.pid' \
+          resume \
+            'if [ -f /tmp/sddm_greeter.pid ]; then kill $(cat /tmp/sddm_greeter.pid); rm -f /tmp/sddm_greeter.pid; fi'
       '';
 
       serviceConfig = {

@@ -31,8 +31,14 @@
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
         type = "sddm";
-        sddmTheme = "sddm-astronaut";
-        sddmEmbeddedTheme = "pixel_sakura";
+        sddm = {
+          theme = "sddm-astronaut";
+          embeddedTheme = "pixel_sakura";
+          screensaver = {
+            enable = true;
+            timeout = 25; # e.g., 10 minutes
+          };
+        };
       };
     };
 
