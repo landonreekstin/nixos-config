@@ -22,6 +22,7 @@
     user = {
       name = "em";
       email = "landonreekstin@gmail.com";
+      sudoPassword = true;
     };
     
     system = {
@@ -67,19 +68,19 @@
       
       ];
       unstable-override = [ 
-        "discord-canary" 
-        "vscode"
-        "chromium"
+        #"discord-canary" 
+        #"vscode"
+        #"chromium"
       ];
       homeManager = with pkgs; [ 
-        vscode
-        chromium
-        discord-canary
+        #vscode
+        #chromium
+        #discord-canary
       ];
       flatpak = {
-        enable = true;
+        enable = false;
         packages = [
-          "com.spotify.Client"
+          #"com.spotify.Client"
         ];
       };
     };
@@ -89,7 +90,7 @@
     };
 
     profiles = {
-      gaming.enable = true;
+      gaming.enable = false;
       development.fpga-ice40.enable = false;
       development.kernel.enable = false;
     };

@@ -169,7 +169,7 @@
       # Configuration for the Asus ROG Zephyrus M15 Laptop
       asus-m15 = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
-        specialArgs = { inherit inputs; };
+        specialArgs = specialArgs;
         modules = [ 
           ./hosts/asus-m15/default.nix 
           inputs.home-manager.nixosModules.default
