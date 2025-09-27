@@ -8,5 +8,6 @@
     ./geoclue2.nix
     ./nixai.nix
     ./wireguard-server.nix
+    ./wireguard-client.nix
   ];
 }

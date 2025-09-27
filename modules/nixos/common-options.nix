@@ -372,10 +372,38 @@ in
             description = "A list of peers (clients) that are allowed to connect to this server.";
           };
         };
-        # This structure allows for a client module to be added later, like so:
-        # client = {
-        #   enable = mkOption { ... };
-        # };
+        client = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable the WireGuard client configuration.";
+          };
+
+          address = mkOption {
+            type = types.str;
+            description = "The IP address for this client inside the tunnel.";
+            example = "10.100.100.2/32";
+          };
+
+          privateKeyFile = mkOption {
+            type = types.path;
+            description = "Absolute path to the file containing this client's private key.";
+            example = "/etc/nixos/secrets/wireguard/client-private";
+          };
+
+          peer = {
+            publicKey = mkOption {
+              type = types.str;
+              description = "The public key of the server peer.";
+            };
+
+            endpoint = mkOption {
+              type = types.str;
+              description = "The public endpoint of the server, in 'host:port' format.";
+              example = "vpn.example.com:51820";
+            };
+          };
+        };
       };
     };
 
