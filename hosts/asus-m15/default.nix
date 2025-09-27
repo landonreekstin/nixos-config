@@ -68,19 +68,19 @@
       
       ];
       unstable-override = [ 
-        #"discord-canary" 
-        #"vscode"
-        #"chromium"
+        "discord-canary" 
+        "vscode"
+        "chromium"
       ];
       homeManager = with pkgs; [ 
-        #vscode
-        #chromium
-        #discord-canary
+        vscode
+        chromium
+        discord-canary
       ];
       flatpak = {
         enable = false;
         packages = [
-          #"com.spotify.Client"
+          "com.spotify.Client"
         ];
       };
     };
@@ -90,7 +90,7 @@
     };
 
     profiles = {
-      gaming.enable = false;
+      gaming.enable = true;
       development.fpga-ice40.enable = false;
       development.kernel.enable = false;
     };
