@@ -27,7 +27,7 @@
     system = {
       hostName = "asus-m15";
       stateVersion = "25.05"; # DO NOT CHANGE
-      timeZone = "America/Chicago";
+      timeZone = "America/Los_Angeles";
       locale = "en_US.UTF-8";
     };
     
@@ -57,7 +57,7 @@
     homeManager = {
       enable = true;
       themes = {
-        kde = "bigsur";
+        kde = "default";
         plasmaOverride = true;
       };
     };
