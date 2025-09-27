@@ -15,7 +15,7 @@ in
 {
   config = lib.mkIf sddmAstronautThemeEnabled {
     services.displayManager.sddm = {
-      package = pkgs.kdePackages.sddm;
+      #package = pkgs.kdePackages.sddm;
       theme = "sddm-astronaut-theme";
       #settings = {
       #  Theme = {
