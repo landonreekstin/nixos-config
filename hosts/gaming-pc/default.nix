@@ -99,7 +99,7 @@
   };
 
   # === Additional nixos configuration for this host ===
-  hardware.ckb-next.enable = true;
+  #hardware.ckb-next.enable = true;
   services.mullvad-vpn.enable = true;
   # In your NixOS configuration
   services.flatpak.enable = true;
