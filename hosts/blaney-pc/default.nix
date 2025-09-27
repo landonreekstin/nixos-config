@@ -115,6 +115,7 @@
   };
   
   # === Additional nixos configuration for this host ===
+  programs.thunar.enable = true;
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {
