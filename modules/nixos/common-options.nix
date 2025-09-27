@@ -127,15 +127,37 @@ in
           default = "sddm"; # A common default, adjust as preferred
           description = "Which display manager to use if displayManager.enable is true. 'none' means no DM managed by this option.";
         };
-        sddmTheme = mkOption {
-          type = types.str;
-          default = "none"; # A popular SDDM theme, adjust as preferred
-          description = "The SDDM theme to use if sddm is selected as the display manager.";
-        };
-        sddmEmbeddedTheme = mkOption {
-          type = types.nullOr types.str;
-          default = null; # Default to null, can be set to a specific embedded theme if desired
-          description = "The embedded theme for SDDM astronaut theme (e.g., 'pixel_sakura', 'astronaut'). If null, the default theme is used.";
+        sddm = mkOption {
+          type = with types; submodule {
+            options = {
+              theme = mkOption {
+                type = types.str;
+                default = "none";
+                description = "The SDDM theme to use (e.g., 'sddm-astronaut').";
+              };
+              embeddedTheme = mkOption {
+                type = types.nullOr types.str;
+                default = null;
+                description = "The embedded theme for sddm-astronaut (e.g., 'pixel_sakura').";
+              };
+              screensaver = mkOption {
+                type = submodule {
+                  options = {
+                    enable = mkOption {
+                      type = types.bool;
+                      default = false;
+                      description = "Whether to use the SDDM theme as a screensaver after a timeout.";
+                    };
+                    timeout = mkOption {
+                      type = types.int;
+                      default = 15;
+                      description = "The idle time in minutes before the SDDM screensaver starts.";
+                    };
+                  };
+                };
+              };
+            };
+          };
         };
       };
     };

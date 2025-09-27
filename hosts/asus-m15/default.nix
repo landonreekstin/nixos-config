@@ -20,7 +20,7 @@
   customConfig = {
     
     user = {
-      name = "lando";
+      name = "em";
       email = "landonreekstin@gmail.com";
     };
     
@@ -53,22 +53,6 @@
     programs = {
       partydeck.enable = false;
       flatpak.enable = true;
-      firefox = {
-        enable = true;
-        package = pkgs.librewolf;
-
-        extensions = with pkgs.nur.repos.rycee.firefox-addons; [
-          ublock-origin
-          darkreader
-          facebook-container
-        ];
-
-        bookmarks = [
-          { name = "YouTube"; url = "https://www.youtube.com"; }
-          { name = "Netflix"; url = "https://www.netflix.com"; }
-          { name = "GitHub";  url = "https://github.com"; }
-        ];
-      };
     };
 
     homeManager = {
@@ -87,9 +71,7 @@
       unstable-override = [ 
         "discord-canary" 
         "vscode"
-        "librewolf"
         "chromium"
-        "ungoogled-chromium"
       ];
       homeManager = with pkgs; [ 
         vscode
@@ -115,9 +97,6 @@
     };
 
   };
-
-  # === Additional nixos configuration for this host ===
-  services.mullvad-vpn.enable = true;
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {

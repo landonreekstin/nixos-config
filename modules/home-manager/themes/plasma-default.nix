@@ -53,22 +53,6 @@ in
           "org.kde.plasma.digitalclock"
         ];
       }];
-
-      # Screen Locking
-      kscreenlocker = {
-        lockOnResume = true;
-        timeout = 25; # In minutes
-      };
-
-      # Power Management
-      powerdevil.AC = {
-        autoSuspend = {
-          action = "nothing"; # Changed to do nothing
-        };
-        turnOffDisplay = {
-          idleTimeout = 900; # 15 minutes in seconds
-        };
-      };
     };
   };
 }
