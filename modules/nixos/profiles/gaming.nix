@@ -31,7 +31,12 @@
       
       # Games
       superTuxKart
+
+      # Screen Recording
+      gpu-screen-recorder-gtk
     ];
+
+    programs.gpu-screen-recorder.enable = true;
 
     # Enable gaming programs
     # Allows games (especially via Lutris/Steam) to request performance optimizations
