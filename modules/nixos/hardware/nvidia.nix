@@ -14,7 +14,10 @@ in
     hardware.nvidia = {
       open = false; # Use proprietary driver
       modesetting.enable = true; # Needed for Wayland
-      powerManagement.enable = true; # Recommended
+      powerManagement = {
+        enable = true; # Recommended
+        finegrained = !cfg.laptop.enable;
+      };
       # package = config.boot.kernelPackages.nvidiaPackages.stable; # Or specify version if needed
       # === Laptop-specific options ===
       prime = lib.mkMerge [
