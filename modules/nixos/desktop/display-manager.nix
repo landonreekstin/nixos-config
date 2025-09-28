@@ -18,6 +18,7 @@ config = lib.mkIf cfg.enable {
     services.displayManager.sddm = lib.mkIf (cfg.type == "sddm") {
       enable = true;
       wayland.enable = true;
+      theme = cfg.sddm.theme;
     };
 
     # == Ly Greeter Configuration ==
