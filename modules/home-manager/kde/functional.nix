@@ -23,9 +23,7 @@ in
       # Power Management logic remains correct.
       powerdevil.AC = {
         autoSuspend.action = "nothing";
-        turnOffDisplay = lib.mkIf (!screensaverCfg.enable) {
-          idleTimeout = 900; # 15 minutes in seconds
-        };
+        turnOffDisplay.idleTimeout = if screensaverCfg.enable then "never" else 900; # 15 minutes in seconds
       };
     };
   };
