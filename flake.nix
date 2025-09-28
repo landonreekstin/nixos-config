@@ -51,9 +51,14 @@
     };
 
     nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=latest";
+
+    minesddm = {
+      url = "github:Davi-S/sddm-theme-minesddm";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
+    };
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, disko, nixos-hardware, nixos-cosmic, home-manager, plasma-manager, nixos-vscode-server, nixai, nix-flatpak, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-unstable, disko, nixos-hardware, nixos-cosmic, home-manager, plasma-manager, nixos-vscode-server, nixai, nix-flatpak, minesddm, ... }@inputs:
     let
       # Define the target system
       system = "x86_64-linux";
@@ -132,6 +137,7 @@
           inputs.home-manager.nixosModules.default
           inputs.nixos-cosmic.nixosModules.default 
           inputs.nur.modules.nixos.default
+          minesddm.nixosModules.default
         ];
       };
 
