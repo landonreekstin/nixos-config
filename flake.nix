@@ -62,12 +62,6 @@
       pkgs = nixpkgs.legacyPackages.${system};
       lib = nixpkgs.lib;
 
-      unstablePkgs = import nixpkgs-unstable {
-        system = system;
-        # Apply the unfree setting directly to this package set
-        config.allowUnfree = true;
-      };
-
       aerothemeplasma-src = pkgs.fetchgit {
         url = "https://gitgud.io/wackyideas/AeroThemePlasma.git";
         rev = "6.3.4";
@@ -104,7 +98,7 @@
       referenceHostConfig = self.nixosConfigurations."gaming-pc".config;
 
       # Define specialArgs once to pass to all hosts
-      specialArgs = { inherit inputs unstablePkgs; };
+      specialArgs = { inherit inputs; };
     in
   {
     # Define NixOS configurations for each host

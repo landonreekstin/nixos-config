@@ -1,9 +1,13 @@
-{ pkgs, lib, config, customConfig, inputs, unstablePkgs, ...}:
+{ lib, config, customConfig, inputs, ...}:
 
 let
-  # redefine 'pkgs' for this entire file's scope
-  # to be the unstable package set.
-  pkgs = unstablePkgs;
+  # import the nixpkgs-unstable flake input directly and give it a local
+  # name, 'pkgs'. This means that for the entire scope of this 'let' block,
+  # 'pkgs' refers to the unstable package set.
+  pkgs = import inputs.nixpkgs-unstable {
+    system = config.nixpkgs.hostPlatform.system; # Use the system from the host config
+    config = config.nixpkgs.config;
+  };
 
   plasmaWindows7Condition = (lib.elem "kde" customConfig.desktop.environments
     && customConfig.homeManager.enable && customConfig.homeManager.themes.kde == "windows7");

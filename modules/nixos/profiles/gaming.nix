@@ -1,5 +1,5 @@
 # ~/nixos-config/modules/nixos/profiles/gaming.nix
-{ config, pkgs, lib, unstablePkgs, ... }:
+{ config, pkgs, lib, ... }:
 let
   unstableGamingPackages = [
     "steam"
@@ -30,7 +30,7 @@ in
     customConfig.packages.unstable-override = lib.mkMerge [ unstableGamingPackages ];
 
     # 4. Point all EXPLICIT package definitions in this module to unstablePkgs.
-    environment.systemPackages = with unstablePkgs; [
+    environment.systemPackages = with pkgs; [
       # Launchers / Compatibility Layers
       steam
       lutris
@@ -62,7 +62,7 @@ in
 
     programs.steam = {
       enable = true;
-      extraCompatPackages = with unstablePkgs; [
+      extraCompatPackages = with pkgs; [
         proton-ge-bin
       ];
       gamescopeSession.enable = true;
@@ -77,10 +77,6 @@ in
 
     hardware.graphics.enable = true;
     hardware.graphics.enable32Bit = true;
-
-    # Use an unstable kernel for the latest hardware support/fixes
-    #boot.kernelPackages = unstablePkgs.linuxPackages_latest;
-    #boot.initrd.availableKernelModules = [ "nvme" ];
 
     # Gamepad Input
     hardware.xpadneo.enable = true;

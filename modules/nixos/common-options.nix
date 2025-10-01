@@ -344,6 +344,11 @@ in
     #                             HARDWARE AND PERIPHERALS                       #
     # -------------------------------------------------------------------------- #
     hardware = {
+      unstable = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Whether to source the entire hardware stack (kernel, initrd modules, etc.) from nixpkgs-unstable.";
+      };
       nvidia = {
         enable = mkOption {
           type = types.bool;
