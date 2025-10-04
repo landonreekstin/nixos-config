@@ -60,6 +60,10 @@
       
       # Create the package set for our system. This is the correct way.
       pkgs = nixpkgs.legacyPackages.${system};
+      unstablePkgs = import nixpkgs-unstable {
+        system = system;
+        config.allowUnfree = true;
+      };
       lib = nixpkgs.lib;
 
       aerothemeplasma-src = pkgs.fetchgit {
