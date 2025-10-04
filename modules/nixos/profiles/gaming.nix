@@ -24,13 +24,7 @@ in
   # == Configuration ==
   config = lib.mkIf config.customConfig.profiles.gaming.enable {
 
-    # 3. Merge this list into the host's unstable package list.
-    #    Now, any part of the system asking for 'steam', 'lutris', etc.,
-    #    will get the unstable version via the overlay.
-    customConfig.packages.unstable-override = lib.mkMerge [ unstableGamingPackages ];
-
-    # 4. Point all EXPLICIT package definitions in this module to unstablePkgs.
-    environment.systemPackages = with pkgs; [
+    environment.systemPackages = with pkgs.unstable; [
       # Launchers / Compatibility Layers
       steam
       lutris
@@ -62,7 +56,8 @@ in
 
     programs.steam = {
       enable = true;
-      extraCompatPackages = with pkgs; [
+      package = pkgs.unstable.steam;
+      extraCompatPackages = with pkgs.unstable; [
         proton-ge-bin
       ];
       gamescopeSession.enable = true;
@@ -73,10 +68,14 @@ in
     networking.firewall.allowedUDPPorts = [ 2757 2759 ];
     
     programs.gamemode.enable = true;
-    programs.gamescope.enable = true;
-
-    hardware.graphics.enable = true;
-    hardware.graphics.enable32Bit = true;
+    programs.gamescope = {
+      enable = true;
+      package = pkgs.unstable.gamescope;
+    };
+    hardware.graphics = {
+      enable = true;
+      enable32Bit = true;
+    };
 
     # Gamepad Input
     hardware.xpadneo.enable = true;
