@@ -1,10 +1,10 @@
 # ~/nixos-config/modules/nixos/default.nix
 # This file serves as the top level import point for all nixos module default.nix import files.
-{ ... }: # No specific args needed here usually, they are passed to the individual modules
+{ inputs, ... }: # No specific args needed here usually, they are passed to the individual modules
 {
   imports = [
     ./common-options.nix
-    ./unstable-overlay.nix
+    (import ../../modules/nixos/unstable-overlay.nix inputs)
     ./common/default.nix
     ./services/default.nix
     ./profiles/default.nix
