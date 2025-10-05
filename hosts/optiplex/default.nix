@@ -44,7 +44,6 @@
 
     programs = {
       partydeck.enable = false;
-      flatpak.enable = true;
     };
 
     homeManager = {
@@ -74,6 +73,12 @@
         ungoogled-chromium
         discord-canary
       ];
+      flatpak = {
+        enable = true;
+        packages = [
+          "com.spotify.Client"
+        ];
+      };
     };
 
     apps = {

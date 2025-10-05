@@ -33,7 +33,15 @@
       environments = [ "kde" ];
       displayManager = {
         enable = true;
-        type = "ly";
+        type = "sddm";
+        sddm = {
+          theme = "sddm-astronaut";
+          embeddedTheme = "pixel_sakura";
+          screensaver = {
+            enable = true;
+            timeout = 1; # e.g., 10 minutes
+          };
+        };
       };
     };
 
@@ -50,7 +58,6 @@
 
     programs = {
       partydeck.enable = false;
-      flatpak.enable = true;
     };
 
     homeManager = {
@@ -79,6 +86,12 @@
         brave
         discord-canary
       ];
+      flatpak = {
+        enable = true;
+        packages = [
+          "com.spotify.Client"
+        ];
+      };
     };
 
     apps = {

@@ -63,6 +63,11 @@ in
         default = true;
         description = "Whether to allow the user to run the custom update/upgrade commands.";
       };
+      sudoPassword = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Enable a separate, stronger password for sudo authentication, managed via a secondary password file.";
+      };
     };
 
     bootloader = {
@@ -127,35 +132,27 @@ in
           default = "sddm"; # A common default, adjust as preferred
           description = "Which display manager to use if displayManager.enable is true. 'none' means no DM managed by this option.";
         };
-        sddm = mkOption {
-          type = with types; submodule {
-            options = {
-              theme = mkOption {
-                type = types.str;
-                default = "none";
-                description = "The SDDM theme to use (e.g., 'sddm-astronaut').";
-              };
-              embeddedTheme = mkOption {
-                type = types.nullOr types.str;
-                default = null;
-                description = "The embedded theme for sddm-astronaut (e.g., 'pixel_sakura').";
-              };
-              screensaver = mkOption {
-                type = submodule {
-                  options = {
-                    enable = mkOption {
-                      type = types.bool;
-                      default = false;
-                      description = "Whether to use the SDDM theme as a screensaver after a timeout.";
-                    };
-                    timeout = mkOption {
-                      type = types.int;
-                      default = 15;
-                      description = "The idle time in minutes before the SDDM screensaver starts.";
-                    };
-                  };
-                };
-              };
+        sddm = {
+          theme = mkOption {
+            type = types.str;
+            default = "none";
+            description = "The SDDM theme to use (e.g., 'sddm-astronaut').";
+          };
+          embeddedTheme = mkOption {
+            type = types.nullOr types.str;
+            default = null;
+            description = "The embedded theme for sddm-astronaut (e.g., 'pixel_sakura').";
+          };
+          screensaver = {
+            enable = mkOption {
+              type = types.bool;
+              default = false;
+              description = "Whether to use the SDDM theme as a screensaver after a timeout.";
+            };
+            timeout = mkOption {
+              type = types.int;
+              default = 15;
+              description = "The idle time in minutes before the SDDM screensaver starts.";
             };
           };
         };
@@ -170,13 +167,6 @@ in
           type = types.bool;
           default = false; # Default to false, enable explicitly for PartyDeck
           description = "Enable PartyDeck, a splitscreen gaming application for KDE.";
-        };
-      };
-      flatpak = {
-        enable = mkOption {
-          type = types.bool;
-          default = false; # Default to false, enable explicitly for Flatpak support
-          description = "Enable Flatpak packages for Spotify and Discord.";
         };
       };
       firefox = {
@@ -289,6 +279,24 @@ in
         default = [];
         description = "List of additional user-specific packages to install via Home Manager.";
         example = "with pkgs; [ cowsay neofetch ]";
+      };
+      flatpak = {
+        enable = mkOption {
+          type = types.bool;
+          default = false; # Default to false, enable explicitly for Flatpak support
+          description = "Enable Flatpak packages for Spotify and Discord.";
+        };
+        packages = mkOption {
+          type = with lib.types; listOf str;
+          default = [];
+          description = "List of Flatpak packages to install if flatpak is enabled.";
+          example = "[ { appId = \"com.brave.Browser\"; origin = \"flathub\"; }
+            \"com.obsproject.Studio\"
+            \"im.riot.Riot\"
+            \"com.spotify.Client\"
+            \"com.discordapp.Discord\" 
+          ]";
+        };
       };
     };
 
