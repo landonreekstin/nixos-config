@@ -18,6 +18,7 @@ in
       whitesur-cursors
       whitesur-gtk-theme
       inter # font similar to San Francisco
+      kdePackages.sierra-breeze-enhanced
     ];
 
     # 2. Enable Qt support in Home Manager and set the style to Kvantum.
@@ -48,7 +49,7 @@ in
         colorScheme = "WhiteSur-light";
         windowDecorations = {
           library = "org.kde.kwin.aurorae";
-          theme = "__aurorae__svg__WhiteSur-light";
+          theme = "__aurorae__svg__SierraBreezeEnhanced";
         };
         
         # These were already set, but are part of this group.
