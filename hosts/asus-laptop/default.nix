@@ -46,6 +46,7 @@
     };
 
     hardware = {
+      unstable = true;
       nvidia = {
         enable = true;
         laptop = {
