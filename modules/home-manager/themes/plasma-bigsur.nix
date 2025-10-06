@@ -39,24 +39,8 @@ in
       enable = true;
       overrideConfig = cfg.homeManager.themes.plasmaOverride or {};
 
-      workspace = {
-        # lookAndFeel = "org.kde.whitesur.dark";
-
-        # 2. Set the Plasma Style to Breeze, which respects transparency.
-        theme = "breeze-light";
-
-        # 3. Set all other elements to their WhiteSur versions.
-        colorScheme = "WhiteSur-light";
-        windowDecorations = {
-          library = "org.kde.kwin.aurorae";
-          theme = "__aurorae__svg__SierraBreezeEnhanced";
-        };
-        
-        # These were already set, but are part of this group.
-        iconTheme = "WhiteSur-dark";
-        cursor.theme = "WhiteSur-cursors";
-        wallpaper = cfg.homeManager.themes.wallpaper;
-      };
+      workspace.lookAndFeel = "com.github.vinceliuice.WhiteSur-alt";
+      workspace.wallpaper = cfg.homeManager.themes.wallpaper;
 
       configFile."kwinrc"."Compositing" = {
         Enabled = true;
@@ -87,16 +71,35 @@ in
       };
 
       panels = [
-        # 1. Top Bar
+        # Top Panel
         {
           location = "top";
-          height = 32; # A thin top bar
-          opacity = "translucent";
+          height = 32; # A good default height for a top bar
+
           widgets = [
-            # Global Menu provides File, Edit, View, etc. for the active app
+            # --- Left Side ---
+            # The theme will likely make this look like the Apple logo
+            "org.kde.plasma.kickoff"
             "org.kde.plasma.appmenu"
-            "org.kde.plasma.panelspacer" # Pushes widgets to the right
-            "org.kde.plasma.systemtray"
+            # This spacer pushes everything after it to the right
+            "org.kde.plasma.panelspacer"
+
+            # --- Right Side (in order from left to right) ---
+            "org.kde.plasma.notifications"
+            
+            "org.kde.plasma.search"
+            
+            # System Tray with specific items always shown
+            {
+              systemTray.items.shown = [
+                "org.kde.plasma.volume"
+                "org.kde.plasma.bluetooth"
+                "org.kde.plasma.powerdevil"       # Handles Brightness & Power
+                "org.kde.plasma.displayconfiguration"
+                "org.kde.plasma.networkmanagement"
+              ];
+            }
+            
             "org.kde.plasma.digitalclock"
           ];
         }
@@ -107,18 +110,27 @@ in
           floating = true; # Makes the panel float like a dock
           alignment = "center";
           lengthMode = "fit";
-          opacity = "translucent";
+
           widgets = [
             {
               # Icon-Only Task Manager is the heart of a dock
               iconTasks = {
                 launchers = [
-                  "applications:org.kde.dolphin.desktop"
-                  "applications:chromium.desktop"
                   "applications:systemsettings.desktop"
+                  "applications:org.kde.dolphin.desktop"
+                  "applications:chromium-browser.desktop" # Corrected name
+                  "applications:net.lutris.Lutris.desktop"
+                  "applications:com.heroicgameslauncher.hgl.desktop"
+                  "applications:steam.desktop"
+
+                  # --- Flatpaks with Correct Syntax ---
+                  "applications:com.discordapp.Discord.desktop"
+                  "applications:com.spotify.Client.desktop"
                 ];
               };
             }
+            "org.kde.plasma.marginsseparator"
+            "org.kde.plasma.trash"
           ];
         }
       ];
