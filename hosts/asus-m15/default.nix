@@ -31,16 +31,28 @@
       timeZone = "America/Los_Angeles";
       locale = "en_US.UTF-8";
     };
+
+    bootloader = {
+      quietBoot = true;
+    };
     
     desktop = {
       environments = [ "kde" ];
       displayManager = {
         enable = true;
         type = "sddm";
+        sddm = {
+          theme = "sddm-astronaut";
+          embeddedTheme = "pixel_sakura";
+          screensaver = {
+            enable = false;
+          };
+        };
       };
     };
 
     hardware = {
+      unstable = true;
       nvidia = {
         enable = true;
         laptop = {
@@ -48,6 +60,10 @@
           intelBusID = "PCI:0:2:0";
           nvidiaID = "PCI:1:0:0"; 
         };
+      };
+      peripherals = {
+        enable = true;
+        openrgb.enable = true;
       };
     };
 
@@ -67,32 +83,31 @@
       nixos = with pkgs; [ 
       
       ];
-      unstable-override = [ 
-        "discord-canary" 
+      unstable-override = [  
         "vscode"
         "chromium"
+        "firefox"
       ];
       homeManager = with pkgs; [ 
         vscode
         chromium
-        discord-canary
+        firefox
       ];
       flatpak = {
         enable = false;
         packages = [
           "com.spotify.Client"
+          "com.discordapp.Discord"
         ];
       };
     };
 
     apps = {
-      defaultBrowser = "librewolf";
+      defaultBrowser = "chromium"; # Placeholder, no effect yet
     };
 
     profiles = {
       gaming.enable = true;
-      development.fpga-ice40.enable = false;
-      development.kernel.enable = false;
     };
 
     services = {
