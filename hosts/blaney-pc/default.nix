@@ -43,6 +43,7 @@
     };
 
     hardware = {
+      unstable = true;
       nvidia = {
         enable = true; # Set to true if Optiplex has an NVIDIA GPU needing proprietary drivers
       };
