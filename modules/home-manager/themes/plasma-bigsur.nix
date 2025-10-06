@@ -39,10 +39,27 @@ in
       overrideConfig = cfg.homeManager.themes.plasmaOverride or {};
 
       workspace = {
-        lookAndFeel = "org.kde.whitesur.dark";
+        # lookAndFeel = "org.kde.whitesur.dark";
+
+        # 2. Set the Plasma Style to Breeze, which respects transparency.
+        theme = "breeze-light";
+
+        # 3. Set all other elements to their WhiteSur versions.
+        colorScheme = "WhiteSur-light";
+        windowDecorations = {
+          library = "org.kde.kwin.aurorae";
+          theme = "__aurorae__svg__WhiteSur-light";
+        };
+        
+        # These were already set, but are part of this group.
         iconTheme = "WhiteSur-dark";
         cursor.theme = "WhiteSur-cursors";
         wallpaper = cfg.homeManager.themes.wallpaper;
+      };
+
+      configFile."kwinrc"."Compositing" = {
+        Enabled = true;
+        Backend = "OpenGL";
       };
      
       # While qt.style sets the environment variable, explicitly setting this
@@ -60,11 +77,20 @@ in
         windowTitle = { family = "Inter"; pointSize = 10; };
       };
 
+      kwin = {
+        # This ensures the blur effect itself is turned on
+        effects.blur.enable = true;
+        effects.blur.strength = 7;
+
+        #effects.translucency.enable = true;
+      };
+
       panels = [
         # 1. Top Bar
         {
           location = "top";
           height = 32; # A thin top bar
+          opacity = "translucent";
           widgets = [
             # Global Menu provides File, Edit, View, etc. for the active app
             "org.kde.plasma.appmenu"
@@ -79,8 +105,9 @@ in
           height = 56;
           floating = true; # Makes the panel float like a dock
           alignment = "center";
+          lengthMode = "fit";
+          opacity = "translucent";
           widgets = [
-            "org.kde.plasma.panelspacer" # Left spacer to center the task manager
             {
               # Icon-Only Task Manager is the heart of a dock
               iconTasks = {
@@ -91,7 +118,6 @@ in
                 ];
               };
             }
-            "org.kde.plasma.panelspacer" # Right spacer
           ];
         }
       ];
@@ -101,15 +127,7 @@ in
     #    This part is still necessary.
     xdg.configFile."Kvantum/kvantum.kvconfig".text = ''
       [General]
-      theme=WhiteSur-Dark
+      theme=WhiteSur-Light
     '';
-
-    # 5. Configure GTK applications for a consistent look.
-    gtk = {
-      enable = true;
-      theme.name = "WhiteSur-dark-solid";
-      iconTheme.name = "WhiteSur-dark";
-      cursorTheme.name = "WhiteSur-cursors";
-    };
   };
 }
