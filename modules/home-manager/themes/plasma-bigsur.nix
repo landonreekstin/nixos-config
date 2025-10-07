@@ -37,7 +37,7 @@ in
     # 3. Use plasma-manager to apply the global theme, icons, and cursors.
     programs.plasma = {
       enable = true;
-      overrideConfig = cfg.homeManager.themes.plasmaOverride or {};
+      overrideConfig = cfg.homeManager.themes.plasmaOverride;
 
       workspace.lookAndFeel = "com.github.vinceliuice.WhiteSur-alt";
       workspace.wallpaper = cfg.homeManager.themes.wallpaper;
@@ -87,8 +87,6 @@ in
             # --- Right Side (in order from left to right) ---
             "org.kde.plasma.notifications"
             
-            "org.kde.plasma.search"
-            
             # System Tray with specific items always shown
             {
               systemTray.items.shown = [
@@ -116,6 +114,7 @@ in
               # Icon-Only Task Manager is the heart of a dock
               iconTasks = {
                 launchers = [
+                  "applications:org.kde.konsole.desktop"
                   "applications:systemsettings.desktop"
                   "applications:org.kde.dolphin.desktop"
                   "applications:chromium-browser.desktop" # Corrected name
