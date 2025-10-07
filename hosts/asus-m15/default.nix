@@ -95,7 +95,7 @@
         firefox
       ];
       flatpak = {
-        enable = false;
+        enable = true;
         packages = [
           "com.spotify.Client"
           "com.discordapp.Discord"
