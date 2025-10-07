@@ -58,7 +58,7 @@
     homeManager = {
       enable = true;
       themes = {
-        kde = "default";
+        kde = "bigsur";
         plasmaOverride = true;
         wallpaper = ../../assets/wallpapers/big-sur.jpg;
       };
@@ -69,19 +69,20 @@
       
       ];
       unstable-override = [ 
-        "discord-canary" 
         "vscode"
         "chromium"
+        "firefox"
       ];
       homeManager = with pkgs; [ 
         vscode
         chromium
-        discord-canary
+        firefox
       ];
       flatpak = {
         enable = false;
         packages = [
           "com.spotify.Client"
+          "com.discordapp.Discord"
         ];
       };
     };
