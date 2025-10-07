@@ -1,28 +1,44 @@
-# ~/nixos-config/modules/nixos/unstable-overlay.nix
-{ config, lib, unstablePkgs, ... }:
+# ~/nixos-config/modules/nixos/unstable.nix
 
-with lib;
+# This file is now a FUNCTION that takes 'inputs' as an argument...
+inputs:
+
+# ...and RETURNS a standard NixOS module.
+{ config, lib, pkgs, ... }:
 
 let
-  # Get the host-specific list of unstable packages from our custom option
-  unstablePackages = config.customConfig.packages.unstable-override;
+  # It reads its configuration from the host's customConfig, as intended.
+  cfg = config.customConfig;
 in
 {
-  # This is where we add the overlay to the main nixpkgs config
-  nixpkgs.overlays = [
-    (final: prev: {
-      # --- Main Overlay Logic ---
-      # This function takes the list of package names (strings) and for each one,
-      # assigns the unstable package (prev.unstable.${pkgName}) to the final
-      # package set.
-      unstable = unstablePkgs; # Recommended: Make the full unstable set available as pkgs.unstable
-    } // # The `//` operator merges the two attribute sets
-    (listToAttrs (map (
-        pkgName: {
-          name = pkgName;
-          value = unstablePkgs.${pkgName};
-        }
-      ) unstablePackages))
-    )
+  # We use lib.mkMerge to combine multiple configurations cleanly.
+  config = lib.mkMerge [
+    # This block is always active to provide the overlays.
+    {
+      nixpkgs.overlays = [
+        # Provides `pkgs.unstable`. We can use 'inputs' here because it was
+        # passed as an argument to the entire file.
+        (final: prev: {
+          unstable = import inputs.nixpkgs-unstable {
+            system = prev.system;
+            config = prev.config;
+          };
+        })
+        # Conditionally replaces the kernel.
+        (final: prev: lib.mkIf cfg.hardware.unstable {
+          linuxPackages_latest = final.unstable.linuxPackages_latest;
+        })
+      ];
+
+      # Handles the `unstable-override` package list.
+      environment.systemPackages = with pkgs;
+        lib.lists.forEach cfg.packages.unstable-override (p: unstable.${p});
+    }
+
+    # This block is only active when the unstable hardware flag is true.
+    (lib.mkIf cfg.hardware.unstable {
+      boot.kernelPackages = pkgs.linuxPackages_latest;
+      hardware.nvidia.package = pkgs.unstable.linuxPackages_latest.nvidiaPackages.latest;
+    })
   ];
 }
