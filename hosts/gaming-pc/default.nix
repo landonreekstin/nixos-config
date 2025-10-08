@@ -40,10 +40,28 @@
         type = "sddm"; # Or "greetd", "gdm", or "none" based on your preference for Optiplex
         sddm = {
           theme = "sddm-astronaut";
-          embeddedTheme = "pixel_sakura";
+          #embeddedTheme = "pixel_sakura";
+          customTheme = {
+            enable = true;
+            wallpaper = ../../assets/wallpapers/soviet-retro-future.jpg;
+            blur = 2.0;
+            roundCorners = 20;
+            colors = {
+              formBackground = "#1e1e2e";
+              dimBackground = "#1e1e2e";
+              headerText = "#cdd6f4";
+              dateText = "#cdd6f4";
+              timeText = "#cdd6f4";
+              placeholderText = "#a6adc8";
+              loginButtonBackground = "#89b4fa";
+              loginButtonText = "#1e1e2e";
+              highlightBackground = "#89b4fa";
+              systemButtonsIcons = "#cdd6f4";
+            };
+          };
           screensaver = {
             enable = true;
-            timeout = 25; # e.g., 10 minutes
+            timeout = 20; # e.g., 10 minutes
           };
         };
       };
@@ -107,7 +125,7 @@
         "brave"
         "ungoogled-chromium"
       ];
-      homeManager = with pkgs; [ # Optiplex-specific user packages (previously in core.nix user packages)
+      homeManager = with pkgs; [
         jamesdsp
         remmina
         vscode
@@ -118,6 +136,7 @@
         qbittorrent
         obs-studio
         kdePackages.konversation
+        kdePackages.kdenlive
       ];
       flatpak = {
         enable = true;

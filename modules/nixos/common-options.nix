@@ -155,6 +155,58 @@ in
               description = "The idle time in minutes before the SDDM screensaver starts.";
             };
           };
+          customTheme = {
+            enable = mkEnableOption "a custom embedded theme for sddm-astronaut";
+
+            wallpaper = mkOption {
+              type = types.path;
+              description = "Absolute path to the wallpaper for the custom SDDM theme.";
+              example = "/path/to/my/wallpaper.png";
+            };
+
+            font = mkOption {
+              type = types.str;
+              default = "Thunderman";
+              description = "The font to use in the theme.";
+            };
+
+            fontSize = mkOption {
+              type = types.int;
+              default = 12;
+              description = "The base font size.";
+            };
+
+            blur = mkOption {
+              type = types.float;
+              default = 2.0;
+              description = "The blur intensity for the form background.";
+            };
+            
+            roundCorners = mkOption {
+              type = types.int;
+              default = 20;
+              description = "The roundness of corners.";
+            };
+
+            colors = mkOption {
+              type = with types; submodule {
+                options = {
+                  headerText = mkOption { type = types.str; default = "#d8d8ff"; };
+                  dateText = mkOption { type = types.str; default = "#d8d8ff"; };
+                  timeText = mkOption { type = types.str; default = "#d8d8ff"; };
+                  formBackground = mkOption { type = types.str; default = "#242455"; };
+                  dimBackground = mkOption { type = types.str; default = "#242455"; };
+                  loginButtonText = mkOption { type = types.str; default = "#6c6caa"; };
+                  loginButtonBackground = mkOption { type = types.str; default = "#d8d8ff"; };
+                  systemButtonsIcons = mkOption { type = types.str; default = "#d8d8ff"; };
+                  placeholderText = mkOption { type = types.str; default = "#6c6caa"; };
+                  highlightBackground = mkOption { type = types.str; default = "#d8d8ff"; };
+                };
+              };
+              default = {};
+              description = "Color palette for the custom SDDM theme. All values should be hex color codes.";
+            };
+          };
         };
       };
     };
