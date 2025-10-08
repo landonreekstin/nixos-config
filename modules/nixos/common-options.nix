@@ -290,7 +290,7 @@ in
       };
       themes = {
         kde = mkOption {
-          type = types.enum [ "windows7" "default" "none" ];
+          type = types.enum [ "windows7" "default" "bigsur" "none" ];
           default = "none";
           description = "Set the Plasma theme for Home Manager.";
         };
@@ -396,6 +396,11 @@ in
     #                             HARDWARE AND PERIPHERALS                       #
     # -------------------------------------------------------------------------- #
     hardware = {
+      unstable = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Whether to source the entire hardware stack (kernel, initrd modules, etc.) from nixpkgs-unstable.";
+      };
       nvidia = {
         enable = mkOption {
           type = types.bool;

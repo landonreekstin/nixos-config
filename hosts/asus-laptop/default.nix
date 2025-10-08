@@ -46,6 +46,7 @@
     };
 
     hardware = {
+      unstable = true;
       nvidia = {
         enable = true;
         laptop = {
@@ -113,7 +114,7 @@
   };
 
   # === Additional nixos configuration for this host ===
-  services.mullvad-vpn.enable = true;
+  
   # In your NixOS configuration
   services.flatpak.enable = true;
   services.keyd = {

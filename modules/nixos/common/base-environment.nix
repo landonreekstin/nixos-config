@@ -9,6 +9,7 @@
     wget
     fd
     htop
+    usbutils
     # Any other truly universal CLI packages
   ] ++ config.customConfig.packages.nixos; # Appends host-specific system packages
 
