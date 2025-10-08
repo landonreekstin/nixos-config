@@ -3,39 +3,45 @@
 
 let
   cfg = config.customConfig.hardware.peripherals;
+  user = config.customConfig.user.name;
 
 in
 {
   config = lib.mkIf cfg.enable {
 
-    # === Enable General Peripheral Support ===
-    services.hardware.openrgb = lib.mkIf cfg.openrgb.enable {
-      enable = true;
-      package = pkgs.openrgb-with-all-plugins;
-    };
-    # === Enable Razer Device Support ===
+    # === OpenRGB for RGB Lighting Control ===
+    services.hardware.openrgb.enable = lib.mkIf cfg.openrgb.enable true;
+
+    # === OpenRazer for Razer Device Support ===
     hardware.openrazer = lib.mkIf cfg.openrazer.enable {
-        enable = true; # Enable OpenRazer for Razer device support
-        users = [ config.customConfig.user.name ]; # Ensure OpenRazer runs for the user
+      enable = true;
+      users = [ user ];
     };
-    services.input-remapper.enable = cfg.input-remapper.enable or false;
 
-    users.users.${config.customConfig.user.name}.extraGroups = lib.mkIf cfg.openrazer.enable [
-      "plugdev" # Add user to plugdev group for OpenRazer
-      "openrazer"
-    ];
+    # === ckb-next for Corsair Device Support ===
+    hardware.ckb-next.enable = lib.mkIf cfg.ckb-next.enable true;
 
-    # === Enable Corsair Device Support ===
-    hardware.ckb-next.enable = cfg.ckb-next.enable or false;
+    # === Input Remapper for Key/Mouse Mapping ===
+    services.input-remapper.enable = lib.mkIf cfg.input-remapper.enable true;
 
-    # === Install Peripheral Management Tools ===
-    environment.systemPackages = with pkgs; [
-        openrgb-with-all-plugins
-        solaar
-        openrazer-daemon
-        polychromatic
-        input-remapper
-    ];
+    # === Add user to necessary peripheral groups ===
+    # The 'input' group is not needed for input-remapper as the service runs as root.
+    users.users.${user}.extraGroups = with lib.lists;
+      optionals cfg.openrazer.enable [ "plugdev" "openrazer" ];
+
+    # === Conditionally Install All Peripheral Management Packages ===
+    # Explicitly lists all packages for clarity, based on their enable flags.
+    environment.systemPackages = with pkgs; with lib.lists;
+      # OpenRGB
+      optionals cfg.openrgb.enable [ openrgb-with-all-plugins ]
+      # Razer
+      ++ optionals cfg.openrazer.enable [ openrazer-daemon polychromatic ]
+      # Corsair
+      ++ optionals cfg.ckb-next.enable [ ckb-next ]
+      # Logitech
+      ++ optionals cfg.solaar.enable [ solaar ]
+      # Input Remapper
+      ++ optionals cfg.input-remapper.enable [ input-remapper ];
 
   };
 }

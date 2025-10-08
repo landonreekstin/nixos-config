@@ -406,12 +406,21 @@ in
             description = "Enable OpenRazer for Razer device support.";
           };
         };
-        
-        # You can add more options for specific peripherals here later
-        # e.g., amdgpu, intel, bluetooth, corsair keyboard RGB management, etc.
+        input-remapper = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable input-remapper for key/mouse remapping.";
+          };
+        };
+        solaar = {
+           enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable Solaar for Logitech device management.";
+           };
+        };
       };
-      # Add options for amdgpu, intel, bluetooth etc. here later
-      # CORSAIR KEYBOARD, rgb management
     };
 
     # -------------------------------------------------------------------------- #
