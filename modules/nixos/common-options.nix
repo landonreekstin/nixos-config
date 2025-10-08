@@ -420,6 +420,13 @@ in
             description = "Enable Solaar for Logitech device management.";
            };
         };
+        asus = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable ASUS laptop specific services and tools (asusctl).";
+          };
+        };
       };
     };
 

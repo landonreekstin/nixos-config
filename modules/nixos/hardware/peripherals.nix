@@ -24,6 +24,12 @@ in
     # === Input Remapper for Key/Mouse Mapping ===
     services.input-remapper.enable = lib.mkIf cfg.input-remapper.enable true;
 
+    # === Asus ROG Laptop Control ===
+    services.asusd = lib.mkIf cfg.asus.enable {
+      enable = true;
+      enableUserService = true;
+    };
+
     # === Add user to necessary peripheral groups ===
     # The 'input' group is not needed for input-remapper as the service runs as root.
     users.users.${user}.extraGroups = with lib.lists;
@@ -41,7 +47,9 @@ in
       # Logitech
       ++ optionals cfg.solaar.enable [ solaar ]
       # Input Remapper
-      ++ optionals cfg.input-remapper.enable [ input-remapper ];
+      ++ optionals cfg.input-remapper.enable [ input-remapper ]
+      # Asus
+      ++ optionals cfg.asus.enable [ asusctl ];
 
   };
 }
