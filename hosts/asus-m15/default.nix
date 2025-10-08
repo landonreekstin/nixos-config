@@ -45,7 +45,7 @@
           theme = "sddm-astronaut";
           customTheme = {
             enable = true;
-            wallpaper = ../../assets/wallpapers/soviet-retro-future.jpg;
+            wallpaper = ../../assets/wallpapers/spooky-sddm.mp4;
             blur = 2.0;
             roundCorners = 20;
             colors = {
