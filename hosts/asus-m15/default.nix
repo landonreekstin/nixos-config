@@ -63,7 +63,7 @@
       };
       peripherals = {
         enable = true;
-        openrgb.enable = true;
+        asus.enable = true;
       };
     };
 
@@ -82,7 +82,7 @@
 
     packages = {
       nixos = with pkgs; [ 
-        asusctl
+
       ];
       unstable-override = [  
         "vscode"
@@ -118,10 +118,6 @@
     };
 
   };
-
-
-  services.asusd.enable = true;
-  services.asusd.enableUserService = true;
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {
