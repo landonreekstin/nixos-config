@@ -27,7 +27,6 @@ let
           # This cp command will now work perfectly.
           cp ${customThemeConfFile} ./Themes/custom.conf
           cp ${customThemeCfg.wallpaper} ./Backgrounds/${builtins.baseNameOf customThemeCfg.wallpaper}
-          cp ${customThemeCfg.wallpaper-placeholder} ./Backgrounds/${builtins.baseNameOf customThemeCfg.wallpaper-placeholder}
         '';
 
         installPhase = ''

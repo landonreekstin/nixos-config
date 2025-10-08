@@ -32,7 +32,7 @@ in
       HeaderText=""
 
       #################### Background ####################
-      BackgroundPlaceholder="Backgrounds/${builtins.baseNameOf cfg.wallpaper-placeholder}"
+      BackgroundPlaceholder=""
       Background="Backgrounds/${builtins.baseNameOf cfg.wallpaper}"
       BackgroundSpeed="1.0"
       PauseBackground=""
