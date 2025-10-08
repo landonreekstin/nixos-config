@@ -125,7 +125,7 @@
         "brave"
         "ungoogled-chromium"
       ];
-      homeManager = with pkgs; [ # Optiplex-specific user packages (previously in core.nix user packages)
+      homeManager = with pkgs; [
         jamesdsp
         remmina
         vscode
@@ -136,6 +136,7 @@
         qbittorrent
         obs-studio
         kdePackages.konversation
+        kdePackages.kdenlive
       ];
       flatpak = {
         enable = true;
