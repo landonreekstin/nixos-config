@@ -43,7 +43,7 @@
           #embeddedTheme = "pixel_sakura";
           customTheme = {
             enable = true;
-            wallpaper = /home/lando/nixos-config/assets/wallpapers/soviet-retro-future.jpg;
+            wallpaper = ../../assets/wallpapers/soviet-retro-future.jpg;
             blur = 2.0;
             roundCorners = 20;
             colors = {
@@ -61,7 +61,7 @@
           };
           screensaver = {
             enable = true;
-            timeout = 25; # e.g., 10 minutes
+            timeout = 20; # e.g., 10 minutes
           };
         };
       };
