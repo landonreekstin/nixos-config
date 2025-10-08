@@ -164,6 +164,13 @@ in
               example = "/path/to/my/wallpaper.png";
             };
 
+            wallpaper-placeholder = mkOption {
+              type = types.path;
+              default = "";
+              description = "Absolute path to the wallpaper placeholder for live wallpapers for the custom SDDM theme.";
+              example = "/path/to/my/wallpaper.png";
+            };
+
             font = mkOption {
               type = types.str;
               default = "Thunderman";
