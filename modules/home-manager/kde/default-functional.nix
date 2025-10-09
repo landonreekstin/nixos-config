@@ -1,4 +1,4 @@
-# ~/nixos-config/modules/home-manager/kde/functional.nix
+# ~/nixos-config/modules/home-manager/kde/default-functional.nix
 { lib, config, customConfig, ... }:
 
 let
@@ -10,7 +10,7 @@ in
   config = lib.mkIf (isKdeDesktop && defaultPlasmaSettingsEnabled) {
     programs.plasma = {
       enable = true;
-      overrideConfig = cfg.homeManager.themes.plasmaOverride;
+      overrideConfig = customConfig.homeManager.themes.plasmaOverride;
 
       session.sessionRestore.restoreOpenApplicationsOnLogin = "whenSessionWasManuallySaved";
 
@@ -28,6 +28,19 @@ in
       powerdevil.AC = {
         autoSuspend.action = "nothing";
         turnOffDisplay.idleTimeout = if screensaverCfg.enable then "never" else 900; # 15 minutes in seconds
+      };
+
+      # Enable natural scrolling for touchpads, disable for mice.
+      # Directly configure the input settings file.
+      configFile."kcminputrc" = {
+        # The 'LibinputPointer' section typically controls touchpad settings.
+        LibinputPointer = {
+          NaturalScroll = true;
+        };
+        # The 'Libinput' section controls mice. Ensure it's off for them.
+        Libinput = {
+          NaturalScroll = false;
+        };
       };
     };
   };

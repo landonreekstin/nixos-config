@@ -4,6 +4,6 @@
 
 {
   imports = [
-    ./functional.nix
+    ./default-functional.nix
   ];
 }
