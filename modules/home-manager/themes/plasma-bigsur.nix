@@ -98,7 +98,20 @@ in
               ];
             }
             
-            "org.kde.plasma.digitalclock"
+            {
+              name = "org.kde.plasma.digitalclock";
+              config = {
+                Appearance = {
+                  # This forces the date to be visible
+                  showDate = true;
+                  # This sets the format to "custom"
+                  dateFormat = "custom";
+                  # This defines your custom format
+                  customDateFormat = "ddd d";
+                };
+              };
+            }
+
           ];
         }
         # 2. Bottom Dock
