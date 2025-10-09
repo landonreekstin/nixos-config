@@ -4,11 +4,15 @@
 let
   screensaverCfg = customConfig.desktop.displayManager.sddm.screensaver;
   isKdeDesktop = lib.elem "kde" customConfig.desktop.environments;
+  defaultPlasmaSettingsEnabled = customConfig.homeManager.system.plasmaDefaultSettings;
 in
 {
-  config = lib.mkIf (isKdeDesktop) {
+  config = lib.mkIf (isKdeDesktop && defaultPlasmaSettingsEnabled) {
     programs.plasma = {
       enable = true;
+      overrideConfig = cfg.homeManager.themes.plasmaOverride;
+
+      session.sessionRestore.restoreOpenApplicationsOnLogin = "whenSessionWasManuallySaved";
 
       kscreenlocker = {
         # --- LOGIC CORRECTION ---

@@ -288,6 +288,13 @@ in
           };
         };
       };
+      system = {
+        plasmaDefaultSettings = mkOption {
+          type = types.bool;
+          default = true; # Default to true to apply common Plasma settings
+          description = "Whether to apply a set of common, non-thematic Plasma settings via Home Manager.";
+        };
+      };
       themes = {
         kde = mkOption {
           type = types.enum [ "windows7" "default" "bigsur" "none" ];
