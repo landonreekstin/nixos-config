@@ -29,6 +29,27 @@ in
       enable = true;
       enableUserService = true;
     };
+     # Systemd user service to set Asus keyboard backlight after login
+    systemd.user.services.set-asus-aura = lib.mkIf cfg.asus.enable {
+      description = "Set Asus keyboard backlight to static white after login";
+
+      # This service is wanted by the graphical session, so it starts on login.
+      wantedBy = [ "graphical-session.target" ];
+
+      # Start after the graphical session is fully established.
+      after = [ "graphical-session.target" ];
+
+      # Define the service itself
+      serviceConfig = {
+        Type = "oneshot"; # It's a one-off command, not a long-running daemon.
+        
+        # Add a 5-second delay to ensure asusd is ready.
+        ExecStartPre = "${pkgs.coreutils}/bin/sleep 5";
+        
+        # The command to execute. Using the full package path is robust.
+        ExecStart = "${pkgs.asusctl}/bin/asusctl aura static ffffff";
+      };
+    };
 
     # === Add user to necessary peripheral groups ===
     # The 'input' group is not needed for input-remapper as the service runs as root.
