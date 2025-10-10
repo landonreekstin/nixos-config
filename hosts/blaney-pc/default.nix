@@ -52,6 +52,8 @@
         openrgb.enable = true; # Enable OpenRGB for RGB control
         openrazer.enable = true; # Enable OpenRazer for Razer device support
         ckb-next.enable = false; # Enable CKB-Next for Corsair device support
+        input-remapper.enable = true;
+        solaar.enable = true;
       };
     };
 
