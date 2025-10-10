@@ -101,13 +101,14 @@ in
             {
               name = "org.kde.plasma.digitalclock";
               config = {
-                Appearance = {
-                  # This forces the date to be visible
-                  showDate = true;
-                  # This sets the format to "custom"
-                  dateFormat = "custom";
-                  # This defines your custom format
+                "Appearance" = {
+                  autoFontAndSize = false;
                   customDateFormat = "ddd d";
+dateDisplayFormat = "BesideTime"; # The critical setting
+                  dateFormat = "custom";
+                  fontFamily = "Inter";
+                  fontWeight = 400;
+                  showDate = true;
                 };
               };
             }
