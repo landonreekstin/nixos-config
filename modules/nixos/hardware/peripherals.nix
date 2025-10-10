@@ -47,7 +47,7 @@ in
         ExecStartPre = "${pkgs.coreutils}/bin/sleep 5";
         
         # The command to execute. Using the full package path is robust.
-        ExecStart = "${pkgs.asusctl}/bin/asusctl aura static ffffff";
+        ExecStart = "${pkgs.asusctl}/bin/asusctl aura static -c ffffff";
       };
     };
 
