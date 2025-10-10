@@ -38,7 +38,7 @@
           theme = "sddm-astronaut";
           embeddedTheme = "pixel_sakura";
           screensaver = {
-            enable = true;
+            enable = false;
             timeout = 1; # e.g., 10 minutes
           };
         };

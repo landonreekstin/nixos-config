@@ -37,6 +37,7 @@ in
           intelBusId = cfg.laptop.intelBusID;
         })
       ];
+      dynamicBoost.enable = false;
     };
 
     services.xserver.videoDrivers = [ "nvidia" ]; # Ensure X11 & Wayland use Nvidia driver

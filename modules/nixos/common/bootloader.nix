@@ -11,7 +11,7 @@ in
     };
     efi.canTouchEfiVariables = true;
   };
-  boot.initrd.verbose = quietBootEnabled;
+  boot.initrd.verbose = !quietBootEnabled;
   boot.loader.timeout = if quietBootEnabled then 0 else 5;
   boot.consoleLogLevel = if quietBootEnabled then 0 else 4;
   boot.kernelParams = lib.mkIf quietBootEnabled [

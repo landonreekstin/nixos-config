@@ -92,7 +92,7 @@
       enable = true;
       themes = {
         kde = "bigsur";
-        plasmaOverride = true;
+        plasmaOverride = false;
         wallpaper = ../../assets/wallpapers/big-sur.jpg;
       };
     };

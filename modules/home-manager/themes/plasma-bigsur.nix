@@ -85,7 +85,6 @@ in
             "org.kde.plasma.panelspacer"
 
             # --- Right Side (in order from left to right) ---
-            "org.kde.plasma.notifications"
             
             # System Tray with specific items always shown
             {
@@ -95,6 +94,7 @@ in
                 "org.kde.plasma.powerdevil"       # Handles Brightness & Power
                 "org.kde.plasma.displayconfiguration"
                 "org.kde.plasma.networkmanagement"
+                "org.kde.plasma.notifications"
               ];
             }
             
