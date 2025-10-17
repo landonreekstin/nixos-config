@@ -29,24 +29,21 @@ in
       enable = true;
       enableUserService = true;
     };
-     # Systemd user service to set Asus keyboard backlight after login
-    systemd.user.services.set-asus-aura = lib.mkIf cfg.asus.enable {
-      description = "Set Asus keyboard backlight to static white after login";
+     # === Systemd SYSTEM service to set Asus keyboard backlight at Display Manager ===
+    systemd.services.set-asus-aura-dm = lib.mkIf cfg.asus.enable {
+      description = "Set Asus keyboard backlight to static white at Display Manager";
 
-      # This service is wanted by the graphical session, so it starts on login.
-      wantedBy = [ "graphical-session.target" ];
-
-      # Start after the graphical session is fully established.
-      after = [ "graphical-session.target" ];
+      # This service is wanted by the display manager, so it starts with it.
+      wantedBy = [ "display-manager.service" ];
+      
+      # Crucially, ensure this runs AFTER both asusd and the DM are ready.
+      after = [ "display-manager.service" "asusd.service" ];
 
       # Define the service itself
       serviceConfig = {
-        Type = "oneshot"; # It's a one-off command, not a long-running daemon.
+        Type = "oneshot"; # It's a one-off command.
         
-        # Add a 5-second delay to ensure asusd is ready.
-        ExecStartPre = "${pkgs.coreutils}/bin/sleep 5";
-        
-        # The command to execute. Using the full package path is robust.
+        # The command to execute. It runs as root by default.
         ExecStart = "${pkgs.asusctl}/bin/asusctl aura static -c ffffff";
       };
     };
