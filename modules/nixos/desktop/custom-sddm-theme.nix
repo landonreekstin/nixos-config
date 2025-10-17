@@ -27,7 +27,7 @@ in
       KeyboardSize="0.4"
       RoundCorners="${toString cfg.roundCorners}"
       Locale=""
-      HourFormat="HH:mm"
+      HourFormat="hh:mm a"
       DateFormat="dddd d"
       HeaderText=""
 
