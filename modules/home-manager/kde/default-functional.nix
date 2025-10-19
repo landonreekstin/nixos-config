@@ -25,9 +25,15 @@ in
       };
 
       # Power Management logic remains correct.
-      powerdevil.AC = {
-        autoSuspend.action = "nothing";
-        turnOffDisplay.idleTimeout = if screensaverCfg.enable then "never" else 900; # 15 minutes in seconds
+      powerdevil = {
+        AC = {
+          autoSuspend.action = "nothing";
+          turnOffDisplay.idleTimeout = if screensaverCfg.enable then "never" else 900; # 15 minutes in seconds
+        };
+        battery = {
+          autoSuspend.action = "sleep";
+          turnOffDisplay.idleTimeout = if screensaverCfg.enable then ((screensaverCfg.timeout*60) + 360) else 600; # 10 minutes in seconds
+        };
       };
 
       # Enable natural scrolling for touchpads, disable for mice.
