@@ -28,11 +28,15 @@ in
         (final: prev: lib.mkIf cfg.hardware.unstable {
           linuxPackages_latest = final.unstable.linuxPackages_latest;
         })
-      ];
 
-      # Handles the `unstable-override` package list.
-      environment.systemPackages = with pkgs;
-        lib.lists.forEach cfg.packages.unstable-override (p: unstable.${p});
+        # --- The Simplified Package Override Overlay ---
+        (final: prev:
+          # `genAttrs` builds an attribute set from our single list.
+          # For each package name in the list, it creates an entry that
+          # points the stable name to the unstable version.
+          lib.genAttrs cfg.packages.unstable-override (p: final.unstable.${p})
+        )
+      ];
     }
 
     # This block is only active when the unstable hardware flag is true.
