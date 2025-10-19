@@ -63,8 +63,8 @@
 
     homeManager = {
       enable = true; # Enable Home Manager for this host
-      plasmaOverride = true;
       themes = {
+        plasmaOverride = true;
         kde = "windows7";
         wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
       };
