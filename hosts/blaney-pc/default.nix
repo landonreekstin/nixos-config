@@ -63,8 +63,8 @@
 
     homeManager = {
       enable = true; # Enable Home Manager for this host
-      plasmaOverride = true;
       themes = {
+        plasmaOverride = true;
         kde = "windows7";
         wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
       };
@@ -81,6 +81,8 @@
         "librewolf"
         "brave"
         "ungoogled-chromium"
+        "desmume"
+        "mgba"
       ];
       homeManager = with pkgs; [
         kitty
@@ -93,6 +95,8 @@
         notes
         CuboCore.corepaint
         kdePackages.kdenlive
+        desmume
+        mgba
       ];
       flatpak = {
         enable = true;
