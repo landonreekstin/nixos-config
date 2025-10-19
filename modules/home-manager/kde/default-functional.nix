@@ -5,6 +5,8 @@ let
   screensaverCfg = customConfig.desktop.displayManager.sddm.screensaver;
   isKdeDesktop = lib.elem "kde" customConfig.desktop.environments;
   defaultPlasmaSettingsEnabled = customConfig.homeManager.system.plasmaDefaultSettings;
+
+  screenOffTimeout = ((screensaverCfg.timeout*60) + 300);
 in
 {
   config = lib.mkIf (isKdeDesktop && defaultPlasmaSettingsEnabled) {
@@ -32,7 +34,7 @@ in
         };
         battery = {
           autoSuspend.action = "sleep";
-          turnOffDisplay.idleTimeout = if screensaverCfg.enable then ((screensaverCfg.timeout*60) + 360) else 600; # 10 minutes in seconds
+          turnOffDisplay.idleTimeout = if screensaverCfg.enable then screenOffTimeout else 600; # 10 minutes in seconds
         };
       };
 
