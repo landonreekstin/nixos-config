@@ -81,6 +81,8 @@
         "librewolf"
         "brave"
         "ungoogled-chromium"
+        "desmume"
+        "mgba"
       ];
       homeManager = with pkgs; [
         kitty
@@ -93,6 +95,8 @@
         notes
         CuboCore.corepaint
         kdePackages.kdenlive
+        desmume
+        mgba
       ];
       flatpak = {
         enable = true;
