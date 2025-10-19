@@ -252,8 +252,8 @@ in
         colorScheme = "AeroColorScheme1";
         iconTheme = "Windows 7 Aero";
         soundTheme = "Windows 7";
-        #lookAndFeel = "authui7"; # Applies lock screen
-        lookAndFeel = "io.gitgud.wackyideas.aerotheme-lookandfeel";
+        lookAndFeel = "authui7"; # Applies lock screen
+        #lookAndFeel = "Seven-White";
         wallpaper = customConfig.homeManager.themes.wallpaper;
         cursor = {
           theme = "aero-drop";
