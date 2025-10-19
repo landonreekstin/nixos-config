@@ -49,6 +49,22 @@ let
       };
 
   qmlPaths = with pkgs.kdePackages; lib.makeSearchPath "lib/qt-6/qml" [ qtmultimedia qtvirtualkeyboard qtsvg ];
+
+  # 2. Define the GStreamer plugins needed for video playback (MP4, etc.)
+  gstreamerPlugins = with pkgs.gst_all_1; [
+    gst-plugins-good
+    gst-plugins-bad
+    gst-plugins-ugly
+    gst-libav # Provides codecs like H.264
+  ];
+
+  # 3. Create the search path that GStreamer uses to find its plugins
+  gstPath = lib.makeSearchPath "lib/gstreamer-1.0" gstreamerPlugins;
+
+  # Create the search path for Qt to find its backend plugins (like the multimedia backend)
+  qtPluginPath = lib.makeSearchPath "lib/qt-6/plugins" [
+    pkgs.kdePackages.qtmultimedia
+  ];
 in
 {
   imports = [ ./custom-sddm-theme.nix ];
@@ -70,7 +86,11 @@ in
             'if [ -f /tmp/sddm_greeter.pid ]; then kill $(cat /tmp/sddm_greeter.pid); rm -f /tmp/sddm_greeter.pid; fi'
       '';
       serviceConfig = {
-        Environment = "QML2_IMPORT_PATH=${qmlPaths}";
+        Environment = [
+          "QML2_IMPORT_PATH=${qmlPaths}"
+          "GST_PLUGIN_SYSTEM_PATH=${gstPath}"
+          "QT_PLUGIN_PATH=${qtPluginPath}"
+        ];
         Restart = "always";
         RestartSec = "10";
       };

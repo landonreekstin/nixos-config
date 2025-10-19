@@ -98,7 +98,21 @@ in
               ];
             }
             
-            "org.kde.plasma.digitalclock"
+            {
+              name = "org.kde.plasma.digitalclock";
+              config = {
+                "Appearance" = {
+                  autoFontAndSize = false;
+                  customDateFormat = "ddd d";
+dateDisplayFormat = "BesideTime"; # The critical setting
+                  dateFormat = "custom";
+                  fontFamily = "Inter";
+                  fontWeight = 400;
+                  showDate = true;
+                };
+              };
+            }
+
           ];
         }
         # 2. Bottom Dock
