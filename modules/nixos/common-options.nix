@@ -486,6 +486,29 @@ in
             description = "Enable ASUS laptop specific services and tools (asusctl).";
           };
         };
+        touchpad = mkOption {
+          type = with lib.types; nullOr (submodule {
+            options = {
+              name = mkOption {
+                type = str;
+                description = "The device name of the touchpad (from libinput list-devices).";
+                example = "SynPS/2 Synaptics TouchPad";
+              };
+              vendorId = mkOption {
+                type = str;
+                description = "The vendor ID of the touchpad.";
+                example = "0002";
+              };
+              productId = mkOption {
+                type = str;
+                description = "The product ID of the touchpad.";
+                example = "0007";
+              };
+            };
+          });
+          default = null;
+          description = "Hardware-specific information for the primary touchpad, if one is configured.";
+        };
       };
     };
 

@@ -3,6 +3,8 @@
 
 let
   screensaverCfg = customConfig.desktop.displayManager.sddm.screensaver;
+  touchpadCfg = customConfig.hardware.peripherals.touchpad;
+  
   isKdeDesktop = lib.elem "kde" customConfig.desktop.environments;
   defaultPlasmaSettingsEnabled = customConfig.homeManager.system.plasmaDefaultSettings;
 
@@ -37,19 +39,19 @@ in
           turnOffDisplay.idleTimeout = if screensaverCfg.enable then screenOffTimeout else 600; # 10 minutes in seconds
         };
       };
+ 
+      # Touchpad settings
+      input.touchpads = lib.mkIf (touchpadCfg != null) [
+        {
+          # Pull the hardware info directly from our customConfig
+          name = touchpadCfg.name;
+          vendorId = touchpadCfg.vendorId;
+          productId = touchpadCfg.productId;
 
-      # Enable natural scrolling for touchpads, disable for mice.
-      # Directly configure the input settings file.
-      configFile."kcminputrc" = {
-        # The 'LibinputPointer' section typically controls touchpad settings.
-        LibinputPointer = {
-          NaturalScroll = true;
-        };
-        # The 'Libinput' section controls mice. Ensure it's off for them.
-        Libinput = {
-          NaturalScroll = false;
-        };
-      };
+          # Set natural scrolling to true
+          naturalScroll = true;
+        }
+      ];
     };
   };
 }
