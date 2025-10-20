@@ -38,8 +38,8 @@
           theme = "sddm-astronaut";
           embeddedTheme = "pixel_sakura";
           screensaver = {
-            enable = false;
-            timeout = 1; # e.g., 10 minutes
+            enable = true;
+            timeout = 10; # e.g., 10 minutes
           };
         };
       };
@@ -55,6 +55,13 @@
           nvidiaID = "PCI:1:0:0"; 
         };
       };
+      peripherals = {
+        touchpad = {
+          name      = "ELAN1201:00 04F3:3098 Touchpad";
+          vendorId  = "04f3"; # Plasma manager expects lowercase hex strings
+          productId = "3098";
+        };
+      };
     };
 
     programs = {
@@ -65,6 +72,7 @@
       enable = true;
       themes = {
         kde = "none";
+        plasmaOverride = false;
         hyprland = "future-aviation";
       };
     };
