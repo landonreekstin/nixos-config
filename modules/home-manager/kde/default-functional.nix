@@ -12,6 +12,12 @@ let
 in
 {
   config = lib.mkIf (isKdeDesktop && defaultPlasmaSettingsEnabled) {
+    # Disable KWallet by creating a config file to override its default behavior.
+    home.file.".config/kwalletrc".text = ''
+      [Wallet]
+      Enabled=false
+    '';
+    
     programs.plasma = {
       enable = true;
       overrideConfig = customConfig.homeManager.themes.plasmaOverride;
