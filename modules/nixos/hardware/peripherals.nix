@@ -28,24 +28,11 @@ in
     services.asusd = lib.mkIf cfg.asus.enable {
       enable = true;
       enableUserService = true;
-    };
-     # === Systemd SYSTEM service to set Asus keyboard backlight at Display Manager ===
-    systemd.services.set-asus-aura-dm = lib.mkIf cfg.asus.enable {
-      description = "Set Asus keyboard backlight to static white at Display Manager";
-
-      # This service is wanted by the display manager, so it starts with it.
-      wantedBy = [ "display-manager.service" ];
-      
-      # Crucially, ensure this runs AFTER both asusd and the DM are ready.
-      after = [ "display-manager.service" "asusd.service" ];
-
-      # Define the service itself
-      serviceConfig = {
-        Type = "oneshot"; # It's a one-off command.
-        
-        # The command to execute. It runs as root by default.
-        ExecStart = "${pkgs.asusctl}/bin/asusctl aura static -c ffffff";
-      };
+      # Declaratively configure asusd to restore the last aura state on boot.
+      asusdConfig.text = ''
+        [Aura]
+        boot_mode = last
+      '';
     };
 
     # === Add user to necessary peripheral groups ===
