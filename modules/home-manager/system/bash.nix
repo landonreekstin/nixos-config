@@ -34,6 +34,7 @@ in
 
     shellAliases = {
       c = "clear";
+      rb = "sudo reboot";
     };
 
     bashrcExtra = ''
