@@ -10,7 +10,11 @@ in
   config = lib.mkIf cfg.enable {
 
     # === OpenRGB for RGB Lighting Control ===
-    services.hardware.openrgb.enable = lib.mkIf cfg.openrgb.enable true;
+    services.hardware.openrgb = lib.mkIf cfg.openrgb.enable {
+      enable = true;
+      # Use the package from nixpkgs-unstable to get the secure dependency
+      package = pkgs.unstable.openrgb-with-all-plugins;
+    };
 
     # === OpenRazer for Razer Device Support ===
     hardware.openrazer = lib.mkIf cfg.openrazer.enable {
@@ -60,7 +64,7 @@ in
     # Explicitly lists all packages for clarity, based on their enable flags.
     environment.systemPackages = with pkgs; with lib.lists;
       # OpenRGB
-      optionals cfg.openrgb.enable [ openrgb-with-all-plugins ]
+      optionals cfg.openrgb.enable [ unstable.openrgb-with-all-plugins ]
       # Razer
       ++ optionals cfg.openrazer.enable [ openrazer-daemon polychromatic ]
       # Corsair
