@@ -248,11 +248,13 @@ in
       overrideConfig = customConfig.homeManager.themes.plasmaOverride;
 
       workspace = {
-        theme = "Seven-White"; # Plasma Style
+        #theme = "Seven-White"; # Plasma Style
         colorScheme = "AeroColorScheme1";
         iconTheme = "Windows 7 Aero";
         soundTheme = "Windows 7";
         lookAndFeel = "authui7"; # Applies lock screen
+        #lookAndFeel = "Seven-White";
+        wallpaper = customConfig.homeManager.themes.wallpaper;
         cursor = {
           theme = "aero-drop";
           size = 48;
@@ -266,7 +268,7 @@ in
 
       fonts = {
         general = { family = "Segoe UI"; pointSize = 9; };
-        fixedWidth = { family = "Segoe UI"; pointSize = 9; };
+        fixedWidth  = { family = "monospace"; pointSize = 10; };
         small = { family = "Segoe UI"; pointSize = 9; };
         toolbar = { family = "Segoe UI"; pointSize = 9; };
         menu = { family = "Segoe UI"; pointSize = 9; };
@@ -283,12 +285,17 @@ in
           "org.kde.plasma.icontasks"
           "org.kde.plasma.panelspacer" # Pushes subsequent items to the right
 
-          # The INSTALL.md says to use a custom systray layout.
-          # The theme provides custom plasmoids for these functions.
-          "io.gitgud.wackyideas.volume"             # The custom "Sound Mixer"
-          "io.gitgud.wackyideas.networkmanagement"  # The custom "Network Management"
-          "io.gitgud.wackyideas.battery"            # The custom "Battery"
-          "io.gitgud.wackyideas.keyboardlayout"
+          # System Tray with specific items always shown
+          {
+            systemTray.items.shown = [
+              "org.kde.plasma.volume"
+              "org.kde.plasma.bluetooth"
+              "org.kde.plasma.powerdevil"       # Handles Brightness & Power
+              "org.kde.plasma.displayconfiguration"
+              "org.kde.plasma.networkmanagement"
+              "org.kde.plasma.notifications"
+            ];
+          }
 
           "io.gitgud.wackyideas.digitalclocklite"
           "io.gitgud.wackyideas.win7showdesktop"
@@ -304,6 +311,8 @@ in
       configFile."kwinrc" = {
         "Plugins" = {
           "kwin4_effect_aero-glass-blurEnabled" = true;
+          "kwin4_effect_aero-glass-blurStrength" = 7;
+          "kwin4_effect_aero-glideEnabled" = true;
           "kwin4_effect_desaturate-unresponsiveEnabled" = true;
           "smod-snapEnabled" = true;
           "smod-glowEnabled" = true;
@@ -313,7 +322,7 @@ in
           "kwin4_effect_maximizeEnabled" = false;
           "kwin4_effect_dialogparentEnabled" = false;
           "backgroundcontrastEnabled" = false;
-          "blurEnabled" = false;
+          "blurEnabled" = true;
           "diminactiveEnabled" = false;
         };
         "TabBox" = { "LayoutName" = "thumbnail_seven"; "ShowDesktop" = true; };

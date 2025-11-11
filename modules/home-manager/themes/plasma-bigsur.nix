@@ -104,7 +104,7 @@ in
                 "Appearance" = {
                   autoFontAndSize = false;
                   customDateFormat = "ddd d";
-dateDisplayFormat = "BesideTime"; # The critical setting
+                  dateDisplayFormat = "BesideTime"; # The critical setting
                   dateFormat = "custom";
                   fontFamily = "Inter";
                   fontWeight = 400;
