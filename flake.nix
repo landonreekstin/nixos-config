@@ -184,6 +184,8 @@
       # We take the configuration from the evaluated optiplex host.
       kernel-dev = pkgs.mkShell referenceHostConfig.customConfig.profiles.development.kernel.devShell;
 
+      fpga-dev = referenceHostConfig.customConfig.profiles.development.fpga-ice40.devShell;
+
       # Shell specifically for the QEMU target
       embedded-qemu = pkgs.mkShell {
         buildInputs = embeddedComponents.commonPackages ++ embeddedComponents.qemu.packages;

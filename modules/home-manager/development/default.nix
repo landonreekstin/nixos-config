@@ -4,5 +4,6 @@
 {
   imports = [
     ./embedded-linux.nix
+    ./fpga-ice40.nix
   ];
 }
