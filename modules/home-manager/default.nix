@@ -5,6 +5,7 @@
   imports = [
     ./common/default.nix  # Sets home options and home-manager.enable from above options, must be imported second
     ./de-wm-components/default.nix
+    ./development/default.nix
     ./hyprland/default.nix
     ./kde/default.nix
     ./programs/default.nix

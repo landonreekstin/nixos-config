@@ -152,7 +152,11 @@
 
     profiles = {
       gaming.enable = true;
-      development.kernel.enable = true;
+      development = {
+        fpga-ice40.enable = false;
+        kernel.enable = true;
+        embedded-linux.enable = true;
+      };
     };
 
     services = {
