@@ -26,7 +26,10 @@ in
     hardware.ckb-next.enable = lib.mkIf cfg.ckb-next.enable true;
 
     # === Input Remapper for Key/Mouse Mapping ===
-    services.input-remapper.enable = lib.mkIf cfg.input-remapper.enable true;
+    services.input-remapper = lib.mkIf cfg.input-remapper.enable {
+      enable = true;
+      package = pkgs.unstable.input-remapper;
+    };
 
     # === Asus ROG Laptop Control ===
     services.asusd = lib.mkIf cfg.asus.enable {
