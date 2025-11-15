@@ -388,6 +388,13 @@ in
             description = "Enable Linux kernel development tools and configurations.";
           };
         };
+        embedded-linux = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable embedded Linux development tools and cross-compilers.";
+          };
+        };
       };
       # You could add other profiles like 'development', 'server', 'htpc' here later
     };
