@@ -72,29 +72,6 @@
         sha256 = "sha256-PGWpLKXanZ+miN9dE0+SThTAGutFdHMMRmCNcD5myx8=";
       };
 
-      kdeDebugDeps = with pkgs.kdePackages; [
-    libplasma plasma-workspace plasma-sdk ki18n kwindowsystem kconfig
-    ksvg kcoreaddons plasma-activities sonnet kpackage kxmlgui kio
-    knotifications knotifyconfig kcmutils knewstuff krunner kglobalaccel
-    kwidgetsaddons kdeclarative qqc2-desktop-style
-  ];
-
-  # 2. Define the search script string.
-  #    Because this is inside the main `let` block, it can correctly see and use `lib`.
-  headerSearchScript =
-    let
-      includePaths = lib.concatMapStringsSep " " (p:
-        if builtins.hasAttr "dev" p && p ? "dev"
-        then "${p.dev}/include"
-        else ""
-      ) kdeDebugDeps;
-    in
-    ''
-      echo ""
-      echo "--- Exhaustive Header File Search ---"
-      find ${includePaths} -iname dialog.h 2>/dev/null || echo "File 'dialog.h' not found in any dependency."
-      echo "--- End of Search ---"
-    '';
       # --- Reference Host for Flake Outputs ---
       # Some flake-level outputs like devShells need a complete NixOS configuration
       # to pull values from. We'll use 'gaming-pc' as our reference host because
@@ -207,11 +184,6 @@
 
       embedded-dev = pkgs.mkShell referenceHostConfig.customConfig.profiles.development.embedded-linux.devShell;
     };
-
-    devShells.x86_64-linux.debugPlasmoid = pkgs.mkShell {
-    packages = kdeDebugDeps;
-    shellHook = headerSearchScript;
-  };
 
   };
 }
