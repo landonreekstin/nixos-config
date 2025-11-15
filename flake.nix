@@ -204,6 +204,8 @@
       # The 'kernel-dev' shell is sourced from our new module.
       # We take the configuration from the evaluated optiplex host.
       kernel-dev = pkgs.mkShell referenceHostConfig.customConfig.profiles.development.kernel.devShell;
+
+      embedded-dev = pkgs.mkShell referenceHostConfig.customConfig.profiles.development.embedded-linux.devShell;
     };
 
     devShells.x86_64-linux.debugPlasmoid = pkgs.mkShell {
