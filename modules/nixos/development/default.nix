@@ -6,5 +6,6 @@
     ./fpga-ice40.nix
     ./kernel.nix
     ./embedded-linux.nix
+    ./gbdk.nix
   ];
 }

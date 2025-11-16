@@ -186,7 +186,8 @@
 
       fpga-dev = referenceHostConfig.customConfig.profiles.development.fpga-ice40.devShell;
 
-      # Shell specifically for the QEMU target
+      # EMbedded Linux Development Shells
+        # Shell specifically for the QEMU target
       embedded-qemu = pkgs.mkShell {
         buildInputs = embeddedComponents.commonPackages ++ embeddedComponents.qemu.packages;
         shellHook = ''
@@ -198,8 +199,7 @@
           export CC="''${CROSS_COMPILE}gcc"
         '';
       };
-
-      # Shell specifically for the BeagleBone Black target
+        # Shell specifically for the BeagleBone Black target
       embedded-bbb = pkgs.mkShell {
         buildInputs = embeddedComponents.commonPackages ++ embeddedComponents.bbb.packages;
         shellHook = ''
@@ -211,6 +211,8 @@
           export CC="''${CROSS_COMPILE}gcc"
         '';
       };
+
+      gbdk-dev = referenceHostConfig.customConfig.profiles.development.gbdk.devShell;
     };
 
   };

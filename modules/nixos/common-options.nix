@@ -395,6 +395,13 @@ in
             description = "Enable embedded Linux development tools and cross-compilers.";
           };
         };
+        gbdk = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable Game Boy development tools and the GBDK dev shell.";
+          };
+        };
       };
       # You could add other profiles like 'development', 'server', 'htpc' here later
     };
