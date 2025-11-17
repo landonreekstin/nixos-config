@@ -25,6 +25,24 @@ in
     # === ckb-next for Corsair Device Support ===
     hardware.ckb-next.enable = lib.mkIf cfg.ckb-next.enable true;
 
+    # === Systemd service to turn off ckb-next lights on shutdown ===
+    systemd.services.ckb-next-off = lib.mkIf cfg.ckb-next.enable {
+      description = "Stop ckb-next daemon to turn off keyboard lights on shutdown";
+
+      # This service is wanted by the targets that run during shutdown/reboot.
+      wantedBy = [ "poweroff.target" "reboot.target" "halt.target" ];
+
+      # Define the service itself
+      serviceConfig = {
+        Type = "oneshot"; # It runs a single command and exits.
+        RemainAfterExit = true; # Considers the service "active" after the command runs.
+        
+        # The command to execute: `systemctl stop ckb-next-daemon.service`
+        # Using the full package path is robust.
+        ExecStart = "${pkgs.systemd}/bin/systemctl stop ckb-next-daemon.service";
+      };
+    };
+
     # === Input Remapper for Key/Mouse Mapping ===
     services.input-remapper = lib.mkIf cfg.input-remapper.enable {
       enable = true;
@@ -72,7 +90,7 @@ in
       # Logitech
       ++ optionals cfg.solaar.enable [ solaar ]
       # Input Remapper
-      ++ optionals cfg.input-remapper.enable [ input-remapper ]
+      ++ optionals cfg.input-remapper.enable [ unstable.input-remapper ]
       # Asus
       ++ optionals cfg.asus.enable [ asusctl ];
 
