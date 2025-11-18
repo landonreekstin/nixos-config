@@ -161,7 +161,7 @@ in
     home.file."${projectDir}/README.md".text = readmeContent;
     
     # 4. Add recommended VS Code extensions for Verilog
-    programs.vscode.extensions = with pkgs.vscode-extensions; [
+    programs.vscode.profiles.default.extensions = with pkgs.vscode-extensions; [
       mshr-h.verilog-hdl
       eirikpre.systemverilog
     ];
