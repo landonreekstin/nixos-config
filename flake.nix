@@ -180,37 +180,11 @@
 
     # Development Shells provided by this flake
     devShells.x86_64-linux = {
-      # The 'kernel-dev' shell is sourced from our new module.
-      # We take the configuration from the evaluated optiplex host.
       kernel-dev = pkgs.mkShell referenceHostConfig.customConfig.profiles.development.kernel.devShell;
 
       fpga-dev = referenceHostConfig.customConfig.profiles.development.fpga-ice40.devShell;
 
-      # EMbedded Linux Development Shells
-        # Shell specifically for the QEMU target
-      embedded-qemu = pkgs.mkShell {
-        buildInputs = embeddedComponents.commonPackages ++ embeddedComponents.qemu.packages;
-        shellHook = ''
-          echo "--------------------------------------------------------"
-          echo "Entered QEMU (armv6l) Embedded Dev Shell."
-          echo "Toolchain prefix: ${embeddedComponents.qemu.targetPrefix}"
-          echo "--------------------------------------------------------"
-          export CROSS_COMPILE="${embeddedComponents.qemu.targetPrefix}"
-          export CC="''${CROSS_COMPILE}gcc"
-        '';
-      };
-        # Shell specifically for the BeagleBone Black target
-      embedded-bbb = pkgs.mkShell {
-        buildInputs = embeddedComponents.commonPackages ++ embeddedComponents.bbb.packages;
-        shellHook = ''
-          echo "--------------------------------------------------------"
-          echo "Entered BeagleBone Black (armv7l) Embedded Dev Shell."
-          echo "Toolchain prefix: ${embeddedComponents.bbb.targetPrefix}"
-          echo "--------------------------------------------------------"
-          export CROSS_COMPILE="${embeddedComponents.bbb.targetPrefix}"
-          export CC="''${CROSS_COMPILE}gcc"
-        '';
-      };
+      embedded-linux = referenceHostConfig.customConfig.profiles.development.embedded-linux.devShell;
 
       gbdk-dev = referenceHostConfig.customConfig.profiles.development.gbdk.devShell;
     };
