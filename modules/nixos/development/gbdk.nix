@@ -15,7 +15,11 @@ let
 
     nativeBuildInputs = [ pkgs.autoPatchelfHook ];
 
-    buildInputs = [ pkgs.glibc ];
+    buildInputs = [
+      pkgs.glibc
+      pkgs.zlib
+      pkgs.stdenv.cc.cc.lib
+    ];
 
     # This installPhase is correct for the source tarball structure.
     installPhase = ''
@@ -47,6 +51,9 @@ in
         pkgs.mgba
         pkgs.gnumake
         pkgs.vscode
+        pkgs.gdb
+        pkgs.jdk17 # Required for Emulicious
+        pkgs.wget  # Handy for downloading tools
       ];
 
       shellHook = ''
