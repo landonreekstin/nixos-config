@@ -39,8 +39,14 @@
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
         type = "sddm";
-        sddmTheme = "sddm-astronaut";
-        sddmEmbeddedTheme = "hyprland_kath";
+        sddm = {
+          theme = "sddm-astronaut";
+          embeddedTheme = "hyprland_kath";
+          screensaver = {
+            enable = true;
+            timeout = 25; # e.g., 10 minutes
+          };
+        };
       };
     };
 
@@ -50,6 +56,15 @@
         enable = true;
       };
     };
+
+    peripherals = {
+        enable = true; # Enable peripheral configurations
+        openrgb.enable = true; # Enable OpenRGB for RGB control
+        openrazer.enable = false; # Enable OpenRazer for Razer device support
+        ckb-next.enable = false; # Enable CKB-Next for Corsair device support
+        input-remapper.enable = true;
+        solaar.enable = false;
+      };
 
     programs = {
       partydeck.enable = false;
@@ -64,7 +79,6 @@
 
       ];
       unstable-override = [ 
-        "discord-canary"  
         "vscode"
         "librewolf"
         "brave"
@@ -74,8 +88,6 @@
         vscode
         librewolf
         brave
-        discord-canary
-        discord
         notes
         CuboCore.corepaint
         kdePackages.kdenlive
@@ -84,6 +96,7 @@
         enable = true;
         packages = [
           "com.spotify.Client"
+          "com.discordapp.Discord"
         ];
       };
     };
@@ -104,8 +117,6 @@
   };
 
   # === Additional nixos configuration for this host ===
-  services.mullvad-vpn.enable = true;
-  services.hardware.openrgb.enable = true; # Enable OpenRGB for RGB control
   #services.g810-led.package = pkgs.g810-led; # Ensure the g810-led package is available
   #services.g810-led.enable = true; # Enable Logitech G810 keyboard LED control
 
