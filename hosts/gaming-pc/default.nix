@@ -34,10 +34,10 @@
     };
 
     desktop = {
-      environments = [ "hyprland" "kde" ]; # Set to "hyprland", "cosmic", or "kde" based on your preference
+      environments = [ "kde" ]; # Set to "hyprland", "cosmic", or "kde" based on your preference
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "sddm"; # Or "greetd", "gdm", or "none" based on your preference for Optiplex
+        type = "ly"; # Or "greetd", "gdm", or "none" based on your preference for Optiplex
         sddm = {
           theme = "sddm-astronaut";
           #embeddedTheme = "pixel_sakura";
@@ -103,7 +103,7 @@
     homeManager = {
       enable = true;
       themes = {
-        hyprland = "future-aviation"; # Set to the theme you want for Hyprland
+        #hyprland = "future-aviation"; # Set to the theme you want for Hyprland
       };
     };
 
@@ -124,6 +124,7 @@
         "librewolf"
         "brave"
         "ungoogled-chromium"
+        "claude-code"
       ];
       homeManager = with pkgs; [
         jamesdsp
@@ -137,6 +138,7 @@
         obs-studio
         kdePackages.konversation
         kdePackages.kdenlive
+        claude-code
       ];
       flatpak = {
         enable = true;
