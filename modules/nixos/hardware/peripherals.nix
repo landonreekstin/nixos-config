@@ -51,6 +51,56 @@ in
       };
     };
 
+    # === Touchpad Gesture Engine ===
+    # Enable the service. The configuration will be created separately below.
+    services.touchegg.enable = lib.mkIf (cfg.touchpad != null) true;
+
+    # Declaratively create the touchegg configuration file.
+    # This is the correct way to configure it, since a 'config' option doesn't exist.
+    environment.etc."touchegg/touchegg.conf" = lib.mkIf (cfg.touchpad != null) {
+      text = ''
+        <touchegg>
+          <touchscreen>
+            <!-- A default touchscreen config is required, even if you don't have one -->
+            <application name="All">
+              <gesture type="SWIPE" fingers="3" direction="UP">
+                <action type="SEND_KEYS">Super</action>
+              </gesture>
+            </application>
+          </touchscreen>
+          
+          <touchpad>
+            <application name="All">
+              <!-- 3-finger swipe up for Activities/Overview -->
+              <gesture type="SWIPE" fingers="3" direction="UP">
+                <action type="SEND_KEYS">KEY_LEFTMETA</action>
+              </gesture>
+              
+              <!-- 3-finger swipe down to switch windows -->
+              <gesture type="SWIPE" fingers="3" direction="DOWN">
+                <action type="SEND_KEYS">KEY_LEFTALT+KEY_TAB</action>
+              </gesture>
+
+              <!-- 4-finger swipes for workspace switching -->
+              <gesture type="SWIPE" fingers="4" direction="LEFT">
+                <action type="SEND_KEYS">KEY_LEFTCTRL+KEY_LEFTALT+KEY_LEFT</action>
+              </gesture>
+              <gesture type="SWIPE" fingers="4" direction="RIGHT">
+                <action type="SEND_KEYS">KEY_LEFTCTRL+KEY_LEFTALT+KEY_RIGHT</action>
+              </gesture>
+            </application>
+          </touchpad>
+        </touchegg>
+      '';
+    };
+    # === Conditionally add the Touchegg Flatpak GUI ===
+    # This contributes to the list defined in your host's default.nix.
+    # The NixOS module system wuchill merge them automatically.
+    customConfig.packages.flatpak.packages = with lib.lists;
+      optionals (cfg.touchpad != null) [
+        "com.github.joseexposito.touche"
+      ];
+
     # === Add user to necessary peripheral groups ===
     # The 'input' group is not needed for input-remapper as the service runs as root.
     users.users.${user}.extraGroups = with lib.lists;
@@ -70,7 +120,9 @@ in
       # Input Remapper
       ++ optionals cfg.input-remapper.enable [ input-remapper ]
       # Asus
-      ++ optionals cfg.asus.enable [ asusctl ];
+      ++ optionals cfg.asus.enable [ asusctl ]
+      # Touchpad Gestures
+      ++ optionals (cfg.touchpad != null) [ touchegg ];
 
   };
 }
