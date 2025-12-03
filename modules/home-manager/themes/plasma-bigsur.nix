@@ -127,19 +127,7 @@ in
             {
               # Icon-Only Task Manager is the heart of a dock
               iconTasks = {
-                launchers = [
-                  "applications:org.kde.konsole.desktop"
-                  "applications:systemsettings.desktop"
-                  "applications:org.kde.dolphin.desktop"
-                  "applications:chromium-browser.desktop" # Corrected name
-                  "applications:net.lutris.Lutris.desktop"
-                  "applications:com.heroicgameslauncher.hgl.desktop"
-                  "applications:steam.desktop"
-
-                  # --- Flatpaks with Correct Syntax ---
-                  "applications:com.discordapp.Discord.desktop"
-                  "applications:com.spotify.Client.desktop"
-                ];
+                launchers = customConfig.homeManager.themes.pinnedApps;
               };
             }
             "org.kde.plasma.marginsseparator"

@@ -94,6 +94,17 @@
         kde = "bigsur";
         plasmaOverride = false;
         wallpaper = ../../assets/wallpapers/big-sur.jpg;
+        pinnedApps = [
+          "applications:org.kde.konsole.desktop"
+          "applications:systemsettings.desktop"
+          "applications:org.kde.dolphin.desktop"
+          "applications:chromium-browser.desktop"
+          "applications:net.lutris.Lutris.desktop"
+          "applications:com.heroicgameslauncher.hgl.desktop"
+          "applications:steam.desktop"
+          "applications:com.discordapp.Discord.desktop"
+          "applications:com.spotify.Client.desktop"
+        ];
       };
     };
 

@@ -53,31 +53,29 @@ in {
         "io.gitgud.wackyideas.SevenStart"
         {
           iconTasks = {
-            launchers = [
-              "applications:org.kde.konsole.desktop"
-              "applications:systemsettings.desktop"
-              "applications:org.kde.dolphin.desktop"
-              "applications:chromium-browser.desktop"
-              "applications:net.lutris.Lutris.desktop"
-              "applications:com.heroicgameslauncher.hgl.desktop"
-              "applications:steam.desktop"
-              "applications:com.discordapp.Discord.desktop"
-              "applications:com.spotify.Client.desktop"
-            ];
+            launchers = customConfig.homeManager.themes.pinnedApps;
           };
         }
         "org.kde.plasma.panelspacer" # Pushes subsequent items to the right
 
         # System Tray with specific items always shown
         {
-          systemTray.items.shown = [
-            "org.kde.plasma.volume"
-            "org.kde.plasma.bluetooth"
-            "org.kde.plasma.powerdevil"       # Handles Brightness & Power
-            "org.kde.plasma.displayconfiguration"
-            "org.kde.plasma.networkmanagement"
-            "org.kde.plasma.notifications"
-          ];
+          systemTray.items = {
+            shown = [
+              "org.kde.plasma.volume"
+              "org.kde.plasma.bluetooth"
+              "org.kde.plasma.powerdevil"       # Handles Brightness & Power
+              "org.kde.plasma.displayconfiguration"
+              "org.kde.plasma.networkmanagement"
+              "org.kde.plasma.notifications"
+            ];
+            hidden = [
+              "org.kde.plasma.mediacontroller"
+              "org.kde.plasma.clipboard"
+              "org.kde.plasma.keyboardlayout"
+              "org.kde.plasma.vault"
+            ];
+          };
         }
 
         "io.gitgud.wackyideas.digitalclocklite"

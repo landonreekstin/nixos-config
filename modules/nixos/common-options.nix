@@ -306,6 +306,25 @@ in
           description = "Absolute path to the desktop wallpaper. If null, a default will be used.";
           example = "/path/to/my/wallpaper.png";
         };
+        pinnedApps = mkOption {
+          type = with types; listOf str;
+          default = [
+            "applications:systemsettings.desktop"
+            "applications:org.kde.konsole.desktop"
+            "applications:org.kde.kcalc.desktop"
+            "applications:org.kde.dolphin.desktop"
+            "applications:firefox.desktop"
+            "applications:chromium-browser.desktop"
+          ];
+          description = "List of desktop file entries to pin to the taskbar/iconTasks widget.";
+          example = ''
+            [
+              "applications:firefox.desktop"
+              "applications:org.kde.konsole.desktop"
+              "applications:code.desktop"
+            ]
+          '';
+        };
       };
       # You can add more themes here later, e.g., 'cosmic', 'kde', etc.
     };
