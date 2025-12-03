@@ -324,20 +324,14 @@
 
   notifications = stdenv.mkDerivation {
     name = "aerotheme-notifications";
-    src = "${themeRepo}/plasma/plasmoids/src/notifications_src";
-    nativeBuildInputs = commonNativeBuildInputs ++ [pkgs.pkg-config];
-    buildInputs = qt6Deps ++ kf6Deps ++ kf6DevDeps ++ plasmaDeps ++ waylandDeps ++ [ pkgs.kdePackages.plasma-workspace pkgs.kdePackages.plasma-workspace.dev ];
+    src = "${themeRepo}/plasma/plasmoids/org.kde.plasma.notifications";
     
-    # Add Plasma to cmake prefix path and find required packages  
-    configurePhase = ''
-      export CMAKE_PREFIX_PATH="${pkgs.kdePackages.libplasma.dev}/lib/cmake:${pkgs.kdePackages.plasma-workspace.dev}/lib/cmake:$CMAKE_PREFIX_PATH"
-      cmake -B build -G Ninja ${lib.concatStringsSep " " commonCmakeFlags} -DPlasma_DIR="${pkgs.kdePackages.libplasma.dev}/lib/cmake/Plasma"
-    '';
-    buildPhase = ''
-      ninja -C build
-    '';
+    dontConfigure = true;
+    dontBuild = true;
+    
     installPhase = ''
-      ninja install -C build
+      mkdir -p $out/share/plasma/plasmoids/org.kde.plasma.notifications
+      cp -r $src/. $out/share/plasma/plasmoids/org.kde.plasma.notifications/
     '';
   };
 
@@ -407,7 +401,6 @@
     };
   };
 in {
-  inherit decoration smodsnap smodglow startupfeedback aeroglassblur aeroglide aerothemeplasma aerothemeplasma-git seventasks sevenstart desktopcontainment volume;
+  inherit decoration smodsnap smodglow startupfeedback aeroglassblur aeroglide aerothemeplasma aerothemeplasma-git seventasks sevenstart desktopcontainment volume notifications;
   # kcmloader temporarily disabled due to build issues
-  # notifications temporarily disabled due to build issues
 }

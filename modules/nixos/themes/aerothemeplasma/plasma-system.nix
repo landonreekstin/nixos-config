@@ -20,7 +20,7 @@ in {
       kdePackages =
         prev.kdePackages;
       # Make aerotheme packages available in the final package set
-      inherit (aerothemePkgs) decoration smodsnap smodglow startupfeedback aeroglassblur aeroglide aerothemeplasma aerothemeplasma-git seventasks sevenstart desktopcontainment volume;
+      inherit (aerothemePkgs) decoration smodsnap smodglow startupfeedback aeroglassblur aeroglide aerothemeplasma aerothemeplasma-git seventasks sevenstart desktopcontainment volume notifications;
     })
   ];
 
@@ -43,7 +43,7 @@ in {
     sevenstart
     desktopcontainment
     volume
-    # notifications # temporarily disabled due to build issues
+    notifications
     # kcmloader # temporarily disabled due to build issues
 
     kdePackages.qtstyleplugin-kvantum

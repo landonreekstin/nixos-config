@@ -27,6 +27,24 @@ in {
   };
   programs.plasma = {
     enable = true;
+    overrideConfig = customConfig.homeManager.themes.plasmaOverride;
+    
+    workspace = {
+      colorScheme = "AeroColorScheme1";
+      iconTheme = "Windows 7 Aero";
+      soundTheme = "Windows 7";
+      lookAndFeel = "authui7";
+      wallpaper = customConfig.homeManager.themes.wallpaper;
+      cursor = {
+        theme = "aero-drop";
+        size = 48;
+      };
+      windowDecorations = {
+        library = "org.kde.kwin.aurorae";
+        theme = "__aurorae__svg__smod";
+      };
+    };
+    
     shortcuts.kwin = {
       "MinimizeAll" = "Meta+D";
       "Peek at Desktop" = [];
