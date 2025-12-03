@@ -45,6 +45,46 @@ in {
       };
     };
     
+    # Panel configuration using the correct widget IDs from our built components
+    panels = [{
+      location = "bottom";
+      height = 40;
+      widgets = [
+        "io.gitgud.wackyideas.SevenStart"
+        {
+          iconTasks = {
+            launchers = [
+              "applications:org.kde.konsole.desktop"
+              "applications:systemsettings.desktop"
+              "applications:org.kde.dolphin.desktop"
+              "applications:chromium-browser.desktop"
+              "applications:net.lutris.Lutris.desktop"
+              "applications:com.heroicgameslauncher.hgl.desktop"
+              "applications:steam.desktop"
+              "applications:com.discordapp.Discord.desktop"
+              "applications:com.spotify.Client.desktop"
+            ];
+          };
+        }
+        "org.kde.plasma.panelspacer" # Pushes subsequent items to the right
+
+        # System Tray with specific items always shown
+        {
+          systemTray.items.shown = [
+            "org.kde.plasma.volume"
+            "org.kde.plasma.bluetooth"
+            "org.kde.plasma.powerdevil"       # Handles Brightness & Power
+            "org.kde.plasma.displayconfiguration"
+            "org.kde.plasma.networkmanagement"
+            "org.kde.plasma.notifications"
+          ];
+        }
+
+        "io.gitgud.wackyideas.digitalclocklite"
+        "io.gitgud.wackyideas.win7showdesktop"
+      ];
+    }];
+    
     shortcuts.kwin = {
       "MinimizeAll" = "Meta+D";
       "Peek at Desktop" = [];
@@ -98,6 +138,10 @@ in {
         "smallestReadableFont" = lib.mkDefault "Segoe UI,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1";
       };
       "kdeglobals"."General"."accentColorFromWallpaper" = false;
+      "kdeglobals"."KDE"."LaunchFeedback" = "None";
+      
+      # Set desktop containment plugin 
+      "plasma-org.kde.plasma.desktop-appletsrc"."Containments/1"."plugin" = "io.gitgud.wackyideas.desktopcontainment";
     };
   };
 
