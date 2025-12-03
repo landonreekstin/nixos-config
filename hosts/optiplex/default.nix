@@ -32,7 +32,7 @@
       environments = [ "hyprland" "kde" ];
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "none";
+        type = "sddm";
       };
     };
 
@@ -50,7 +50,7 @@
     homeManager = {
       enable = true;
       themes = {
-        kde = "windows7";
+        kde = "windows7-alt";
         hyprland = "future-aviation";
       };
     };
@@ -59,6 +59,7 @@
       nixos = with pkgs; [
         firefox
         kitty
+        claude-code
       ];
       unstable-override = [ 
         "discord-canary"  
