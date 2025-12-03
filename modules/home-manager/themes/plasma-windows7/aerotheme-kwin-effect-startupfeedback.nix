@@ -1,7 +1,7 @@
 { pkgs, lib, aerothemeplasma-src, buildWithWayland ? false }:
 
 let
-  kwinDevPkg = if buildWithWayland then pkgs.kdePackages.kwin.dev else pkgs.kdePackages.kwin-x11.dev;
+  kwinDevPkg = pkgs.kdePackages.kwin.dev;
 
   buildAndNativeInputs = with pkgs; [
     cmake ninja pkg-config wayland wayland-protocols

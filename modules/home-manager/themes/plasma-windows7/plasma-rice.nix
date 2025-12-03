@@ -1,27 +1,19 @@
 { lib, config, pkgs, customConfig, inputs, ...}:
 
 let
-  # import the nixpkgs-unstable flake input directly and give it a local
-  # name, 'pkgs_unstable'. This means that for the entire scope of this 'let' block,
-  # 'pkgs_unstable' refers to the unstable package set.
-  pkgs_unstable  = import inputs.nixpkgs-unstable {
-    system = pkgs.system;
-    config = pkgs.config;
-  };
-
   plasmaWindows7Condition = (lib.elem "kde" customConfig.desktop.environments
     && customConfig.homeManager.enable && customConfig.homeManager.themes.kde == "windows7");
 
-  aerothemeplasma-src = pkgs_unstable .fetchgit {
+  aerothemeplasma-src = pkgs.fetchgit {
     url = "https://gitgud.io/wackyideas/AeroThemePlasma.git";
     rev = "6.3.4";
     sha256 = "sha256-PGWpLKXanZ+miN9dE0+SThTAGutFdHMMRmCNcD5myx8=";
   };
 
-  segoe-ui-font = pkgs_unstable .stdenv.mkDerivation {
+  segoe-ui-font = pkgs.stdenv.mkDerivation {
       pname = "segoe-ui-font";
       version = "latest";
-      src = pkgs_unstable .fetchurl {
+      src = pkgs.fetchurl {
           # This is the correct "raw" URL for the single font file
           url = "https://raw.githubusercontent.com/MauCariApa-com/windows-11-fonts/main/w11-fonts/segoeui.ttf";
           # As before, we must find the new hash.
@@ -42,59 +34,59 @@ let
       '';
   };
 
-  aerotheme-kwin-decoration = pkgs_unstable .callPackage ./aerotheme-kwin-decoration.nix {
+  aerotheme-kwin-decoration = pkgs.callPackage ./aerotheme-kwin-decoration.nix {
     # We pass the main theme source as an argument to our package function.
     inherit aerothemeplasma-src;
   };
 
-  aerotheme-kwin-effect-aeroglide = pkgs_unstable .callPackage ./aerotheme-kwin-effect-aeroglide.nix {
+  aerotheme-kwin-effect-aeroglide = pkgs.callPackage ./aerotheme-kwin-effect-aeroglide.nix {
     inherit aerothemeplasma-src;
     # By default, this builds for X11.
     # To build for Wayland, you would add: buildWithWayland = true;
     buildWithWayland = true;
   };
 
-  aerotheme-kwin-effect-smodsnap = pkgs_unstable .callPackage ./aerotheme-kwin-effect-smodsnap.nix {
+  aerotheme-kwin-effect-smodsnap = pkgs.callPackage ./aerotheme-kwin-effect-smodsnap.nix {
     inherit aerothemeplasma-src;
     smoddecoration = aerotheme-kwin-decoration;
   };
 
-  aerotheme-kwin-effect-smodglow = pkgs_unstable .callPackage ./aerotheme-kwin-effect-smodglow.nix {
+  aerotheme-kwin-effect-smodglow = pkgs.callPackage ./aerotheme-kwin-effect-smodglow.nix {
     inherit aerothemeplasma-src;
     smoddecoration = aerotheme-kwin-decoration;
   };
 
-  aerotheme-kwin-effect-startupfeedback = pkgs_unstable .callPackage ./aerotheme-kwin-effect-startupfeedback.nix {
+  aerotheme-kwin-effect-startupfeedback = pkgs.callPackage ./aerotheme-kwin-effect-startupfeedback.nix {
     inherit aerothemeplasma-src;
   };
 
-  aerotheme-plasmoid-desktopcontainment = pkgs_unstable .callPackage ./aerotheme-plasmoid-desktopcontainment.nix {
+  aerotheme-plasmoid-desktopcontainment = pkgs.callPackage ./aerotheme-plasmoid-desktopcontainment.nix {
     inherit aerothemeplasma-src;
   };
 
-  aerotheme-plasmoid-seventasks = pkgs_unstable .callPackage ./aerotheme-plasmoid-seventasks.nix {
+  aerotheme-plasmoid-seventasks = pkgs.callPackage ./aerotheme-plasmoid-seventasks.nix {
     inherit aerothemeplasma-src;
   };
 
-  aerotheme-plasmoid-sevenstart = pkgs_unstable .callPackage ./aerotheme-plasmoid-sevenstart.nix {
+  aerotheme-plasmoid-sevenstart = pkgs.callPackage ./aerotheme-plasmoid-sevenstart.nix {
     inherit aerothemeplasma-src;
   };
 
-  aerotheme-polkit-agent = pkgs_unstable .callPackage ./aerotheme-polkit-agent.nix {
+  aerotheme-polkit-agent = pkgs.callPackage ./aerotheme-polkit-agent.nix {
     inherit aerothemeplasma-src;
   };
 
-  aerotheme-plasmoid-volume = pkgs_unstable .callPackage ./aerotheme-plasmoid-volume.nix {
+  aerotheme-plasmoid-volume = pkgs.callPackage ./aerotheme-plasmoid-volume.nix {
     inherit aerothemeplasma-src;
   };
 
   # This is the new, safe asset package derivation
-aerotheme-assets = pkgs_unstable .stdenv.mkDerivation {
+aerotheme-assets = pkgs.stdenv.mkDerivation {
   pname = "aerotheme-assets";
   version = "6.3.4";
   src = aerothemeplasma-src;
 
-  nativeBuildInputs = [ pkgs_unstable .gnutar ]; # No need for unzip or coreutils
+  nativeBuildInputs = [ pkgs.gnutar ]; # No need for unzip or coreutils
 
   dontConfigure = true;
   dontBuild = true;
@@ -139,11 +131,11 @@ aerotheme-assets = pkgs_unstable .stdenv.mkDerivation {
 };
 
   # Derivation to patch and build the libplasma component for defaulttooltip
-  patched-libplasma = pkgs_unstable .stdenv.mkDerivation {
+  patched-libplasma = pkgs.stdenv.mkDerivation {
     pname = "patched-libplasma-for-aerotheme";
     version = "6.4.0";
 
-    src = pkgs_unstable .fetchgit {
+    src = pkgs.fetchgit {
       url = "https://invent.kde.org/plasma/libplasma.git";
       rev = "v6.4.0";
       sha256 = "sha256-CgaPzmDu9Ji0fzDceQgpRD59xiVLeI3dSZhpGH2JOnY=";
@@ -161,7 +153,7 @@ aerotheme-assets = pkgs_unstable .stdenv.mkDerivation {
     '';
 
     # This is the corrected list of build-time tools.
-    nativeBuildInputs = with pkgs_unstable ; [ 
+    nativeBuildInputs = with pkgs; [ 
       cmake 
       ninja 
       pkg-config # The missing tool that finds wayland.xml
@@ -171,7 +163,7 @@ aerotheme-assets = pkgs_unstable .stdenv.mkDerivation {
     ];
     
     # This is the corrected list of libraries to link against.
-    buildInputs = with pkgs_unstable ; [
+    buildInputs = with pkgs; [
       wayland
       kdePackages.qtbase
       kdePackages.qtwayland
@@ -203,16 +195,15 @@ in
 
   config = lib.mkIf (plasmaWindows7Condition) {
 
-    home.packages = with pkgs_unstable ; [ 
+    home.packages = with pkgs; [ 
       # --- COMPILED COMPONENTS ---
       aerotheme-kwin-decoration
-      patched-libplasma
       aerotheme-kwin-effect-aeroglide
       aerotheme-kwin-effect-smodsnap
       aerotheme-kwin-effect-smodglow
       aerotheme-kwin-effect-startupfeedback
       aerotheme-plasmoid-desktopcontainment
-      aerotheme-plasmoid-seventasks
+      # aerotheme-plasmoid-seventasks # temporarily disabled due to build issues
       aerotheme-plasmoid-sevenstart
       aerotheme-plasmoid-volume
       aerotheme-polkit-agent
@@ -221,8 +212,6 @@ in
       # --- OTHER PACKAGES ---
       segoe-ui-font 
       kdePackages.qtstyleplugin-kvantum
-
-      #kdePackages.libplasma
     ];
 
     # We can safely set self-contained variables here.

@@ -1,7 +1,7 @@
 { pkgs, lib, aerothemeplasma-src, smoddecoration, buildWithWayland ? false }:
 
 let
-  kwinDevPkg = if buildWithWayland then pkgs.kdePackages.kwin.dev else pkgs.kdePackages.kwin-x11.dev;
+  kwinDevPkg = pkgs.kdePackages.kwin.dev;
 
   # This list contains all dependencies from the CMake file and our previous lessons.
   buildAndNativeInputs = with pkgs; [
