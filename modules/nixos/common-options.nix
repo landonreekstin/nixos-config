@@ -136,7 +136,7 @@ in
           theme = mkOption {
             type = types.str;
             default = "none";
-            description = "The SDDM theme to use (e.g., 'sddm-astronaut').";
+            description = "The SDDM theme to use (e.g., 'sddm-astronaut', 'sddm-windows7').";
           };
           embeddedTheme = mkOption {
             type = types.nullOr types.str;

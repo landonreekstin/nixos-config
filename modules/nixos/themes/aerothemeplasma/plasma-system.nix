@@ -26,8 +26,8 @@ in {
 
   # Rest of your configuration remains unchanged
   environment.sessionVariables = {
-    QT_PLUGIN_PATH = "${pkgs.aerothemeplasma}/lib/qt-6/plugins:${pkgs.decoration}/lib/qt-6/plugins:${pkgs.seventasks}/lib/qt-6/plugins:${pkgs.sevenstart}/lib/qt-6/plugins:${pkgs.volume}/lib/qt-6/plugins:$QT_PLUGIN_PATH";
-    QML2_IMPORT_PATH = "${pkgs.aerothemeplasma}/lib/qt-6/qml:${pkgs.desktopcontainment}/lib/qt-6/qml:$QML2_IMPORT_PATH";
+    QT_PLUGIN_PATH = "${pkgs.aerothemeplasma}/lib/qt-6/plugins:${pkgs.decoration}/lib/qt-6/plugins:${pkgs.sevenstart}/lib/qt-6/plugins:${pkgs.volume}/lib/qt-6/plugins:${lib.makeSearchPath "lib/qt-6/plugins" [pkgs.kdePackages.qtmultimedia]}:$QT_PLUGIN_PATH";
+    QML2_IMPORT_PATH = "${pkgs.aerothemeplasma}/lib/qt-6/qml:${pkgs.desktopcontainment}/lib/qt-6/qml:${lib.makeSearchPath "lib/qt-6/qml" [pkgs.kdePackages.qtmultimedia pkgs.kdePackages.qtvirtualkeyboard pkgs.kdePackages.qtsvg]}:$QML2_IMPORT_PATH";
     QML_DISABLE_DISTANCEFIELD = "1";
   };
 
@@ -85,10 +85,30 @@ in {
   };
   services.displayManager.sddm = {
     enable = true;
-    theme = "sddm-theme-mod";
+    theme = if config.customConfig.desktop.displayManager.sddm.theme == "sddm-windows7" then "sddm-theme-mod" else config.customConfig.desktop.displayManager.sddm.theme;
+    
+    # Fix QtMultimedia missing error by providing necessary packages
+    extraPackages = [
+      pkgs.kdePackages.qtmultimedia
+      pkgs.kdePackages.qtsvg
+      pkgs.kdePackages.qtvirtualkeyboard
+    ];
+    
+    # Ensure startup sound can play by removing startup file before each session
+    setupScript = ''
+      rm -f /tmp/sddm.startup
+    '';
+    
     settings = {
+      General = {
+        HideShells = "/run/current-system/sw/bin/nologin";
+        HideUsers = "nixbld1,nixbld2,nixbld3,nixbld4,nixbld5,nixbld6,nixbld7,nixbld8,nixbld9,nixbld10,nixbld11,nixbld12,nixbld13,nixbld14,nixbld15,nixbld16,nixbld17,nixbld18,nixbld19,nixbld20,nixbld21,nixbld22,nixbld23,nixbld24,nixbld25,nixbld26,nixbld27,nixbld28,nixbld29,nixbld30,nixbld31,nixbld32";
+      };
       Theme = {
         CursorTheme = "aero-drop";
+        forceUserSelect = "true";
+        enableStartup = "false";
+        playSound = "true";
       };
     };
   };
