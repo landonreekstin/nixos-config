@@ -119,6 +119,20 @@ Available via `customConfig.homelab`:
 - Samba file sharing
 - *arr stack (Radarr, Sonarr, Prowlarr, Bazarr)
 
+## After Making Changes
+
+After making any configuration changes, always rebuild the system to apply them:
+
+```bash
+rebuild
+```
+
+This command rebuilds the current host configuration using the local flake. For testing changes without permanently switching, use:
+
+```bash
+sudo nixos-rebuild test --flake ~/nixos-config#<hostname> --impure
+```
+
 ## File Permissions
 
 After making edits to files in the repository, some files may end up with incorrect ownership. To fix permissions and restore proper ownership to the user:
