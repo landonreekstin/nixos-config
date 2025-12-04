@@ -93,6 +93,13 @@ The configuration supports:
 
 ## File Management
 
+### Module Header Format
+All modules should follow this standard header format:
+```nix
+# ~/nixos-config/path/to/module.nix
+{ config, pkgs, lib, ... }:
+```
+
 ### Making Changes
 1. Edit configuration files in your local `~/nixos-config` clone
 2. Use `rebuild` to test changes
