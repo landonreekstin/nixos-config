@@ -1,9 +1,5 @@
-{
-  config,
-  pkgs,
-  lib,
-  ...
-}:
+# ~/nixos-config/modules/nixos/themes/aerothemeplasma/plasma-system.nix
+{ config, pkgs, lib, ... }:
 
 let
   aerothemeCondition = (lib.elem "kde" config.customConfig.desktop.environments
@@ -83,35 +79,8 @@ in {
   services.xserver = {
     enable = true;
   };
-  services.displayManager.sddm = {
-    enable = true;
-    theme = if config.customConfig.desktop.displayManager.sddm.theme == "sddm-windows7" then "sddm-theme-mod" else config.customConfig.desktop.displayManager.sddm.theme;
-    
-    # Fix QtMultimedia missing error by providing necessary packages
-    extraPackages = [
-      pkgs.kdePackages.qtmultimedia
-      pkgs.kdePackages.qtsvg
-      pkgs.kdePackages.qtvirtualkeyboard
-    ];
-    
-    # Ensure startup sound can play by removing startup file before each session
-    setupScript = ''
-      rm -f /tmp/sddm.startup
-    '';
-    
-    settings = {
-      General = {
-        HideShells = "/run/current-system/sw/bin/nologin";
-        HideUsers = "nixbld1,nixbld2,nixbld3,nixbld4,nixbld5,nixbld6,nixbld7,nixbld8,nixbld9,nixbld10,nixbld11,nixbld12,nixbld13,nixbld14,nixbld15,nixbld16,nixbld17,nixbld18,nixbld19,nixbld20,nixbld21,nixbld22,nixbld23,nixbld24,nixbld25,nixbld26,nixbld27,nixbld28,nixbld29,nixbld30,nixbld31,nixbld32";
-      };
-      Theme = {
-        CursorTheme = "aero-drop";
-        forceUserSelect = "true";
-        enableStartup = "false";
-        playSound = "true";
-      };
-    };
-  };
+  # SDDM configuration is handled by dedicated theme modules
+  # This module only provides the aerotheme packages and plasma configuration
 
   fonts = {
     packages = with pkgs; [

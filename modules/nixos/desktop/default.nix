@@ -9,6 +9,7 @@
     ./kde.nix
     ./pantheon.nix
     ./sddm-astronaut-theme.nix
+    ./sddm-windows7-theme.nix
     ./custom-sddm-theme.nix
   ];
 }
