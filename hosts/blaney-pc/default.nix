@@ -81,9 +81,8 @@
           "applications:org.kde.kcalc.desktop"
           "applications:polychromatic.desktop"
           "applications:input-remapper-gtk.desktop"
-          "applications:librewolf.desktop"
-          "applications:openrgb.desktop"
-          "applications:org.kde.knotes.desktop"
+          "applications:OpenRGB.desktop"
+          "applications:io.github.nuttyartist.notes.desktop"
         ];
       };
     };
@@ -107,6 +106,7 @@
         vscode
         librewolf
         brave
+        ungoogled-chromium
         #discord-canary
         #discord
         obs-studio
