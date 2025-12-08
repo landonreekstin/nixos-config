@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(echo:*)",
+      "Bash(systemctl status:*)",
+      "Bash(systemctl list-units:*)",
+      "Bash(busctl list:*)",
+      "Bash(busctl introspect:*)",
+      "Bash(pgrep:*)",
+      "Bash(systemctl:*)",
+      "Bash(cat:*)",
+      "Bash(/dev/input/ckb1/cmd)",
+      "Bash(sudo systemctl:*)",
+      "Bash(lsusb:*)",
+      "Bash(sudo tee:*)",
+      "Bash(sudo chown:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

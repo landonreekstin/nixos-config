@@ -5,6 +5,7 @@
   imports = [
     ./plasma-windows7/default.nix
     ./future-aviation/default.nix # We will include this in the future when the modules are conditionally enabled
+    ./century-series/default.nix
     ./plasma-default.nix
     ./plasma-bigsur.nix
   ];
