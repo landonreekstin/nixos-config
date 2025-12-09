@@ -32,7 +32,10 @@
       environments = [ "hyprland" "kde" ];
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "none";
+        type = "sddm";
+        sddm = {
+          theme = "sddm-windows7"; # Custom SDDM theme
+        };
       };
     };
 
@@ -40,6 +43,14 @@
       unstable = true;
       nvidia = {
         enable = true; # Set to true if Optiplex has an NVIDIA GPU needing proprietary drivers
+      };
+      peripherals = {
+        enable = true; # Enable peripheral configurations
+        openrgb.enable = true; # Enable OpenRGB for RGB control
+        openrazer.enable = true; # Enable OpenRazer for Razer device support
+        ckb-next.enable = false; # Enable CKB-Next for Corsair device support
+        input-remapper.enable = true;
+        solaar.enable = true;
       };
     };
 
@@ -50,8 +61,29 @@
     homeManager = {
       enable = true;
       themes = {
-        kde = "windows7";
+        plasmaOverride = false;
+        kde = "windows7-alt";
         hyprland = "future-aviation";
+        wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
+        pinnedApps = [
+          "applications:org.kde.konsole.desktop"
+          "applications:systemsettings.desktop"
+          "applications:org.kde.dolphin.desktop"
+          "applications:chromium-browser.desktop"
+          "applications:net.lutris.Lutris.desktop"
+          "applications:com.heroicgameslauncher.hgl.desktop"
+          "applications:steam.desktop"
+          "applications:com.discordapp.Discord.desktop"
+          "applications:com.spotify.Client.desktop"
+          "applications:org.kde.plasma-systemmonitor.desktop"
+          "applications:org.kde.kcalc.desktop"
+          "applications:code.desktop"
+          "applications:polychromatic.desktop"
+          "applications:input-remapper-gtk.desktop"
+          "applications:librewolf.desktop"
+          "applications:OpenRGB.desktop"
+          "applications:io.github.nuttyartist.notes.desktop"
+        ];
       };
     };
 
@@ -59,9 +91,9 @@
       nixos = with pkgs; [
         firefox
         kitty
+        claude-code
       ];
       unstable-override = [ 
-        "discord-canary"  
         "vscode"
         "librewolf"
         "ungoogled-chromium"
@@ -72,12 +104,13 @@
         vscode
         librewolf
         ungoogled-chromium
-        discord-canary
+        notes
       ];
       flatpak = {
         enable = true;
         packages = [
           "com.spotify.Client"
+          "com.discordapp.Discord"
         ];
       };
     };

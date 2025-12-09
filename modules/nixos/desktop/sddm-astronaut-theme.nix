@@ -44,9 +44,11 @@ let
         '';
       })
     else
-      pkgs.sddm-astronaut.override {
-        embeddedTheme = sddmCfg.embeddedTheme;
-      };
+      pkgs.sddm-astronaut.override (
+        lib.optionalAttrs (sddmCfg.embeddedTheme != null) {
+          embeddedTheme = sddmCfg.embeddedTheme;
+        }
+      );
 
   qmlPaths = with pkgs.kdePackages; lib.makeSearchPath "lib/qt-6/qml" [ qtmultimedia qtvirtualkeyboard qtsvg ];
 

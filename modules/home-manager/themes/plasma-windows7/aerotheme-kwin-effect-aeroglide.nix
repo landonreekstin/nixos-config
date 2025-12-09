@@ -1,8 +1,8 @@
 { pkgs, lib, aerothemeplasma-src, buildWithWayland ? false }:
 
 let
-  # Determine the correct KWin .dev package based on the flag.
-  kwinDevPkg = if buildWithWayland then pkgs.kdePackages.kwin.dev else pkgs.kdePackages.kwin-x11.dev;
+  # Use the unified KWin .dev package (KDE 6 doesn't have separate X11/Wayland builds)
+  kwinDevPkg = pkgs.kdePackages.kwin.dev;
 
   # Define the full list of all dependencies.
   buildAndNativeInputs = with pkgs; [

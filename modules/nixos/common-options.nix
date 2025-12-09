@@ -136,7 +136,7 @@ in
           theme = mkOption {
             type = types.str;
             default = "none";
-            description = "The SDDM theme to use (e.g., 'sddm-astronaut').";
+            description = "The SDDM theme to use (e.g., 'sddm-astronaut', 'sddm-windows7').";
           };
           embeddedTheme = mkOption {
             type = types.nullOr types.str;
@@ -290,7 +290,7 @@ in
       };
       themes = {
         kde = mkOption {
-          type = types.enum [ "windows7" "default" "bigsur" "none" ];
+          type = types.enum [ "windows7" "windows7-alt" "default" "bigsur" "none" ];
           default = "none";
           description = "Set the Plasma theme for Home Manager.";
         };
@@ -305,6 +305,25 @@ in
           default = null;
           description = "Absolute path to the desktop wallpaper. If null, a default will be used.";
           example = "/path/to/my/wallpaper.png";
+        };
+        pinnedApps = mkOption {
+          type = with types; listOf str;
+          default = [
+            "applications:systemsettings.desktop"
+            "applications:org.kde.konsole.desktop"
+            "applications:org.kde.kcalc.desktop"
+            "applications:org.kde.dolphin.desktop"
+            "applications:firefox.desktop"
+            "applications:chromium-browser.desktop"
+          ];
+          description = "List of desktop file entries to pin to the taskbar/iconTasks widget.";
+          example = ''
+            [
+              "applications:firefox.desktop"
+              "applications:org.kde.konsole.desktop"
+              "applications:code.desktop"
+            ]
+          '';
         };
       };
       # You can add more themes here later, e.g., 'cosmic', 'kde', etc.

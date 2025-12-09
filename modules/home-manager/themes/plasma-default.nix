@@ -24,14 +24,7 @@ in
 
           {
             iconTasks = {
-              launchers = [
-                "applications:systemsettings.desktop"
-                "applications:org.kde.konsole.desktop"
-                "applications:org.kde.kcalc.desktop"
-                "applications:org.kde.dolphin.desktop"
-                "applications:firefox.desktop"
-                "applications:chromium-browser.desktop"
-              ];
+              launchers = customConfig.homeManager.themes.pinnedApps;
             };
           }
 
