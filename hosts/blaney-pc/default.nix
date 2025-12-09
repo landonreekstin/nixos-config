@@ -32,7 +32,7 @@
         enable = true; # false will go to TTY but not autolaunch a DE
         type = "sddm";
         sddm = {
-          theme = "sddm-windows7";
+          theme = "sddm-astronaut";
           embeddedTheme = "pixel_sakura";
           screensaver = {
             enable = true;
