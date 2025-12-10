@@ -153,6 +153,7 @@ in
     home.file."${projectDir}/.envrc" = {
       text = ''
         use flake ~/nixos-config#fpga-dev
+        export DEV_ENV_NAME="fpga-dev"
       '';
     };
 

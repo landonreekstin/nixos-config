@@ -50,6 +50,7 @@ in
         ] ++ qemuWrappers ++ bbbWrappers;
 
         shellHook = ''
+          export PS1='\[\033[1;33m\][embedded-linux]\[\033[0m\] \[\033[1;34m\]\w\[\033[0m\]\$ '
           echo "--------------------------------------------------------"
           echo "Entered Unified Embedded Linux Dev Shell."
           echo
