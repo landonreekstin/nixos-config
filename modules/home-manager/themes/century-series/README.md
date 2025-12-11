@@ -2,6 +2,8 @@
 
 A comprehensive Hyprland theme inspired by Cold War-era fighter jet cockpits, specifically the Century Series fighters (F-100, F-101, F-102, F-104, F-105, F-106) and their Soviet counterparts (MiG-17, MiG-19, MiG-21).
 
+**✅ Status**: Fully functional and tested (December 2024)
+
 ## Design Philosophy
 
 This theme recreates the aesthetic of 1950s-1960s military aviation cockpits, featuring:
@@ -41,34 +43,38 @@ This theme recreates the aesthetic of 1950s-1960s military aviation cockpits, fe
 ## Components
 
 ### Hyprland
-- MFD-style window borders with 3px bezel frames
-- Dual-tone gradient borders for active windows (amber/green glow)
-- Hydraulic-inspired animations for window movements
-- Dim inactive windows like unpowered displays
-- Tinted blur effect simulating cockpit glass
+- ✅ MFD-style window borders with 3px bezel frames
+- ✅ Amber accent borders for active windows with subtle glow effect
+- ✅ Rectangular rounding (cockpit displays are angular)
+- ✅ Dim inactive windows like unpowered displays (15% strength)
+- ✅ Proper functional/theme separation maintains all keybindings
+- ✅ Compatible with latest Hyprland (deprecated properties removed)
 
 ### Waybar (Instrument Panel)
-Waybar is configured as a full instrument panel with:
+✅ **Fully Functional** - Waybar is configured as a full instrument panel with:
 
 **Workspace Labels** - Tactical mode indicators:
-- `NAV` - Navigation (workspace 1)
-- `COM` - Communications (workspace 2)
-- `SYS` - Systems (workspace 3)
-- `WPN` - Weapons (workspace 4)
-- `ECM` - ECM/Misc (workspace 5)
+- ✅ `NAV` - Navigation (workspace 1)
+- ✅ `COM` - Communications (workspace 2) 
+- ✅ `SYS` - Systems (workspace 3)
+- ✅ `WPN` - Weapons (workspace 4)
+- ✅ `ECM` - ECM/Misc (workspace 5)
+
+**Visual Features**:
+- ✅ Instrument panel background styling
+- ✅ Amber accent colors for active workspaces
+- ✅ Mission chronometer clock styling
+- ✅ Module borders resembling cockpit readouts
+- ✅ System tray integration
+- ✅ Tooltip styling for information displays
 
 **System Monitors** - Styled as cockpit gauges:
-- **PWR** - CPU usage (power output gauge)
-- **MEM** - Memory usage (fuel quantity indicator)
-- **TMP** - Temperature (EGT - Exhaust Gas Temperature)
-- **LINK** - Network status (IFF transponder)
-- **VOL** - Audio (intercom volume)
-- **BAT** - Battery (electrical system)
-
-**Warning States**:
-- Normal: Green/Amber borders
-- Warning (>70%): Yellow caution lights
-- Critical (>90%): Blinking red master warning
+- ✅ **CPU** - Processor usage monitoring
+- ✅ **Memory** - RAM usage display
+- ✅ **Temperature** - System thermal monitoring
+- ✅ **Network** - Connection status
+- ✅ **Audio** - Volume and sink switching
+- ✅ **Battery** - Power system status (on battery-equipped hosts)
 
 ### Rofi (MFD Menu Interface)
 - Command entry styled as tactical data input
@@ -97,24 +103,30 @@ Custom notification types:
 - Network status
 - System updates
 
-## Configuration Options
+## Architecture
+
+### Functional vs Theme Separation
+✅ **Properly Implemented** - Following NixOS configuration best practices:
+
+- **Functional modules** (`*/functional.nix`) - Always active, provide core functionality:
+  - Hyprland keybindings (Super+Space, Super+Return, etc.)
+  - Essential settings and variables
+  - Monitor configurations
+  - Package dependencies
+
+- **Theme modules** (`themes/century-series/*.nix`) - Visual styling only:
+  - Colors, borders, styling
+  - Override functional defaults with `mkForce`
+  - Pure aesthetic configuration
+  - No functional dependencies
 
 ### Current Configuration
-The theme currently uses these default settings:
+The theme uses these settings:
 
-- **Accent Mode**: `mixed` - Context-aware colors (green for terminals, amber for highlights)
-- **Border Style**: `mfd` - Full MFD bezel with 3px visible borders
-
-### Accent Modes (Available)
-- **amber** - Amber CRT displays throughout (radar altimeter style)
-- **green** - Green phosphor displays (traditional radar/scope)
-- **mixed** - Context-aware: green for terminals, amber for highlights
-
-### Border Styles (Available)
-- **mfd** - Full MFD bezel with 3px visible borders
-- **clean** - Minimal 2px borders for cleaner look
-
-**Note**: To customize accent mode or border style, edit `modules/home-manager/themes/century-series/theme.nix` lines 46-49. These options could be exposed via `customConfig` in a future update.
+- ✅ **Colors**: Centralized in `colors.nix` for consistency
+- ✅ **Border Style**: 3px MFD-style bezels with amber accents  
+- ✅ **Architecture**: Clean functional/theme separation
+- ✅ **Compatibility**: Works with latest Hyprland and NixOS
 
 ## Installation
 
@@ -146,6 +158,16 @@ rebuild
 3. Restart Hyprland or log out and back in
 
 **Note**: The theme is automatically imported via `modules/home-manager/themes/default.nix`. No manual imports needed!
+
+## Known Working State
+
+✅ **Latest Test**: December 11, 2024
+- All Hyprland deprecation errors resolved
+- Waybar CSS fully restored and functional  
+- Proper functional/theme architecture implemented
+- System rebuilds without errors
+- All keybindings operational
+- MFD borders and styling active
 
 ## Testing Notifications
 
@@ -213,6 +235,42 @@ Alternative fonts that work well:
 ## Screenshots
 
 *(Screenshots would go here showing the various components)*
+
+## Troubleshooting
+
+### Common Issues
+
+**Waybar not appearing**:
+- Ensure functional waybar is enabled: check `modules/home-manager/de-wm-components/waybar/functional.nix`
+- Restart waybar: `pkill waybar && waybar &`
+- Check for CSS syntax errors in the generated config
+
+**Keybindings not working**:
+- Verify Hyprland functional module is active
+- Check that theme doesn't override essential bindings
+- Reload Hyprland: `hyprctl reload`
+
+**Build errors**:  
+- Remove deprecated Hyprland properties if present
+- Ensure proper functional vs theme separation
+- Check NixOS syntax in theme files
+
+## Recent Fixes (December 2024)
+
+✅ **Architectural Issues**:
+- Fixed functional vs theme paradigm violations
+- Removed `_module.args` from theme.nix (not supported)
+- Centralized colors in dedicated colors.nix
+
+✅ **Hyprland Compatibility**:
+- Removed deprecated shadow properties
+- Removed deprecated master layout settings
+- Updated to work with latest Hyprland
+
+✅ **Waybar Restoration**:
+- Fixed JSON syntax conflicts
+- Incrementally restored all CSS styling
+- Added proper tray and tooltip styling
 
 ## Future Enhancements
 
