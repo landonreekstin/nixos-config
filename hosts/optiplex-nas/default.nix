@@ -63,6 +63,14 @@
     };
   };
 
+  # === Declaratively set permissions for Samba mount points ===
+  # This ensures the 'lando' user, which Samba is forced to use,
+  # has the necessary permissions to read and write to the shares.
+  systemd.tmpfiles.rules = [
+    "d /mnt/storage 0775 lando users - -"
+    "d /mnt/private 0775 lando users - -"
+  ];
+
   # === Optiplex NAS Specific Values for `customConfig` ===
   customConfig = {
     
@@ -121,6 +129,7 @@
         git
         vim
         htop
+        claude-code
       ];
       homeManager = with pkgs; [ 
         vscode
@@ -144,9 +153,15 @@
     };
 
     homelab = {
-      samba.enable = true;
+      samba = {
+        enable = true; # This keeps your original share active
+        private = {
+          enable = true; # This activates the new private share
+          # The path defaults to /mnt/private, which is correct for this host.
+          # The port defaults to 4445.
+        };
+      };
       jellyfin.enable = false;
-
       mediaSetup = {
         enable = true;
         user = config.customConfig.user.name; # This pulls "lando" from the user section

@@ -429,6 +429,30 @@ in
           default = false; 
           description = "Enable Samba file sharing service."; 
         };
+        private = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable a separate, private Samba share on a custom port.";
+          };
+          port = mkOption {
+            type = types.port;
+            default = 4445; # A non-standard port for the private share
+            description = "The TCP port for the private Samba service to listen on.";
+          };
+          path = mkOption {
+            type = types.str;
+            default = "/mnt/private";
+            description = "The absolute path for the private share.";
+          };
+          user = mkOption {
+            type = types.str;
+            # This cleverly defaults to the main user defined for the system
+            default = config.customConfig.user.name;
+            defaultText = "config.customConfig.user.name";
+            description = "The user that will be forced for file operations on the private share.";
+          };
+        };
       };
       mediaSetup = {
         enable = lib.mkEnableOption "Enable the shared media setup";
