@@ -1,10 +1,13 @@
 # ~/nixos-config/modules/home-manager/themes/century-series/kitty.nix
-{ config, pkgs, lib, customConfig, centuryColors ? {}, centuryConfig ? {}, ... }:
+{ config, pkgs, lib, customConfig, ... }:
 
 with lib;
 
 let
-  c = centuryColors;
+  # Import colors and configuration
+  colorsModule = import ./colors.nix { };
+  c = colorsModule.centuryColors;
+  centuryConfig = colorsModule.centuryConfig;
 
   # Primary phosphor color based on accent mode
   phosphorColor =
@@ -77,17 +80,17 @@ in {
         # Cursor - Blinking phosphor cursor
         cursor = phosphorColor;
         cursor_text_color = c.bg-primary;
-        cursor_shape = "block";
-        cursor_blink_interval = "0.5";
-        cursor_stop_blinking_after = "15.0";
+        cursor_shape = mkForce "block";
+        cursor_blink_interval = mkForce 0.5;
+        cursor_stop_blinking_after = 15.0;
 
         # URL styling - Data link highlighting
         url_color = c.info-blue;
         url_style = "single";
 
         # Tab bar - Multi-display selector
-        tab_bar_edge = "top";
-        tab_bar_style = "separator";
+        tab_bar_edge = mkForce "top";
+        tab_bar_style = mkForce "separator";
         tab_bar_min_tabs = 1;
         tab_separator = " │ ";
         tab_title_template = "{index}: {title}";
@@ -115,7 +118,7 @@ in {
         dim_opacity = "0.75";
 
         # Scrollback
-        scrollback_lines = 10000;
+        scrollback_lines = mkForce 10000;
         scrollback_pager_history_size = 10;
 
         # Mouse

@@ -13,9 +13,23 @@
       "Bash(sudo systemctl:*)",
       "Bash(lsusb:*)",
       "Bash(sudo tee:*)",
-      "Bash(sudo chown:*)"
+      "Bash(sudo chown:*)",
+      "Bash(rebuild)",
+      "Bash(git add:*)",
+      "Bash(journalctl:*)",
+      "Bash(grep:*)",
+      "Bash(git stash:*)",
+      "Bash(waybar:*)",
+      "Bash(python3:*)",
+      "Bash(sed:*)",
+      "Bash(hyprctl:*)"
     ],
     "deny": [],
-    "ask": []
+    "ask": [],
+    "additionalDirectories": [
+      "/nix/store",
+      "/home/lando/.local/share/wallpapers",
+      "/home/lando/.config/waybar"
+    ]
   }
 }

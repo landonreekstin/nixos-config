@@ -1,10 +1,12 @@
 # ~/nixos-config/modules/home-manager/themes/century-series/waybar.nix
-{ config, pkgs, lib, customConfig, centuryColors ? {}, centuryConfig ? {}, ... }:
+{ config, pkgs, lib, customConfig, ... }:
 
 with lib;
 
 let
-  c = centuryColors;
+  # Import colors and configuration
+  colorsModule = import ./colors.nix { };
+  c = colorsModule.centuryColors;
 
   # Check if home-manager, Hyprland, and the Century Series theme are enabled
   centurySeriesThemeCondition = lib.elem "hyprland" customConfig.desktop.environments
@@ -13,38 +15,14 @@ let
 in {
   config = mkIf centurySeriesThemeCondition {
     programs.waybar = {
-      enable = true;
-
+      # Settings here will be merged with functional.nix
       settings = {
         mainBar = {
-          layer = "top";
-          position = "top";
-          height = 36;
-          spacing = 0;
+          # Century Series theme styling overrides
+          height = mkForce 36;  # Slightly taller for cockpit instrument feel
+          spacing = mkForce 0;   # Tight spacing like instrument panel
 
-          # Left side - Primary flight instruments
-          modules-left = [
-            "hyprland/workspaces"
-            "hyprland/window"
-          ];
-
-          # Center - Navigation data
-          modules-center = [
-            "clock"
-          ];
-
-          # Right side - Systems monitoring (like engine instruments)
-          modules-right = [
-            "pulseaudio"
-            "network"
-            "cpu"
-            "memory"
-            "temperature"
-            "battery"
-            "tray"
-          ];
-
-          # Workspace switcher - like mode selector switches
+          # Tactical workspace labels - like mode selector switches  
           "hyprland/workspaces" = {
             format = "{icon}";
             format-icons = {
@@ -59,25 +37,14 @@ in {
               "9" = "AUX4";
               "10" = "AUX5";
             };
-            persistent-workspaces = {
-              "*" = 5;
-            };
-            on-click = "activate";
           };
 
-          # Active window - like MFD page indicator
-          "hyprland/window" = {
-            format = "│ {}";
-            max-length = 50;
-            separate-outputs = true;
-          };
-
-          # Clock - Mission timer style
+          # Mission timer style clock
           clock = {
             interval = 1;
             format = "{:%H:%M:%S}";
             format-alt = "{:%Y-%m-%d %H:%M:%S %Z}";
-            tooltip-format = "<tt><small>{calendar}</small></tt>";
+            tooltip-format = mkForce "<tt><small>{calendar}</small></tt>";
             calendar = {
               mode = "month";
               format = {
@@ -86,84 +53,40 @@ in {
             };
           };
 
-          # CPU - Engine RPM style gauge
+          # Override specific module styling to match cockpit theme
           cpu = {
-            interval = 2;
-            format = "PWR {usage}%";
-            format-alt = "PWR {avg_frequency}GHz";
-            tooltip = true;
-            states = {
-              warning = 70;
-              critical = 90;
-            };
+            format = "PWR {usage}%";  # Engine power style
           };
 
-          # Memory - Fuel quantity style
           memory = {
-            interval = 5;
-            format = "MEM {}%";
-            format-alt = "MEM {used:0.1f}G/{total:0.1f}G";
-            tooltip-format = "RAM: {used:0.1f}G / {total:0.1f}G\nSwap: {swapUsed:0.1f}G / {swapTotal:0.1f}G";
-            states = {
-              warning = 70;
-              critical = 90;
-            };
+            format = "MEM {}%";       # Fuel quantity style  
           };
 
-          # Temperature - EGT (Exhaust Gas Temperature) style
           temperature = {
-            hwmon-path = "/sys/class/hwmon/hwmon2/temp1_input";
-            critical-threshold = 80;
-            interval = 2;
-            format = "TMP {temperatureC}°C";
-            format-critical = "⚠ {temperatureC}°C";
-            tooltip = true;
+            format = "TMP {temperatureC}°C";  # EGT style
           };
 
-          # Network - IFF transponder style
           network = {
-            interval = 5;
-            format-wifi = "LINK {signalStrength}%";
-            format-ethernet = "LINK UP";
-            format-disconnected = "LINK DOWN";
-            tooltip-format = "{ifname}: {ipaddr}/{cidr}\nUp: {bandwidthUpBits} Down: {bandwidthDownBits}";
-            format-alt = "{essid}";
+            format-wifi = mkForce "LINK {signalStrength}%";
+            format-ethernet = mkForce "LINK UP"; 
+            format-disconnected = mkForce "LINK DOWN";
           };
 
-          # Audio - Intercom volume
-          pulseaudio = {
-            format = "VOL {volume}%";
-            format-muted = "VOL MUTE";
-            format-icons = {
-              default = ["" "" ""];
-            };
-            on-click = "pavucontrol";
-            tooltip-format = "{desc}\n{volume}%";
+          "pulseaudio#sink_switcher" = {
+            format = mkForce "VOL {volume}%";
+            format-muted = mkForce "VOL MUTE";
           };
 
-          # Battery - Electrical system
           battery = {
-            interval = 10;
-            states = {
-              warning = 30;
-              critical = 15;
-            };
             format = "BAT {capacity}%";
-            format-charging = "CHG {capacity}%";
+            format-charging = "CHG {capacity}%"; 
             format-plugged = "EXT PWR";
             format-full = "BAT FULL";
-            tooltip-format = "{timeTo}\n{capacity}% - {power}W";
-          };
-
-          # System tray
-          tray = {
-            icon-size = 18;
-            spacing = 8;
           };
         };
       };
 
-      # CSS Styling - Instrument panel aesthetic
+      # CSS Styling - Century Series Cockpit Theme
       style = ''
         * {
           font-family: "JetBrains Mono", "Fira Code", monospace;
@@ -180,7 +103,7 @@ in {
           color: ${c.text-primary};
         }
 
-        /* Workspace buttons - Mode selector switches */
+        /* Workspace buttons - Tactical mode selectors */
         #workspaces {
           margin: 0;
           padding: 0;
@@ -209,158 +132,32 @@ in {
           box-shadow: 0 0 8px ${c.accent-amber}66;
         }
 
-        #workspaces button.urgent {
-          background-color: ${c.warning-red};
-          color: ${c.text-primary};
-          animation: blink 1s ease-in-out infinite;
-        }
-
-        /* Window title - MFD readout */
-        #window {
-          margin: 0 12px;
-          padding: 0 8px;
-          color: ${c.accent-green};
-          font-style: italic;
-        }
-
-        /* Clock - Mission timer display */
+        /* Clock - Mission chronometer */
         #clock {
-          padding: 0 16px;
+          color: ${c.accent-amber};
+          font-weight: bold;
+          padding: 0 12px;
           background-color: ${c.bg-tertiary};
-          color: ${c.accent-amber};
-          border-left: 1px solid ${c.border-primary};
-          border-right: 1px solid ${c.border-primary};
-          font-family: "JetBrains Mono", monospace;
-          font-weight: 700;
-          letter-spacing: 1px;
+          border: 1px solid ${c.accent-amber-dim};
         }
 
-        /* Module base style - Instrument gauge */
-        #cpu,
-        #memory,
-        #temperature,
-        #network,
-        #pulseaudio,
-        #battery {
-          padding: 0 14px;
-          margin: 4px 2px;
-          background-color: ${c.bg-secondary};
+        /* Module base styling - Instrument readouts */
+        #cpu, #memory, #temperature, #network, #battery, #pulseaudio {
+          padding: 0 8px;
+          margin: 2px;
+          background-color: ${c.bg-tertiary};
+          border: 1px solid ${c.border-secondary};
           color: ${c.text-primary};
-          border: 1px solid ${c.border-primary};
-        }
-
-        /* CPU - Amber power gauge */
-        #cpu {
-          color: ${c.accent-amber};
-          border-color: ${c.accent-amber-dim};
-        }
-
-        #cpu.warning {
-          color: ${c.caution-yellow};
-          border-color: ${c.caution-yellow};
-        }
-
-        #cpu.critical {
-          color: ${c.warning-red};
-          border-color: ${c.warning-red};
-          animation: blink 1s ease-in-out infinite;
-        }
-
-        /* Memory - Green fuel gauge */
-        #memory {
-          color: ${c.accent-green};
-          border-color: ${c.accent-green-dim};
-        }
-
-        #memory.warning {
-          color: ${c.caution-yellow};
-          border-color: ${c.caution-yellow};
-        }
-
-        #memory.critical {
-          color: ${c.warning-red};
-          border-color: ${c.warning-red};
-          animation: blink 1s ease-in-out infinite;
-        }
-
-        /* Temperature - EGT readout */
-        #temperature {
-          color: ${c.info-blue};
-          border-color: ${c.info-blue};
-        }
-
-        #temperature.critical {
-          color: ${c.warning-red};
-          border-color: ${c.warning-red};
-          animation: blink 1s ease-in-out infinite;
-        }
-
-        /* Network - Data link indicator */
-        #network {
-          color: ${c.accent-green};
-          border-color: ${c.accent-green-dim};
-        }
-
-        #network.disconnected {
-          color: ${c.warning-red};
-          border-color: ${c.warning-red};
-        }
-
-        /* Audio - Volume indicator */
-        #pulseaudio {
-          color: ${c.accent-amber};
-          border-color: ${c.accent-amber-dim};
-        }
-
-        #pulseaudio.muted {
-          color: ${c.text-tertiary};
-          border-color: ${c.border-primary};
-        }
-
-        /* Battery - Electrical system */
-        #battery {
-          color: ${c.accent-green};
-          border-color: ${c.accent-green-dim};
-        }
-
-        #battery.charging {
-          color: ${c.info-blue};
-          border-color: ${c.info-blue};
-        }
-
-        #battery.warning {
-          color: ${c.caution-yellow};
-          border-color: ${c.caution-yellow};
-        }
-
-        #battery.critical {
-          color: ${c.warning-red};
-          border-color: ${c.warning-red};
-          animation: blink 1s ease-in-out infinite;
+          font-family: "JetBrains Mono", monospace;
         }
 
         /* System tray */
         #tray {
           padding: 0 8px;
-          margin: 4px 4px 4px 2px;
+          background-color: ${c.bg-secondary};
         }
 
-        #tray > .passive {
-          opacity: 0.7;
-        }
-
-        #tray > .needs-attention {
-          color: ${c.warning-red};
-          animation: blink 1s ease-in-out infinite;
-        }
-
-        /* Warning blink animation - Master caution light */
-        @keyframes blink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.3; }
-        }
-
-        /* Tooltip styling */
+        /* Tooltip styling - Info displays */
         tooltip {
           background-color: ${c.bg-primary};
           border: 2px solid ${c.border-primary};

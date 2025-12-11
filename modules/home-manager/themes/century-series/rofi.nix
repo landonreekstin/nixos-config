@@ -1,10 +1,13 @@
 # ~/nixos-config/modules/home-manager/themes/century-series/rofi.nix
-{ config, pkgs, lib, customConfig, centuryColors ? {}, centuryConfig ? {}, ... }:
+{ config, pkgs, lib, customConfig, ... }:
 
 with lib;
 
 let
-  c = centuryColors;
+  # Import colors and configuration
+  colorsModule = import ./colors.nix { };
+  c = colorsModule.centuryColors;
+  centuryConfig = colorsModule.centuryConfig;
 
   # Rofi theme file content - MFD menu interface
   rofiTheme = ''

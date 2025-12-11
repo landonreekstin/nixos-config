@@ -1,10 +1,26 @@
 # ~/nixos-config/modules/home-manager/themes/century-series/hyprland.nix
-{ config, pkgs, lib, customConfig, centuryColors ? {}, centuryConfig ? {}, ... }:
+{ config, pkgs, lib, customConfig, ... }:
 
 with lib;
 
 let
-  c = centuryColors;
+  # Import colors and configuration
+  colorsModule = import ./colors.nix { };
+  c = colorsModule.centuryColors;
+  centuryConfig = colorsModule.centuryConfig;
+
+  # Wallpaper paths for Cold War aviation theme
+  wallpaperDir = config.home.homeDirectory + "/.local/share/wallpapers";
+  wallpaperF104 = wallpaperDir + "/f104-retro-future.jpg";
+  wallpaperSoviet = wallpaperDir + "/soviet-retro-future.jpg";
+  wallpaperConcorde = wallpaperDir + "/concorde-vertical-art.jpg";
+  wallpaperHangar1 = wallpaperDir + "/future-aviation-hanger-1.jpg";
+
+  # Monitor descriptions for hyprpaper (same as functional but used only for wallpaper assignment)
+  monitorDescMainDell = "Dell Inc. DELL S2721HGF DZR2123";
+  monitorDescLeftVirt = "Dell Inc. OptiPlex 7760 0x36419E0A";
+  monitorDescRightVirt = "Samsung Electric Company S27R65x H4TW800293";
+  monitorDescTV = "Hisense Electric Co. Ltd. 4Series43 0x00000278";
 
   # Border width configuration for MFD-style appearance
   mfdBorderSize = if centuryConfig.borderStyle or "mfd" == "mfd" then 3 else 2;
@@ -21,9 +37,35 @@ let
 
 in {
   config = mkIf centurySeriesThemeCondition {
-    wayland.windowManager.hyprland = {
+    # Wallpaper file linking for Cold War aviation theme
+    home.file.".local/share/wallpapers/f104-retro-future.jpg".source = ../../../../assets/wallpapers/f104-retro-future.jpg;
+    home.file.".local/share/wallpapers/soviet-retro-future.jpg".source = ../../../../assets/wallpapers/soviet-retro-future.jpg;
+    home.file.".local/share/wallpapers/concorde-vertical-art.jpg".source = ../../../../assets/wallpapers/concorde-vertical-art.jpg;
+    home.file.".local/share/wallpapers/future-aviation-hanger-1.jpg".source = ../../../../assets/wallpapers/future-aviation-hanger-1.jpg;
+
+    # Hyprpaper service for wallpaper management
+    services.hyprpaper = {
+      enable = true;
       settings = {
-        # General window appearance - MFD bezel aesthetic
+        preload = [ wallpaperF104 wallpaperSoviet wallpaperConcorde wallpaperHangar1 ];
+        wallpaper = [
+          "desc:${monitorDescMainDell},${wallpaperF104}"           # F-104 on main monitor
+          "desc:${monitorDescLeftVirt},${wallpaperConcorde}"       # Concorde on left (vertical)
+          "desc:${monitorDescRightVirt},${wallpaperSoviet}"        # Soviet on right (vertical)
+          "desc:${monitorDescTV},${wallpaperHangar1}"              # Hangar on TV
+        ];
+        ipc = false;
+        splash = false;
+      };
+    };
+
+    # Century Series Hyprland Theme Configuration
+    wayland.windowManager.hyprland = {
+      # No need for enable = true; here, as that's set in functional.nix
+      # These settings will be merged with functional.nix
+
+      settings = {
+        # General theming - MFD bezel aesthetic
         general = {
           gaps_in = 4;
           gaps_out = 8;
@@ -34,7 +76,6 @@ in {
           "col.inactive_border" = "rgb(${removePrefix "#" c.border-primary})";
           "col.active_border" = "rgb(${removePrefix "#" primaryAccent}) rgb(${removePrefix "#" c.border-active}) 45deg";
 
-          layout = "dwindle";
           resize_on_border = true;
           extend_border_grab_area = 15;
         };
@@ -42,13 +83,6 @@ in {
         # Decoration - Cockpit glass and metal materials
         decoration = {
           rounding = 0;  # Cockpit displays are rectangular
-
-          # Subtle shadow like instrument recessing
-          drop_shadow = true;
-          shadow_range = 12;
-          shadow_render_power = 3;
-          "col.shadow" = "rgba(0a0e1499)";
-          "col.shadow_inactive" = "rgba(0a0e1466)";
 
           # Dim inactive windows like non-active MFD panels
           dim_inactive = true;
@@ -105,18 +139,11 @@ in {
         master = {
           new_status = "master";
           orientation = "right";
-          always_center_master = false;
         };
 
-        # Misc settings
+        # Theme-specific misc visual settings
         misc = {
-          disable_hyprland_logo = true;
-          disable_splash_rendering = true;
-          force_default_wallpaper = 0;
-          vfr = true;
-          vrr = 1;
-          mouse_move_enables_dpms = true;
-          key_press_enables_dpms = true;
+          force_default_wallpaper = mkForce 0;  # Let hyprpaper handle wallpapers
         };
 
         # Window rules for specific applications

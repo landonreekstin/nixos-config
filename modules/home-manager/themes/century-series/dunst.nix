@@ -1,10 +1,13 @@
 # ~/nixos-config/modules/home-manager/themes/century-series/dunst.nix
-{ config, pkgs, lib, customConfig, centuryColors ? {}, centuryConfig ? {}, ... }:
+{ config, pkgs, lib, customConfig, ... }:
 
 with lib;
 
 let
-  c = centuryColors;
+  # Import colors and configuration
+  colorsModule = import ./colors.nix { };
+  c = colorsModule.centuryColors;
+  centuryConfig = colorsModule.centuryConfig;
 
   # Check if home-manager, Hyprland, and the Century Series theme are enabled
   centurySeriesThemeCondition = lib.elem "hyprland" customConfig.desktop.environments

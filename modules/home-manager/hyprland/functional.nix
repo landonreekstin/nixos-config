@@ -1,4 +1,5 @@
-# ~/nixos-config/modules/home-manager/hyprland/functional.nix
+# ~/nixos-config/
+
 { config, pkgs, lib, customConfig, ... }:
 
 let

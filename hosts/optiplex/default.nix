@@ -32,7 +32,7 @@
       environments = [ "hyprland" "kde" ];
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "none";
+        type = "ly";
       };
     };
 
@@ -40,6 +40,14 @@
       unstable = true;
       nvidia = {
         enable = true; # Set to true if Optiplex has an NVIDIA GPU needing proprietary drivers
+      };
+      peripherals = {
+        enable = true; # Enable peripheral configurations
+        openrgb.enable = true; # Enable OpenRGB for RGB control
+        openrazer.enable = true; # Enable OpenRazer for Razer device support
+        ckb-next.enable = false; # Enable CKB-Next for Corsair device support
+        input-remapper.enable = true;
+        solaar.enable = true;
       };
     };
 
@@ -50,8 +58,9 @@
     homeManager = {
       enable = true;
       themes = {
-        kde = "windows7";
-        hyprland = "future-aviation";
+        plasmaOverride = true;
+        kde = "default";
+        hyprland = "century-series";
       };
     };
 
@@ -59,6 +68,7 @@
       nixos = with pkgs; [
         firefox
         kitty
+        claude-code
       ];
       unstable-override = [ 
         "discord-canary"  
