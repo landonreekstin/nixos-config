@@ -60,6 +60,8 @@ in
           map to guest = bad user
           # Use a different PID file location so it doesn't clash with the main service.
           pid directory = /run/samba-private
+          # Also set the ncalrpc directory to avoid conflicts
+          ncalrpc dir = /run/samba-private/ncalrpc
 
           [private]
           path = "${cfg.private.path}"
@@ -87,7 +89,12 @@ in
           ExecReload = "${pkgs.coreutils}/bin/kill -HUP $MAINPID";
           # Create the /run/samba-private directory needed for the pid file.
           RuntimeDirectory = "samba-private";
+          RuntimeDirectoryMode = "0755";
         };
+        preStart = ''
+          # Create the ncalrpc subdirectory that Samba needs
+          ${pkgs.coreutils}/bin/mkdir -p /run/samba-private/ncalrpc
+        '';
       };
 
       # 3. Ensure our new service is started at boot.
