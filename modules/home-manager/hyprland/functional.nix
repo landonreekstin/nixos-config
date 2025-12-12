@@ -158,10 +158,10 @@ in
           "$mainMod, F, exec, $terminal -e ${pkgs.yazi}/bin/yazi"
           "$mainMod SHIFT, F, exec, ${pkgs.cosmic-files}/bin/cosmic-files"
           "$mainMod, B, exec, ${pkgs.librewolf}/bin/librewolf"
-          "$mainMod SHIFT, B, exec, ${pkgs.brave}/bin/brave" # not working
+          "$mainMod SHIFT, B, exec, ${pkgs.brave}/bin/brave"
           "$mainMod, M, exec, ${pkgs.spotify}/bin/spotify --enable-features=UseOzonePlatform --ozone-platform=wayland"
-          "$mainMod, D, exec, ${pkgs.discord-canary}/bin/discord-canary" # not working
-          "$mainMod, G, exec, ${pkgs.steam.run}/bin/steam" # not working
+          "$mainMod, D, exec, ${pkgs.discord}/bin/discord"
+          "$mainMod, G, exec, steam"
           "$mainMod SHIFT, G, exec, ${pkgs.lutris}/bin/lutris" 
 
           # Window Management
@@ -240,7 +240,7 @@ in
       kdePackages.konsole # Often a dependency for Kate or other KDE apps
       librewolf
       brave
-      discord-canary
+      discord
 
       # From Hyprland exec/binds not covered by services:
       (if pkgs ? vscode then vscode else null) # Conditional if package might not exist
