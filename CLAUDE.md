@@ -184,29 +184,40 @@ Available via `customConfig.homelab`:
 - Samba file sharing
 - *arr stack (Radarr, Sonarr, Prowlarr, Bazarr)
 
-## After Making Changes
+## PRIMARY RULES: After Making Changes
 
-After making any configuration changes, always rebuild the system to apply them:
+**CRITICAL**: These steps must be followed after ANY configuration changes:
 
-```bash
-rebuild
-```
-
-This command rebuilds the current host configuration using the local flake. For testing changes without permanently switching, use:
-
-```bash
-sudo nixos-rebuild test --flake ~/nixos-config#<hostname> --impure
-```
-
-## File Permissions
-
-After making edits to files in the repository, some files may end up with incorrect ownership. To fix permissions and restore proper ownership to the user:
+### 1. Restore File Ownership (REQUIRED)
+**ALWAYS run this command immediately after editing files:**
 
 ```bash
 sudo chown -R $USER:users ~/nixos-config
 ```
 
-This command should be run after editing configuration files to ensure the user can manually edit and save files in their editor.
+This prevents permission issues and ensures files remain editable. **This must be done before rebuilding.**
+
+### 2. Rebuild System (REQUIRED)
+**ALWAYS rebuild to apply configuration changes:**
+
+```bash
+rebuild
+```
+
+This command rebuilds the current host configuration using the local flake. 
+
+### 3. Test Changes (Optional)
+For testing changes without permanently switching, use:
+
+```bash
+sudo nixos-rebuild test --flake ~/nixos-config#<hostname> --impure
+```
+
+### Complete Workflow:
+1. **Edit configuration files**
+2. **`sudo chown -R $USER:users ~/nixos-config`** ← CRITICAL
+3. **`rebuild`** ← REQUIRED
+4. **Verify changes work correctly**
 
 ## Notes
 
@@ -214,5 +225,4 @@ This command should be run after editing configuration files to ensure the user 
 - The `customConfig` system requires understanding the options defined in `common-options.nix`
 - Host configurations should primarily set `customConfig` values rather than raw NixOS options
 - Unstable packages can be selectively enabled via `customConfig.packages.unstable-override`
-- **IMPORTANT**: After making file edits, run `sudo chown -R $USER:users ~/nixos-config` to restore proper file ownership
-- functional vs theme paradigm for wayland components
+- Functional vs theme paradigm for wayland components

@@ -11,16 +11,93 @@ let
 
   # Wallpaper paths for Cold War aviation theme
   wallpaperDir = config.home.homeDirectory + "/.local/share/wallpapers";
-  wallpaperF104 = wallpaperDir + "/f104-retro-future.jpg";
-  wallpaperSoviet = wallpaperDir + "/soviet-retro-future.jpg";
-  wallpaperConcorde = wallpaperDir + "/concorde-vertical-art.jpg";
-  wallpaperHangar1 = wallpaperDir + "/future-aviation-hanger-1.jpg";
+  
+  # Century Series wallpaper hierarchy - easy to customize
+  wallpapers = {
+    # Primary wallpapers (main displays)
+    primary-horizontal = wallpaperDir + "/f-15-satellite.jpg";
+    primary-vertical = wallpaperDir + "/carrier-top.jpg";
+    
+    # Secondary wallpapers (additional displays)  
+    secondary-horizontal = wallpaperDir + "/f-4-cockpit.png";
+    secondary-vertical = wallpaperDir + "/carrier-top.jpg";
+    
+    # Tertiary wallpapers (for systems with 3+ displays)
+    tertiary-horizontal = wallpaperDir + "/f-4-cockpit.png";
+    tertiary-vertical = wallpaperDir + "/carrier-top.jpg";
+    
+    # Default fallback
+    fallback = wallpaperDir + "/f-15-satellite.jpg";
+  };
 
-  # Monitor descriptions for hyprpaper (same as functional but used only for wallpaper assignment)
-  monitorDescMainDell = "Dell Inc. DELL S2721HGF DZR2123";
-  monitorDescLeftVirt = "Dell Inc. OptiPlex 7760 0x36419E0A";
-  monitorDescRightVirt = "Samsung Electric Company S27R65x H4TW800293";
-  monitorDescTV = "Hisense Electric Co. Ltd. 4Series43 0x00000278";
+  # Helper function to determine if a monitor is vertical (transform = 1 or 3)
+  isVertical = monitor: 
+    monitor.transform == "1" || monitor.transform == "3";
+
+  # Helper function to categorize monitors by orientation and priority
+  categorizeMonitors = monitors:
+    let
+      enabledMonitors = lib.filter (m: m.enabled) monitors;
+      horizontalMonitors = lib.filter (m: !(isVertical m)) enabledMonitors;
+      verticalMonitors = lib.filter (m: isVertical m) enabledMonitors;
+    in {
+      horizontal = horizontalMonitors;
+      vertical = verticalMonitors;
+      total = enabledMonitors;
+    };
+
+  # Function to assign wallpapers based on hierarchy
+  assignWallpaper = monitor: index: orientation:
+    let
+      wallpaperKey = 
+        if index == 0 then "primary-${orientation}"
+        else if index == 1 then "secondary-${orientation}" 
+        else "tertiary-${orientation}";
+      
+      wallpaper = wallpapers.${wallpaperKey} or wallpapers.fallback;
+    in wallpaper;
+
+  # Generate wallpaper assignments using the hierarchy system
+  generateWallpaperAssignments = monitors:
+    let
+      categorized = categorizeMonitors monitors;
+      
+      # Create assignments for horizontal monitors
+      horizontalAssignments = lib.imap0 (i: monitor:
+        let
+          identifierString = 
+            if lib.strings.hasPrefix "desc:" monitor.identifier
+            then monitor.identifier
+            else if (lib.strings.hasInfix " " monitor.identifier) || (lib.strings.hasInfix "." monitor.identifier)
+            then "desc:${monitor.identifier}"
+            else monitor.identifier;
+          wallpaper = assignWallpaper monitor i "horizontal";
+        in "${identifierString},${wallpaper}"
+      ) categorized.horizontal;
+
+      # Create assignments for vertical monitors  
+      verticalAssignments = lib.imap0 (i: monitor:
+        let
+          identifierString = 
+            if lib.strings.hasPrefix "desc:" monitor.identifier
+            then monitor.identifier
+            else if (lib.strings.hasInfix " " monitor.identifier) || (lib.strings.hasInfix "." monitor.identifier)
+            then "desc:${monitor.identifier}"
+            else monitor.identifier;
+          wallpaper = assignWallpaper monitor i "vertical";
+        in "${identifierString},${wallpaper}"
+      ) categorized.vertical;
+    in
+      horizontalAssignments ++ verticalAssignments;
+
+  # Determine wallpaper assignments
+  wallpaperAssignments = 
+    if (lib.length customConfig.desktop.monitors) > 0
+    then generateWallpaperAssignments customConfig.desktop.monitors
+    else [ ",${wallpapers.fallback}" ]; # Single monitor fallback
+
+  # Get all wallpapers needed for preloading
+  wallpapersToPreload = lib.unique (lib.attrValues wallpapers);
 
   # Border width configuration for MFD-style appearance
   mfdBorderSize = if centuryConfig.borderStyle or "mfd" == "mfd" then 3 else 2;
@@ -38,22 +115,16 @@ let
 in {
   config = mkIf centurySeriesThemeCondition {
     # Wallpaper file linking for Cold War aviation theme
-    home.file.".local/share/wallpapers/f104-retro-future.jpg".source = ../../../../assets/wallpapers/f104-retro-future.jpg;
-    home.file.".local/share/wallpapers/soviet-retro-future.jpg".source = ../../../../assets/wallpapers/soviet-retro-future.jpg;
-    home.file.".local/share/wallpapers/concorde-vertical-art.jpg".source = ../../../../assets/wallpapers/concorde-vertical-art.jpg;
-    home.file.".local/share/wallpapers/future-aviation-hanger-1.jpg".source = ../../../../assets/wallpapers/future-aviation-hanger-1.jpg;
+    home.file.".local/share/wallpapers/f-15-satellite.jpg".source = ../../../../assets/wallpapers/f-15-satellite.jpg;
+    home.file.".local/share/wallpapers/f-4-cockpit.png".source = ../../../../assets/wallpapers/f-4-cockpit.png;
+    home.file.".local/share/wallpapers/carrier-top.jpg".source = ../../../../assets/wallpapers/carrier-top.jpg;
 
     # Hyprpaper service for wallpaper management
     services.hyprpaper = {
       enable = true;
       settings = {
-        preload = [ wallpaperF104 wallpaperSoviet wallpaperConcorde wallpaperHangar1 ];
-        wallpaper = [
-          "desc:${monitorDescMainDell},${wallpaperF104}"           # F-104 on main monitor
-          "desc:${monitorDescLeftVirt},${wallpaperConcorde}"       # Concorde on left (vertical)
-          "desc:${monitorDescRightVirt},${wallpaperSoviet}"        # Soviet on right (vertical)
-          "desc:${monitorDescTV},${wallpaperHangar1}"              # Hangar on TV
-        ];
+        preload = wallpapersToPreload;
+        wallpaper = wallpaperAssignments;
         ipc = false;
         splash = false;
       };

@@ -119,6 +119,83 @@ in
         example = [ "kde" "hyprland" ];
         description = "A list of desktop environments or window managers to make available on the system.";
       };
+      monitors = mkOption {
+        type = with types; listOf (submodule {
+          options = {
+            name = mkOption {
+              type = types.str;
+              description = "A descriptive name for this monitor configuration.";
+              example = "main";
+            };
+            identifier = mkOption {
+              type = types.str;
+              description = "The monitor identifier. Can be a manufacturer description (desc:...) or output name (DP-1, HDMI-A-1, etc.).";
+              example = "Dell Inc. DELL S2721HGF DZR2123";
+            };
+            resolution = mkOption {
+              type = types.str;
+              default = "preferred";
+              description = "Monitor resolution and refresh rate.";
+              example = "1920x1080@144";
+            };
+            position = mkOption {
+              type = types.str;
+              default = "0x0";
+              description = "Monitor position in pixels (x,y).";
+              example = "1920x0";
+            };
+            scale = mkOption {
+              type = types.str;
+              default = "1";
+              description = "Monitor scaling factor.";
+              example = "1.5";
+            };
+            transform = mkOption {
+              type = types.nullOr (types.enum [ "0" "1" "2" "3" ]);
+              default = null;
+              description = "Monitor rotation: 0=normal, 1=90°, 2=180°, 3=270°.";
+            };
+            enabled = mkOption {
+              type = types.bool;
+              default = true;
+              description = "Whether this monitor configuration is enabled.";
+            };
+          };
+        });
+        default = [];
+        description = "List of monitor configurations for Hyprland.";
+        example = literalExpression ''
+          [
+            {
+              name = "main";
+              identifier = "Dell Inc. DELL S2721HGF DZR2123";
+              resolution = "1920x1080@144";
+              position = "0x0";
+              scale = "1";
+            }
+            {
+              name = "secondary";
+              identifier = "DP-2";
+              resolution = "1920x1080@60";
+              position = "1920x0";
+              scale = "1";
+            }
+          ]
+        '';
+      };
+      wayvnc = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Whether to enable wayvnc VNC server for Hyprland.";
+        };
+        targetMonitor = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = "Name of the monitor to use for wayvnc. Corresponds to monitor.name in desktop.monitors.";
+          example = "tv";
+        };
+      };
       displayManager = {
         enable = mkOption {
           type = types.bool;

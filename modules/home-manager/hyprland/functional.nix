@@ -1,14 +1,42 @@
-# ~/nixos-config/
+# ~/nixos-config/modules/home-manager/hyprland/functional.nix
 
 { config, pkgs, lib, customConfig, ... }:
 
 let
-  # Monitor descriptions (functional, as they define layout)
-  monitorDescMainDell = "Dell Inc. DELL S2721HGF DZR2123";
-  monitorDescLeftVirt = "Dell Inc. OptiPlex 7760 0x36419E0A";
-  monitorDescRightVirt = "Samsung Electric Company S27R65x H4TW800293";
-  monitorDescTV = "Hisense Electric Co. Ltd. 4Series43 0x00000278";
-  targetWayvncMonitorDescription = monitorDescTV;
+  # Helper function to generate Hyprland monitor configuration
+  generateMonitorConfig = monitor: 
+    let
+      # Determine if identifier should use desc: prefix
+      identifierString = 
+        if lib.strings.hasPrefix "desc:" monitor.identifier
+        then monitor.identifier
+        else if (lib.strings.hasInfix " " monitor.identifier) || (lib.strings.hasInfix "." monitor.identifier)
+        then "desc:${monitor.identifier}"
+        else monitor.identifier;
+      
+      # Build transform string
+      transformString = if monitor.transform != null then ", transform,${monitor.transform}" else "";
+    in
+    "${identifierString}, ${monitor.resolution}, ${monitor.position}, ${monitor.scale}${transformString}";
+
+  # Get the wayvnc target monitor description
+  wayvncTargetMonitor = 
+    if customConfig.desktop.wayvnc.enable && customConfig.desktop.wayvnc.targetMonitor != null
+    then 
+      let 
+        targetMon = lib.findFirst 
+          (m: m.name == customConfig.desktop.wayvnc.targetMonitor) 
+          null 
+          customConfig.desktop.monitors;
+      in
+        if targetMon != null 
+        then if lib.strings.hasPrefix "desc:" targetMon.identifier
+             then targetMon.identifier
+             else if (lib.strings.hasInfix " " targetMon.identifier) || (lib.strings.hasInfix "." targetMon.identifier)
+             then "desc:${targetMon.identifier}"
+             else targetMon.identifier
+        else null
+    else null;
 in
 {
   imports = [
@@ -49,22 +77,28 @@ in
         "$fileManager" = "${pkgs.cosmic-files}/bin/cosmic-files"; # Ensure cosmic-files is available
         "$menu" = "${pkgs.wofi}/bin/wofi --show drun"; # Ensure wofi is available
 
-        # Monitor configuration
-        monitor = [
-          "desc:${monitorDescMainDell}, 1920x1080@144, 0x0, 1"
-          "desc:${monitorDescLeftVirt}, preferred, -1080x-410, 1, transform,1"
-          "desc:${monitorDescRightVirt}, preferred, 1920x-390, 1, transform,1"
-          "desc:${monitorDescTV}, preferred, 0x-1080, 1"
-        ];
+        # Monitor configuration from customConfig
+        monitor = lib.mkDefault (
+          let
+            enabledMonitors = lib.filter (m: m.enabled) customConfig.desktop.monitors;
+          in
+            if (lib.length enabledMonitors) > 0
+            then map generateMonitorConfig enabledMonitors
+            else [ "preferred" ] # Default configuration for single monitor systems
+        );
 
         # exec-once: For functional startup applications
-        "exec-once" = [
-          "${pkgs.wayvnc}/bin/wayvnc --render-cursor localhost 5900"
-          "set-wayvnc-output \"${targetWayvncMonitorDescription}\" > /tmp/set-wayvnc-output.log 2>&1"
-          "${pkgs.waybar}/bin/waybar &"
-          "${pkgs.hyprpaper}/bin/hyprpaper &"
-          "${pkgs.gammastep}/bin/gammastep &"
-        ];
+        "exec-once" = lib.mkDefault (
+          (lib.optionals customConfig.desktop.wayvnc.enable [
+            "${pkgs.wayvnc}/bin/wayvnc --render-cursor localhost 5900"
+          ] ++ lib.optionals (customConfig.desktop.wayvnc.enable && wayvncTargetMonitor != null) [
+            "set-wayvnc-output \"${wayvncTargetMonitor}\" > /tmp/set-wayvnc-output.log 2>&1"
+          ]) ++ [
+            "${pkgs.waybar}/bin/waybar &"
+            "${pkgs.hyprpaper}/bin/hyprpaper &"
+            "${pkgs.gammastep}/bin/gammastep &"
+          ]
+        );
 
         # Environment variables
         env = [
@@ -119,16 +153,16 @@ in
           # Applications
           "$mainMod, SPACE, exec, $menu"
           "$mainMod, RETURN, exec, $terminal"
-          "$mainMod, I, exec, ${pkgs.vscode}/bin/vscode"
+          "$mainMod, I, exec, ${pkgs.vscode}/bin/code"
           "$mainMod, T, exec, ${pkgs.kdePackages.kate}/bin/kate"
           "$mainMod, F, exec, $terminal -e ${pkgs.yazi}/bin/yazi"
           "$mainMod SHIFT, F, exec, ${pkgs.cosmic-files}/bin/cosmic-files"
           "$mainMod, B, exec, ${pkgs.librewolf}/bin/librewolf"
-          "$mainMod SHIFT, B, exec, ${pkgs.brave}/bin/brave"
+          "$mainMod SHIFT, B, exec, ${pkgs.brave}/bin/brave" # not working
           "$mainMod, M, exec, ${pkgs.spotify}/bin/spotify --enable-features=UseOzonePlatform --ozone-platform=wayland"
-          "$mainMod, D, exec, ${pkgs.discord}/bin/discord-canary"
-          "$mainMod, G, exec, ${pkgs.steam.run}/bin/steam"
-          "$mainMod SHIFT, G, exec, ${pkgs.lutris}/bin/lutris"
+          "$mainMod, D, exec, ${pkgs.discord-canary}/bin/discord-canary" # not working
+          "$mainMod, G, exec, ${pkgs.steam.run}/bin/steam" # not working
+          "$mainMod SHIFT, G, exec, ${pkgs.lutris}/bin/lutris" 
 
           # Window Management
           "$mainMod, Q, killactive,"
@@ -162,7 +196,7 @@ in
           "$mainMod $ctrlMod, less, movetoworkspace, e-1"
 
           # System & Utility Bindings
-          "$ctrlMod, L, exec, ${pkgs.swaylock}/bin/swaylock"
+          "$ctrlMod, L, exec, ${pkgs.swaylock}/bin/swaylock" # needs full theme overhaul
           "$mainMod, V, exec, ${pkgs.cliphist}/bin/cliphist list | ${pkgs.wofi}/bin/wofi --dmenu | ${pkgs.cliphist}/bin/cliphist decode | ${pkgs.wl-clipboard}/bin/wl-copy"
           "$mainMod SHIFT, S, exec, ${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp)\" ${config.home.homeDirectory}/Pictures/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
           "$mainMod SHIFT, R, exec, hyprctl reload"
@@ -209,7 +243,6 @@ in
       discord-canary
 
       # From Hyprland exec/binds not covered by services:
-      wayvnc
       (if pkgs ? vscode then vscode else null) # Conditional if package might not exist
       swaylock
       grim
@@ -218,6 +251,8 @@ in
       playerctl
       pulseaudio # For pactl
 
+    ] ++ lib.optionals customConfig.desktop.wayvnc.enable [
+      wayvnc
     ];
   };
 }

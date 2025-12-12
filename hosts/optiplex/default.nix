@@ -34,6 +34,42 @@
         enable = true; # false will go to TTY but not autolaunch a DE
         type = "ly";
       };
+      monitors = [
+        {
+          name = "main";
+          identifier = "Dell Inc. DELL S2721HGF DZR2123";
+          resolution = "1920x1080@144";
+          position = "0x0";
+          scale = "1";
+        }
+        {
+          name = "left";
+          identifier = "Dell Inc. OptiPlex 7760 0x36419E0A";
+          resolution = "preferred";
+          position = "-1080x-410";
+          scale = "1";
+          transform = "1";
+        }
+        {
+          name = "right";
+          identifier = "Samsung Electric Company S27R65x H4TW800293";
+          resolution = "preferred";
+          position = "1920x-390";
+          scale = "1";
+          transform = "1";
+        }
+        {
+          name = "tv";
+          identifier = "Hisense Electric Co. Ltd. 4Series43 0x00000278";
+          resolution = "preferred";
+          position = "0x-1080";
+          scale = "1";
+        }
+      ];
+      wayvnc = {
+        enable = true;
+        targetMonitor = "tv";
+      };
     };
 
     hardware = {

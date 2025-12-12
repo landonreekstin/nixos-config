@@ -35,6 +35,17 @@
 
     desktop = {
       environments = [ "kde" ]; # Set to "hyprland", "cosmic", or "kde" based on your preference
+      # Monitor configuration for when Hyprland is enabled
+      # monitors = [
+      #   {
+      #     name = "main";
+      #     identifier = "DP-1"; # Update this with actual gaming-pc monitor identifier
+      #     resolution = "2560x1440@165";
+      #     position = "0x0";
+      #     scale = "1";
+      #     wallpaper = ../../assets/wallpapers/f104-retro-future.jpg;
+      #   }
+      # ];
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
         type = "ly"; # Or "greetd", "gdm", or "none" based on your preference for Optiplex
