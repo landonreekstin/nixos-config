@@ -97,6 +97,7 @@ in
             "${pkgs.waybar}/bin/waybar &"
             "${pkgs.hyprpaper}/bin/hyprpaper &"
             "${pkgs.gammastep}/bin/gammastep &"
+            "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1 &"
           ]
         );
 
@@ -153,6 +154,7 @@ in
           # Applications
           "$mainMod, SPACE, exec, $menu"
           "$mainMod, RETURN, exec, $terminal"
+          "$$ctrlMod SHIFT, ESCAPE, exec, $terminal -e ${pkgs.btop-rocm}/bin/btop"
           "$mainMod, I, exec, ${pkgs.vscode}/bin/code"
           "$mainMod, T, exec, ${pkgs.kdePackages.kate}/bin/kate"
           "$mainMod, F, exec, $terminal -e ${pkgs.yazi}/bin/yazi"
@@ -241,6 +243,7 @@ in
 
       # Core utilities from your original list, if not pulled by services:
       yazi
+      btop-rocm
       kdePackages.kate
       kdePackages.konsole # Often a dependency for Kate or other KDE apps
       librewolf

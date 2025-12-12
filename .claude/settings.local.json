@@ -22,7 +22,9 @@
       "Bash(waybar:*)",
       "Bash(python3:*)",
       "Bash(sed:*)",
-      "Bash(hyprctl:*)"
+      "Bash(hyprctl:*)",
+      "Bash(nix search:*)",
+      "Bash(/nix/store/d6dhy3smjmfhqzm3i10wawmywwq9i6xz-hyprpolkitagent-0.1.2/bin/hyprpolkitagent --help)"
     ],
     "deny": [],
     "ask": [],
