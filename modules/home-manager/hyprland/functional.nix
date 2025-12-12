@@ -191,9 +191,14 @@ in
           ]) (lib.lists.range 1 9)
         ) ++ [
           "$mainMod $ctrlMod, 0, workspace, 10"
-          "$mainMod $ctrlMod SHIFT, 0, movetoworkspace, 10"
-          "$mainMod $ctrlMod, greater, movetoworkspace, e+1"
-          "$mainMod $ctrlMod, less, movetoworkspace, e-1"
+          "$mainMod SHIFT, 0, movetoworkspace, 10"
+          # Workspace navigation
+          "$ctrlMod $mainMod, right, workspace, e+1"
+          "$ctrlMod $mainMod, left, workspace, e-1"
+          
+          # Move window to next/previous workspace
+          "$mainMod SHIFT, right, movetoworkspace, e+1"
+          "$mainMod SHIFT, left, movetoworkspace, e-1"
 
           # System & Utility Bindings
           "$ctrlMod, L, exec, ${pkgs.swaylock}/bin/swaylock" # needs full theme overhaul
