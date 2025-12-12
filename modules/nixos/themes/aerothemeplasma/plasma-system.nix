@@ -85,7 +85,7 @@ in {
   fonts = {
     packages = with pkgs; [
       corefonts
-      vistafonts
+      vista-fonts
     ];
     fontconfig = {
       enable = true;
