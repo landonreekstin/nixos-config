@@ -19,7 +19,6 @@
 
     environment.systemPackages = with pkgs; [
       kdePackages.xdg-desktop-portal-kde
-      kdePackages.xwaylandvideobridge
 
       kdePackages.kcalc
       kdePackages.kate

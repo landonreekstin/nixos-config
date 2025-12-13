@@ -65,8 +65,25 @@
       enable = true; # Enable Home Manager for this host
       themes = {
         plasmaOverride = true;
-        kde = "windows7";
+        kde = "windows7-alt";
         wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
+        pinnedApps = [
+          "applications:org.kde.konsole.desktop"
+          "applications:systemsettings.desktop"
+          "applications:org.kde.dolphin.desktop"
+          "applications:chromium-browser.desktop"
+          "applications:net.lutris.Lutris.desktop"
+          "applications:com.heroicgameslauncher.hgl.desktop"
+          "applications:steam.desktop"
+          "applications:com.discordapp.Discord.desktop"
+          "applications:com.spotify.Client.desktop"
+          "applications:org.kde.plasma-systemmonitor.desktop"
+          "applications:org.kde.kcalc.desktop"
+          "applications:polychromatic.desktop"
+          "applications:input-remapper-gtk.desktop"
+          "applications:OpenRGB.desktop"
+          "applications:io.github.nuttyartist.notes.desktop"
+        ];
       };
     };
 
@@ -89,6 +106,7 @@
         vscode
         librewolf
         brave
+        ungoogled-chromium
         #discord-canary
         #discord
         obs-studio

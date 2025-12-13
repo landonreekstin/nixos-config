@@ -57,6 +57,7 @@ in
       ];
 
       shellHook = ''
+        export PS1='\[\033[1;35m\][gbdk-dev]\[\033[0m\] \[\033[1;34m\]\w\[\033[0m\]\$ '
         export GBDK_HOME="${gbdk}"
         echo "--- GBDK 2020 Dev Shell ---"
         echo "GBDK_HOME is set to: $GBDK_HOME"

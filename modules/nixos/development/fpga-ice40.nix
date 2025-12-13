@@ -41,6 +41,7 @@ in
       ];
 
       shellHook = ''
+        export PS1='\[\033[1;36m\][fpga-dev]\[\033[0m\] \[\033[1;34m\]\w\[\033[0m\]\$ '
         echo "--- Nix FPGA iCE40 Development Environment ---"
         echo "Available commands: yosys, nextpnr-ice40, icepack, iceprog, iverilog, gtkwave, make"
         echo "Run 'make' to see build targets for a Verilog file."

@@ -3,7 +3,7 @@
   description = "Lando's Modular NixOS Configuration";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
 
     nixpkgs-unstable = {
       url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -29,7 +29,7 @@
     };
 
     home-manager = {
-      url = "github:nix-community/home-manager/release-25.05";
+      url = "github:nix-community/home-manager/release-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -61,7 +61,7 @@
       # Create the package set for our system. This is the correct way.
       pkgs = nixpkgs.legacyPackages.${system};
       unstablePkgs = import nixpkgs-unstable {
-        system = system;
+        system = system;  # This is allowed in import context
         config.allowUnfree = true;
       };
       lib = nixpkgs.lib;
@@ -89,7 +89,6 @@
 
       # Configuration for the Optiplex host
       optiplex = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
         # Pass flake inputs down to the modules if needed (good practice)
         specialArgs = specialArgs;
         modules = [
@@ -97,83 +96,92 @@
           ./hosts/optiplex/default.nix
           # home-manager module
           inputs.home-manager.nixosModules.default
+          # Set system architecture
+          { nixpkgs.hostPlatform = "x86_64-linux"; }
         ];
       };
 
       # Configuration for the Gaming PC
       gaming-pc = nixpkgs.lib.nixosSystem {
-         system = "x86_64-linux";
          specialArgs = specialArgs;
-         modules = [ 
-          ./hosts/gaming-pc/default.nix 
+         modules = [
+          ./hosts/gaming-pc/default.nix
           inputs.home-manager.nixosModules.default
-          inputs.nixos-cosmic.nixosModules.default 
+          inputs.nixos-cosmic.nixosModules.default
           inputs.nur.modules.nixos.default
+          # Set system architecture
+          { nixpkgs.hostPlatform = "x86_64-linux"; }
         ];
       };
 
       # Configuration for Blaney's PC
       blaney-pc = nixpkgs.lib.nixosSystem {
-         system = "x86_64-linux";
          specialArgs = specialArgs;
-         modules = [ 
-          ./hosts/blaney-pc/default.nix 
-          inputs.home-manager.nixosModules.default 
+         modules = [
+          ./hosts/blaney-pc/default.nix
+          inputs.home-manager.nixosModules.default
+          # Set system architecture
+          { nixpkgs.hostPlatform = "x86_64-linux"; }
         ];
       };
 
       # Configuration for Justus's PC
       justus-pc = nixpkgs.lib.nixosSystem {
-         system = "x86_64-linux";
          specialArgs = specialArgs;
          modules = [
           ./hosts/justus-pc/default.nix
-          inputs.home-manager.nixosModules.default 
+          inputs.home-manager.nixosModules.default
           inputs.disko.nixosModules.default
+          # Set system architecture
+          { nixpkgs.hostPlatform = "x86_64-linux"; }
         ];
       };
 
       # Configuration for the Asus ROG Zephyrus G14 Laptop
       asus-laptop = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
         specialArgs = specialArgs;
-        modules = [ 
-          ./hosts/asus-laptop/default.nix 
-          inputs.home-manager.nixosModules.default 
+        modules = [
+          ./hosts/asus-laptop/default.nix
+          inputs.home-manager.nixosModules.default
+          # Set system architecture
+          { nixpkgs.hostPlatform = "x86_64-linux"; }
         ];
       };
 
       # Configuration for the Asus ROG Zephyrus M15 Laptop
       asus-m15 = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
         specialArgs = specialArgs;
-        modules = [ 
-          ./hosts/asus-m15/default.nix 
+        modules = [
+          ./hosts/asus-m15/default.nix
           inputs.home-manager.nixosModules.default
-          inputs.nur.modules.nixos.default 
+          inputs.nur.modules.nixos.default
           inputs.disko.nixosModules.default
+          # Set system architecture
+          { nixpkgs.hostPlatform = "x86_64-linux"; }
         ];
       };
 
       # Configuration for Atlanta Mini PC
       atl-mini-pc = nixpkgs.lib.nixosSystem {
-         system = "x86_64-linux";
          specialArgs = specialArgs;
          modules = [
           ./hosts/atl-mini-pc/default.nix
-          inputs.home-manager.nixosModules.default 
+          inputs.home-manager.nixosModules.default
           inputs.disko.nixosModules.default
+          # Set system architecture
+          { nixpkgs.hostPlatform = "x86_64-linux"; }
         ];
       };
 
       # Configuration for the Optiplex NAS
       optiplex-nas = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
         specialArgs = specialArgs;
         modules = [
           ./hosts/optiplex-nas/default.nix
           inputs.home-manager.nixosModules.default
           inputs.disko.nixosModules.default
+          # Set system architecture
+          { nixpkgs.hostPlatform = "x86_64-linux"; }
         ];
       };
     };

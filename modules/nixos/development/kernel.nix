@@ -327,6 +327,7 @@ in
       ];
 
       shellHook = ''
+        export PS1='\[\033[1;32m\][kernel-dev]\[\033[0m\] \[\033[1;34m\]\w\[\033[0m\]\$ '
         export LKP_GUEST_PATH="$HOME/kernel-dev"
         echo "Entered Linux Kernel Development Shell."
         echo "--------------------------------------------------------"

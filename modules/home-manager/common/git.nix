@@ -3,7 +3,9 @@
 {
   programs.git = {
     enable = true;
-    userName = customConfig.user.name; # The display name
-    userEmail = customConfig.user.email;
+    settings = {
+      user.name = customConfig.user.name; # The display name
+      user.email = customConfig.user.email;
+    };
   };
 }

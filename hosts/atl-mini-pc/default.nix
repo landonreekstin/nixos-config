@@ -50,7 +50,6 @@
 
     programs = {
       partydeck.enable = false;
-      flatpak.enable = true;
     };
 
     homeManager = {
@@ -65,7 +64,7 @@
       nixos = with pkgs; [
 
       ];
-      unstable-override = [ 
+      unstable-override = [
         "firefox"
         "chromium"
       ];
@@ -75,6 +74,7 @@
         firefox
         libreoffice
       ];
+      flatpak.enable = true;
     };
 
     apps = {

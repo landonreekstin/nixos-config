@@ -94,9 +94,29 @@
     homeManager = {
       enable = true;
       themes = {
-        plasmaOverride = true;
-        kde = "default";
-        hyprland = "century-series";
+        plasmaOverride = false;
+        kde = "windows7-alt";
+        hyprland = "future-aviation";
+        wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
+        pinnedApps = [
+          "applications:org.kde.konsole.desktop"
+          "applications:systemsettings.desktop"
+          "applications:org.kde.dolphin.desktop"
+          "applications:chromium-browser.desktop"
+          "applications:net.lutris.Lutris.desktop"
+          "applications:com.heroicgameslauncher.hgl.desktop"
+          "applications:steam.desktop"
+          "applications:com.discordapp.Discord.desktop"
+          "applications:com.spotify.Client.desktop"
+          "applications:org.kde.plasma-systemmonitor.desktop"
+          "applications:org.kde.kcalc.desktop"
+          "applications:code.desktop"
+          "applications:polychromatic.desktop"
+          "applications:input-remapper-gtk.desktop"
+          "applications:librewolf.desktop"
+          "applications:OpenRGB.desktop"
+          "applications:io.github.nuttyartist.notes.desktop"
+        ];
       };
     };
 
@@ -107,7 +127,6 @@
         claude-code
       ];
       unstable-override = [ 
-        "discord-canary"  
         "vscode"
         "librewolf"
         "ungoogled-chromium"
@@ -118,12 +137,13 @@
         vscode
         librewolf
         ungoogled-chromium
-        discord-canary
+        notes
       ];
       flatpak = {
         enable = true;
         packages = [
           "com.spotify.Client"
+          "com.discordapp.Discord"
         ];
       };
     };

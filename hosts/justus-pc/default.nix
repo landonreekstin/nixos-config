@@ -55,9 +55,7 @@
       nvidia = {
         enable = true;
       };
-    };
-
-    peripherals = {
+      peripherals = {
         enable = true; # Enable peripheral configurations
         openrgb.enable = true; # Enable OpenRGB for RGB control
         openrazer.enable = false; # Enable OpenRazer for Razer device support
@@ -65,6 +63,7 @@
         input-remapper.enable = true;
         solaar.enable = false;
       };
+    };
 
     programs = {
       partydeck.enable = false;

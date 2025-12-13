@@ -13,5 +13,6 @@
     ./desktop/default.nix
     ./development/default.nix
     ./homelab/default.nix
+    ./themes/aerothemeplasma/plasma-system.nix
   ];
 }

@@ -9,6 +9,7 @@ in
         programs.ssh = {
 
             enable = true;
+            enableDefaultConfig = false;
 
             matchBlocks = {
             "openbsd-t620" = {
