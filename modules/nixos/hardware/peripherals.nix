@@ -5,6 +5,11 @@ let
   cfg = config.customConfig.hardware.peripherals;
   user = config.customConfig.user.name;
 
+  # Override ckb-next to disable dbusmenu (requires removed dbusmenu-qt5 in 25.11)
+  ckb-next-fixed = pkgs.ckb-next.overrideAttrs (oldAttrs: {
+    cmakeFlags = (oldAttrs.cmakeFlags or []) ++ [ "-DUSE_DBUS_MENU=0" ];
+  });
+
 in
 {
   config = lib.mkIf cfg.enable {
@@ -23,7 +28,10 @@ in
     };
 
     # === ckb-next for Corsair Device Support ===
-    hardware.ckb-next.enable = lib.mkIf cfg.ckb-next.enable true;
+    hardware.ckb-next = lib.mkIf cfg.ckb-next.enable {
+      enable = true;
+      package = ckb-next-fixed;
+    };
 
     # === Systemd service to turn off ckb-next lights on shutdown ===
     systemd.services.ckb-next-off = lib.mkIf cfg.ckb-next.enable {
@@ -86,7 +94,7 @@ in
       # Razer
       ++ optionals cfg.openrazer.enable [ openrazer-daemon polychromatic ]
       # Corsair
-      ++ optionals cfg.ckb-next.enable [ ckb-next ]
+      ++ optionals cfg.ckb-next.enable [ ckb-next-fixed ]
       # Logitech
       ++ optionals cfg.solaar.enable [ solaar ]
       # Input Remapper

@@ -191,7 +191,7 @@ aerotheme-assets = pkgs.stdenv.mkDerivation {
 
 in
 {
-  imports = [ inputs.plasma-manager.homeManagerModules.plasma-manager ];
+  imports = [ inputs.plasma-manager.homeModules.plasma-manager ];
 
   config = lib.mkIf (plasmaWindows7Condition) {
 
