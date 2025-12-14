@@ -18,13 +18,12 @@ let
     "proton-ge-bin"
     "xpadneo" # The package for the kernel module
   ];
-in
+in 
 {
 
   # == Configuration ==
   config = lib.mkIf config.customConfig.profiles.gaming.enable {
 
-    # 1. Add Core Gaming Packages
     environment.systemPackages = with pkgs.unstable; [
       # Launchers / Compatibility Layers
       steam # Check prerequisites (32-bit libs, vulkan drivers - nvidia module should handle these)
@@ -50,19 +49,16 @@ in
       # Games
       superTuxKart
 
-      # Screen Recording
+      # Screen Recorder
       gpu-screen-recorder-gtk
     ];
 
     programs.gpu-screen-recorder.enable = true;
 
-    # Enable gaming programs
-    # Allows games (especially via Lutris/Steam) to request performance optimizations
     programs.steam = {
       enable = true;
       package = pkgs.unstable.steam;
       extraCompatPackages = with pkgs.unstable; [
-        # Add any additional compatibility packages needed by Steam
         proton-ge-bin
       ];
       gamescopeSession.enable = true;
@@ -76,15 +72,10 @@ in
       enable = true;
       package = pkgs.unstable.gamescope;
     };
-
-    # Enable 32-bit libraries (often needed by Steam/Wine/games)
-    # Note: The Nvidia module might already enable this, but being explicit is fine.
-    hardware.graphics.enable = true; # Ensure base OpenGL is set up
-    hardware.graphics.enable32Bit = true;
-
-    # Configure Kernel
-    # boot.kernelPackages = pkgs.linuxPackages_latest; # Example: Using Nixpkgs latest stable
-    boot.kernelPackages = pkgs.linuxPackages_zen;
+    hardware.graphics = {
+      enable = true;
+      enable32Bit = true;
+    };
 
     # Gamepad Input
     hardware.xpadneo.enable = true;

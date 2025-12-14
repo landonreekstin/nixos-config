@@ -166,9 +166,7 @@
   };
 
   # === Additional nixos configuration for this host ===
-  #hardware.ckb-next.enable = true;
   services.mullvad-vpn.enable = true;
-  services.flatpak.enable = true;
   # Enable the Samba client-side name resolution daemon (nmbd).
   # This allows the PC to discover other Samba hosts (like optiplex-nas)
   # on the local network by their hostname.

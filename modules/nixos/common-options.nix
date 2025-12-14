@@ -508,7 +508,6 @@ in
           };
         };
       };
-      # Add options for amdgpu, intel, bluetooth etc. here later
     };
 
     # -------------------------------------------------------------------------- #
