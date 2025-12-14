@@ -89,11 +89,16 @@
 
     packages = {
       nixos = with pkgs; [
-
+        vim
+        wget
+        fd
+        htop
+        kitty
+        pavucontrol
       ];
-      unstable-override = [ 
-        "discord-canary" 
-        "obs-studio" 
+      unstable-override = [
+        "discord-canary"
+        "obs-studio"
         "vscode"
         "librewolf"
         "brave"
@@ -136,12 +141,12 @@
     services = {
       ssh.enable = false;
       vscodeServer.enable = false;
-      passwordManager.enable = true;
     };
 
   };
-  
+
   # === Additional nixos configuration for this host ===
+  services.mullvad-vpn.enable = true;
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {

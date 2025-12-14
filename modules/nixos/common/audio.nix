@@ -15,9 +15,5 @@
     # jack.enable = true; # Enable JACK emulation if needed
   };
 
-  environment.systemPackages = with pkgs; [
-    pavucontrol
-  ];
-
   hardware.bluetooth.enable = true;
 }

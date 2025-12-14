@@ -72,12 +72,6 @@
       nvidia = {
         enable = true; # Set to true if Optiplex has an NVIDIA GPU needing proprietary drivers
       };
-      peripherals = {
-        enable = true; # Enable peripheral configurations
-        openrgb.enable = true; # Enable OpenRGB for RGB control
-        openrazer.enable = false; # Enable OpenRazer for Razer device support
-        ckb-next.enable = true; # Enable CKB-Next for Corsair device support
-      };
     };
 
     programs = {
@@ -98,6 +92,7 @@
           { name = "GitHub";  url = "https://github.com"; }
         ];
       };
+      flatpak.enable = true;
     };
 
     homeManager = {
@@ -110,6 +105,7 @@
     packages = {
       nixos = with pkgs; [
         kitty
+        pavucontrol
         mullvad-vpn
 
         # smbclient and kio-extras for Dolphin network shares
@@ -117,9 +113,9 @@
         cifs-utils
         samba
       ];
-      unstable-override = [ 
-        "discord-canary" 
-        "obs-studio" 
+      unstable-override = [
+        "discord-canary"
+        "obs-studio"
         "vscode"
         "librewolf"
         "brave"
@@ -165,13 +161,14 @@
     services = {
       ssh.enable = true;
       vscodeServer.enable = true;
-      passwordManager.enable = true;
     };
 
   };
 
   # === Additional nixos configuration for this host ===
+  #hardware.ckb-next.enable = true;
   services.mullvad-vpn.enable = true;
+  services.flatpak.enable = true;
   # Enable the Samba client-side name resolution daemon (nmbd).
   # This allows the PC to discover other Samba hosts (like optiplex-nas)
   # on the local network by their hostname.

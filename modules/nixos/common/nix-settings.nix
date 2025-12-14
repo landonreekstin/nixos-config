@@ -1,5 +1,5 @@
 # ~/nixos-config/modules/nixos/common/nix-settings.nix
-{ config, pkgs, lib, unstablePkgs, ... }:
+{ config, pkgs, lib, ... }:
 {
 
   nix.settings = {

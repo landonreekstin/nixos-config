@@ -181,7 +181,7 @@ in
               default = 2.0;
               description = "The blur intensity for the form background.";
             };
-            
+
             roundCorners = mkOption {
               type = types.int;
               default = 20;
@@ -268,6 +268,13 @@ in
           '';
         };
       };
+      flatpak = {
+        enable = mkOption {
+          type = types.bool;
+          default = false; # Default to false, enable explicitly for Flatpak support
+          description = "Enable Flatpak packages for Spotify and Discord.";
+        };
+      };
     };
 
     # -------------------------------------------------------------------------- #
@@ -294,7 +301,6 @@ in
           default = "none";
           description = "Set the Plasma theme for Home Manager.";
         };
-        plasmaOverride = mkEnableOption "Override user-session set Plasma configuration.";
         hyprland = mkOption {
           type = types.enum [ "future-aviation" "none" ];
           default = "none";
@@ -338,12 +344,6 @@ in
         default = [];
         description = "List of additional system-wide packages to install via NixOS configuration.";
         example = "with pkgs; [ htop vim ]"; # For documentation
-      };
-      unstable-override = mkOption { 
-        type = with types; listOf str;
-        default = [];
-        description = "List of package attribute names to pull from the unstable channel.";
-        example = literalExpression ''[ "firefox" "obs-studio" ]'';
       };
       homeManager = mkOption { # User-specific packages
         type = with types; listOf package;
@@ -435,11 +435,11 @@ in
         description = "Whether to source the entire hardware stack (kernel, initrd modules, etc.) from nixpkgs-unstable.";
       };
       nvidia = {
-        enable = mkOption {
-          type = types.bool;
-          default = false; # Default to false, enable explicitly on NVIDIA machines
-          description = "Enable NVIDIA drivers and related configuration.";
-        };
+          enable = mkOption {
+            type = types.bool;
+            default = false; # Default to false, enable explicitly on NVIDIA machines
+            description = "Enable NVIDIA drivers and related configuration.";
+          };
         laptop = {
           enable = mkOption {
             type = types.bool;
@@ -447,18 +447,13 @@ in
             description = "Enable dual GPU and PRIME for Nvidia laptops.";
           };
           nvidiaID = mkOption {
-            type = types.nullOr types.str;
-            default = null; # Default to empty, can be set to specific GPU ID if needed
+            type = types.str;
+            default = ""; # Default to empty, can be set to specific GPU ID if needed
             description = "The NVIDIA GPU ID for PRIME configurations on laptops.";
           };
-          intelBusID = mkOption {
-            type = types.nullOr types.str;
-            default = null; # Default to empty, can be set to specific GPU ID if needed
-            description = "The Intel GPU ID for PRIME configurations on laptops.";
-          };
           amdgpuID = mkOption {
-            type = types.nullOr types.str;
-            default = null; # Default to empty, can be set to specific GPU ID if needed
+            type = types.str;
+            default = ""; # Default to empty, can be set to specific GPU ID if needed
             description = "The AMD GPU ID for PRIME configurations on laptops.";
           };
         };
@@ -513,6 +508,7 @@ in
           };
         };
       };
+      # Add options for amdgpu, intel, bluetooth etc. here later
     };
 
     # -------------------------------------------------------------------------- #
@@ -602,20 +598,6 @@ in
         # client = {
         #   enable = mkOption { ... };
         # };
-      };
-      passwordManager = {
-        enable = mkOption {
-          type = types.bool;
-          default = false;
-          description = "Enable KeePassXC and Syncthing for password management.";
-        };
-        folderPath = mkOption {
-          type = types.str;
-          # This default path requires the user to create the 'Sync' directory.
-          default = "${config.customConfig.user.home}/Sync/KeePass";
-          defaultText = literalExpression ''"''${config.customConfig.user.home}/Sync/KeePass"'';
-          description = "The absolute path for the Syncthing folder to store the KeePassXC database.";
-        };
       };
     };
 

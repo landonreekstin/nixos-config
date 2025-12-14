@@ -86,6 +86,7 @@
 
     programs = {
       partydeck.enable = false;
+      flatpak.enable = true;
     };
 
     homeManager = {
@@ -109,15 +110,15 @@
     };
 
     packages = {
-      nixos = with pkgs; [ 
+      nixos = with pkgs; [
 
       ];
-      unstable-override = [  
+      unstable-override = [
         "vscode"
         "chromium"
         "firefox"
       ];
-      homeManager = with pkgs; [ 
+      homeManager = with pkgs; [
         vscode
         chromium
         firefox
