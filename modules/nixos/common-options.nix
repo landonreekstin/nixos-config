@@ -345,6 +345,12 @@ in
         description = "List of additional system-wide packages to install via NixOS configuration.";
         example = "with pkgs; [ htop vim ]"; # For documentation
       };
+      unstable-override = mkOption {
+        type = with types; listOf str;
+        default = [];
+        description = "List of package attribute names to pull from the unstable channel.";
+        example = ''[ "discord-canary" "obs-studio" "vscode" ]'';
+      };
       homeManager = mkOption { # User-specific packages
         type = with types; listOf package;
         default = [];

@@ -185,7 +185,9 @@
     extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
     # Use the username from customConfig
     users.${config.customConfig.user.name} = { pkgs', lib', config'', ... }: { # config'' here is the HM config being built for this user
-      imports = [ 
+      imports = [
+        # === Plasma Manager ===
+        inputs.plasma-manager.homeManagerModules.plasma-manager
         # === Common User Environment Modules ===
         ../../modules/home-manager/default.nix
       ];

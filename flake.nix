@@ -48,7 +48,7 @@
     nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=latest";
   };
 
-  outputs = { self, nixpkgs, disko, nixos-hardware, nixos-cosmic, home-manager, plasma-manager, nixos-vscode-server, nix-flatpak, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-unstable, disko, nixos-hardware, nixos-cosmic, home-manager, plasma-manager, nixos-vscode-server, nix-flatpak, ... }@inputs:
     let
       # Define the target system
       system = "x86_64-linux";
