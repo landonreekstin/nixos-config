@@ -22,11 +22,6 @@
       url = "github:nix-community/disko/latest";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    
-    nixos-cosmic = {
-      url = "github:lilyinstarlight/nixos-cosmic";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
 
     home-manager = {
       url = "github:nix-community/home-manager/release-25.11";
@@ -48,7 +43,7 @@
     nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=latest";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, disko, nixos-hardware, nixos-cosmic, home-manager, plasma-manager, nixos-vscode-server, nix-flatpak, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-unstable, disko, nixos-hardware, home-manager, plasma-manager, nixos-vscode-server, nix-flatpak, ... }@inputs:
     let
       # Define the target system
       system = "x86_64-linux";
@@ -102,7 +97,6 @@
          modules = [
           ./hosts/gaming-pc/default.nix
           inputs.home-manager.nixosModules.default
-          inputs.nixos-cosmic.nixosModules.default
           inputs.nur.modules.nixos.default
           # Set system architecture
           { nixpkgs.hostPlatform = "x86_64-linux"; }
