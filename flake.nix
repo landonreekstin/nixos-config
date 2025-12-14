@@ -45,15 +45,10 @@
        inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    nixai = {
-      url = "github:olafkfreund/nix-ai-help";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=latest";
   };
 
-  outputs = { self, nixpkgs, disko, nixos-hardware, nixos-cosmic, home-manager, plasma-manager, nixos-vscode-server, nixai, nix-flatpak, ... }@inputs:
+  outputs = { self, nixpkgs, disko, nixos-hardware, nixos-cosmic, home-manager, plasma-manager, nixos-vscode-server, nix-flatpak, ... }@inputs:
     let
       # Define the target system
       system = "x86_64-linux";

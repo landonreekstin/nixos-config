@@ -114,7 +114,7 @@ in
           description = "Whether to enable a desktop environment.";
         };
       environments = mkOption {
-        type = types.listOf (types.enum [ "hyprland" "cosmic" "kde" "pantheon" "none" ]);
+        type = types.listOf (types.enum [ "hyprland" "cosmic" "kde" "none" ]);
         default = []; # Default to an empty list
         example = [ "kde" "hyprland" ];
         description = "A list of desktop environments or window managers to make available on the system.";
@@ -128,7 +128,7 @@ in
           description = "Whether to enable a display manager.";
         };
         type = mkOption {
-          type = types.enum [ "sddm" "cosmic" "gdm" "greetd" "ly" "pantheon" "none" ]; # Add more as needed
+          type = types.enum [ "sddm" "cosmic" "gdm" "greetd" "ly" "none" ]; # Add more as needed
           default = "sddm"; # A common default, adjust as preferred
           description = "Which display manager to use if displayManager.enable is true. 'none' means no DM managed by this option.";
         };
@@ -523,20 +523,12 @@ in
         # port = mkOption { type = types.port; default = 22; };
       };
       vscodeServer = {
-        enable = mkOption { 
-          type = types.bool; 
-          default = false; 
-          description = "Enable vscode server."; 
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable vscode server.";
         };
         # port = mkOption { type = types.port; default = 22; };
-      };
-      nixai = {
-        enable = mkOption { 
-          type = types.bool; 
-          default = false; 
-          description = "Enable NixAI MCP server."; 
-        };
-        # You can add more options for NixAI here, like model, port, etc.
       };
       wireguard = {
         server = {

@@ -41,9 +41,6 @@ config = lib.mkIf cfg.enable {
       };
     };
 
-    # == LightDM + Pantheon Greeter Configuration ==
-    services.xserver.displayManager.lightdm.greeters.pantheon.enable = lib.mkIf (cfg.type == "pantheon") true;
-
     # == Auto-Login / Direct Session Start Configuration ==
     # Enable these only if 'none' is selected AND a target desktop profile is enabled
     # NOTE: This currently prioritizes Hyprland if both Cosmic and Hyprland are enabled.

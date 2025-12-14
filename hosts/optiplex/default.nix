@@ -128,7 +128,6 @@
     services = {
       ssh.enable = true;
       vscodeServer.enable = true;
-      nixai.enable = false;
     };
 
   };

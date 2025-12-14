@@ -37,7 +37,7 @@
       environments = [ "kde" ]; # Set to "hyprland", "cosmic", or "kde" based on your preference
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "ly"; # Or "greetd", "gdm", or "none" based on your preference for Optiplex
+        type = "ly"; # Or "greetd", "gdm", or "none" based on your preference
         sddm = {
           theme = "sddm-astronaut";
           #embeddedTheme = "pixel_sakura";
