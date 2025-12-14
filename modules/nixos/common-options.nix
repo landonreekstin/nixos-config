@@ -196,6 +196,70 @@ in
           example = "tv";
         };
       };
+      hyprland = {
+        applications = {
+          taskManager = mkOption {
+            type = types.str;
+            default = "${pkgs.btop-rocm}/bin/btop";
+            description = "Command to launch task manager (Ctrl+Shift+Escape in terminal).";
+            example = "\${pkgs.htop}/bin/htop";
+          };
+          ide = mkOption {
+            type = types.str;
+            default = "${pkgs.vscode}/bin/code";
+            description = "Command to launch IDE (Super+I).";
+            example = "\${pkgs.neovim}/bin/nvim";
+          };
+          editor = mkOption {
+            type = types.str;
+            default = "${pkgs.kdePackages.kate}/bin/kate";
+            description = "Command to launch text editor (Super+T).";
+            example = "\${pkgs.vim}/bin/vim";
+          };
+          fileManagerTUI = mkOption {
+            type = types.str;
+            default = "${pkgs.yazi}/bin/yazi";
+            description = "Command to launch terminal file manager (Super+F in terminal).";
+            example = "\${pkgs.ranger}/bin/ranger";
+          };
+          browser = mkOption {
+            type = types.str;
+            default = "${pkgs.librewolf}/bin/librewolf";
+            description = "Command to launch primary browser (Super+B).";
+            example = "\${pkgs.firefox}/bin/firefox";
+          };
+          browserAlt = mkOption {
+            type = types.str;
+            default = "${pkgs.brave}/bin/brave";
+            description = "Command to launch alternative browser (Super+Shift+B).";
+            example = "\${pkgs.chromium}/bin/chromium";
+          };
+          music = mkOption {
+            type = types.str;
+            default = "${pkgs.spotify}/bin/spotify --enable-features=UseOzonePlatform --ozone-platform=wayland";
+            description = "Command to launch music player (Super+M).";
+            example = "\${pkgs.rhythmbox}/bin/rhythmbox";
+          };
+          chat = mkOption {
+            type = types.str;
+            default = "${pkgs.discord}/bin/discord";
+            description = "Command to launch chat application (Super+D).";
+            example = "\${pkgs.element-desktop}/bin/element-desktop";
+          };
+          gaming = mkOption {
+            type = types.str;
+            default = "steam";
+            description = "Command to launch primary gaming platform (Super+G).";
+            example = "\${pkgs.steam}/bin/steam";
+          };
+          gamingAlt = mkOption {
+            type = types.str;
+            default = "${pkgs.lutris}/bin/lutris";
+            description = "Command to launch alternative gaming platform (Super+Shift+G).";
+            example = "\${pkgs.heroic}/bin/heroic";
+          };
+        };
+      };
       displayManager = {
         enable = mkOption {
           type = types.bool;
