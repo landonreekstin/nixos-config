@@ -72,12 +72,6 @@
       nvidia = {
         enable = true; # Set to true if Optiplex has an NVIDIA GPU needing proprietary drivers
       };
-      peripherals = {
-        enable = true; # Enable peripheral configurations
-        openrgb.enable = true; # Enable OpenRGB for RGB control
-        openrazer.enable = false; # Enable OpenRazer for Razer device support
-        ckb-next.enable = true; # Enable CKB-Next for Corsair device support
-      };
     };
 
     programs = {
@@ -110,6 +104,7 @@
     packages = {
       nixos = with pkgs; [
         kitty
+        pavucontrol
         mullvad-vpn
 
         # smbclient and kio-extras for Dolphin network shares
@@ -165,7 +160,6 @@
     services = {
       ssh.enable = true;
       vscodeServer.enable = true;
-      passwordManager.enable = true;
     };
 
   };

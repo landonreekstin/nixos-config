@@ -4,6 +4,5 @@
 {
   imports = [
     ./nvidia.nix
-    ./peripherals.nix
   ];
 }

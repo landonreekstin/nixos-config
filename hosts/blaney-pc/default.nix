@@ -136,11 +136,10 @@
     services = {
       ssh.enable = false;
       vscodeServer.enable = false;
-      passwordManager.enable = true;
     };
 
   };
-  
+
   # === Additional nixos configuration for this host ===
 
   # Home Manager configuration for this Host

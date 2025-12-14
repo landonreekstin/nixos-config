@@ -20,12 +20,12 @@
 
     disko = {
       url = "github:nix-community/disko/latest";
-      inputs.nixpkgs.follows = "nixpkgs-unstable";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
     
     nixos-cosmic = {
       url = "github:lilyinstarlight/nixos-cosmic";
-      inputs.nixpkgs.follows = "nixpkgs-unstable";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     home-manager = {
@@ -42,18 +42,18 @@
     nixos-vscode-server = {
        url = "github:nix-community/nixos-vscode-server";
        # It might need its own nixpkgs, or follow yours. Following is usually safer.
-       inputs.nixpkgs.follows = "nixpkgs-unstable";
+       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     nixai = {
       url = "github:olafkfreund/nix-ai-help";
-      inputs.nixpkgs.follows = "nixpkgs-unstable";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=latest";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, disko, nixos-hardware, nixos-cosmic, home-manager, plasma-manager, nixos-vscode-server, nixai, nix-flatpak, ... }@inputs:
+  outputs = { self, nixpkgs, disko, nixos-hardware, nixos-cosmic, home-manager, plasma-manager, nixos-vscode-server, nixai, nix-flatpak, ... }@inputs:
     let
       # Define the target system
       system = "x86_64-linux";
@@ -90,7 +90,7 @@
       # Configuration for the Optiplex host
       optiplex = nixpkgs.lib.nixosSystem {
         # Pass flake inputs down to the modules if needed (good practice)
-        specialArgs = specialArgs;
+        specialArgs = { inherit inputs; };
         modules = [
           # Host-specific entrypoint
           ./hosts/optiplex/default.nix
