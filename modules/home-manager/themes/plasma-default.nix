@@ -10,6 +10,7 @@ in
 
     programs.plasma = {
       enable = true;
+      overrideConfig = customConfig.homeManager.themes.plasmaOverride;
 
       # Set wallpaper only if the customConfig option is defined
       workspace = lib.mkIf (cfg.homeManager.themes.wallpaper != null) {

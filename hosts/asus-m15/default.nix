@@ -155,6 +155,9 @@
     extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
     users.${config.customConfig.user.name} = {
       imports = [
+        # === Plasma Manager ===
+        inputs.plasma-manager.homeModules.plasma-manager
+        # === Common User Environment Modules ===
         ../../modules/home-manager/default.nix
       ];
     };

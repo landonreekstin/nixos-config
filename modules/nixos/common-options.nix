@@ -301,6 +301,7 @@ in
           default = "none";
           description = "Set the Plasma theme for Home Manager.";
         };
+        plasmaOverride = mkEnableOption "Override user-session set Plasma configuration.";
         hyprland = mkOption {
           type = types.enum [ "future-aviation" "none" ];
           default = "none";
