@@ -72,6 +72,7 @@
     packages = {
       nixos = with pkgs; [ 
         kitty
+        claude-code
       ];
       unstable-override = [ 
         "discord-canary"  
@@ -101,7 +102,8 @@
 
     profiles = {
       gaming.enable = true;
-      development.fpga-ice40.enable = false;
+      development.fpga-ice40.enable = true;
+      development.embedded-linux.enable = true;
       development.kernel.enable = false;
     };
 
