@@ -48,7 +48,7 @@
       # ];
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "ly"; # Or "greetd", "gdm", or "none" based on your preference for Optiplex
+        type = "ly"; # Or "greetd", "gdm", or "none" based on your preference
         sddm = {
           theme = "sddm-astronaut";
           #embeddedTheme = "pixel_sakura";
@@ -83,12 +83,6 @@
       nvidia = {
         enable = true; # Set to true if Optiplex has an NVIDIA GPU needing proprietary drivers
       };
-      peripherals = {
-        enable = true; # Enable peripheral configurations
-        openrgb.enable = true; # Enable OpenRGB for RGB control
-        openrazer.enable = false; # Enable OpenRazer for Razer device support
-        ckb-next.enable = true; # Enable CKB-Next for Corsair device support
-      };
     };
 
     programs = {
@@ -109,6 +103,7 @@
           { name = "GitHub";  url = "https://github.com"; }
         ];
       };
+      flatpak.enable = true;
     };
 
     homeManager = {
@@ -121,6 +116,7 @@
     packages = {
       nixos = with pkgs; [
         kitty
+        pavucontrol
         mullvad-vpn
 
         # smbclient and kio-extras for Dolphin network shares
@@ -128,9 +124,9 @@
         cifs-utils
         samba
       ];
-      unstable-override = [ 
-        "discord-canary" 
-        "obs-studio" 
+      unstable-override = [
+        "discord-canary"
+        "obs-studio"
         "vscode"
         "librewolf"
         "brave"
@@ -176,7 +172,6 @@
     services = {
       ssh.enable = true;
       vscodeServer.enable = true;
-      passwordManager.enable = true;
     };
 
   };
@@ -201,7 +196,9 @@
     extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
     # Use the username from customConfig
     users.${config.customConfig.user.name} = { pkgs', lib', config'', ... }: { # config'' here is the HM config being built for this user
-      imports = [ 
+      imports = [
+        # === Plasma Manager ===
+        inputs.plasma-manager.homeModules.plasma-manager
         # === Common User Environment Modules ===
         ../../modules/home-manager/default.nix
       ];

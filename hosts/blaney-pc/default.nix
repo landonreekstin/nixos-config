@@ -89,11 +89,10 @@
 
     packages = {
       nixos = with pkgs; [
-
       ];
-      unstable-override = [ 
-        "discord-canary" 
-        "obs-studio" 
+      unstable-override = [
+        "discord-canary"
+        "obs-studio"
         "vscode"
         "librewolf"
         "brave"
@@ -136,11 +135,10 @@
     services = {
       ssh.enable = false;
       vscodeServer.enable = false;
-      passwordManager.enable = true;
     };
 
   };
-  
+
   # === Additional nixos configuration for this host ===
 
   # Home Manager configuration for this Host
@@ -152,6 +150,8 @@
     # Use the username from customConfig
     users.${config.customConfig.user.name} = { pkgs', lib', config'', ... }: { # config'' here is the HM config being built for this user
       imports = [
+        # === Plasma Manager ===
+        inputs.plasma-manager.homeModules.plasma-manager
         # === Common User Environment Modules ===
         ../../modules/home-manager/default.nix
       ];

@@ -6,31 +6,90 @@ let
                    && config.customConfig.profiles.gaming.enable
                    && lib.elem "kde" config.customConfig.desktop.environments;
 
-  partydeck-pkg = pkgs.stdenv.mkDerivation {
+  partydeck-icon = pkgs.fetchurl {
+    url = "https://raw.githubusercontent.com/wunnr/partydeck-rs/main/.github/assets/icon.png";
+    hash = "sha256-pbhWe+R6TAxW0FPPZfqwJetG8YI+Znyb98VDZjOCsnI=";
+  };
+
+  partydeck-pkg = pkgs.rustPlatform.buildRustPackage rec {
     pname = "partydeck-rs";
     version = "0.5.2";
 
-    src = pkgs.fetchurl {
-      url = "https://github.com/wunnr/partydeck-rs/releases/download/v0.5.2/PartyDeck-0.5.2.tar.gz";
-      # Correct hash provided by you
-      hash = "sha256-HQ4rEOPgfFdRLz+uARpaX4f6tFzDmFndX1Soy1CzObA=";
+    src = pkgs.fetchFromGitHub {
+      owner = "wunnr";
+      repo = "partydeck-rs";
+      rev = "v${version}";
+      hash = "sha256-3v/JGh6aX/zd5gMxKe4Cwlmwn9jREo1MklyIZaqS7ZI=";
     };
 
-    nativeBuildInputs = [ pkgs.makeWrapper ];
+    cargoHash = "sha256-3hO5ZtTX3uNqQBnSpm0rK3YsmgCRM7jcwPDb3J0aKVQ=";
 
-    installPhase = ''
-      runHook preInstall
+    # Patch to skip UMU launcher download which causes infinite loop on NixOS
+    postPatch = ''
+      # Patch the check_dependencies function to skip UMU entirely
+      if [ -f src/app/app.rs ]; then
+        # Comment out the entire UMU check block
+        sed -i '/if !PATH_RES.join("umu-run").exists()/,/^        }$/c\
+        // UMU launcher check disabled for NixOS - not needed\
+        // Original code checked for umu-run and downloaded if missing' src/app/app.rs
+      fi
+    '';
 
-      mkdir -p $out/bin
-      
-      # The build process cds into 'res', but the binary is in the parent dir.
-      # So we must reference it as ../partydeck-rs
-      cp ../partydeck-rs $out/bin/partydeck-rs
+    nativeBuildInputs = [
+      pkgs.makeWrapper
+      pkgs.copyDesktopItems
+      pkgs.pkg-config
+    ];
+
+    buildInputs = [
+      pkgs.libarchive
+      pkgs.openssl
+      # Graphics libraries for eframe/egui
+      pkgs.libGL
+      pkgs.libxkbcommon
+      pkgs.wayland
+      # X11 libraries
+      pkgs.xorg.libX11
+      pkgs.xorg.libXcursor
+      pkgs.xorg.libXrandr
+      pkgs.xorg.libXi
+      # SDL2 support
+      pkgs.SDL2
+      # Font rendering
+      pkgs.fontconfig
+      pkgs.freetype
+    ];
+
+    desktopItems = [
+      (pkgs.makeDesktopItem {
+        name = "partydeck-rs";
+        desktopName = "PartyDeck";
+        comment = "A split-screen game launcher for Linux";
+        exec = "partydeck-rs";
+        icon = "partydeck-rs";
+        categories = [ "Game" "Utility" ];
+        keywords = [ "games" "launcher" "split-screen" "couch" "multiplayer" ];
+      })
+    ];
+
+    postInstall = ''
+      mkdir -p $out/share/icons/hicolor/512x512/apps
+      cp ${partydeck-icon} $out/share/icons/hicolor/512x512/apps/partydeck-rs.png
 
       wrapProgram $out/bin/partydeck-rs \
-        --prefix PATH : ${lib.makeBinPath [ pkgs.gamescope pkgs.bubblewrap ]}
-
-      runHook postInstall
+        --prefix PATH : ${lib.makeBinPath [ pkgs.gamescope pkgs.bubblewrap ]} \
+        --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [
+          pkgs.libxkbcommon
+          pkgs.libGL
+          pkgs.vulkan-loader
+          pkgs.wayland
+          pkgs.xorg.libX11
+          pkgs.xorg.libXcursor
+          pkgs.xorg.libXrandr
+          pkgs.xorg.libXi
+        ]} \
+        --set-default PARTYDECK_DATA_DIR "$HOME/.local/share/partydeck" \
+        --set-default PARTYDECK_SKIP_UMU_UPDATE "1"
     '';
 
     meta = with lib; {

@@ -42,7 +42,10 @@ in
           # General build tools
           autoconf automake bc bison bzip2 cmake dtc flex gawk gcc gettext git gperf
           gnutls help2man libtool libuuid ncurses openssl patch python3 rsync swig texinfo unzip wget xz
-          qemu_full ubootTools
+          qemu_full ubootTools minicom
+
+          # SD card formatting utilities
+          util-linux dosfstools e2fsprogs coreutils
 
           # The actual GDB/Binutils from the toolchains
           pkgsQEMU.gdb pkgsQEMU.binutils

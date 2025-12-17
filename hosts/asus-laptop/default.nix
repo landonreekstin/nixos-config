@@ -72,6 +72,7 @@
     packages = {
       nixos = with pkgs; [ 
         kitty
+        claude-code
       ];
       unstable-override = [ 
         "discord-canary"  
@@ -101,14 +102,14 @@
 
     profiles = {
       gaming.enable = true;
-      development.fpga-ice40.enable = false;
+      development.fpga-ice40.enable = true;
+      development.embedded-linux.enable = true;
       development.kernel.enable = false;
     };
 
     services = {
       ssh.enable = true;
       vscodeServer.enable = true;
-      nixai.enable = false;
     };
 
   };
@@ -144,6 +145,9 @@
     extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
     users.${config.customConfig.user.name} = {
       imports = [
+        # === Plasma Manager ===
+        inputs.plasma-manager.homeModules.plasma-manager
+        # === Common User Environment Modules ===
         ../../modules/home-manager/default.nix
       ];
     };
