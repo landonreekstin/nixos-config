@@ -126,6 +126,7 @@
         jamesdsp
         remmina
         vscode
+        md-tui
         librewolf
         brave
         ungoogled-chromium
