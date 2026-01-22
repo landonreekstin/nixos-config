@@ -72,6 +72,10 @@
       nvidia = {
         enable = true; # Set to true if Optiplex has an NVIDIA GPU needing proprietary drivers
       };
+      peripherals = {
+        enable = true; # Enable peripheral configurations
+        ckb-next.enable = true; # Enable CKB-Next for Corsair device support
+      };
     };
 
     programs = {
