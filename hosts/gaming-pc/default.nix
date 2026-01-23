@@ -181,6 +181,19 @@
   networking.extraHosts = ''
     192.168.1.76  optiplex-nas
   '';
+  # For connecting to Astroneer server on LAN (route through OpenBSD firewall)
+  # Uses NetworkManager dispatcher to add route when enp8s0 comes up
+  networking.networkmanager.dispatcherScripts = [
+    {
+      source = pkgs.writeText "astroneer-route" ''
+        #!/bin/sh
+        if [ "$1" = "enp8s0" ] && [ "$2" = "up" ]; then
+          ${pkgs.iproute2}/bin/ip route add 68.184.198.204/32 via 192.168.1.136 dev enp8s0 || true
+        fi
+      '';
+      type = "basic";
+    }
+  ];
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {
