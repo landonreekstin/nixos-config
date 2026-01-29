@@ -259,6 +259,51 @@ in
             example = "\${pkgs.heroic}/bin/heroic";
           };
         };
+        launcher = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable the Hyprland launcher bar (typically at bottom center).";
+          };
+          pinnedApps = mkOption {
+            type = with types; listOf (submodule {
+              options = {
+                label = mkOption {
+                  type = types.str;
+                  description = "Display label for the launcher button (e.g., 'TERM', 'NAV', 'CODE').";
+                  example = "TERM";
+                };
+                command = mkOption {
+                  type = types.str;
+                  description = "Command to execute when the launcher button is clicked.";
+                  example = "\${pkgs.kitty}/bin/kitty";
+                };
+                tooltip = mkOption {
+                  type = types.nullOr types.str;
+                  default = null;
+                  description = "Optional tooltip text for the launcher button.";
+                  example = "Launch Terminal";
+                };
+              };
+            });
+            default = [];
+            description = "List of pinned applications for the launcher bar.";
+            example = literalExpression ''
+              [
+                {
+                  label = "TERM";
+                  command = "\${pkgs.kitty}/bin/kitty";
+                  tooltip = "Terminal";
+                }
+                {
+                  label = "FILES";
+                  command = "\${pkgs.cosmic-files}/bin/cosmic-files";
+                  tooltip = "File Manager";
+                }
+              ]
+            '';
+          };
+        };
       };
       displayManager = {
         enable = mkOption {

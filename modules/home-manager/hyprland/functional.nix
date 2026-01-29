@@ -94,7 +94,8 @@ in
           ] ++ lib.optionals (customConfig.desktop.wayvnc.enable && wayvncTargetMonitor != null) [
             "set-wayvnc-output \"${wayvncTargetMonitor}\" > /tmp/set-wayvnc-output.log 2>&1"
           ]) ++ [
-            "${pkgs.waybar}/bin/waybar &"
+            # Launch waybar directly - it handles array configs natively
+            "sleep 1 && ${pkgs.waybar}/bin/waybar > /tmp/waybar-start.log 2>&1 &"
             "${pkgs.hyprpaper}/bin/hyprpaper &"
             "${pkgs.gammastep}/bin/gammastep &"
             "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1 &"
@@ -138,10 +139,10 @@ in
           # new_is_master = true; # Example if you used this
         };
 
-        # Gestures settings
-        gestures = {
-          workspace_swipe = false;
-        };
+        # Gestures settings (removed in newer Hyprland versions)
+        # gestures = {
+        #   workspace_swipe = false;
+        # };
 
         # Miscellaneous functional settings
         misc = {
@@ -231,6 +232,40 @@ in
       }; # End of wayland.windowManager.hyprland.settings
     }; # End of wayland.windowManager.hyprland
 
+
+    # -------------------------------------------------------------------------- #
+    # Waybar Wrapper Script
+    # -------------------------------------------------------------------------- #
+    home.file.".local/bin/waybar-start" = {
+      text = ''
+        #!/usr/bin/env bash
+        # Convert home-manager's array config to object format for waybar
+
+        CONFIG_SOURCE="$HOME/.config/waybar/config"
+        CONFIG_TEMP="/tmp/waybar-config.json"
+
+        # Check if config is an array
+        if ${pkgs.jq}/bin/jq -e 'type == "array"' "$CONFIG_SOURCE" > /dev/null 2>&1; then
+          # Get array length
+          ARRAY_LENGTH=$(${pkgs.jq}/bin/jq 'length' "$CONFIG_SOURCE")
+
+          if [ "$ARRAY_LENGTH" -gt 1 ]; then
+            # Multiple bars - convert to named object format
+            # Assuming first element is launcherBar, second is mainBar
+            ${pkgs.jq}/bin/jq '{launcherBar: .[0], mainBar: .[1]}' "$CONFIG_SOURCE" > "$CONFIG_TEMP"
+          else
+            # Single bar - extract first element
+            ${pkgs.jq}/bin/jq '.[0]' "$CONFIG_SOURCE" > "$CONFIG_TEMP"
+          fi
+
+          exec ${pkgs.waybar}/bin/waybar --config "$CONFIG_TEMP" "$@"
+        else
+          # Use config as-is
+          exec ${pkgs.waybar}/bin/waybar "$@"
+        fi
+      '';
+      executable = true;
+    };
 
     # -------------------------------------------------------------------------- #
     # Home Manager Packages for Functional Elements

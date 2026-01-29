@@ -70,6 +70,53 @@
         enable = true;
         targetMonitor = "tv";
       };
+      hyprland = {
+        launcher = {
+          enable = true;
+          pinnedApps = [
+            {
+              label = "TERM";
+              command = "${pkgs.kitty}/bin/kitty";
+              tooltip = "Terminal Emulator";
+            }
+            {
+              label = "FILES";
+              command = "${pkgs.cosmic-files}/bin/cosmic-files";
+              tooltip = "File Manager";
+            }
+            {
+              label = "NAV";
+              command = "${pkgs.librewolf}/bin/librewolf";
+              tooltip = "Web Browser";
+            }
+            {
+              label = "CODE";
+              command = "${pkgs.vscode}/bin/code";
+              tooltip = "IDE";
+            }
+            {
+              label = "EDIT";
+              command = "${pkgs.kdePackages.kate}/bin/kate";
+              tooltip = "Text Editor";
+            }
+            {
+              label = "AUDIO";
+              command = "${pkgs.spotify}/bin/spotify --enable-features=UseOzonePlatform --ozone-platform=wayland";
+              tooltip = "Music Player";
+            }
+            {
+              label = "COMM";
+              command = "${pkgs.discord}/bin/discord";
+              tooltip = "Communications";
+            }
+            {
+              label = "GAME";
+              command = "steam";
+              tooltip = "Gaming Platform";
+            }
+          ];
+        };
+      };
     };
 
     hardware = {
@@ -96,7 +143,7 @@
       themes = {
         plasmaOverride = false;
         kde = "windows7-alt";
-        hyprland = "future-aviation";
+        hyprland = "century-series";
         wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
         pinnedApps = [
           "applications:org.kde.konsole.desktop"
