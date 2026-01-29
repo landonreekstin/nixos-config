@@ -4,8 +4,6 @@
 {
   imports = [
     ./gammastep.nix
-    ./nixai.nix
     ./ssh.nix
-    ./password-manager.nix
   ];
 }

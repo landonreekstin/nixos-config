@@ -16,7 +16,7 @@
     services.syncthing = {
       enable = true;
       # Enable the tray icon for easier access on desktop environments.
-      tray.enable = false; 
+      tray.enable = true; 
 
       # By setting these to false, you can add new devices (like your phone)
       # and folders through the Syncthing Web UI without Nix undoing your changes

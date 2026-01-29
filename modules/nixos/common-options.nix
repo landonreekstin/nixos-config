@@ -114,7 +114,7 @@ in
           description = "Whether to enable a desktop environment.";
         };
       environments = mkOption {
-        type = types.listOf (types.enum [ "hyprland" "cosmic" "kde" "pantheon" "none" ]);
+        type = types.listOf (types.enum [ "hyprland" "cosmic" "kde" "none" ]);
         default = []; # Default to an empty list
         example = [ "kde" "hyprland" ];
         description = "A list of desktop environments or window managers to make available on the system.";
@@ -314,7 +314,7 @@ in
           description = "Whether to enable a display manager.";
         };
         type = mkOption {
-          type = types.enum [ "sddm" "cosmic" "gdm" "greetd" "ly" "pantheon" "none" ]; # Add more as needed
+          type = types.enum [ "sddm" "cosmic" "gdm" "greetd" "ly" "none" ]; # Add more as needed
           default = "sddm"; # A common default, adjust as preferred
           description = "Which display manager to use if displayManager.enable is true. 'none' means no DM managed by this option.";
         };
@@ -367,7 +367,7 @@ in
               default = 2.0;
               description = "The blur intensity for the form background.";
             };
-            
+
             roundCorners = mkOption {
               type = types.int;
               default = 20;
@@ -454,6 +454,13 @@ in
           '';
         };
       };
+      flatpak = {
+        enable = mkOption {
+          type = types.bool;
+          default = false; # Default to false, enable explicitly for Flatpak support
+          description = "Enable Flatpak packages for Spotify and Discord.";
+        };
+      };
     };
 
     # -------------------------------------------------------------------------- #
@@ -525,11 +532,11 @@ in
         description = "List of additional system-wide packages to install via NixOS configuration.";
         example = "with pkgs; [ htop vim ]"; # For documentation
       };
-      unstable-override = mkOption { 
+      unstable-override = mkOption {
         type = with types; listOf str;
         default = [];
         description = "List of package attribute names to pull from the unstable channel.";
-        example = literalExpression ''[ "firefox" "obs-studio" ]'';
+        example = ''[ "discord-canary" "obs-studio" "vscode" ]'';
       };
       homeManager = mkOption { # User-specific packages
         type = with types; listOf package;
@@ -621,11 +628,11 @@ in
         description = "Whether to source the entire hardware stack (kernel, initrd modules, etc.) from nixpkgs-unstable.";
       };
       nvidia = {
-        enable = mkOption {
-          type = types.bool;
-          default = false; # Default to false, enable explicitly on NVIDIA machines
-          description = "Enable NVIDIA drivers and related configuration.";
-        };
+          enable = mkOption {
+            type = types.bool;
+            default = false; # Default to false, enable explicitly on NVIDIA machines
+            description = "Enable NVIDIA drivers and related configuration.";
+          };
         laptop = {
           enable = mkOption {
             type = types.bool;
@@ -714,20 +721,12 @@ in
         # port = mkOption { type = types.port; default = 22; };
       };
       vscodeServer = {
-        enable = mkOption { 
-          type = types.bool; 
-          default = false; 
-          description = "Enable vscode server."; 
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable vscode server.";
         };
         # port = mkOption { type = types.port; default = 22; };
-      };
-      nixai = {
-        enable = mkOption { 
-          type = types.bool; 
-          default = false; 
-          description = "Enable NixAI MCP server."; 
-        };
-        # You can add more options for NixAI here, like model, port, etc.
       };
       wireguard = {
         server = {
@@ -788,20 +787,6 @@ in
         # client = {
         #   enable = mkOption { ... };
         # };
-      };
-      passwordManager = {
-        enable = mkOption {
-          type = types.bool;
-          default = false;
-          description = "Enable KeePassXC and Syncthing for password management.";
-        };
-        folderPath = mkOption {
-          type = types.str;
-          # This default path requires the user to create the 'Sync' directory.
-          default = "${config.customConfig.user.home}/Sync/KeePass";
-          defaultText = literalExpression ''"''${config.customConfig.user.home}/Sync/KeePass"'';
-          description = "The absolute path for the Syncthing folder to store the KeePassXC database.";
-        };
       };
     };
 

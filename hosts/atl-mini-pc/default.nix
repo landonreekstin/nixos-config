@@ -56,7 +56,7 @@
       enable = true; # Enable Home Manager for this host
       themes = {
         kde = "default";
-        wallpaper = /home/heather/Pictures/Wallpapers/atl_family_xmas_2025.jpeg;
+        wallpaper = ../../assets/wallpapers/soviet-retro-future.jpg;
       };
     };
 
@@ -117,6 +117,8 @@
     # Use the username from customConfig
     users.${config.customConfig.user.name} = { pkgs', lib', config'', ... }: { # config'' here is the HM config being built for this user
       imports = [
+        # === Plasma Manager ===
+        inputs.plasma-manager.homeModules.plasma-manager
         # === Common User Environment Modules ===
         ../../modules/home-manager/default.nix
       ];

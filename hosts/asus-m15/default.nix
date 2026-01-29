@@ -86,6 +86,7 @@
 
     programs = {
       partydeck.enable = false;
+      flatpak.enable = true;
     };
 
     homeManager = {
@@ -109,15 +110,15 @@
     };
 
     packages = {
-      nixos = with pkgs; [ 
+      nixos = with pkgs; [
 
       ];
-      unstable-override = [  
+      unstable-override = [
         "vscode"
         "chromium"
         "firefox"
       ];
-      homeManager = with pkgs; [ 
+      homeManager = with pkgs; [
         vscode
         chromium
         firefox
@@ -142,7 +143,6 @@
     services = {
       ssh.enable = true;
       vscodeServer.enable = true;
-      nixai.enable = false;
     };
 
   };
@@ -155,6 +155,9 @@
     extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
     users.${config.customConfig.user.name} = {
       imports = [
+        # === Plasma Manager ===
+        inputs.plasma-manager.homeModules.plasma-manager
+        # === Common User Environment Modules ===
         ../../modules/home-manager/default.nix
       ];
     };
