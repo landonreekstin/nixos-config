@@ -29,6 +29,7 @@ in
       steam # Check prerequisites (32-bit libs, vulkan drivers - nvidia module should handle these)
       lutris
       heroic
+      dolphin-emu
       wineWowPackages.stable # Wine (stable branch, includes 32-bit/WoW64)
       winetricks
       protonup-qt # GUI for managing Proton-GE/Wine-GE versions
