@@ -81,7 +81,7 @@
           "applications:org.kde.kcalc.desktop"
           "applications:polychromatic.desktop"
           "applications:input-remapper-gtk.desktop"
-          "applications:OpenRGB.desktop"
+          "applications:openrgb.desktop"
           "applications:io.github.nuttyartist.notes.desktop"
         ];
       };
@@ -94,7 +94,7 @@
         "discord-canary"
         "obs-studio"
         "vscode"
-        "librewolf"
+        #"librewolf"
         "brave"
         "ungoogled-chromium"
         "desmume"
@@ -103,7 +103,7 @@
       homeManager = with pkgs; [
         kitty
         vscode
-        librewolf
+        #librewolf
         brave
         ungoogled-chromium
         #discord-canary
