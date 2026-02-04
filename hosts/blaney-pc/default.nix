@@ -71,7 +71,7 @@
           "applications:org.kde.konsole.desktop"
           "applications:systemsettings.desktop"
           "applications:org.kde.dolphin.desktop"
-          "applications:chromium-browser.desktop"
+          "applications:org.chromium.Chromium.desktop"
           "applications:net.lutris.Lutris.desktop"
           "applications:com.heroicgameslauncher.hgl.desktop"
           "applications:steam.desktop"
@@ -95,17 +95,18 @@
         "obs-studio"
         "vscode"
         #"librewolf"
-        "brave"
-        "ungoogled-chromium"
+        #"brave"
+        #"chromium"
         "desmume"
         "mgba"
+        "claude-code"      
       ];
       homeManager = with pkgs; [
         kitty
         vscode
         #librewolf
-        brave
-        ungoogled-chromium
+        #brave
+        #chromium
         #discord-canary
         #discord
         obs-studio
@@ -114,18 +115,20 @@
         kdePackages.kdenlive
         desmume
         mgba
+        claude-code
       ];
       flatpak = {
         enable = true;
         packages = [
           "com.spotify.Client"
           "com.discordapp.Discord"
+          "org.chromium.Chromium"
         ];
       };
     };
 
     apps = {
-      defaultBrowser = "librewolf";
+      defaultBrowser = "chromium";
     };
 
     profiles = {
