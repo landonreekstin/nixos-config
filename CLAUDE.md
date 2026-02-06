@@ -62,6 +62,7 @@ All configuration is managed through the `customConfig` option set defined in `m
 - `optiplex` - Windows 7 themed KDE desktop
 - `asus-laptop` - Laptop configuration with NVIDIA dual GPU
 - `optiplex-nas` - Homelab server with Jellyfin and Samba
+- `blaney-pc` - Experimental/learning environment (see Host-Specific Guidelines)
 
 ## Working with Themes
 
@@ -106,6 +107,35 @@ All modules should follow this standard header format:
 3. Commit and push changes when satisfied
 4. Other machines can `sync` to pull updates
 
+### Commit Message Style
+Follow the established commit message convention:
+```
+type(scope): description
+```
+
+**Types**: `feat`, `fix`, `tweak`, `pkg`, `test`, `docs`
+- `feat` - New features or functionality
+- `fix` - Bug fixes
+- `tweak` - Minor adjustments or configuration changes
+- `pkg` - Package additions or changes
+- `test` - Testing changes
+- `docs` - Documentation updates
+
+**Guidelines**:
+- Use lowercase for the description
+- No period at the end
+- Keep descriptions concise
+- Scope should be the relevant host or module name
+- **Do not add Co-Authored-By or AI attribution lines**
+
+**Examples**:
+```
+feat(gaming): added dolphin emulator
+fix(peripherals): missing import
+tweak(gaming-pc): enable ckb-next
+docs(claude): add blaney-pc guidelines
+```
+
 ### Hardware Configurations
 Hardware configs are auto-generated during installation and should not be manually edited. They're stored per-host in `hosts/<hostname>/hardware-configuration.nix`.
 
@@ -149,6 +179,40 @@ sudo chown -R $USER:users ~/nixos-config
 ```
 
 This command should be run after editing configuration files to ensure the user can manually edit and save files in their editor.
+
+## Host-Specific Guidelines
+
+### blaney-pc
+
+When running on the `blaney-pc` host, apply these additional guidelines:
+
+**User Context**: This machine is used by a user who is new to NixOS and this configuration system. They are interested in experimenting and learning through hands-on exploration.
+
+**Communication Style**:
+- Provide clear explanations of what changes will do before making them
+- Use plain language when describing technical concepts
+- Offer context about why certain approaches are recommended
+- Be patient with questions that may seem basic
+
+**Verification and Clarification**:
+- Ask clarifying questions when requests are ambiguous or could be interpreted multiple ways
+- Verify understanding of the user's intent before making significant changes
+- If the user describes a problem or system state that seems inconsistent, gently ask for more details rather than assuming
+- Double-check terminology - the user may use imprecise terms, so confirm what they mean
+
+**Git and Version Control**:
+- **Do not make git commits unless explicitly instructed** - the user may want to review changes first or have the repository owner handle commits
+- Explain what files were changed so the user can communicate this to others if needed
+
+**Decision Making**:
+- For architectural or significant design decisions, explain the options and trade-offs rather than making unilateral choices
+- Prefer conservative, well-tested approaches over experimental ones
+- When in doubt, suggest the user consult with the repository owner for complex changes
+
+**Safety**:
+- Always use `nixos-rebuild test` first for significant changes, allowing the user to verify before switching permanently
+- Clearly warn about any changes that could affect system stability or boot
+- Keep changes focused and minimal to reduce the chance of issues
 
 ## Notes
 
