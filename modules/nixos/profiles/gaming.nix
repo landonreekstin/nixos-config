@@ -80,6 +80,13 @@ in
 
     # Gamepad Input
     hardware.xpadneo.enable = true;
+    # For official Nintendo or Mayflash GameCube adapter                                                                             
+    services.udev.extraRules = ''                                                                                                    
+      # Nintendo GameCube Controller Adapter                                                                                         
+      SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTRS{idVendor}=="057e", ATTRS{idProduct}=="0337", MODE="0666"                   
+      # Mayflash GameCube Controller Adapter                                                                                         
+      SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTRS{idVendor}=="0079", ATTRS{idProduct}=="1825", MODE="0666"                   
+    '';
 
     # Add user to 'video' group (often needed for Vulkan/DRI access)
     # This might be handled automatically by driver modules/DEs, but explicit is safe.
