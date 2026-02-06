@@ -61,7 +61,7 @@
           };
           screensaver = {
             enable = false;
-            timeout = 20; # e.g., 10 minutes
+            timeout = 45; # e.g., 10 minutes
           };
         };
       };
