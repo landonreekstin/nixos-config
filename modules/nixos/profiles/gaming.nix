@@ -88,10 +88,11 @@ in
       SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTRS{idVendor}=="0079", ATTRS{idProduct}=="1825", MODE="0666"                   
     '';
 
-    # Add user to 'video' group (often needed for Vulkan/DRI access)
-    # This might be handled automatically by driver modules/DEs, but explicit is safe.
+    # Add user to required groups for gaming
+    # - video: Vulkan/DRI access (may be handled by drivers/DEs, but explicit is safe)
+    # - gamemode: Allows CPU governor changes without authentication prompts
     users.users.${config.customConfig.user.name}.extraGroups = lib.mkMerge [
-      (lib.mkIf config.users.users.${config.customConfig.user.name}.isNormalUser [ "video" ])
+      (lib.mkIf config.users.users.${config.customConfig.user.name}.isNormalUser [ "video" "gamemode" ])
     ];
     # Note: We reference the user defined in core.nix dynamically.
 
