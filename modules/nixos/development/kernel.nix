@@ -178,6 +178,36 @@ EOF
     echo "--- LKM run complete."
   '';
 
+  lkm-dev = pkgs.writeShellScriptBin "lkm-dev" ''
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$1" ]]; then
+      echo "Usage: $0 <module_name_without_extension> [make_target...]"
+      echo "Example: $0 my_module code-style"
+      exit 1
+    fi
+
+    if [[ -z "''${LKP_KSRC}" ]]; then
+        echo "ERROR: LKP_KSRC environment variable is not set." >&2
+        echo "Hint: Did you 'cd' into a directory with a configured .envrc file?" >&2
+        exit 1
+    fi
+
+    MOD_NAME="$1"
+    # Use all arguments from the second one onward as the make targets.
+    # If no further arguments, this will be empty, and 'make' will run the default target.
+    MAKE_TARGETS="''${@:2}"
+
+    echo "--- Running 'make' for module ''${MOD_NAME} with target(s): ''${MAKE_TARGETS:-all}"
+    
+    # This is the core of the script:
+    # - Override KDIR with our kernel source path.
+    # - Pass the module name as the FNAME_C variable.
+    # - Pass the rest of the arguments as the make targets.
+    make KDIR="''${LKP_KSRC}" FNAME_C="''${MOD_NAME}" ''${MAKE_TARGETS}
+  '';
+
   shutdown-guest = pkgs.writeShellScriptBin "shutdown-guest" ''
     #!/usr/bin/env bash
     set -euo pipefail
@@ -290,25 +320,28 @@ in
         gdb-run
         ssh-guest
         lkm-run
+        lkm-dev
         load-module
         shutdown-guest
         vscode-setup
       ];
 
       shellHook = ''
+        export PS1='\[\033[1;32m\][kernel-dev]\[\033[0m\] \[\033[1;34m\]\w\[\033[0m\]\$ '
         export LKP_GUEST_PATH="$HOME/kernel-dev"
         echo "Entered Linux Kernel Development Shell."
         echo "--------------------------------------------------------"
         echo "Guest image path: ''${LKP_GUEST_PATH}"
         echo
         echo "Primary Workflow Commands:"
-        echo "  configure-guest-kernel # Run in kernel source dir"
-        echo "  make -j$(nproc)         # Run in kernel source dir"
-        echo "  qemu-run               # Run in kernel source dir"
-        echo "  lkm-run my_module      # Run in module source dir"
-        echo "  ssh-guest              # Run anywhere"
-        echo "  shutdown-guest         # Run anywhere to stop the VM"
-        echo "  vscode-setup           # Run once in your module project root for extra VS Code support"
+        echo "  configure-guest-kernel     # Run in kernel source dir"
+        echo "  make -j$(nproc)            # Run in kernel source dir"
+        echo "  qemu-run                   # Run in kernel source dir"
+        echo "  lkm-run my_module          # Run in module source dir"
+        echo "  lkm-dev my_module [target] # Develop/lint/analyze module"
+        echo "  ssh-guest                  # Run anywhere"
+        echo "  shutdown-guest             # Run anywhere to stop the VM"
+        echo "  vscode-setup               # Run once in your module project root for extra VS Code support"
         echo "--------------------------------------------------------"
       '';
     };

@@ -52,7 +52,7 @@
       # Recommended font packages
       noto-fonts        # Good general coverage
       noto-fonts-cjk-sans    # For East Asian characters
-      noto-fonts-emoji  # For emoji
+      noto-fonts-color-emoji  # For emoji
       # Add Nerd Fonts here if not handled by Home Manager rice later
       # (pkgs.nerdfonts.override { fonts = [ "JetBrainsMono" ]; })
       font-awesome      # Often used for icons in bars/widgets

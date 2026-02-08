@@ -10,6 +10,7 @@ in
 
     programs.plasma = {
       enable = true;
+      overrideConfig = customConfig.homeManager.themes.plasmaOverride;
 
       # Set wallpaper only if the customConfig option is defined
       workspace = lib.mkIf (cfg.homeManager.themes.wallpaper != null) {
@@ -23,14 +24,7 @@ in
 
           {
             iconTasks = {
-              launchers = [
-                "applications:systemsettings.desktop"
-                "applications:org.kde.konsole.desktop"
-                "applications:org.kde.kcalc.desktop"
-                "applications:org.kde.dolphin.desktop"
-                "applications:firefox.desktop"
-                "applications:chromium-browser.desktop"
-              ];
+              launchers = customConfig.homeManager.themes.pinnedApps;
             };
           }
 
@@ -52,22 +46,6 @@ in
           "org.kde.plasma.digitalclock"
         ];
       }];
-
-      # Screen Locking
-      kscreenlocker = {
-        lockOnResume = true;
-        timeout = 25; # In minutes
-      };
-
-      # Power Management
-      powerdevil.AC = {
-        autoSuspend = {
-          action = "nothing"; # Changed to do nothing
-        };
-        turnOffDisplay = {
-          idleTimeout = 900; # 15 minutes in seconds
-        };
-      };
     };
   };
 }

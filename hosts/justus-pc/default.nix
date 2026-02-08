@@ -1,5 +1,5 @@
 # ~/nixos-config/hosts/justus-pc/default.nix
-{ inputs, pkgs, lib, config, ... }: # Standard module arguments. `config` is the final NixOS config.
+{ inputs, pkgs, lib, config, unstablePkgs, ... }: # Standard module arguments. `config` is the final NixOS config.
 
 {
   imports = [
@@ -39,20 +39,34 @@
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
         type = "sddm";
-        sddmTheme = "sddm-astronaut";
-        sddmEmbeddedTheme = "hyprland_kath";
+        sddm = {
+          theme = "sddm-astronaut";
+          embeddedTheme = "hyprland_kath";
+          screensaver = {
+            enable = true;
+            timeout = 25; # e.g., 10 minutes
+          };
+        };
       };
     };
 
     hardware = {
+      unstable = true;
       nvidia = {
         enable = true;
+      };
+      peripherals = {
+        enable = true; # Enable peripheral configurations
+        openrgb.enable = true; # Enable OpenRGB for RGB control
+        openrazer.enable = false; # Enable OpenRazer for Razer device support
+        ckb-next.enable = false; # Enable CKB-Next for Corsair device support
+        input-remapper.enable = true;
+        solaar.enable = false;
       };
     };
 
     programs = {
       partydeck.enable = false;
-      flatpak.enable = true;
     };
 
     homeManager = {
@@ -61,25 +75,29 @@
 
     packages = {
       nixos = with pkgs; [
-        vim
-        wget
-        fd
-        htop
-        pavucontrol
-        g810-led
-        openrgb
+
+      ];
+      unstable-override = [ 
+        "vscode"
+        "librewolf"
+        "brave"
+        "ungoogled-chromium"
       ];
       homeManager = with pkgs; [
         vscode
         librewolf
         brave
-        discord-canary
-        discord
-        spotify
         notes
         CuboCore.corepaint
         kdePackages.kdenlive
       ];
+      flatpak = {
+        enable = true;
+        packages = [
+          "com.spotify.Client"
+          "com.discordapp.Discord"
+        ];
+      };
     };
 
     apps = {
@@ -98,8 +116,6 @@
   };
 
   # === Additional nixos configuration for this host ===
-  services.mullvad-vpn.enable = true;
-  services.hardware.openrgb.enable = true; # Enable OpenRGB for RGB control
   #services.g810-led.package = pkgs.g810-led; # Ensure the g810-led package is available
   #services.g810-led.enable = true; # Enable Logitech G810 keyboard LED control
 
@@ -108,15 +124,14 @@
     useGlobalPkgs = true;
     useUserPackages = true;
     backupFileExtension = "hm-backup"; # Your existing setting
-    extraSpecialArgs = { inherit inputs; customConfig = config.customConfig; };
+    extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
     # Use the username from customConfig
     users.${config.customConfig.user.name} = { pkgs', lib', config'', ... }: { # config'' here is the HM config being built for this user
       imports = [
+        # === Plasma Manager ===
+        inputs.plasma-manager.homeModules.plasma-manager
         # === Common User Environment Modules ===
         ../../modules/home-manager/default.nix
-
-        # === Theme Module ===
-        ../../modules/home-manager/themes/future-aviation/default.nix
       ];
     };
   };

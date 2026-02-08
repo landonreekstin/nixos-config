@@ -1,5 +1,5 @@
 # ~/nixos-config/hosts/optiplex/default.nix
-{ inputs, pkgs, lib, config, ... }: # Standard module arguments. `config` is the final NixOS config.
+{ inputs, pkgs, lib, config, unstablePkgs, ... }: # Standard module arguments. `config` is the final NixOS config.
 
 {
   imports = [
@@ -29,52 +29,90 @@
     };
     
     desktop = {
-      environments = [ "hyprland" ];
+      environments = [ "hyprland" "kde" ];
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "none"; # Or "greetd", "gdm", or "none" based on your preference for Optiplex
+        type = "sddm";
+        sddm = {
+          theme = "sddm-windows7"; # Custom SDDM theme
+        };
       };
     };
 
     hardware = {
+      unstable = true;
       nvidia = {
         enable = true; # Set to true if Optiplex has an NVIDIA GPU needing proprietary drivers
+      };
+      peripherals = {
+        enable = true; # Enable peripheral configurations
+        openrgb.enable = true; # Enable OpenRGB for RGB control
+        openrazer.enable = true; # Enable OpenRazer for Razer device support
+        ckb-next.enable = false; # Enable CKB-Next for Corsair device support
+        input-remapper.enable = true;
+        solaar.enable = true;
       };
     };
 
     programs = {
       partydeck.enable = false;
-      flatpak.enable = true;
     };
 
     homeManager = {
       enable = true;
       themes = {
-        kde = "windows7";
+        plasmaOverride = false;
+        kde = "default";
         hyprland = "future-aviation";
+        wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
+        pinnedApps = [
+          "applications:org.kde.konsole.desktop"
+          "applications:systemsettings.desktop"
+          "applications:org.kde.dolphin.desktop"
+          "applications:chromium-browser.desktop"
+          "applications:net.lutris.Lutris.desktop"
+          "applications:com.heroicgameslauncher.hgl.desktop"
+          "applications:steam.desktop"
+          "applications:com.discordapp.Discord.desktop"
+          "applications:com.spotify.Client.desktop"
+          "applications:org.kde.plasma-systemmonitor.desktop"
+          "applications:org.kde.kcalc.desktop"
+          "applications:code.desktop"
+          "applications:polychromatic.desktop"
+          "applications:input-remapper-gtk.desktop"
+          "applications:librewolf.desktop"
+          "applications:OpenRGB.desktop"
+          "applications:io.github.nuttyartist.notes.desktop"
+        ];
       };
     };
 
     packages = {
-      nixos = with pkgs; [ # Optiplex-specific system packages (previously in core.nix or default.nix)
-        # From old core.nix:
-        vim
-        wget
-        fd
+      nixos = with pkgs; [
         firefox
         kitty
-        htop
-        pavucontrol
-        # Add any other system packages specific to Optiplex
+        claude-code
       ];
-      homeManager = with pkgs; [ # Optiplex-specific user packages (previously in core.nix user packages)
+      unstable-override = [ 
+        "vscode"
+        "librewolf"
+        "ungoogled-chromium"
+      ];
+      homeManager = with pkgs; [ 
         jamesdsp
         remmina
         vscode
         librewolf
         ungoogled-chromium
-        discord-canary
+        notes
       ];
+      flatpak = {
+        enable = true;
+        packages = [
+          "com.spotify.Client"
+          "com.discordapp.Discord"
+        ];
+      };
     };
 
     apps = {
@@ -90,7 +128,6 @@
     services = {
       ssh.enable = true;
       vscodeServer.enable = true;
-      nixai.enable = false;
     };
 
   };
@@ -100,10 +137,12 @@
     useGlobalPkgs = true;
     useUserPackages = true;
     backupFileExtension = "hm-backup"; # Your existing setting
-    extraSpecialArgs = { inherit inputs; customConfig = config.customConfig; };
+    extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
     # Use the username from customConfig
     users.${config.customConfig.user.name} = { pkgs', lib', config'', ... }: { # config'' here is the HM config being built for this user
       imports = [
+        # === Plasma Manager ===
+        inputs.plasma-manager.homeModules.plasma-manager
         # === Common User Environment Modules ===
         ../../modules/home-manager/default.nix
       ];

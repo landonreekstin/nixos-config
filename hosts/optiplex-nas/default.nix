@@ -1,5 +1,5 @@
 # ~/nixos-config/hosts/optiplex-nas/default.nix
-{ inputs, pkgs, lib, config, ... }:
+{ inputs, pkgs, lib, config, unstablePkgs, ... }:
 
 {
   imports = [
@@ -149,7 +149,6 @@
     services = {
       ssh.enable = true;
       vscodeServer.enable = true;
-      nixai.enable = false;
     };
 
     homelab = {
@@ -176,9 +175,12 @@
     useGlobalPkgs = true;
     useUserPackages = true;
     backupFileExtension = "hm-backup";
-    extraSpecialArgs = { inherit inputs; customConfig = config.customConfig; };
+    extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
     users.${config.customConfig.user.name} = { pkgs', lib', config'', ... }: {
       imports = [
+        # === Plasma Manager ===
+        inputs.plasma-manager.homeModules.plasma-manager
+        # === Common User Environment Modules ===
         ../../modules/home-manager/default.nix
       ];
     };

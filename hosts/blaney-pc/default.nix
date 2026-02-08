@@ -1,5 +1,5 @@
 # ~/nixos-config/hosts/blaney-pc/default.nix
-{ inputs, pkgs, lib, config, ... }: # Standard module arguments. `config` is the final NixOS config.
+{ inputs, pkgs, lib, config, unstablePkgs, ... }: # Standard module arguments. `config` is the final NixOS config.
 
 {
   imports = [
@@ -31,60 +31,104 @@
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
         type = "sddm";
-        sddmTheme = "sddm-astronaut";
-        sddmEmbeddedTheme = "pixel_sakura";
+        sddm = {
+          theme = "sddm-astronaut";
+          embeddedTheme = "pixel_sakura";
+          screensaver = {
+            enable = true;
+            timeout = 25; # e.g., 10 minutes
+          };
+        };
       };
     };
 
     hardware = {
+      unstable = true;
       nvidia = {
         enable = true; # Set to true if Optiplex has an NVIDIA GPU needing proprietary drivers
+      };
+      peripherals = {
+        enable = true; # Enable peripheral configurations
+        openrgb.enable = true; # Enable OpenRGB for RGB control
+        openrazer.enable = true; # Enable OpenRazer for Razer device support
+        ckb-next.enable = false; # Enable CKB-Next for Corsair device support
+        input-remapper.enable = true;
+        solaar.enable = true;
       };
     };
 
     programs = {
       partydeck.enable = false;
-      flatpak.enable = true;
     };
 
     homeManager = {
       enable = true; # Enable Home Manager for this host
       themes = {
-        kde = "windows7";
+        plasmaOverride = true;
+        kde = "windows7-alt";
+        wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
+        pinnedApps = [
+          "applications:org.kde.konsole.desktop"
+          "applications:systemsettings.desktop"
+          "applications:org.kde.dolphin.desktop"
+          "applications:org.chromium.Chromium.desktop"
+          "applications:net.lutris.Lutris.desktop"
+          "applications:com.heroicgameslauncher.hgl.desktop"
+          "applications:steam.desktop"
+          "applications:com.discordapp.Discord.desktop"
+          "applications:com.spotify.Client.desktop"
+          "applications:org.kde.plasma-systemmonitor.desktop"
+          "applications:org.kde.kcalc.desktop"
+          "applications:polychromatic.desktop"
+          "applications:input-remapper-gtk.desktop"
+          "applications:openrgb.desktop"
+          "applications:io.github.nuttyartist.notes.desktop"
+        ];
       };
     };
 
     packages = {
       nixos = with pkgs; [
-        vim
-        wget
-        fd
-        htop
-        kitty
-        pavucontrol
-        g810-led
-        openrgb
-        solaar
-        openrazer-daemon
-        polychromatic
-        obs-studio
+      ];
+      unstable-override = [
+        "discord-canary"
+        "obs-studio"
+        "vscode"
+        #"librewolf"
+        #"brave"
+        #"chromium"
+        "desmume"
+        "mgba"
+        "claude-code"      
       ];
       homeManager = with pkgs; [
         kitty
         vscode
-        librewolf
-        brave
-        discord-canary
-        discord
-        spotify
+        #librewolf
+        #brave
+        #chromium
+        #discord-canary
+        #discord
+        obs-studio
         notes
         CuboCore.corepaint
         kdePackages.kdenlive
+        desmume
+        mgba
+        claude-code
       ];
+      flatpak = {
+        enable = true;
+        packages = [
+          "com.spotify.Client"
+          "com.discordapp.Discord"
+          "org.chromium.Chromium"
+        ];
+      };
     };
 
     apps = {
-      defaultBrowser = "librewolf";
+      defaultBrowser = "chromium";
     };
 
     profiles = {
@@ -99,27 +143,20 @@
   };
 
   # === Additional nixos configuration for this host ===
-  services.mullvad-vpn.enable = true;
-  services.hardware.openrgb.enable = true; # Enable OpenRGB for RGB control
-  hardware.openrazer.enable = true; # Enable OpenRazer for Razer device support
-  hardware.openrazer.users = [ config.customConfig.user.name ]; # Ensure OpenRazer runs for the user
-  #services.g810-led.package = pkgs.g810-led; # Ensure the g810-led package is available
-  #services.g810-led.enable = true; # Enable Logitech G810 keyboard LED control
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {
     useGlobalPkgs = true;
     useUserPackages = true;
     backupFileExtension = "hm-backup"; # Your existing setting
-    extraSpecialArgs = { inherit inputs; customConfig = config.customConfig; };
+    extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
     # Use the username from customConfig
     users.${config.customConfig.user.name} = { pkgs', lib', config'', ... }: { # config'' here is the HM config being built for this user
       imports = [
+        # === Plasma Manager ===
+        inputs.plasma-manager.homeModules.plasma-manager
         # === Common User Environment Modules ===
         ../../modules/home-manager/default.nix
-
-        # === Theme Module ===
-        ../../modules/home-manager/themes/future-aviation/default.nix
       ];
     };
   };

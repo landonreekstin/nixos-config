@@ -63,6 +63,11 @@ in
         default = true;
         description = "Whether to allow the user to run the custom update/upgrade commands.";
       };
+      sudoPassword = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Enable a separate, stronger password for sudo authentication, managed via a secondary password file.";
+      };
     };
 
     bootloader = {
@@ -149,7 +154,7 @@ in
           description = "Whether to enable a desktop environment.";
         };
       environments = mkOption {
-        type = types.listOf (types.enum [ "hyprland" "cosmic" "kde" "pantheon" "none" ]);
+        type = types.listOf (types.enum [ "hyprland" "cosmic" "kde" "none" ]);
         default = []; # Default to an empty list
         example = [ "kde" "hyprland" ];
         description = "A list of desktop environments or window managers to make available on the system.";
@@ -163,19 +168,85 @@ in
           description = "Whether to enable a display manager.";
         };
         type = mkOption {
-          type = types.enum [ "sddm" "cosmic" "gdm" "greetd" "ly" "pantheon" "none" ]; # Add more as needed
+          type = types.enum [ "sddm" "cosmic" "gdm" "greetd" "ly" "none" ]; # Add more as needed
           default = "sddm"; # A common default, adjust as preferred
           description = "Which display manager to use if displayManager.enable is true. 'none' means no DM managed by this option.";
         };
-        sddmTheme = mkOption {
-          type = types.str;
-          default = null; # A popular SDDM theme, adjust as preferred
-          description = "The SDDM theme to use if sddm is selected as the display manager.";
-        };
-        sddmEmbeddedTheme = mkOption {
-          type = types.nullOr types.str;
-          default = null; # Default to null, can be set to a specific embedded theme if desired
-          description = "The embedded theme for SDDM astronaut theme (e.g., 'pixel_sakura', 'astronaut'). If null, the default theme is used.";
+        sddm = {
+          theme = mkOption {
+            type = types.str;
+            default = "none";
+            description = "The SDDM theme to use (e.g., 'sddm-astronaut', 'sddm-windows7').";
+          };
+          embeddedTheme = mkOption {
+            type = types.nullOr types.str;
+            default = null;
+            description = "The embedded theme for sddm-astronaut (e.g., 'pixel_sakura').";
+          };
+          screensaver = {
+            enable = mkOption {
+              type = types.bool;
+              default = false;
+              description = "Whether to use the SDDM theme as a screensaver after a timeout.";
+            };
+            timeout = mkOption {
+              type = types.int;
+              default = 15;
+              description = "The idle time in minutes before the SDDM screensaver starts.";
+            };
+          };
+          customTheme = {
+            enable = mkEnableOption "a custom embedded theme for sddm-astronaut";
+
+            wallpaper = mkOption {
+              type = types.path;
+              description = "Absolute path to the wallpaper for the custom SDDM theme.";
+              example = "/path/to/my/wallpaper.png";
+            };
+
+            font = mkOption {
+              type = types.str;
+              default = "Thunderman";
+              description = "The font to use in the theme.";
+            };
+
+            fontSize = mkOption {
+              type = types.int;
+              default = 12;
+              description = "The base font size.";
+            };
+
+            blur = mkOption {
+              type = types.float;
+              default = 2.0;
+              description = "The blur intensity for the form background.";
+            };
+
+            roundCorners = mkOption {
+              type = types.int;
+              default = 20;
+              description = "The roundness of corners.";
+            };
+
+            colors = mkOption {
+              type = with types; submodule {
+                options = {
+                  headerText = mkOption { type = types.str; default = "#d8d8ff"; };
+                  dateText = mkOption { type = types.str; default = "#d8d8ff"; };
+                  timeText = mkOption { type = types.str; default = "#d8d8ff"; };
+                  formBackground = mkOption { type = types.str; default = "#242455"; };
+                  dimBackground = mkOption { type = types.str; default = "#242455"; };
+                  loginButtonText = mkOption { type = types.str; default = "#6c6caa"; };
+                  loginButtonBackground = mkOption { type = types.str; default = "#d8d8ff"; };
+                  systemButtonsIcons = mkOption { type = types.str; default = "#d8d8ff"; };
+                  placeholderText = mkOption { type = types.str; default = "#6c6caa"; };
+                  highlightBackground = mkOption { type = types.str; default = "#d8d8ff"; };
+                };
+              };
+              default = {};
+              description = "Color palette for the custom SDDM theme. All values should be hex color codes.";
+            };
+          };
         };
       };
     };
@@ -188,6 +259,53 @@ in
           type = types.bool;
           default = false; # Default to false, enable explicitly for PartyDeck
           description = "Enable PartyDeck, a splitscreen gaming application for KDE.";
+        };
+      };
+      firefox = {
+        enable = lib.mkEnableOption "Enable Firefox/Librewolf configuration via Home Manager.";
+
+        package = lib.mkOption {
+          type = with lib.types; package;
+          default = pkgs.firefox;
+          defaultText = "pkgs.firefox";
+          description = "The package to use for the Firefox configuration (e.g., pkgs.librewolf or pkgs.firefox).";
+        };
+
+        extensions = lib.mkOption {
+          type = with lib.types; listOf package;
+          default = [];
+          description = "List of Firefox extensions to install.";
+          example = ''
+            with pkgs.nur.repos.rycee.firefox-addons; [
+              ublock-origin
+              privacy-badger
+            ];
+          '';
+        };
+
+        bookmarks = lib.mkOption {
+          # The actual type is very complex, so 'anything' is sufficient here
+          # since the firefox module itself will validate the structure.
+          type = with lib.types; anything;
+          default = [];
+          description = "A declarative list of bookmarks and folders to configure.";
+          example = ''
+            [
+              {
+                name = "NixOS Search";
+                url = "https://search.nixos.org/";
+                keyword = "nix";
+              }
+              "separator"
+              {
+                name = "Reading List";
+                toolbar = true; # Add this folder to the bookmarks toolbar
+                bookmarks = [
+                  { name = "Some Blog"; url = "https://example.com"; }
+                ];
+              }
+            ]
+          '';
         };
       };
       flatpak = {
@@ -219,10 +337,11 @@ in
       };
       themes = {
         kde = mkOption {
-          type = types.enum [ "windows7" "default" "none" ];
+          type = types.enum [ "windows7" "windows7-alt" "default" "bigsur" "none" ];
           default = "none";
           description = "Set the Plasma theme for Home Manager.";
         };
+        plasmaOverride = mkEnableOption "Override user-session set Plasma configuration.";
         hyprland = mkOption {
           type = types.enum [ "future-aviation" "none" ];
           default = "none";
@@ -233,6 +352,25 @@ in
           default = null;
           description = "Absolute path to the desktop wallpaper. If null, a default will be used.";
           example = "/path/to/my/wallpaper.png";
+        };
+        pinnedApps = mkOption {
+          type = with types; listOf str;
+          default = [
+            "applications:systemsettings.desktop"
+            "applications:org.kde.konsole.desktop"
+            "applications:org.kde.kcalc.desktop"
+            "applications:org.kde.dolphin.desktop"
+            "applications:firefox.desktop"
+            "applications:chromium-browser.desktop"
+          ];
+          description = "List of desktop file entries to pin to the taskbar/iconTasks widget.";
+          example = ''
+            [
+              "applications:firefox.desktop"
+              "applications:org.kde.konsole.desktop"
+              "applications:code.desktop"
+            ]
+          '';
         };
       };
       # You can add more themes here later, e.g., 'cosmic', 'kde', etc.
@@ -248,11 +386,35 @@ in
         description = "List of additional system-wide packages to install via NixOS configuration.";
         example = "with pkgs; [ htop vim ]"; # For documentation
       };
+      unstable-override = mkOption {
+        type = with types; listOf str;
+        default = [];
+        description = "List of package attribute names to pull from the unstable channel.";
+        example = ''[ "discord-canary" "obs-studio" "vscode" ]'';
+      };
       homeManager = mkOption { # User-specific packages
         type = with types; listOf package;
         default = [];
         description = "List of additional user-specific packages to install via Home Manager.";
         example = "with pkgs; [ cowsay neofetch ]";
+      };
+      flatpak = {
+        enable = mkOption {
+          type = types.bool;
+          default = false; # Default to false, enable explicitly for Flatpak support
+          description = "Enable Flatpak packages for Spotify and Discord.";
+        };
+        packages = mkOption {
+          type = with lib.types; listOf str;
+          default = [];
+          description = "List of Flatpak packages to install if flatpak is enabled.";
+          example = "[ { appId = \"com.brave.Browser\"; origin = \"flathub\"; }
+            \"com.obsproject.Studio\"
+            \"im.riot.Riot\"
+            \"com.spotify.Client\"
+            \"com.discordapp.Discord\" 
+          ]";
+        };
       };
     };
 
@@ -292,6 +454,20 @@ in
             description = "Enable Linux kernel development tools and configurations.";
           };
         };
+        embedded-linux = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable embedded Linux development tools and cross-compilers.";
+          };
+        };
+        gbdk = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable Game Boy development tools and the GBDK dev shell.";
+          };
+        };
       };
       # You could add other profiles like 'development', 'server', 'htpc' here later
     };
@@ -300,6 +476,11 @@ in
     #                             HARDWARE AND PERIPHERALS                       #
     # -------------------------------------------------------------------------- #
     hardware = {
+      unstable = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Whether to source the entire hardware stack (kernel, initrd modules, etc.) from nixpkgs-unstable.";
+      };
       nvidia = {
           enable = mkOption {
             type = types.bool;
@@ -313,20 +494,72 @@ in
             description = "Enable dual GPU and PRIME for Nvidia laptops.";
           };
           nvidiaID = mkOption {
-            type = types.str;
-            default = ""; # Default to empty, can be set to specific GPU ID if needed
+            type = types.nullOr types.str;
+            default = null; # Default to empty, can be set to specific GPU ID if needed
             description = "The NVIDIA GPU ID for PRIME configurations on laptops.";
           };
+          intelBusID = mkOption {
+            type = types.nullOr types.str;
+            default = null; # Default to empty, can be set to specific GPU ID if needed
+            description = "The Intel GPU ID for PRIME configurations on laptops.";
+          };
           amdgpuID = mkOption {
-            type = types.str;
-            default = ""; # Default to empty, can be set to specific GPU ID if needed
+            type = types.nullOr types.str;
+            default = null; # Default to empty, can be set to specific GPU ID if needed
             description = "The AMD GPU ID for PRIME configurations on laptops.";
           };
         };
         # You could add more nvidia options here: powerManagement, openDrivers, etc.
       };
-      # Add options for amdgpu, intel, bluetooth etc. here later
-      # CORSAIR KEYBOARD, rgb management
+      peripherals = {
+        enable = mkOption {
+          type = types.bool;
+          default = false; # Default to false, enable explicitly for peripheral configurations
+          description = "Enable configurations for hardware peripherals like keyboards, mice, etc.";
+        };
+        openrgb = {
+          enable = mkOption {
+            type = types.bool;
+            default = false; # Default to false, enable explicitly for OpenRGB support
+            description = "Enable OpenRGB for RGB lighting control.";
+          };
+        };
+        openrazer = {
+          enable = mkOption {
+            type = types.bool;
+            default = false; # Default to false, enable explicitly for Razer device support
+            description = "Enable OpenRazer for Razer device support.";
+          };
+        };
+        ckb-next = {
+          enable = mkOption {
+            type = types.bool;
+            default = false; # Default to false, enable explicitly for Razer device support
+            description = "Enable OpenRazer for Razer device support.";
+          };
+        };
+        input-remapper = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable input-remapper for key/mouse remapping.";
+          };
+        };
+        solaar = {
+           enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable Solaar for Logitech device management.";
+           };
+        };
+        asus = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable ASUS laptop specific services and tools (asusctl).";
+          };
+        };
+      };
     };
 
     # -------------------------------------------------------------------------- #
@@ -342,20 +575,12 @@ in
         # port = mkOption { type = types.port; default = 22; };
       };
       vscodeServer = {
-        enable = mkOption { 
-          type = types.bool; 
-          default = false; 
-          description = "Enable vscode server."; 
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable vscode server.";
         };
         # port = mkOption { type = types.port; default = 22; };
-      };
-      nixai = {
-        enable = mkOption { 
-          type = types.bool; 
-          default = false; 
-          description = "Enable NixAI MCP server."; 
-        };
-        # You can add more options for NixAI here, like model, port, etc.
       };
       wireguard = {
         server = {

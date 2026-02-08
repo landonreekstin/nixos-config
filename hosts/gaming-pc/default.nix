@@ -1,5 +1,5 @@
 # ~/nixos-config/hosts/gaming-pc/default.nix
-{ inputs, pkgs, lib, config, ... }: # Standard module arguments. `config` is the final NixOS config.
+{ inputs, pkgs, lib, config, unstablePkgs, ... }: # Standard module arguments. `config` is the final NixOS config.
 
 {
   imports = [
@@ -34,30 +34,75 @@
     };
 
     desktop = {
-      environments = [ "hyprland" "kde" ]; # Set to "hyprland", "cosmic", or "kde" based on your preference
+      environments = [ "kde" ]; # Set to "hyprland", "cosmic", or "kde" based on your preference
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "sddm";
-        sddmTheme = "sddm-astronaut";
-        sddmEmbeddedTheme = "pixel_sakura";
+        type = "ly"; # Or "greetd", "gdm", or "none" based on your preference
+        sddm = {
+          theme = "sddm-astronaut";
+          #embeddedTheme = "pixel_sakura";
+          customTheme = {
+            enable = true;
+            wallpaper = ../../assets/wallpapers/soviet-retro-future.jpg;
+            blur = 2.0;
+            roundCorners = 20;
+            colors = {
+              formBackground = "#1e1e2e";
+              dimBackground = "#1e1e2e";
+              headerText = "#cdd6f4";
+              dateText = "#cdd6f4";
+              timeText = "#cdd6f4";
+              placeholderText = "#a6adc8";
+              loginButtonBackground = "#89b4fa";
+              loginButtonText = "#1e1e2e";
+              highlightBackground = "#89b4fa";
+              systemButtonsIcons = "#cdd6f4";
+            };
+          };
+          screensaver = {
+            enable = false;
+            timeout = 45; # e.g., 10 minutes
+          };
+        };
       };
     };
 
     hardware = {
+      unstable = true;
       nvidia = {
         enable = true; # Set to true if Optiplex has an NVIDIA GPU needing proprietary drivers
+      };
+      peripherals = {
+        enable = true; # Enable peripheral configurations
+        ckb-next.enable = true; # Enable CKB-Next for Corsair device support
       };
     };
 
     programs = {
       partydeck.enable = false;
+      firefox = {
+        enable = true;
+        package = pkgs.firefox;
+
+        extensions = with pkgs.nur.repos.rycee.firefox-addons; [
+          ublock-origin
+          darkreader
+          facebook-container
+        ];
+
+        bookmarks = [
+          { name = "YouTube"; url = "https://www.youtube.com"; }
+          { name = "Netflix"; url = "https://www.netflix.com"; }
+          { name = "GitHub";  url = "https://github.com"; }
+        ];
+      };
       flatpak.enable = true;
     };
 
     homeManager = {
       enable = true;
       themes = {
-        hyprland = "future-aviation"; # Set to the theme you want for Hyprland
+        #hyprland = "future-aviation"; # Set to the theme you want for Hyprland
       };
     };
 
@@ -66,12 +111,26 @@
         kitty
         pavucontrol
         mullvad-vpn
-        # Add any other system packages specific to Optiplex
+
+        # smbclient and kio-extras for Dolphin network shares
+        kdePackages.kio-extras
+        cifs-utils
+        samba
       ];
-      homeManager = with pkgs; [ # Optiplex-specific user packages (previously in core.nix user packages)
+      unstable-override = [
+        "discord-canary"
+        "obs-studio"
+        "vscode"
+        "librewolf"
+        "brave"
+        "ungoogled-chromium"
+        "claude-code"
+      ];
+      homeManager = with pkgs; [
         jamesdsp
         remmina
         vscode
+        md-tui
         librewolf
         brave
         ungoogled-chromium
@@ -79,7 +138,15 @@
         qbittorrent
         obs-studio
         kdePackages.konversation
+        kdePackages.kdenlive
+        claude-code
       ];
+      flatpak = {
+        enable = true;
+        packages = [
+          "com.spotify.Client"
+        ];
+      };
     };
 
     apps = {
@@ -88,7 +155,12 @@
 
     profiles = {
       gaming.enable = true;
-      development.kernel.enable = true;
+      development = {
+        fpga-ice40.enable = true;
+        kernel.enable = true;
+        embedded-linux.enable = true;
+        gbdk.enable = true;
+      };
     };
 
     services = {
@@ -99,25 +171,46 @@
   };
 
   # === Additional nixos configuration for this host ===
-  #hardware.ckb-next.enable = true;
   services.mullvad-vpn.enable = true;
-  # In your NixOS configuration
-  services.flatpak.enable = true;
+  # Enable the Samba client-side name resolution daemon (nmbd).
+  # This allows the PC to discover other Samba hosts (like optiplex-nas)
+  # on the local network by their hostname.
+  services.samba.nmbd.enable = true;
+  networking.firewall.allowedTCPPorts = [ 139 445 4445 ];
+  networking.firewall.allowedUDPPorts = [ 137 138 ];
+  networking.extraHosts = ''
+    192.168.1.76  optiplex-nas
+  '';
+  # Routes through OpenBSD firewall for accessing server subnet and public IP hairpin NAT
+  # Uses NetworkManager dispatcher to add routes when enp8s0 comes up
+  networking.networkmanager.dispatcherScripts = [
+    {
+      source = pkgs.writeText "homelab-routes" ''
+        #!/bin/sh
+        if [ "$1" = "enp8s0" ] && [ "$2" = "up" ]; then
+          # Route to server subnet (192.168.100.x) via OpenBSD firewall
+          ${pkgs.iproute2}/bin/ip route add 192.168.100.0/24 via 192.168.1.189 dev enp8s0 || true
+          # Route for Astroneer public IP hairpin NAT
+          ${pkgs.iproute2}/bin/ip route add 68.184.198.204/32 via 192.168.1.189 dev enp8s0 || true
+        fi
+      '';
+      type = "basic";
+    }
+  ];
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {
     useGlobalPkgs = true;
     useUserPackages = true;
     backupFileExtension = "hm-backup"; # Your existing setting
-    extraSpecialArgs = { inherit inputs; customConfig = config.customConfig; };
+    extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
     # Use the username from customConfig
     users.${config.customConfig.user.name} = { pkgs', lib', config'', ... }: { # config'' here is the HM config being built for this user
-      imports = [ 
+      imports = [
+        # === Plasma Manager ===
+        inputs.plasma-manager.homeModules.plasma-manager
         # === Common User Environment Modules ===
         ../../modules/home-manager/default.nix
-
-        # === Theme Module ===
-        ../../modules/home-manager/themes/future-aviation/default.nix
       ];
     };
   };

@@ -1,17 +1,35 @@
 # ~/nixos-config/modules/nixos/profiles/gaming.nix
 { config, pkgs, lib, ... }:
-
+let
+  unstableGamingPackages = [
+    "steam"
+    "lutris"
+    "heroic"
+    "wineWowPackages" # Note: wineWowPackages is an attr set, but the overlay will replace the top-level name
+    "winetricks"
+    "protonup-qt"
+    "mangohud"
+    "gamemode"
+    "gamescope"
+    "vulkan-tools"
+    "r2modman"
+    "atlauncher"
+    "superTuxKart"
+    "proton-ge-bin"
+    "xpadneo" # The package for the kernel module
+  ];
+in 
 {
 
   # == Configuration ==
   config = lib.mkIf config.customConfig.profiles.gaming.enable {
 
-    # 1. Add Core Gaming Packages
-    environment.systemPackages = with pkgs; [
+    environment.systemPackages = with pkgs.unstable; [
       # Launchers / Compatibility Layers
       steam # Check prerequisites (32-bit libs, vulkan drivers - nvidia module should handle these)
       lutris
       heroic
+      dolphin-emu
       wineWowPackages.stable # Wine (stable branch, includes 32-bit/WoW64)
       winetricks
       protonup-qt # GUI for managing Proton-GE/Wine-GE versions
@@ -32,18 +50,16 @@
       # Games
       superTuxKart
 
-      # Screen Recording
+      # Screen Recorder
       gpu-screen-recorder-gtk
     ];
 
     programs.gpu-screen-recorder.enable = true;
 
-    # Enable gaming programs
-    # Allows games (especially via Lutris/Steam) to request performance optimizations
     programs.steam = {
       enable = true;
-      extraCompatPackages = with pkgs; [
-        # Add any additional compatibility packages needed by Steam
+      package = pkgs.unstable.steam;
+      extraCompatPackages = with pkgs.unstable; [
         proton-ge-bin
       ];
       gamescopeSession.enable = true;
@@ -51,21 +67,26 @@
       remotePlay.openFirewall = true; # Allow remote play connections
     };
     networking.firewall.allowedUDPPorts = [ 2757 2759 ]; # SuperTuxKarts networking ports
-    
+
     programs.gamemode.enable = true;
-    programs.gamescope.enable = true;
-
-    # Enable 32-bit libraries (often needed by Steam/Wine/games)
-    # Note: The Nvidia module might already enable this, but being explicit is fine.
-    hardware.graphics.enable = true; # Ensure base OpenGL is set up
-    hardware.graphics.enable32Bit = true;
-
-    # Configure Kernel
-    # boot.kernelPackages = pkgs.linuxPackages_latest; # Example: Using Nixpkgs latest stable
-    boot.kernelPackages = pkgs.linuxPackages_zen;
+    programs.gamescope = {
+      enable = true;
+      package = pkgs.unstable.gamescope;
+    };
+    hardware.graphics = {
+      enable = true;
+      enable32Bit = true;
+    };
 
     # Gamepad Input
     hardware.xpadneo.enable = true;
+    # For official Nintendo or Mayflash GameCube adapter                                                                             
+    services.udev.extraRules = ''                                                                                                    
+      # Nintendo GameCube Controller Adapter                                                                                         
+      SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTRS{idVendor}=="057e", ATTRS{idProduct}=="0337", MODE="0666"                   
+      # Mayflash GameCube Controller Adapter                                                                                         
+      SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTRS{idVendor}=="0079", ATTRS{idProduct}=="1825", MODE="0666"                   
+    '';
 
     # Add user to 'video' group (often needed for Vulkan/DRI access)
     # This might be handled automatically by driver modules/DEs, but explicit is safe.

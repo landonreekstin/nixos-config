@@ -7,21 +7,37 @@ let
 in
 {
   config = lib.mkIf cfg.enable {
-
     # Enable proprietary Nvidia drivers
     hardware.nvidia = {
       open = false; # Use proprietary driver
       modesetting.enable = true; # Needed for Wayland
-      powerManagement.enable = true; # Recommended
+      powerManagement = {
+        enable = true; # Recommended
+        finegrained = false;
+      };
       # package = config.boot.kernelPackages.nvidiaPackages.stable; # Or specify version if needed
       # === Laptop-specific options ===
-      prime = {
-        #offload.enable = lib.mkDefault cfg.laptop.enable;
-        sync.enable = lib.mkDefault cfg.laptop.enable;
-        offload.enable = false;
-        amdgpuBusId = lib.mkDefault cfg.laptop.amdgpuID; # AMD GPU ID for PRIME
-        nvidiaBusId = lib.mkDefault cfg.laptop.nvidiaID; # Nvidia GPU ID for
-      };
+      prime = lib.mkMerge [
+        # --- Unconditional prime settings for laptops ---
+        (lib.mkIf cfg.laptop.enable {
+          sync.enable = true;
+          offload.enable = false; # Set your desired default for offload
+          # This assumes nvidiaID will always be set for a prime setup
+          nvidiaBusId = cfg.laptop.nvidiaID;
+        })
+
+        # --- Conditional bus ID settings ---
+        # Only add amdgpuBusId if a value is provided
+        (lib.mkIf (cfg.laptop.amdgpuID != null) {
+          amdgpuBusId = cfg.laptop.amdgpuID;
+        })
+
+        # Only add intelBusId if a value is provided
+        (lib.mkIf (cfg.laptop.intelBusID != null) {
+          intelBusId = cfg.laptop.intelBusID;
+        })
+      ];
+      dynamicBoost.enable = false;
     };
 
     services.xserver.videoDrivers = [ "nvidia" ]; # Ensure X11 & Wayland use Nvidia driver

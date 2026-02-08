@@ -1,5 +1,5 @@
 # ~/nixos-config/hosts/atl-mini-pc/default.nix
-{ inputs, pkgs, lib, config, ... }: # Standard module arguments. `config` is the final NixOS config.
+{ inputs, pkgs, lib, config, unstablePkgs, ... }: # Standard module arguments. `config` is the final NixOS config.
 
 {
   imports = [
@@ -50,7 +50,6 @@
 
     programs = {
       partydeck.enable = false;
-      flatpak.enable = true;
     };
 
     homeManager = {
@@ -63,11 +62,11 @@
 
     packages = {
       nixos = with pkgs; [
-        vim
-        wget
-        fd
-        htop
-        pavucontrol
+
+      ];
+      unstable-override = [
+        "firefox"
+        "chromium"
       ];
       homeManager = with pkgs; [
         notes
@@ -75,6 +74,7 @@
         firefox
         libreoffice
       ];
+      flatpak.enable = true;
     };
 
     apps = {
@@ -113,15 +113,14 @@
     useGlobalPkgs = true;
     useUserPackages = true;
     backupFileExtension = "hm-backup"; # Your existing setting
-    extraSpecialArgs = { inherit inputs; customConfig = config.customConfig; };
+    extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
     # Use the username from customConfig
     users.${config.customConfig.user.name} = { pkgs', lib', config'', ... }: { # config'' here is the HM config being built for this user
       imports = [
+        # === Plasma Manager ===
+        inputs.plasma-manager.homeModules.plasma-manager
         # === Common User Environment Modules ===
         ../../modules/home-manager/default.nix
-
-        # === Theme Module ===
-        ../../modules/home-manager/themes/future-aviation/default.nix
       ];
     };
   };

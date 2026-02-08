@@ -1,5 +1,5 @@
 # ~/nixos-config/hosts/zephyrus-g14/default.nix
-{ inputs, pkgs, lib, config, ... }:
+{ inputs, pkgs, lib, config, unstablePkgs, ... }:
 
 {
   imports = [
@@ -33,11 +33,20 @@
       environments = [ "kde" ];
       displayManager = {
         enable = true;
-        type = "ly";
+        type = "sddm";
+        sddm = {
+          theme = "sddm-astronaut";
+          embeddedTheme = "pixel_sakura";
+          screensaver = {
+            enable = false;
+            timeout = 1; # e.g., 10 minutes
+          };
+        };
       };
     };
 
     hardware = {
+      unstable = true;
       nvidia = {
         enable = true;
         laptop = {
@@ -50,7 +59,6 @@
 
     programs = {
       partydeck.enable = false;
-      flatpak.enable = true;
     };
 
     homeManager = {
@@ -63,12 +71,14 @@
 
     packages = {
       nixos = with pkgs; [ 
-        wget
-        fd
         kitty
-        htop
-        pavucontrol
-        mullvad-vpn
+        claude-code
+      ];
+      unstable-override = [ 
+        "discord-canary"  
+        "vscode"
+        "librewolf"
+        "brave"
       ];
       homeManager = with pkgs; [ 
         jamesdsp
@@ -78,6 +88,12 @@
         brave
         discord-canary
       ];
+      flatpak = {
+        enable = true;
+        packages = [
+          "com.spotify.Client"
+        ];
+      };
     };
 
     apps = {
@@ -86,20 +102,20 @@
 
     profiles = {
       gaming.enable = true;
-      development.fpga-ice40.enable = false;
+      development.fpga-ice40.enable = true;
+      development.embedded-linux.enable = true;
       development.kernel.enable = false;
     };
 
     services = {
       ssh.enable = true;
       vscodeServer.enable = true;
-      nixai.enable = false;
     };
 
   };
 
   # === Additional nixos configuration for this host ===
-  services.mullvad-vpn.enable = true;
+  
   # In your NixOS configuration
   services.flatpak.enable = true;
   services.keyd = {
@@ -126,11 +142,13 @@
     useGlobalPkgs = true;
     useUserPackages = true;
     backupFileExtension = "hm-backup";
-    extraSpecialArgs = { inherit inputs; customConfig = config.customConfig; };
+    extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
     users.${config.customConfig.user.name} = {
       imports = [
+        # === Plasma Manager ===
+        inputs.plasma-manager.homeModules.plasma-manager
+        # === Common User Environment Modules ===
         ../../modules/home-manager/default.nix
-        ../../modules/home-manager/themes/future-aviation/default.nix
       ];
     };
   };

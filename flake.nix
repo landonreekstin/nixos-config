@@ -3,7 +3,16 @@
   description = "Lando's Modular NixOS Configuration";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+
+    nixpkgs-unstable = {
+      url = "github:NixOS/nixpkgs/nixos-unstable";
+    };
+
+    nur = {
+      url = "github:nix-community/NUR";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     nixos-hardware = {
       url = "github:Nixos/nixos-hardware";
@@ -13,14 +22,9 @@
       url = "github:nix-community/disko/latest";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    
-    nixos-cosmic = {
-      url = "github:lilyinstarlight/nixos-cosmic";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
 
     home-manager = {
-      url = "github:nix-community/home-manager";
+      url = "github:nix-community/home-manager/release-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -36,21 +40,20 @@
        inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    nixai = {
-      url = "github:olafkfreund/nix-ai-help";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=latest";
   };
 
-  outputs = { self, nixpkgs, disko, nixos-hardware, nixos-cosmic, home-manager, plasma-manager, nixos-vscode-server, nixai, nix-flatpak, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-unstable, disko, nixos-hardware, home-manager, plasma-manager, nixos-vscode-server, nix-flatpak, ... }@inputs:
     let
       # Define the target system
       system = "x86_64-linux";
       
       # Create the package set for our system. This is the correct way.
       pkgs = nixpkgs.legacyPackages.${system};
+      unstablePkgs = import nixpkgs-unstable {
+        system = system;  # This is allowed in import context
+        config.allowUnfree = true;
+      };
       lib = nixpkgs.lib;
 
       aerothemeplasma-src = pkgs.fetchgit {
@@ -59,34 +62,16 @@
         sha256 = "sha256-PGWpLKXanZ+miN9dE0+SThTAGutFdHMMRmCNcD5myx8=";
       };
 
-      kdeDebugDeps = with pkgs.kdePackages; [
-    libplasma plasma-workspace plasma-sdk ki18n kwindowsystem kconfig
-    ksvg kcoreaddons plasma-activities sonnet kpackage kxmlgui kio
-    knotifications knotifyconfig kcmutils knewstuff krunner kglobalaccel
-    kwidgetsaddons kdeclarative qqc2-desktop-style
-  ];
+      embeddedComponents = referenceHostConfig.customConfig.profiles.development.embedded-linux.components;
 
-  # 2. Define the search script string.
-  #    Because this is inside the main `let` block, it can correctly see and use `lib`.
-  headerSearchScript =
-    let
-      includePaths = lib.concatMapStringsSep " " (p:
-        if builtins.hasAttr "dev" p && p ? "dev"
-        then "${p.dev}/include"
-        else ""
-      ) kdeDebugDeps;
-    in
-    ''
-      echo ""
-      echo "--- Exhaustive Header File Search ---"
-      find ${includePaths} -iname dialog.h 2>/dev/null || echo "File 'dialog.h' not found in any dependency."
-      echo "--- End of Search ---"
-    '';
       # --- Reference Host for Flake Outputs ---
       # Some flake-level outputs like devShells need a complete NixOS configuration
       # to pull values from. We'll use 'gaming-pc' as our reference host because
       # that is the primary machine for kernel development.
       referenceHostConfig = self.nixosConfigurations."gaming-pc".config;
+
+      # Define specialArgs once to pass to all hosts
+      specialArgs = { inherit inputs; };
     in
   {
     # Define NixOS configurations for each host
@@ -94,7 +79,6 @@
 
       # Configuration for the Optiplex host
       optiplex = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
         # Pass flake inputs down to the modules if needed (good practice)
         specialArgs = { inherit inputs; };
         modules = [
@@ -102,90 +86,105 @@
           ./hosts/optiplex/default.nix
           # home-manager module
           inputs.home-manager.nixosModules.default
+          # Set system architecture
+          { nixpkgs.hostPlatform = "x86_64-linux"; }
         ];
       };
 
       # Configuration for the Gaming PC
       gaming-pc = nixpkgs.lib.nixosSystem {
-         system = "x86_64-linux";
-         specialArgs = { inherit inputs; };
-         modules = [ 
-          ./hosts/gaming-pc/default.nix 
+         specialArgs = specialArgs;
+         modules = [
+          ./hosts/gaming-pc/default.nix
           inputs.home-manager.nixosModules.default
-          inputs.nixos-cosmic.nixosModules.default 
+          inputs.nur.modules.nixos.default
+          # Set system architecture
+          { nixpkgs.hostPlatform = "x86_64-linux"; }
         ];
       };
 
       # Configuration for Blaney's PC
       blaney-pc = nixpkgs.lib.nixosSystem {
-         system = "x86_64-linux";
-         specialArgs = { inherit inputs; };
-         modules = [ ./hosts/blaney-pc/default.nix inputs.home-manager.nixosModules.default ];
+         specialArgs = specialArgs;
+         modules = [
+          ./hosts/blaney-pc/default.nix
+          inputs.home-manager.nixosModules.default
+          # Set system architecture
+          { nixpkgs.hostPlatform = "x86_64-linux"; }
+        ];
       };
 
       # Configuration for Justus's PC
       justus-pc = nixpkgs.lib.nixosSystem {
-         system = "x86_64-linux";
-         specialArgs = { inherit inputs; };
+         specialArgs = specialArgs;
          modules = [
           ./hosts/justus-pc/default.nix
-          inputs.home-manager.nixosModules.default 
+          inputs.home-manager.nixosModules.default
           inputs.disko.nixosModules.default
+          # Set system architecture
+          { nixpkgs.hostPlatform = "x86_64-linux"; }
         ];
       };
 
       # Configuration for the Asus ROG Zephyrus G14 Laptop
       asus-laptop = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        specialArgs = { inherit inputs; };
-        modules = [ ./hosts/asus-laptop/default.nix inputs.home-manager.nixosModules.default ];
+        specialArgs = specialArgs;
+        modules = [
+          ./hosts/asus-laptop/default.nix
+          inputs.home-manager.nixosModules.default
+          # Set system architecture
+          { nixpkgs.hostPlatform = "x86_64-linux"; }
+        ];
       };
 
       # Configuration for the Asus ROG Zephyrus M15 Laptop
       asus-m15 = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        specialArgs = { inherit inputs; };
-        modules = [ 
-          ./hosts/asus-m15/default.nix 
+        specialArgs = specialArgs;
+        modules = [
+          ./hosts/asus-m15/default.nix
           inputs.home-manager.nixosModules.default
+          inputs.nur.modules.nixos.default
           inputs.disko.nixosModules.default
+          # Set system architecture
+          { nixpkgs.hostPlatform = "x86_64-linux"; }
         ];
       };
 
       # Configuration for Atlanta Mini PC
       atl-mini-pc = nixpkgs.lib.nixosSystem {
-         system = "x86_64-linux";
-         specialArgs = { inherit inputs; };
+         specialArgs = specialArgs;
          modules = [
           ./hosts/atl-mini-pc/default.nix
-          inputs.home-manager.nixosModules.default 
+          inputs.home-manager.nixosModules.default
           inputs.disko.nixosModules.default
+          # Set system architecture
+          { nixpkgs.hostPlatform = "x86_64-linux"; }
         ];
       };
 
       # Configuration for the Optiplex NAS
       optiplex-nas = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        specialArgs = { inherit inputs; };
+        specialArgs = specialArgs;
         modules = [
           ./hosts/optiplex-nas/default.nix
           inputs.home-manager.nixosModules.default
           inputs.disko.nixosModules.default
+          # Set system architecture
+          { nixpkgs.hostPlatform = "x86_64-linux"; }
         ];
       };
     };
 
     # Development Shells provided by this flake
     devShells.x86_64-linux = {
-      # The 'kernel-dev' shell is sourced from our new module.
-      # We take the configuration from the evaluated optiplex host.
       kernel-dev = pkgs.mkShell referenceHostConfig.customConfig.profiles.development.kernel.devShell;
-    };
 
-    devShells.x86_64-linux.debugPlasmoid = pkgs.mkShell {
-    packages = kdeDebugDeps;
-    shellHook = headerSearchScript;
-  };
+      fpga-dev = referenceHostConfig.customConfig.profiles.development.fpga-ice40.devShell;
+
+      embedded-linux = referenceHostConfig.customConfig.profiles.development.embedded-linux.devShell;
+
+      gbdk-dev = referenceHostConfig.customConfig.profiles.development.gbdk.devShell;
+    };
 
   };
 }

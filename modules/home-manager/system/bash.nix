@@ -34,10 +34,50 @@ in
 
     shellAliases = {
       c = "clear";
+      rb = "sudo reboot";
+      ipr = "sudo input-remapper-gtk";
     };
 
     bashrcExtra = ''
-      export PS1="\n\[\033[${bashColor}m\][\[\e]0;\u@\h: \w\a\]\u@\h:\w]\$\[\033[0m\]"
+      # Function to update PS1 based on dev environment
+      update_ps1() {
+        if [ -n "$DEV_ENV_NAME" ]; then
+          case "$DEV_ENV_NAME" in
+            kernel-dev)
+              PS1='\[\033[1;32m\][kernel-dev]\[\033[0m\] \[\033[1;34m\]\w\[\033[0m\]\$ '
+              ;;
+            fpga-dev)
+              PS1='\[\033[1;36m\][fpga-dev]\[\033[0m\] \[\033[1;34m\]\w\[\033[0m\]\$ '
+              ;;
+            embedded-linux)
+              PS1='\[\033[1;33m\][embedded-linux]\[\033[0m\] \[\033[1;34m\]\w\[\033[0m\]\$ '
+              ;;
+            gbdk-dev)
+              PS1='\[\033[1;35m\][gbdk-dev]\[\033[0m\] \[\033[1;34m\]\w\[\033[0m\]\$ '
+              ;;
+            *)
+              PS1="\n\[\033[${bashColor}m\][\[\e]0;\u@\h: \w\a\]\u@\h:\w]\$\[\033[0m\]"
+              ;;
+          esac
+        else
+          PS1="\n\[\033[${bashColor}m\][\[\e]0;\u@\h: \w\a\]\u@\h:\w]\$\[\033[0m\]"
+        fi
+      }
+
+      # Wrapper that ensures it stays in PROMPT_COMMAND
+      _ps1_prompt_wrapper() {
+        # Re-add ourselves if we've been removed from PROMPT_COMMAND
+        if [[ "$PROMPT_COMMAND" != *"_ps1_prompt_wrapper"* ]]; then
+          PROMPT_COMMAND="''${PROMPT_COMMAND:+$PROMPT_COMMAND; }_ps1_prompt_wrapper"
+        fi
+        update_ps1
+      }
+
+      # Set initial PS1
+      update_ps1
+
+      # Add wrapper to PROMPT_COMMAND
+      PROMPT_COMMAND="''${PROMPT_COMMAND:+$PROMPT_COMMAND; }_ps1_prompt_wrapper"
     '';
 
     # This condition checks if Home Manager's Hyprland module is enabled and there is no display manager
