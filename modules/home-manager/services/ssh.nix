@@ -12,8 +12,8 @@ in
             enableDefaultConfig = false;
 
             matchBlocks = {
-            "openbsd-t620" = {
-                hostname = "192.168.1.136";
+            "optiplex-fw" = {
+                hostname = "192.168.1.189";
                 user = "lando";
             };
 
@@ -30,13 +30,13 @@ in
             "mini-server" = {
                 hostname = "192.168.100.103";
                 user = "lando";
-                proxyJump = "openbsd-t620";
+                proxyJump = "optiplex-fw";
             };
 
             "optiplex" = {
                 hostname = "192.168.100.100";
                 user = "lando";
-                proxyJump = "openbsd-t620";
+                proxyJump = "optiplex-fw";
             };
             };
 

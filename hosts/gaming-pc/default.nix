@@ -181,14 +181,17 @@
   networking.extraHosts = ''
     192.168.1.76  optiplex-nas
   '';
-  # For connecting to Astroneer server on LAN (route through OpenBSD firewall)
-  # Uses NetworkManager dispatcher to add route when enp8s0 comes up
+  # Routes through OpenBSD firewall for accessing server subnet and public IP hairpin NAT
+  # Uses NetworkManager dispatcher to add routes when enp8s0 comes up
   networking.networkmanager.dispatcherScripts = [
     {
-      source = pkgs.writeText "astroneer-route" ''
+      source = pkgs.writeText "homelab-routes" ''
         #!/bin/sh
         if [ "$1" = "enp8s0" ] && [ "$2" = "up" ]; then
-          ${pkgs.iproute2}/bin/ip route add 68.184.198.204/32 via 192.168.1.136 dev enp8s0 || true
+          # Route to server subnet (192.168.100.x) via OpenBSD firewall
+          ${pkgs.iproute2}/bin/ip route add 192.168.100.0/24 via 192.168.1.189 dev enp8s0 || true
+          # Route for Astroneer public IP hairpin NAT
+          ${pkgs.iproute2}/bin/ip route add 68.184.198.204/32 via 192.168.1.189 dev enp8s0 || true
         fi
       '';
       type = "basic";
