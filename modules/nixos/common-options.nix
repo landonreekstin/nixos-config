@@ -102,6 +102,46 @@ in
       };
     };
 
+    networking = {
+      networkmanager = {
+        enable = mkOption {
+          type = types.bool;
+          default = true; # Default to true to use NetworkManager for most desktop setups
+          description = "Whether to enable NetworkManager for handling network connections.";
+        };
+      };
+      staticIP = {
+        enable = mkOption {
+          type = types.bool;
+          default = false; # Default to false, enable explicitly for static IP setups
+          description = "Whether to configure a static IP address.";
+        };
+        interface = mkOption {
+          type = types.nullOr types.str;
+          default = null; # No default, must be set if staticIP.enable is true
+          description = "The network interface to configure with a static IP (e.g., 'enp3s0', 'wlp2s0').";
+        };
+        address = mkOption {
+          type = types.nullOr types.str;
+          default = null; # No default, must be set if staticIP.enable is true
+          description = "The static IPv4 address to assign (e.g., '192.168.1.100')";
+        };
+        gateway = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = "The gateway for the static IP configuration.";
+        };
+      };
+      firewall = {
+        enable = mkOption {
+          type = types.bool;
+          default = true; # Default to true to have basic firewall enabled
+          description = "Whether to enable the NixOS firewall.";
+        };
+      };
+      # You can add more networking options here later, e.g., firewall, ssh, etc.
+    };
+
     # -------------------------------------------------------------------------- #
     #                       DESKTOP ENVIRONMENT & COMPONENTS                     #
     # -------------------------------------------------------------------------- #
@@ -613,6 +653,45 @@ in
           type = types.bool; 
           default = false; 
           description = "Enable Samba file sharing service."; 
+        };
+        private = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable a separate, private Samba share on a custom port.";
+          };
+          port = mkOption {
+            type = types.port;
+            default = 4445; # A non-standard port for the private share
+            description = "The TCP port for the private Samba service to listen on.";
+          };
+          path = mkOption {
+            type = types.str;
+            default = "/mnt/private";
+            description = "The absolute path for the private share.";
+          };
+          user = mkOption {
+            type = types.str;
+            # This cleverly defaults to the main user defined for the system
+            default = config.customConfig.user.name;
+            defaultText = "config.customConfig.user.name";
+            description = "The user that will be forced for file operations on the private share.";
+          };
+        };
+      };
+      mediaSetup = {
+        enable = lib.mkEnableOption "Enable the shared media setup";
+        user = lib.mkOption {
+          type = lib.types.str;
+          description = "The primary user account for media ownership.";
+        };
+        storagePath = lib.mkOption {
+          type = lib.types.str;
+          description = "The path to the main storage pool.";
+        };
+        cachePath = lib.mkOption {
+          type = lib.types.str;
+          description = "The path to the fast cache drive.";
         };
       };
       jellyfin = {
