@@ -21,7 +21,7 @@ in
   };
 
   networking.defaultGateway = if cfg.staticIP.enable then cfg.staticIP.gateway else null;  
-  networking.nameservers = [
+  networking.nameservers = lib.mkIf cfg.staticIP.enable [
     cfg.staticIP.gateway
     "1.1.1.1"
     "8.8.8.8"
