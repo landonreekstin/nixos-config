@@ -72,7 +72,7 @@
           };
           screensaver = {
             enable = false;
-            timeout = 20; # e.g., 10 minutes
+            timeout = 45; # e.g., 10 minutes
           };
         };
       };
@@ -82,6 +82,10 @@
       unstable = true;
       nvidia = {
         enable = true; # Set to true if Optiplex has an NVIDIA GPU needing proprietary drivers
+      };
+      peripherals = {
+        enable = true; # Enable peripheral configurations
+        ckb-next.enable = true; # Enable CKB-Next for Corsair device support
       };
     };
 
@@ -137,6 +141,7 @@
         jamesdsp
         remmina
         vscode
+        md-tui
         librewolf
         brave
         ungoogled-chromium
@@ -187,6 +192,22 @@
   networking.extraHosts = ''
     192.168.1.76  optiplex-nas
   '';
+  # Routes through OpenBSD firewall for accessing server subnet and public IP hairpin NAT
+  # Uses NetworkManager dispatcher to add routes when enp8s0 comes up
+  networking.networkmanager.dispatcherScripts = [
+    {
+      source = pkgs.writeText "homelab-routes" ''
+        #!/bin/sh
+        if [ "$1" = "enp8s0" ] && [ "$2" = "up" ]; then
+          # Route to server subnet (192.168.100.x) via OpenBSD firewall
+          ${pkgs.iproute2}/bin/ip route add 192.168.100.0/24 via 192.168.1.189 dev enp8s0 || true
+          # Route for Astroneer public IP hairpin NAT
+          ${pkgs.iproute2}/bin/ip route add 68.184.198.204/32 via 192.168.1.189 dev enp8s0 || true
+        fi
+      '';
+      type = "basic";
+    }
+  ];
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {

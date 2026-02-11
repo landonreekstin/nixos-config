@@ -39,6 +39,38 @@
     }
   ];
 
+  # === Encrypted Drive for Private Samba Share ===
+  boot.initrd.systemd.enable = true; # Ensure systemd is used in initrd for handling encrypted volumes
+  # copies the keyfile into the initrd so it's available at boot time
+  boot.initrd.secrets."/secrets/private_luks.key" = "/root/secrets/private_luks.key";
+  fileSystems."/mnt/private" = {
+    fsType = "ext4";
+    # This specifies the decrypted device that will be mounted.
+    device = "/dev/mapper/private";
+    # These options are crucial for removable drives.
+    # 'nofail' prevents an error if the device isn't present at boot.
+    # 'x-systemd.device-timeout=1' tells systemd to only wait 1 second
+    # for the device to appear, preventing long boot delays.
+    options = [ "nofail" "x-systemd.device-timeout=10s" ];
+
+    # This section tells NixOS how to create the "/dev/mapper/private" device.
+    encrypted = {
+      enable = true;
+      label = "private";
+      # Point to the actual, physical encrypted partition.
+      blkDev = "/dev/disk/by-uuid/2ec75d33-7943-47d2-a9c3-dd11d996f9f0";
+      keyFile = "/secrets/private_luks.key";
+    };
+  };
+
+  # === Declaratively set permissions for Samba mount points ===
+  # This ensures the 'lando' user, which Samba is forced to use,
+  # has the necessary permissions to read and write to the shares.
+  systemd.tmpfiles.rules = [
+    "d /mnt/storage 0775 lando users - -"
+    "d /mnt/private 0775 lando users - -"
+  ];
+
   # === Optiplex NAS Specific Values for `customConfig` ===
   customConfig = {
     
@@ -54,6 +86,19 @@
       stateVersion = "25.05"; # Match your flake's version
       timeZone = "America/Chicago";
       locale = "en_US.UTF-8";
+    };
+
+    networking = {
+      networkmanager = {
+        enable = false; # Disable NetworkManager for static IP
+      };
+      staticIP = {
+        enable = true;
+        interface = "enp0s31f6";
+        address = "192.168.1.76";
+        gateway = "192.168.1.1";
+      };
+      firewall = { enable = false; };
     };
     
     # This is a server, so we disable the desktop environment.
@@ -84,6 +129,7 @@
         git
         vim
         htop
+        claude-code
       ];
       homeManager = with pkgs; [ 
         vscode
@@ -106,8 +152,21 @@
     };
 
     homelab = {
-      samba.enable = false;
+      samba = {
+        enable = true; # This keeps your original share active
+        private = {
+          enable = true; # This activates the new private share
+          # The path defaults to /mnt/private, which is correct for this host.
+          # The port defaults to 4445.
+        };
+      };
       jellyfin.enable = false;
+      mediaSetup = {
+        enable = true;
+        user = config.customConfig.user.name; # This pulls "lando" from the user section
+        storagePath = "/mnt/storage";
+        cachePath = "/mnt/cache";
+      };
     };
   };
 

@@ -14,7 +14,9 @@ in
       settings = {
         PasswordAuthentication = false;
         PermitRootLogin = "no";
-        # Add any other SSH specific settings here
+        # Keepalive settings to prevent idle connections from being dropped by firewalls/NAT
+        ClientAliveInterval = 60;
+        ClientAliveCountMax = 3;
       };
     };
   };

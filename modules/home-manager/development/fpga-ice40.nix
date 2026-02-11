@@ -17,33 +17,60 @@ let
     # Example: make TARGET=blinky
     TARGET ?= top
 
+    # Top module name (defaults to basename of TARGET)
+    # Override if your module name differs from filename
+    # Example: make TARGET=ch2/project1_switches TOP=Switches_To_LEDs
+    TOP ?=
+
     # FPGA Board type (affects P&R and constraints)
-    # Common boards: icestick, icebreaker, blackice-mx
-    BOARD ?= icestick
+    # Common boards: goboard, icestick, icebreaker, blackice-mx
+    BOARD ?= goboard
 
     # --- Tool Configuration ---
     # Use tools from the Nix devShell
     YOSYS   = yosys
-    NEXTPNR = next-pnr-ice40 # Corrected from nextpnr-ice40 for modern Nixpkgs
+    NEXTPNR = nextpnr-ice40
     ICEPACK = icepack
     ICEPROG = iceprog
 
     # --- Board-Specific Settings ---
     # Set device and package based on board
+    ifeq ($(BOARD),goboard)
+      DEVICE  = hx1k
+      PACKAGE = vq100
+    endif
     ifeq ($(BOARD),icestick)
       DEVICE  = hx1k
       PACKAGE = tq144
-      PCF_FILE = icestick.pcf # You must create this file!
     endif
     ifeq ($(BOARD),icebreaker)
       DEVICE  = up5k
       PACKAGE = sg48
-      PCF_FILE = icebreaker.pcf # You must create this file!
     endif
     # Add other boards here...
 
     # --- File Names ---
+    # Extract directory and basename from TARGET
+    TARGET_DIR  = $(dir $(TARGET))
+    TARGET_BASE = $(notdir $(TARGET))
+
+    # Determine the top module name
+    ifeq ($(TOP),)
+      MODULE_NAME = $(TARGET_BASE)
+    else
+      MODULE_NAME = $(TOP)
+    endif
+
+    # Source files
     VERILOG_SRC = $(TARGET).v
+
+    # Try to find PCF in same directory as source, fallback to TARGET.pcf
+    PCF_FILE = $(wildcard $(TARGET).pcf)
+    ifeq ($(PCF_FILE),)
+      PCF_FILE = $(TARGET_BASE).pcf
+    endif
+
+    # Output files (keep in same directory as source)
     JSON_OUT    = $(TARGET).json
     ASC_OUT     = $(TARGET).asc
     BITSTREAM   = $(TARGET).bin
@@ -61,7 +88,8 @@ let
     # Synthesize: Verilog -> JSON Netlist
     $(JSON_OUT): $(VERILOG_SRC)
     	@echo "### Synthesizing with Yosys... ###"
-    	$(YOSYS) -p "synth_ice40 -top $(TARGET) -json $(JSON_OUT)" $(VERILOG_SRC)
+    	@echo "### Source: $(VERILOG_SRC) | Module: $(MODULE_NAME) ###"
+    	$(YOSYS) -p "synth_ice40 -top $(MODULE_NAME) -json $(JSON_OUT)" $(VERILOG_SRC)
 
     # Place and Route: JSON Netlist -> ASCII Bitstream
     $(ASC_OUT): $(JSON_OUT) $(PCF_FILE)
@@ -88,9 +116,13 @@ let
     	@echo "Usage: make [VARIABLE=value] [target]"
     	@echo ""
     	@echo "Variables:"
-    	@echo "  TARGET       The base name of the Verilog file (e.g., 'blinky' for blinky.v)."
+    	@echo "  TARGET       Path to Verilog file without .v extension"
+    	@echo "               Examples: 'blinky' or 'ch2/project1_switches'"
     	@echo "               Default: '$(TARGET)'"
-    	@echo "  BOARD        The target FPGA board (e.g., 'icestick', 'icebreaker')."
+    	@echo "  TOP          Top module name (defaults to TARGET basename)"
+    	@echo "               Use if module name differs from filename"
+    	@echo "               Example: TOP=Switches_To_LEDs"
+    	@echo "  BOARD        The target FPGA board (e.g., 'goboard', 'icestick', 'icebreaker')."
     	@echo "               Default: '$(BOARD)'"
     	@echo ""
     	@echo "Targets:"

@@ -11,6 +11,56 @@ let
       exec ${lib.getBin toolchain.stdenv.cc}/bin/${toolchain.stdenv.cc.targetPrefix}${tool-name} "$@"
     '';
 
+  # Serial console connection script for BeagleBone Black
+  bbb-serial = pkgs.writeShellScriptBin "bbb-serial" ''
+    #!/usr/bin/env bash
+    set -e
+
+    BAUD=115200
+
+    # Auto-detect serial device
+    find_serial_device() {
+      for dev in /dev/ttyUSB0 /dev/ttyUSB1 /dev/ttyACM0 /dev/ttyACM1; do
+        if [ -e "$dev" ]; then
+          echo "$dev"
+          return 0
+        fi
+      done
+      return 1
+    }
+
+    # Allow override via argument or environment
+    DEVICE="''${1:-''${BBB_SERIAL_DEVICE:-}}"
+
+    if [ -z "$DEVICE" ]; then
+      DEVICE=$(find_serial_device) || {
+        echo "Error: No serial device found."
+        echo "Connect your USB-to-serial adapter and try again."
+        echo "Or specify device: bbb-serial /dev/ttyUSB0"
+        exit 1
+      }
+      echo "Auto-detected: $DEVICE"
+    fi
+
+    if [ ! -e "$DEVICE" ]; then
+      echo "Error: Device $DEVICE does not exist"
+      exit 1
+    fi
+
+    if [ ! -r "$DEVICE" ] || [ ! -w "$DEVICE" ]; then
+      echo "Error: Cannot access $DEVICE"
+      echo "You may need to add yourself to the dialout group:"
+      echo "  sudo usermod -aG dialout \$USER"
+      echo "Then log out and back in."
+      exit 1
+    fi
+
+    echo "Connecting to $DEVICE at $BAUD baud..."
+    echo "Exit with: Ctrl-a Ctrl-x"
+    echo ""
+    exec ${pkgs.picocom}/bin/picocom -b $BAUD "$DEVICE"
+  '';
+
 in
 {
   # === MODULE OPTIONS ===
@@ -22,6 +72,8 @@ in
 
   # === MODULE CONFIGURATION ===
   config = lib.mkIf cfg.enable {
+    # Add user to dialout group for serial console access
+    users.users.${config.customConfig.user.name}.extraGroups = [ "dialout" ];
     customConfig.profiles.development.embedded-linux.devShell =
       let
         pkgsQEMU = pkgs.pkgsCross.raspberryPi;
@@ -42,7 +94,7 @@ in
           # General build tools
           autoconf automake bc bison bzip2 cmake dtc flex gawk gcc gettext git gperf
           gnutls help2man libtool libuuid ncurses openssl patch python3 rsync swig texinfo unzip wget xz
-          qemu_full ubootTools minicom
+          qemu_full ubootTools minicom picocom
 
           # SD card formatting utilities
           util-linux dosfstools e2fsprogs coreutils
@@ -50,6 +102,9 @@ in
           # The actual GDB/Binutils from the toolchains
           pkgsQEMU.gdb pkgsQEMU.binutils
           pkgsBBB.gdb pkgsBBB.binutils
+
+          # Helper scripts
+          bbb-serial
         ] ++ qemuWrappers ++ bbbWrappers;
 
         shellHook = ''
@@ -60,6 +115,10 @@ in
           echo "Explicit compilers are now in your PATH."
           echo "To build U-Boot for BBB, use:"
           echo "  export CROSS_COMPILE=${pkgsBBB.stdenv.cc.targetPrefix}"
+          echo
+          echo "Serial console:"
+          echo "  bbb-serial              # Auto-detect and connect"
+          echo "  bbb-serial /dev/ttyUSB0 # Specify device"
           echo "--------------------------------------------------------"
         '';
       };

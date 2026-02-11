@@ -29,6 +29,7 @@ in
       steam # Check prerequisites (32-bit libs, vulkan drivers - nvidia module should handle these)
       lutris
       heroic
+      dolphin-emu
       wineWowPackages.stable # Wine (stable branch, includes 32-bit/WoW64)
       winetricks
       protonup-qt # GUI for managing Proton-GE/Wine-GE versions
@@ -79,11 +80,19 @@ in
 
     # Gamepad Input
     hardware.xpadneo.enable = true;
+    # For official Nintendo or Mayflash GameCube adapter                                                                             
+    services.udev.extraRules = ''                                                                                                    
+      # Nintendo GameCube Controller Adapter                                                                                         
+      SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTRS{idVendor}=="057e", ATTRS{idProduct}=="0337", MODE="0666"                   
+      # Mayflash GameCube Controller Adapter                                                                                         
+      SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTRS{idVendor}=="0079", ATTRS{idProduct}=="1825", MODE="0666"                   
+    '';
 
-    # Add user to 'video' group (often needed for Vulkan/DRI access)
-    # This might be handled automatically by driver modules/DEs, but explicit is safe.
+    # Add user to required groups for gaming
+    # - video: Vulkan/DRI access (may be handled by drivers/DEs, but explicit is safe)
+    # - gamemode: Allows CPU governor changes without authentication prompts
     users.users.${config.customConfig.user.name}.extraGroups = lib.mkMerge [
-      (lib.mkIf config.users.users.${config.customConfig.user.name}.isNormalUser [ "video" ])
+      (lib.mkIf config.users.users.${config.customConfig.user.name}.isNormalUser [ "video" "gamemode" ])
     ];
     # Note: We reference the user defined in core.nix dynamically.
 
