@@ -11,6 +11,10 @@ in
             enable = true;
             enableDefaultConfig = false;
 
+            # Keepalive settings to prevent idle connections from being dropped by firewalls/NAT
+            serverAliveInterval = 60;
+            serverAliveCountMax = 3;
+
             matchBlocks = {
             "optiplex-fw" = {
                 hostname = "192.168.1.189";
