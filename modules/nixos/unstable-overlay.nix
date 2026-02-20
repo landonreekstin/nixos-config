@@ -42,7 +42,7 @@ in
     # This block is only active when the unstable hardware flag is true.
     (lib.mkIf cfg.hardware.unstable {
       boot.kernelPackages = pkgs.linuxPackages_latest;
-      hardware.nvidia.package = pkgs.unstable.linuxPackages_latest.nvidiaPackages.latest;
+      hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.${cfg.hardware.nvidia.package};
     })
   ];
 }

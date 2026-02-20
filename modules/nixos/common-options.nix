@@ -487,6 +487,19 @@ in
             default = false; # Default to false, enable explicitly on NVIDIA machines
             description = "Enable NVIDIA drivers and related configuration.";
           };
+          package = mkOption {
+            type = types.enum [ "latest" "production" "stable" "legacy_535" "legacy_470" "legacy_390" ];
+            default = "latest";
+            description = ''
+              Which NVIDIA driver package to use. Options:
+              - "latest" - Latest driver (may drop support for older GPUs)
+              - "production" - Production branch driver
+              - "stable" - Stable branch (580.xx series, supports GTX 1000 series)
+              - "legacy_535" - Legacy 535.xx branch
+              - "legacy_470" - Legacy 470.xx branch (for Kepler GPUs)
+              - "legacy_390" - Legacy 390.xx branch (for older GPUs)
+            '';
+          };
         laptop = {
           enable = mkOption {
             type = types.bool;
