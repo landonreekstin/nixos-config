@@ -25,9 +25,9 @@ in
           };
         })
         # Conditionally replaces the kernel.
-        (final: prev: lib.mkIf cfg.hardware.unstable {
+        (final: prev: if cfg.hardware.unstable then {
           linuxPackages_latest = final.unstable.linuxPackages_latest;
-        })
+        } else {})
 
         # --- The Simplified Package Override Overlay ---
         (final: prev:
@@ -42,7 +42,7 @@ in
     # This block is only active when the unstable hardware flag is true.
     (lib.mkIf cfg.hardware.unstable {
       boot.kernelPackages = pkgs.linuxPackages_latest;
-      hardware.nvidia.package = pkgs.unstable.linuxPackages_latest.nvidiaPackages.latest;
+      hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.latest;
     })
   ];
 }

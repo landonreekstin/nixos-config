@@ -16,14 +16,20 @@ This is a modular NixOS configuration flake that manages multiple hosts with sha
 - `post-install` - Complete initial setup after fresh NixOS installation
 
 ### NixOS Rebuild Commands
-The primary command for applying configuration changes:
+
+**CRITICAL: Always use the `rebuild` command instead of manually running `nixos-rebuild`.** The `rebuild` command automatically detects the current host and uses the correct flake target. Manually specifying the wrong hostname (e.g., `--flake .#blaney-pc` on `gaming-pc`) will apply the wrong configuration, potentially removing the user account and causing system boot failures.
+
 ```bash
-sudo nixos-rebuild switch --flake ~/nixos-config#<hostname> --impure
+# CORRECT - Always use this:
+rebuild
+
+# DANGEROUS - Never manually specify hostname:
+# sudo nixos-rebuild switch --flake ~/nixos-config#<hostname> --impure
 ```
 
-For testing changes without switching:
+For testing changes without switching, use `rebuild` with the test argument via nixos-rebuild directly, but let the system identify itself:
 ```bash
-sudo nixos-rebuild test --flake ~/nixos-config#<hostname> --impure
+sudo nixos-rebuild test --flake ~/nixos-config#$(hostname) --impure
 ```
 
 ### Development Shells
@@ -218,8 +224,23 @@ Available via `customConfig.homelab`:
 
 **CRITICAL**: These steps must be followed after ANY configuration changes:
 
-### 1. Restore File Ownership (REQUIRED)
-**ALWAYS run this command immediately after editing files:**
+```bash
+rebuild
+```
+
+This command rebuilds the current host configuration using the local flake. **Never manually specify the hostname** - the `rebuild` command automatically uses the correct host.
+
+For testing changes without permanently switching:
+
+```bash
+sudo nixos-rebuild test --flake ~/nixos-config#$(hostname) --impure
+```
+
+Using `$(hostname)` ensures the correct host is always targeted.
+
+## File Permissions
+
+After making edits to files in the repository, some files may end up with incorrect ownership. To fix permissions and restore proper ownership to the user:
 
 ```bash
 sudo chown -R $USER:users ~/nixos-config
@@ -285,6 +306,7 @@ When running on the `blaney-pc` host, apply these additional guidelines:
 
 ## Notes
 
+- **CRITICAL**: Always use the `rebuild` command, never manually specify `--flake .#<hostname>`. Each host has different users and hardware - applying the wrong host config can remove user accounts, break authentication, and cause boot failures.
 - Always use the `--impure` flag with nixos-rebuild for this configuration
 - The `customConfig` system requires understanding the options defined in `common-options.nix`
 - Host configurations should primarily set `customConfig` values rather than raw NixOS options
