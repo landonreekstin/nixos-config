@@ -163,6 +163,11 @@
       };
     };
 
+    networking.wakeOnLan = {
+      enable = true;
+      interface = "enp8s0";
+    };
+
     services = {
       ssh.enable = true;
       vscodeServer.enable = true;
@@ -171,7 +176,7 @@
   };
 
   # === Additional nixos configuration for this host ===
-  services.mullvad-vpn.enable = true;
+
   # Enable the Samba client-side name resolution daemon (nmbd).
   # This allows the PC to discover other Samba hosts (like optiplex-nas)
   # on the local network by their hostname.

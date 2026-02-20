@@ -25,9 +25,9 @@ in
           };
         })
         # Conditionally replaces the kernel.
-        (final: prev: lib.mkIf cfg.hardware.unstable {
+        (final: prev: if cfg.hardware.unstable then {
           linuxPackages_latest = final.unstable.linuxPackages_latest;
-        })
+        } else {})
 
         # --- The Simplified Package Override Overlay ---
         (final: prev:

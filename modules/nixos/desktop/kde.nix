@@ -31,5 +31,6 @@
     };
 
     programs.xwayland.enable = true;
+    programs.partition-manager.enable = true;
   };
 }
