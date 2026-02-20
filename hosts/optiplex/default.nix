@@ -175,7 +175,7 @@
       ];
       unstable-override = [ 
         "vscode"
-        "librewolf"
+        #"librewolf"
         "ungoogled-chromium"
       ];
       homeManager = with pkgs; [ 
