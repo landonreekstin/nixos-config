@@ -125,6 +125,11 @@
       development.kernel.enable = false;
     };
 
+    networking.wakeOnLan = {
+      enable = true;
+      interface = "eno2";
+    };
+
     services = {
       ssh.enable = true;
       vscodeServer.enable = true;

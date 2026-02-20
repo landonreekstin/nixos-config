@@ -139,7 +139,19 @@ in
           description = "Whether to enable the NixOS firewall.";
         };
       };
-      # You can add more networking options here later, e.g., firewall, ssh, etc.
+      wakeOnLan = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable Wake-on-LAN for the specified network interface.";
+        };
+        interface = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = "The network interface to enable Wake-on-LAN on (e.g., 'enp8s0').";
+          example = "enp8s0";
+        };
+      };
     };
 
     # -------------------------------------------------------------------------- #

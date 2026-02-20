@@ -163,6 +163,11 @@
       };
     };
 
+    networking.wakeOnLan = {
+      enable = true;
+      interface = "enp8s0";
+    };
+
     services = {
       ssh.enable = true;
       vscodeServer.enable = true;

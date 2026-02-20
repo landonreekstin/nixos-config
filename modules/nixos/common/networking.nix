@@ -10,17 +10,22 @@ in
   # Enable NetworkManager
   networking.networkmanager.enable = cfg.networkmanager.enable;
 
-  networking.interfaces = lib.mkIf cfg.staticIP.enable {
-    ${cfg.staticIP.interface} = {
-      useDHCP = false;
-      ipv4.addresses = [ {
-        address = cfg.staticIP.address;
-        prefixLength = 24;
-      } ];
-    };
-  };
+  networking.interfaces = lib.mkMerge [
+    (lib.mkIf cfg.staticIP.enable {
+      ${cfg.staticIP.interface} = {
+        useDHCP = false;
+        ipv4.addresses = [ {
+          address = cfg.staticIP.address;
+          prefixLength = 24;
+        } ];
+      };
+    })
+    (lib.mkIf (cfg.wakeOnLan.enable && cfg.wakeOnLan.interface != null) {
+      ${cfg.wakeOnLan.interface}.wakeOnLan.enable = true;
+    })
+  ];
 
-  networking.defaultGateway = if cfg.staticIP.enable then cfg.staticIP.gateway else null;  
+  networking.defaultGateway = if cfg.staticIP.enable then cfg.staticIP.gateway else null;
   networking.nameservers = lib.mkIf cfg.staticIP.enable [
     cfg.staticIP.gateway
     "1.1.1.1"
