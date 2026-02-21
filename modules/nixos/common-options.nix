@@ -761,6 +761,38 @@ in
           };
         };
       };
+
+      transmission = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable Transmission, a lightweight torrent client.";
+        };
+      };
+
+      mullvad = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable Mullvad VPN daemon for system-wide VPN.";
+        };
+      };
+
+      jellyseerr = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable Jellyseerr, a media request manager for Jellyfin.";
+        };
+      };
+
+      flaresolverr = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable FlareSolverr, a Cloudflare bypass proxy for indexers.";
+        };
+      };
     };
 
     # -------------------------------------------------------------------------- #

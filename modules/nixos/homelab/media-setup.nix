@@ -23,9 +23,9 @@ in
       jellyfin = lib.mkIf config.customConfig.homelab.jellyfin.enable {
         extraGroups = [ "media" ];
       };
-      #transmission = lib.mkIf config.customConfig.homelab.transmission.enable {
-      #  extraGroups = [ "media" ];
-      #};
+      transmission = lib.mkIf config.customConfig.homelab.transmission.enable {
+        extraGroups = [ "media" ];
+      };
       prowlarr = lib.mkIf arrCfg.prowlarr.enable {
         extraGroups = [ "media" ];
       };

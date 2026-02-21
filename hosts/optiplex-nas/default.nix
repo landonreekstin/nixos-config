@@ -160,13 +160,26 @@
           # The port defaults to 4445.
         };
       };
-      jellyfin.enable = false;
+      jellyfin = {
+        enable = true;
+        hwTranscoding = true;
+      };
       mediaSetup = {
         enable = true;
         user = config.customConfig.user.name; # This pulls "lando" from the user section
         storagePath = "/mnt/storage";
         cachePath = "/mnt/cache";
       };
+      arr = {
+        prowlarr.enable = true;
+        radarr.enable = true;
+        sonarr.enable = true;
+        bazarr.enable = true;
+      };
+      transmission.enable = true;
+      mullvad.enable = true;
+      jellyseerr.enable = true;
+      flaresolverr.enable = true;
     };
   };
 

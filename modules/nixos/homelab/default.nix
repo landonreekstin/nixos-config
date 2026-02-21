@@ -6,5 +6,10 @@
     ./samba.nix
     ./jellyfin.nix
     ./media-setup.nix
+    ./transmission.nix
+    ./arr.nix
+    ./mullvad.nix
+    ./jellyseerr.nix
+    ./flaresolverr.nix
   ];
 }
