@@ -11,6 +11,7 @@
     htop
     usbutils
     # Any other truly universal CLI packages
+    bat
   ] ++ config.customConfig.packages.nixos; # Appends host-specific system packages
 
   system.stateVersion = config.customConfig.system.stateVersion; # Set state version from customConfig
