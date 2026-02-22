@@ -116,6 +116,7 @@
         desmume
         mgba
         claude-code
+        wireguard-ui
       ];
       flatpak = {
         enable = true;
