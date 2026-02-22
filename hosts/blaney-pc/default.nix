@@ -99,7 +99,8 @@
         #"chromium"
         "desmume"
         "mgba"
-        "claude-code"      
+        "claude-code" 
+        "signal-desktop"     
       ];
       homeManager = with pkgs; [
         kitty
@@ -117,6 +118,7 @@
         mgba
         claude-code
         wireguard-ui
+        signal-desktop
       ];
       flatpak = {
         enable = true;
