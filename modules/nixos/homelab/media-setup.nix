@@ -42,21 +42,24 @@ in
 
     # 3. Declaratively create directories and set their permissions.
     #    This is the core fix for your "Access denied" problem.
+    # SGID (2775) ensures new files/dirs inherit the 'media' group,
+    # so Transmission-created category dirs (e.g. radarr/, tv-sonarr/)
+    # are accessible by Radarr/Sonarr which run as separate users.
     systemd.tmpfiles.rules = [
       # Set ownership and permissions on the top-level mount points
-      "d ${cfg.storagePath} 0775 ${cfg.user} media -"
-      "d ${cfg.cachePath}   0775 ${cfg.user} media -"
+      "d ${cfg.storagePath} 2775 ${cfg.user} media -"
+      "d ${cfg.cachePath}   2775 ${cfg.user} media -"
 
       # Create and manage main storage subdirectories
-      "d ${cfg.storagePath}/downloads 0775 ${cfg.user} media -"
-      "d ${cfg.storagePath}/downloads/torrents 0775 ${cfg.user} media -"
-      "d ${cfg.storagePath}/media 0775 ${cfg.user} media -"
-      "d ${cfg.storagePath}/media/movies 0775 ${cfg.user} media -"
-      "d ${cfg.storagePath}/media/tv 0775 ${cfg.user} media -"
-      
+      "d ${cfg.storagePath}/downloads 2775 ${cfg.user} media -"
+      "d ${cfg.storagePath}/downloads/torrents 2775 ${cfg.user} media -"
+      "d ${cfg.storagePath}/media 2775 ${cfg.user} media -"
+      "d ${cfg.storagePath}/media/movies 2775 ${cfg.user} media -"
+      "d ${cfg.storagePath}/media/tv 2775 ${cfg.user} media -"
+
       # Create and manage cache subdirectories
-      "d ${cfg.cachePath}/torrents 0775 ${cfg.user} media -"
-      "d ${cfg.cachePath}/torrents/incomplete 0775 ${cfg.user} media -"
+      "d ${cfg.cachePath}/torrents 2775 ${cfg.user} media -"
+      "d ${cfg.cachePath}/torrents/incomplete 2775 ${cfg.user} media -"
     ];
   };
 }
