@@ -187,10 +187,10 @@
           # and replace the placeholder IDs below.
           { name = "chris"; jellyseerrId = 3; }
           { name = "blaney"; jellyseerrId = 5; }
-          { name = "em"; jellyseerrId = 6
+          { name = "em"; jellyseerrId = 6; }
+        ];
       };
     };
-  };
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {
