@@ -6,6 +6,15 @@ let
   cfg = config.customConfig.homelab.mediaSetup;
   # A shortcut to the arr service options
   arrCfg = config.customConfig.homelab.arr;
+  # A shortcut to the media linker options
+  linkerCfg = config.customConfig.homelab.mediaLinker;
+
+  # Generate per-user directory rules from mediaLinker.mediaUsers
+  userDirRules = lib.concatMap (user: [
+    "d ${cfg.storagePath}/media/users/${user.name} 2775 ${cfg.user} media -"
+    "d ${cfg.storagePath}/media/users/${user.name}/movies 2775 ${cfg.user} media -"
+    "d ${cfg.storagePath}/media/users/${user.name}/tv 2775 ${cfg.user} media -"
+  ]) linkerCfg.mediaUsers;
 in
 {
   # This is the actual NixOS configuration that will be applied when the module is enabled.
@@ -41,7 +50,6 @@ in
     };
 
     # 3. Declaratively create directories and set their permissions.
-    #    This is the core fix for your "Access denied" problem.
     # SGID (2775) ensures new files/dirs inherit the 'media' group,
     # so Transmission-created category dirs (e.g. radarr/, tv-sonarr/)
     # are accessible by Radarr/Sonarr which run as separate users.
@@ -60,6 +68,10 @@ in
       # Create and manage cache subdirectories
       "d ${cfg.cachePath}/torrents 2775 ${cfg.user} media -"
       "d ${cfg.cachePath}/torrents/incomplete 2775 ${cfg.user} media -"
-    ];
+    ]
+    # Per-user media directories for media-linker
+    ++ lib.optionals linkerCfg.enable ([
+      "d ${cfg.storagePath}/media/users 2775 ${cfg.user} media -"
+    ] ++ userDirRules);
   };
 }

@@ -180,6 +180,15 @@
       mullvad.enable = true;
       jellyseerr.enable = true;
       flaresolverr.enable = true;
+      mediaLinker = {
+        enable = true;
+        mediaUsers = [
+          # Look up Jellyseerr user IDs at http://192.168.1.76:5055/users
+          # and replace the placeholder IDs below.
+          { name = "chris"; jellyseerrId = 3; }
+          { name = "blaney"; jellyseerrId = 5; }
+          { name = "em"; jellyseerrId = 6
+      };
     };
   };
 

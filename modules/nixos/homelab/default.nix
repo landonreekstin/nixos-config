@@ -11,5 +11,6 @@
     ./mullvad.nix
     ./jellyseerr.nix
     ./flaresolverr.nix
+    ./media-linker.nix
   ];
 }

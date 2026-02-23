@@ -793,6 +793,39 @@ in
           description = "Enable FlareSolverr, a Cloudflare bypass proxy for indexers.";
         };
       };
+
+      mediaLinker = {
+        enable = lib.mkEnableOption "media-linker service for per-user Jellyfin libraries";
+
+        mediaUsers = mkOption {
+          type = types.listOf (types.submodule {
+            options = {
+              name = mkOption {
+                type = types.str;
+                description = "Directory name for this user under media/users/.";
+              };
+              jellyseerrId = mkOption {
+                type = types.int;
+                description = "Jellyseerr user ID (visible in Jellyseerr admin panel).";
+              };
+            };
+          });
+          default = [];
+          description = "List of media users to create per-user Jellyfin libraries for.";
+        };
+
+        interval = mkOption {
+          type = types.str;
+          default = "5min";
+          description = "How often to sync per-user libraries.";
+        };
+
+        envFile = mkOption {
+          type = types.path;
+          default = "/root/secrets/media-linker.env";
+          description = "Path to environment file with JELLYSEERR_API_KEY, RADARR_API_KEY, SONARR_API_KEY.";
+        };
+      };
     };
 
     # -------------------------------------------------------------------------- #
