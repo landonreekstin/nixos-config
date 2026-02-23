@@ -1,5 +1,5 @@
 # ~/nixos-config/modules/nixos/homelab/transmission.nix
-{ config, lib, ... }:
+{ config, lib, pkgs, ... }:
 
 let
   cfg = config.customConfig.homelab.transmission;
@@ -10,6 +10,7 @@ in
 
     services.transmission = {
       enable = true;
+      package = pkgs.transmission_4;
       openRPCPort = true;
       settings = {
         download-dir = "${mediaCfg.storagePath}/downloads/torrents";

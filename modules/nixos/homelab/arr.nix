@@ -12,6 +12,11 @@ in
         enable = true;
         openFirewall = true;
       };
+      users.users.prowlarr = {
+        isSystemUser = true;
+        group = "prowlarr";
+      };
+      users.groups.prowlarr = {};
     })
 
     (lib.mkIf arrCfg.radarr.enable {
