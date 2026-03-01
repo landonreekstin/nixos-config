@@ -188,6 +188,8 @@
           { name = "chris"; jellyseerrId = 3; }
           { name = "blaney"; jellyseerrId = 5; }
           { name = "em"; jellyseerrId = 6; }
+          { name = "russell"; jellyseerrId = 0; }
+          { name = "cmoore"; jellyseerrId = 0; }
         ];
       };
     };
