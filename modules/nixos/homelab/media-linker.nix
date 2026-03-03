@@ -120,8 +120,9 @@ let
           media_type=$(echo "$request" | $jq -r '.type')
           media_status=$(echo "$request" | $jq -r '.media.status')
 
-          # Only process fully available media (status 5 = available)
-          if [ "$media_status" != "5" ]; then
+          # Process available (5) or partially available (4) media.
+          # TV shows are status 4 when only some seasons have been requested/downloaded.
+          if [ "$media_status" != "5" ] && [ "$media_status" != "4" ]; then
             continue
           fi
 
