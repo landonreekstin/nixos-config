@@ -10,5 +10,6 @@
     ./sddm-astronaut-theme.nix
     ./sddm-windows7-theme.nix
     ./custom-sddm-theme.nix
+    ./ly-doom-theme.nix
   ];
 }
