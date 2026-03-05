@@ -224,6 +224,21 @@ When running on the `blaney-pc` host, apply these additional guidelines:
 - Clearly warn about any changes that could affect system stability or boot
 - Keep changes focused and minimal to reduce the chance of issues
 
+## Task Workflow (TASKS.md)
+
+A `TASKS.md` file in the repo root contains a prioritized list of pending work. **Only work on tasks when explicitly asked** — do not autonomously pick up tasks between sessions.
+
+When asked to work on tasks, follow this workflow for each task:
+
+1. **Branch** — create a feature branch (`feat/`, `fix/`, etc.) from `main`
+2. **Implement** — make the changes
+3. **Eval-check** — run `nix eval --impure .#nixosConfigurations.<host>.config.system.build.toplevel.drvPath` to verify the config evaluates (can't run `sudo nixos-rebuild` without a terminal)
+4. **Commit and push** the branch
+5. **Open a PR** via `gh pr create`
+6. **Check off** the task in `TASKS.md` on `main` (or mark it as pending in-person testing if it needs a reboot/display to verify)
+
+Tasks that require physical machine testing (reboot, display, hardware) should be noted in TASKS.md as `*(PR open — needs in-person test)*` and merged when the user confirms they work.
+
 ## Notes
 
 - **CRITICAL**: Always use the `rebuild` command, never manually specify `--flake .#<hostname>`. Each host has different users and hardware - applying the wrong host config can remove user accounts, break authentication, and cause boot failures.
