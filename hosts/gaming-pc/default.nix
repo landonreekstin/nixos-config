@@ -30,7 +30,11 @@
     };
 
     bootloader = {
-      quietBoot = false; # show boot messages
+      quietBoot = false;
+      plymouth = {
+        enable = true;
+        theme = "spinner";
+      };
     };
 
     desktop = {
@@ -38,6 +42,7 @@
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
         type = "ly"; # Or "greetd", "gdm", or "none" based on your preference
+        ly.theme = "century-series";
         sddm = {
           theme = "sddm-astronaut";
           #embeddedTheme = "pixel_sakura";

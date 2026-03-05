@@ -73,8 +73,20 @@ in
     bootloader = {
       quietBoot = mkOption {
         type = types.bool;
-        default = false; # Default to false, enable explicitly for quiet boot
+        default = false;
         description = "Whether to enable quiet boot (suppress boot messages).";
+      };
+      plymouth = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Whether to enable Plymouth boot splash screen.";
+        };
+        theme = mkOption {
+          type = types.str;
+          default = "spinner";
+          description = "Plymouth theme to use. Bundled options: spinner, bgrt, breeze, spinfinity.";
+        };
       };
     };
 
