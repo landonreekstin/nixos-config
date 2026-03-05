@@ -1,7 +1,7 @@
 # ~/nixos-config/modules/home-manager/services/update-notification.nix
-{ config, pkgs, lib, osConfig, ... }:
+{ config, pkgs, lib, customConfig, ... }:
 let
-  cfg = osConfig.customConfig.homeManager.services.updateNotification;
+  cfg = customConfig.homeManager.services.updateNotification;
   configDir = "${config.home.homeDirectory}/nixos-config";
 
   checkScript = pkgs.writeShellScript "nixos-update-check" ''
