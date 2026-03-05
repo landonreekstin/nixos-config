@@ -36,8 +36,7 @@ in
 
       # Performance / Overlay / Utilities
       mangohud # Performance overlay
-      gamemode # Performance optimization daemon
-      gamescope 
+      gamescope
       # goverlay # GUI for MangoHud config (optional)
 
       # Vulkan Tools (Good for diagnostics)
@@ -68,7 +67,10 @@ in
     };
     networking.firewall.allowedUDPPorts = [ 2757 2759 ]; # SuperTuxKarts networking ports
 
-    programs.gamemode.enable = true;
+    programs.gamemode = {
+      enable = true;
+      enableRenice = true;
+    };
     programs.gamescope = {
       enable = true;
       package = pkgs.unstable.gamescope;
