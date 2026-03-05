@@ -5,7 +5,7 @@ let
     "steam"
     "lutris"
     "heroic"
-    "wineWowPackages" # Note: wineWowPackages is an attr set, but the overlay will replace the top-level name
+    "wineWow64Packages"
     "winetricks"
     "protonup-qt"
     "mangohud"
@@ -14,7 +14,7 @@ let
     "vulkan-tools"
     "r2modman"
     "atlauncher"
-    "superTuxKart"
+    "supertuxkart"
     "proton-ge-bin"
     "xpadneo" # The package for the kernel module
   ];
@@ -30,7 +30,7 @@ in
       lutris
       heroic
       dolphin-emu
-      wineWowPackages.stable # Wine (stable branch, includes 32-bit/WoW64)
+      wineWow64Packages.stable # Wine (stable branch, includes 32-bit/WoW64)
       winetricks
       protonup-qt # GUI for managing Proton-GE/Wine-GE versions
 
@@ -47,7 +47,7 @@ in
       atlauncher # Minecraft
       
       # Games
-      superTuxKart
+      supertuxkart
 
       # Screen Recorder
       gpu-screen-recorder-gtk
