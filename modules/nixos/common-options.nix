@@ -349,8 +349,20 @@ in
         gammastep = {
           enable = mkOption {
             type = types.bool;
-            default = (lib.elem "hyprland" config.customConfig.desktop.environments); # Enable by default, can be overridden in user config
+            default = (lib.elem "hyprland" config.customConfig.desktop.environments);
             description = "Whether to enable gammastep for night light adjustments.";
+          };
+        };
+        updateNotification = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Whether to enable periodic desktop notifications when the nixos-config repo has upstream updates.";
+          };
+          intervalHours = mkOption {
+            type = types.int;
+            default = 1;
+            description = "How often (in hours) to check for upstream config updates.";
           };
         };
       };

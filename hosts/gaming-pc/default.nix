@@ -101,6 +101,7 @@
 
     homeManager = {
       enable = true;
+      services.updateNotification.enable = true;
       themes = {
         #hyprland = "future-aviation"; # Set to the theme you want for Hyprland
       };
