@@ -357,12 +357,7 @@ in
           enable = mkOption {
             type = types.bool;
             default = false;
-            description = "Whether to enable periodic desktop notifications when the nixos-config repo has upstream updates.";
-          };
-          intervalHours = mkOption {
-            type = types.int;
-            default = 1;
-            description = "How often (in hours) to check for upstream config updates.";
+            description = "Whether to enable a once-per-login desktop notification when the nixos-config repo has upstream updates.";
           };
         };
       };

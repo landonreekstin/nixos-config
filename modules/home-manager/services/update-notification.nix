@@ -32,10 +32,9 @@ in
     };
 
     systemd.user.timers.nixos-update-check = {
-      Unit.Description = "Periodically check for NixOS config updates";
+      Unit.Description = "Check for NixOS config updates once at login";
       Timer = {
-        OnBootSec = "5min";
-        OnUnitActiveSec = "${toString cfg.intervalHours}h";
+        OnStartupSec = "2min";
         Unit = "nixos-update-check.service";
       };
       Install.WantedBy = [ "timers.target" ];
