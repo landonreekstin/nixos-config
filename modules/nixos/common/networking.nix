@@ -45,7 +45,7 @@ in
   # so dnscrypt-proxy2 (listening on 127.0.0.1:53) is used exclusively.
   networking.networkmanager.dns = lib.mkIf cfg.encryptedDns.enable "none";
 
-  services.dnscrypt-proxy2 = lib.mkIf cfg.encryptedDns.enable {
+  services.dnscrypt-proxy = lib.mkIf cfg.encryptedDns.enable {
     enable = true;
     settings = {
       server_names = resolverServers.${cfg.encryptedDns.resolver};

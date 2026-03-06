@@ -170,9 +170,15 @@
       };
     };
 
-    networking.wakeOnLan = {
-      enable = true;
-      interface = "enp8s0";
+    networking = {
+      wakeOnLan = {
+        enable = true;
+        interface = "enp8s0";
+      };
+      encryptedDns = {
+        enable = true;
+        resolver = "cloudflare";
+      };
     };
 
     services = {
