@@ -101,6 +101,8 @@ Format: `- [ ] **Title** — description`
 
 ## Century Series Theme (Hyprland)
 
+> **Note:** Substantial work already exists in the `dev-century-series-theme` branch. Review and merge/rebase that branch before starting any of these tasks rather than starting from scratch.
+
 - [ ] **Theme rofi to look like MFD** — Style rofi-wayland with CSS to match the Century Series aesthetic: phosphor green on instrument-panel black, monospace font, MFD-style borders. Replace wofi after the rofi migration above.
 
 - [ ] **Theme swaylock** — Configure swaylock to match Century Series: dark background, amber/green text, MFD-style layout.
