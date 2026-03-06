@@ -2,6 +2,8 @@
 { config, pkgs, lib, ... }:
 let
   quietBootEnabled = config.customConfig.bootloader.quietBoot;
+  plymouthEnabled = config.customConfig.bootloader.plymouth.enable;
+  quietOrPlymouth = quietBootEnabled || plymouthEnabled;
 in
 {
   boot.loader = {
@@ -11,12 +13,19 @@ in
     };
     efi.canTouchEfiVariables = true;
   };
-  boot.initrd.verbose = !quietBootEnabled;
+
+  boot.plymouth = lib.mkIf plymouthEnabled {
+    enable = true;
+    theme = config.customConfig.bootloader.plymouth.theme;
+    themePackages = [ pkgs.adi1090x-plymouth-themes ];
+  };
+
+  boot.initrd.verbose = !quietOrPlymouth;
   boot.loader.timeout = if quietBootEnabled then 0 else 5;
-  boot.consoleLogLevel = if quietBootEnabled then 0 else 4;
-  boot.kernelParams = lib.mkIf quietBootEnabled [
+  boot.consoleLogLevel = if quietOrPlymouth then 0 else 4;
+  boot.kernelParams = lib.mkIf quietOrPlymouth [
     "quiet"
-    "splash" # Often used with "quiet" for Plymouth splash screens
+    "splash"
     "udev.log_level=3"
     "rd.udev.log_level=3"
   ];
