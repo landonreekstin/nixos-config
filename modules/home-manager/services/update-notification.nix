@@ -8,12 +8,12 @@ let
     set -e
     cd "${configDir}"
 
-    git fetch origin main --quiet 2>/dev/null || exit 0
+    ${pkgs.git}/bin/git fetch origin main --quiet 2>/dev/null || exit 0
 
-    behind=$(git rev-list HEAD..origin/main --count 2>/dev/null || echo 0)
+    behind=$(${pkgs.git}/bin/git rev-list HEAD..origin/main --count 2>/dev/null || echo 0)
 
     if [ "$behind" -gt 0 ]; then
-      notify-send \
+      ${pkgs.libnotify}/bin/notify-send \
         --urgency=normal \
         --icon=software-update-available \
         "NixOS config updates available" \
