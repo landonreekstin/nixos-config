@@ -3,6 +3,8 @@
 Tasks are grouped by category. Reorder within a group to set priority.
 Format: `- [ ] **Title** — description`
 
+**Workflow:** Before committing any change, run `rebuild-test` locally to verify it activates cleanly. Only commit and push once it passes.
+
 ---
 
 ## System / Core
