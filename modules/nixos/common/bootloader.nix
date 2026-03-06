@@ -17,6 +17,7 @@ in
   boot.plymouth = lib.mkIf plymouthEnabled {
     enable = true;
     theme = config.customConfig.bootloader.plymouth.theme;
+    themePackages = [ pkgs.adi1090x-plymouth-themes ];
   };
 
   boot.initrd.verbose = !quietOrPlymouth;

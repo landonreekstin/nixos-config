@@ -33,7 +33,7 @@
       quietBoot = false;
       plymouth = {
         enable = true;
-        theme = "spinner";
+        theme = "circuit";
       };
     };
 
