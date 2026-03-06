@@ -11,5 +11,6 @@
     ./sddm-windows7-theme.nix
     ./custom-sddm-theme.nix
     ./ly-doom-theme.nix
+    ./ly-century-series-theme.nix
   ];
 }
