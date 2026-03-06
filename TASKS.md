@@ -19,7 +19,7 @@ Format: `- [ ] **Title** — description`
 
 - [ ] **SDDM: suppress screensaver while media is playing** — The SDDM astronaut screensaver activates on idle even when video is playing. Add idle inhibit logic so the screensaver does not trigger while a media player has an active inhibitor (mpv, vlc, etc.). Implement via swayidle inhibit rules or a systemd-inhibit wrapper depending on DE.
 
-- [ ] **GitHub update notification** — Systemd timer (hourly) that runs `git fetch` and checks if `origin/main` is ahead of local. If so, sends a `notify-send` desktop notification: "NixOS config updates available — run sync". Small scope.
+- [x] **GitHub update notification**
 
 - [ ] **Nix SOPS secrets management** — Add `sops-nix` as a flake input. Migrate secrets (WireGuard keys, passwords, API tokens) to encrypted SOPS files stored in the repo. Requires generating age keys per host. Significant scope — plan as a dedicated session.
 
