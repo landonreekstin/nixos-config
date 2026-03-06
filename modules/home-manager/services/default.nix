@@ -5,5 +5,6 @@
   imports = [
     ./gammastep.nix
     ./ssh.nix
+    ./update-notification.nix
   ];
 }
