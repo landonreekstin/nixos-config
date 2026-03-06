@@ -41,14 +41,14 @@
       environments = [ "kde" ]; # Set to "hyprland", "cosmic", or "kde" based on your preference
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "ly"; # Or "greetd", "gdm", or "none" based on your preference
+        type = "sddm"; # Or "greetd", "gdm", or "none" based on your preference
         ly.theme = "century-series";
         sddm = {
           theme = "sddm-astronaut";
           #embeddedTheme = "pixel_sakura";
           customTheme = {
             enable = true;
-            wallpaper = ../../assets/wallpapers/soviet-retro-future.jpg;
+            wallpaper = ../../assets/wallpapers/F18_background.mp4;
             blur = 2.0;
             roundCorners = 20;
             colors = {
