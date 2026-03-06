@@ -25,6 +25,11 @@
       timeZone = "America/New_York"; # As per your old core.nix
       locale = "en_US.UTF-8"; # As per your old core.nix
     };
+
+    bootloader.plymouth = {
+      enable = true;
+      theme = "hexa_retro";
+    };
     
     desktop = {
       environments = [ "kde" ];
