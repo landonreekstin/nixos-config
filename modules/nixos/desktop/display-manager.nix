@@ -4,6 +4,8 @@
 
 let
   cfg = config.customConfig.desktop.displayManager;
+  des = config.customConfig.desktop.environments;
+  firstDE = if des != [] then lib.head des else "none";
 
 in
 {
@@ -42,20 +44,16 @@ config = lib.mkIf cfg.enable {
     };
 
     # == Auto-Login / Direct Session Start Configuration ==
-    # Enable these only if 'none' is selected AND a target desktop profile is enabled
-    # NOTE: This currently prioritizes Hyprland if both Cosmic and Hyprland are enabled.
-    #       A more complex setup could allow choosing the autologin target.
-    # Auto login with the configured user if no display manager is selected and a desktop profile is enabled
+    # Autologin the configured user when no display manager is selected.
     services.getty.autologinUser = lib.mkIf (cfg.type == "none" && config.customConfig.desktop.enable) config.customConfig.user.name;
 
-    # Ensure XDG Desktop Portal for Hyprland is available when autologging into it
-    xdg.portal = lib.mkIf ((cfg.type == "none") && (lib.elem "hyprland" config.customConfig.desktop.environments)) {
+    # XDG portal for the first DE when no display manager is used
+    xdg.portal = lib.mkIf (cfg.type == "none" && firstDE != "none") {
       enable = true;
-      extraPortals = [ pkgs.xdg-desktop-portal-hyprland ];
-      # Optionally add GTK portal as fallback
-      # extraPortals = [ pkgs.xdg-desktop-portal-hyprland pkgs.xdg-desktop-portal-gtk ];
+      extraPortals =
+        lib.optionals (firstDE == "hyprland") [ pkgs.xdg-desktop-portal-hyprland ]
+        ++ lib.optionals (firstDE == "cosmic") [ pkgs.xdg-desktop-portal-cosmic ];
     };
-      # Add portal config for COSMIC if needed when autologging into it
 
 
     # ==> Create /etc/regreet.toml directly using environment.etc <==
@@ -132,9 +130,8 @@ config = lib.mkIf cfg.enable {
         pkgs.libjpeg pkgs.gdk-pixbuf pkgs.librsvg pkgs.qt6.qtimageformats
       ])
       ++
-      (lib.optionals (cfg.type == "none" && (lib.elem "hyprland" config.customConfig.desktop.environments)) [
-        pkgs.xdg-desktop-portal-hyprland
-      ]);
+      (lib.optionals (cfg.type == "none" && firstDE == "hyprland") [ pkgs.xdg-desktop-portal-hyprland ])
+      ++ (lib.optionals (cfg.type == "none" && firstDE == "cosmic") [ pkgs.xdg-desktop-portal-cosmic ]);
 
     # == Assertions ==
     # Ensure that configuration choices don't conflict
