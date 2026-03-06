@@ -164,6 +164,18 @@ in
           example = "enp8s0";
         };
       };
+      encryptedDns = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable encrypted DNS via dnscrypt-proxy2.";
+        };
+        resolver = mkOption {
+          type = types.enum [ "cloudflare" "quad9" "mullvad" ];
+          default = "cloudflare";
+          description = "Which upstream DNS resolver to use. cloudflare = 1.1.1.1 (DoH), quad9 = filtered DoH, mullvad = privacy-focused DoH.";
+        };
+      };
     };
 
     # -------------------------------------------------------------------------- #
