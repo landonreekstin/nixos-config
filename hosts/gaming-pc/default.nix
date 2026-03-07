@@ -81,6 +81,12 @@
         enable = true; # Enable peripheral configurations
         ckb-next.enable = true; # Enable CKB-Next for Corsair device support
       };
+      monitors = [
+        { name = "DP-4";     rotation = "Normal";    scale = 1.15; } # Main: LG 2560x1440 @ 180Hz
+        { name = "HDMI-A-2"; rotation = "Rotated90"; }               # Left: Dell 1080p portrait
+        { name = "DP-5";     rotation = "Rotated90"; }               # Right: Samsung 1080p portrait
+        { name = "DP-6";     rotation = "Normal"; }                  # Above: Hisense TV 1080p
+      ];
     };
 
     programs = {

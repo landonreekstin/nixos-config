@@ -6,6 +6,22 @@ let
   cfg = config.customConfig.desktop.displayManager;
   des = config.customConfig.desktop.environments;
   firstDE = if des != [] then lib.head des else "none";
+  monitors = config.customConfig.hardware.monitors;
+
+  # Generate kwinoutputconfig.json for the SDDM user so KWin applies the
+  # correct rotation and scale at the login screen.
+  sddmKwinConfigFile = pkgs.writeText "kwinoutputconfig.json" (
+    builtins.toJSON [
+      {
+        name = "outputs";
+        data = map (m: {
+          connectorName = m.name;
+          transform = m.rotation;
+          scale = m.scale;
+        }) monitors;
+      }
+    ]
+  );
 
 in
 {
@@ -21,6 +37,13 @@ config = lib.mkIf cfg.enable {
       enable = true;
       wayland.enable = true;
     };
+
+    # Write KWin output config for SDDM so monitor rotation/scale applies at login.
+    # KWin (SDDM's Wayland compositor) reads kwinoutputconfig.json on startup.
+    systemd.tmpfiles.rules = lib.optionals (cfg.type == "sddm" && monitors != []) [
+      "d /var/lib/sddm/.config 0700 sddm sddm - -"
+      "L+ /var/lib/sddm/.config/kwinoutputconfig.json - - - - ${sddmKwinConfigFile}"
+    ];
 
     # == Ly Greeter Configuration ==
     services.displayManager.ly = lib.mkIf (cfg.type == "ly") {
