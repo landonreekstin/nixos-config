@@ -62,5 +62,9 @@ in
     '';
   };
 
-  networking.networkmanager.dns = lib.mkIf cfg.encryptedDns.enable "systemd-resolved";
+  # "none" stops NM from pushing per-link DNS (from DHCP) to systemd-resolved.
+  # Without this, the router's DNS (192.168.1.1) would take per-link precedence
+  # over the global dnscrypt-proxy config. systemd-resolved still manages
+  # /etc/resolv.conf via its stub listener (127.0.0.53).
+  networking.networkmanager.dns = lib.mkIf cfg.encryptedDns.enable (lib.mkForce "none");
 }
