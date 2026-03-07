@@ -6,6 +6,8 @@ let
 in
 {
     config = lib.mkIf (sshEnable && isLandoPC) {
+        services.ssh-agent.enable = true;
+
         programs.ssh = {
 
             enable = true;
