@@ -232,7 +232,17 @@ When asked to work on tasks, follow this workflow for each task:
 
 1. **Branch** — create a feature branch (`feat/`, `fix/`, etc.) from `main`
 2. **Implement** — make the changes
-3. **Eval-check** — run `nix eval --impure .#nixosConfigurations.<host>.config.system.build.toplevel.drvPath` to verify the config evaluates (can't run `sudo nixos-rebuild` without a terminal)
+3. **Eval-check** — verify the config evaluates for all hosts (can't run `sudo nixos-rebuild` without a terminal):
+   ```bash
+   NIXPKGS_ALLOW_UNFREE=1 nix eval --impure .#nixosConfigurations.<host>.config.system.build.toplevel.drvPath
+   ```
+   For changes to shared modules, check **all hosts**:
+   ```bash
+   for host in gaming-pc optiplex blaney-pc justus-pc asus-laptop asus-m15 atl-mini-pc optiplex-nas; do
+     echo -n "$host: " && NIXPKGS_ALLOW_UNFREE=1 nix eval --impure ".#nixosConfigurations.${host}.config.system.build.toplevel.drvPath" 2>&1 | tail -1
+   done
+   ```
+   CI (GitHub Actions) also runs this automatically on every PR.
 4. **Commit and push** the branch
 5. **Open a PR** via `gh pr create`
 6. **Check off** the task in `TASKS.md` on `main` (or mark it as pending in-person testing if it needs a reboot/display to verify)
