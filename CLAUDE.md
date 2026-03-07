@@ -8,6 +8,16 @@ This is a modular NixOS configuration flake that manages multiple hosts with sha
 
 ## Development Commands
 
+### Running as sudo (Claude Code)
+
+When Claude Code is launched with `sudo`, it inherits `SSH_AUTH_SOCK` from the parent session, but the SSH key may not be loaded into the agent yet. Before any `git push` or SSH operation, check if the key is available:
+
+```bash
+ssh-add -l 2>/dev/null || ssh-add /home/lando/.ssh/id_ed25519
+```
+
+This is a no-op if the key is already loaded.
+
 ### System Management
 - `rebuild` - Rebuild the current host configuration using the local flake
 - `sync` - Pull latest changes from the remote repository (handles merge conflicts)
