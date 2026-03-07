@@ -46,6 +46,7 @@ config = lib.mkIf cfg.enable {
       deps = [ "users" "groups" ];
       text = ''
         mkdir -p /var/lib/sddm/.config
+        rm -f /var/lib/sddm/.config/kwinoutputconfig.json
         cp ${sddmKwinConfigFile} /var/lib/sddm/.config/kwinoutputconfig.json
         chown sddm:sddm /var/lib/sddm/.config/kwinoutputconfig.json
         chmod 644 /var/lib/sddm/.config/kwinoutputconfig.json
