@@ -32,29 +32,35 @@ in
   ];
 
   networking.defaultGateway = if cfg.staticIP.enable then cfg.staticIP.gateway else null;
-  networking.nameservers = lib.mkMerge [
-    (lib.mkIf cfg.staticIP.enable [
-      cfg.staticIP.gateway
-      "1.1.1.1"
-      "8.8.8.8"
-    ])
-    (lib.mkIf cfg.encryptedDns.enable [ "127.0.0.1" "::1" ])
+  networking.nameservers = lib.mkIf cfg.staticIP.enable [
+    cfg.staticIP.gateway
+    "1.1.1.1"
+    "8.8.8.8"
   ];
 
-  # When encrypted DNS is enabled, stop NetworkManager from overriding resolv.conf
-  # so dnscrypt-proxy2 (listening on 127.0.0.1:53) is used exclusively.
-  networking.networkmanager.dns = lib.mkIf cfg.encryptedDns.enable "none";
+  networking.firewall.enable = cfg.firewall.enable;
 
+  # Encrypted DNS: dnscrypt-proxy on unprivileged port 5335, systemd-resolved as intermediary.
+  # systemd-resolved listens on 127.0.0.53:53 and forwards upstream queries to dnscrypt-proxy.
+  # NetworkManager uses systemd-resolved so /etc/resolv.conf points to 127.0.0.53.
   services.dnscrypt-proxy = lib.mkIf cfg.encryptedDns.enable {
     enable = true;
     settings = {
       server_names = resolverServers.${cfg.encryptedDns.resolver};
-      listen_addresses = [ "127.0.0.1:53" "::1:53" ];
+      listen_addresses = [ "127.0.0.1:5335" ];
       require_dnssec = false;
       require_nolog = true;
       require_nofilter = false;
     };
   };
 
-  networking.firewall.enable = cfg.firewall.enable;
+  services.resolved = lib.mkIf cfg.encryptedDns.enable {
+    enable = true;
+    extraConfig = ''
+      DNS=127.0.0.1:5335
+      FallbackDNS=
+    '';
+  };
+
+  networking.networkmanager.dns = lib.mkIf cfg.encryptedDns.enable "systemd-resolved";
 }
