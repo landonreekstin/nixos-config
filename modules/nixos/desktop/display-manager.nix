@@ -6,6 +6,22 @@ let
   cfg = config.customConfig.desktop.displayManager;
   des = config.customConfig.desktop.environments;
   firstDE = if des != [] then lib.head des else "none";
+  monitors = config.customConfig.hardware.monitors;
+
+  # Minimal seed file for fresh installs (no existing KWin config yet).
+  # KWin will enrich this on first boot; subsequent rebuilds will use the patch path.
+  sddmKwinConfigSeed = pkgs.writeText "kwinoutputconfig.json" (
+    builtins.toJSON [
+      {
+        name = "outputs";
+        data = map (m: {
+          connectorName = m.name;
+          transform = m.rotation;
+          scale = m.scale;
+        }) monitors;
+      }
+    ]
+  );
 
 in
 {
@@ -20,6 +36,47 @@ config = lib.mkIf cfg.enable {
     services.displayManager.sddm = lib.mkIf (cfg.type == "sddm") {
       enable = true;
       wayland.enable = true;
+    };
+
+    # Patch KWin output config for SDDM so monitor rotation/scale applies at the login screen.
+    #
+    # Root cause of the previous approach failing: KWin ignores per-output transforms
+    # unless it also finds a matching "setups" entry (which encodes the full connected-
+    # output fingerprint). Replacing the file with a minimal seed destroys the setups
+    # section, so KWin falls back to defaults (all "Normal") and overwrites the file.
+    #
+    # Fix: if the file already exists (KWin has written it), use jq to patch only the
+    # transform/scale fields while preserving uuid, edidIdentifier, setups, and all
+    # other KWin-managed data. On fresh installs where no file exists yet, write the
+    # minimal seed; after the first SDDM boot KWin will populate the file and the next
+    # rebuild switches to the patch path.
+    system.activationScripts.sddm-kwin-monitor-config = lib.mkIf (cfg.type == "sddm" && monitors != []) {
+      deps = [ "users" "groups" ];
+      text = let
+        # Build a jq filter that updates transform/scale for each configured monitor.
+        firstMon = lib.head monitors;
+        restMons = lib.tail monitors;
+        firstCase = ''if .connectorName == "${firstMon.name}" then .transform = "${firstMon.rotation}" | .scale = ${toString firstMon.scale}'';
+        restCases = lib.concatMapStringsSep " " (m:
+          ''elif .connectorName == "${m.name}" then .transform = "${m.rotation}" | .scale = ${toString m.scale}''
+        ) restMons;
+        jqFilter = "map(if .name == \"outputs\" then .data |= map(${firstCase} ${restCases} else . end) else . end)";
+      in ''
+        mkdir -p /var/lib/sddm/.config
+        _file=/var/lib/sddm/.config/kwinoutputconfig.json
+        if [ -f "$_file" ] && ${pkgs.jq}/bin/jq empty "$_file" 2>/dev/null; then
+          # Patch existing file in-place, preserving uuid/edid/setups so KWin can match it.
+          _tmp=$(mktemp)
+          ${pkgs.jq}/bin/jq '${jqFilter}' "$_file" > "$_tmp" && mv "$_tmp" "$_file" || rm -f "$_tmp"
+        else
+          # No existing file yet — place a minimal seed.  KWin will enrich it on first
+          # boot, and the next rebuild will switch to the patch path above.
+          rm -f "$_file"
+          cp ${sddmKwinConfigSeed} "$_file"
+        fi
+        chown sddm:sddm "$_file"
+        chmod 644 "$_file"
+      '';
     };
 
     # == Ly Greeter Configuration ==
