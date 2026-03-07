@@ -39,11 +39,18 @@ config = lib.mkIf cfg.enable {
     };
 
     # Write KWin output config for SDDM so monitor rotation/scale applies at login.
-    # KWin (SDDM's Wayland compositor) reads kwinoutputconfig.json on startup.
-    systemd.tmpfiles.rules = lib.optionals (cfg.type == "sddm" && monitors != []) [
-      "d /var/lib/sddm/.config 0700 sddm sddm - -"
-      "L+ /var/lib/sddm/.config/kwinoutputconfig.json - - - - ${sddmKwinConfigFile}"
-    ];
+    # KWin opens kwinoutputconfig.json in read-write mode on startup, so a symlink
+    # to the read-only nix store is silently skipped. We copy an actual writable file
+    # during activation instead.
+    system.activationScripts.sddm-kwin-monitor-config = lib.mkIf (cfg.type == "sddm" && monitors != []) {
+      deps = [ "users" "groups" ];
+      text = ''
+        mkdir -p /var/lib/sddm/.config
+        cp ${sddmKwinConfigFile} /var/lib/sddm/.config/kwinoutputconfig.json
+        chown sddm:sddm /var/lib/sddm/.config/kwinoutputconfig.json
+        chmod 644 /var/lib/sddm/.config/kwinoutputconfig.json
+      '';
+    };
 
     # == Ly Greeter Configuration ==
     services.displayManager.ly = lib.mkIf (cfg.type == "ly") {
