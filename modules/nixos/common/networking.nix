@@ -32,39 +32,32 @@ in
   ];
 
   networking.defaultGateway = if cfg.staticIP.enable then cfg.staticIP.gateway else null;
-  networking.nameservers = lib.mkIf cfg.staticIP.enable [
-    cfg.staticIP.gateway
-    "1.1.1.1"
-    "8.8.8.8"
+  networking.nameservers = lib.mkMerge [
+    (lib.mkIf cfg.staticIP.enable [
+      cfg.staticIP.gateway
+      "1.1.1.1"
+      "8.8.8.8"
+    ])
+    # mkForce so this wins over the static IP entry if both are enabled
+    (lib.mkIf cfg.encryptedDns.enable (lib.mkForce [ "127.0.0.1" ]))
   ];
 
   networking.firewall.enable = cfg.firewall.enable;
 
-  # Encrypted DNS: dnscrypt-proxy on unprivileged port 5335, systemd-resolved as intermediary.
-  # systemd-resolved listens on 127.0.0.53:53 and forwards upstream queries to dnscrypt-proxy.
-  # NetworkManager uses systemd-resolved so /etc/resolv.conf points to 127.0.0.53.
+  # Encrypted DNS: dnscrypt-proxy on 127.0.0.1:53.
+  # The NixOS module already grants CAP_NET_BIND_SERVICE so port 53 binding works.
+  # NM dns=none stops it from overwriting /etc/resolv.conf with DHCP-provided DNS.
+  # networking.nameservers writes 127.0.0.1 to resolv.conf via NixOS activation.
   services.dnscrypt-proxy = lib.mkIf cfg.encryptedDns.enable {
     enable = true;
     settings = {
       server_names = resolverServers.${cfg.encryptedDns.resolver};
-      listen_addresses = [ "127.0.0.1:5335" ];
+      listen_addresses = [ "127.0.0.1:53" ];
       require_dnssec = false;
       require_nolog = true;
       require_nofilter = false;
     };
   };
 
-  services.resolved = lib.mkIf cfg.encryptedDns.enable {
-    enable = true;
-    extraConfig = ''
-      DNS=127.0.0.1:5335
-      FallbackDNS=
-    '';
-  };
-
-  # "none" stops NM from pushing per-link DNS (from DHCP) to systemd-resolved.
-  # Without this, the router's DNS (192.168.1.1) would take per-link precedence
-  # over the global dnscrypt-proxy config. systemd-resolved still manages
-  # /etc/resolv.conf via its stub listener (127.0.0.53).
   networking.networkmanager.dns = lib.mkIf cfg.encryptedDns.enable (lib.mkForce "none");
 }
