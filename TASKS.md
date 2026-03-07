@@ -23,7 +23,7 @@ Format: `- [ ] **Title** — description`
 
 - [ ] **Nix SOPS secrets management** — Add `sops-nix` as a flake input. Migrate secrets (WireGuard keys, passwords, API tokens) to encrypted SOPS files stored in the repo. Requires generating age keys per host. Significant scope — plan as a dedicated session.
 
-- [ ] **Encrypted DNS** — Add `customConfig.networking.encryptedDns.enable` backed by `services.dnscrypt-proxy2`. Include option for resolver selection (Cloudflare, Quad9, etc.). *(PR open — needs in-person test)*
+- [x] **Encrypted DNS** — Add `customConfig.networking.encryptedDns.enable` backed by `services.dnscrypt-proxy2`. Include option for resolver selection (Cloudflare, Quad9, etc.).
 
 ---
 
