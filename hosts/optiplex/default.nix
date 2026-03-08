@@ -167,7 +167,7 @@
           "applications:io.github.nuttyartist.notes.desktop"
         ];
         bashPrompt = {
-          style = "themed";
+          style = "powerline";
           showGitBranch = true;
           showHostname = true;
         };

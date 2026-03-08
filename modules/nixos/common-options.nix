@@ -610,12 +610,13 @@ in
         };
         bashPrompt = {
           style = mkOption {
-            type = types.enum [ "default" "themed" ];
+            type = types.enum [ "default" "themed" "powerline" ];
             default = "default";
             description = ''
               Bash prompt style.
-              - "default": Use customConfig.user.shell.bash.color
-              - "themed": Use colors from active Hyprland theme (amber for century-series)
+              - "default": Simple prompt with customConfig.user.shell.bash.color
+              - "themed": Theme-aware colors (amber for century-series)
+              - "powerline": Fancy prompt with Nerd Font symbols, segments, and git status
             '';
           };
           showGitBranch = mkOption {
