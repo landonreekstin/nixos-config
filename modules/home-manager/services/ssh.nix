@@ -6,16 +6,19 @@ let
 in
 {
     config = lib.mkIf (sshEnable && isLandoPC) {
+        services.ssh-agent.enable = true;
+
         programs.ssh = {
 
             enable = true;
             enableDefaultConfig = false;
 
-            # Keepalive settings to prevent idle connections from being dropped by firewalls/NAT
-            serverAliveInterval = 60;
-            serverAliveCountMax = 3;
-
             matchBlocks = {
+            # Keepalive settings to prevent idle connections from being dropped by firewalls/NAT
+            "*" = {
+                serverAliveInterval = 60;
+                serverAliveCountMax = 3;
+            };
             "optiplex-fw" = {
                 hostname = "192.168.1.189";
                 user = "lando";

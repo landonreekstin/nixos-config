@@ -170,8 +170,21 @@ in
       echo "Rebuilding NixOS configuration for host: '${hostName}'"
       echo "Using flake: $FLAKE_PATH"
 
-      sudo nixos-rebuild switch --flake "$FLAKE_PATH" --impure
+      sudo nixos-rebuild switch --flake "$FLAKE_PATH" --impure --max-jobs auto --cores 0
       echo "Rebuild complete."
+    '')
+
+    (writeShellScriptBin "rebuild-test" ''
+      #!${stdenv.shell}
+      set -e
+      echo "--- Testing NixOS Configuration (no boot entry) ---"
+      FLAKE_PATH="${nixosConfigDir}#${hostName}" # Value injected by Nix
+
+      echo "Activating config for host: '${hostName}' (reverts on reboot)"
+      echo "Using flake: $FLAKE_PATH"
+
+      sudo nixos-rebuild test --flake "$FLAKE_PATH" --impure --max-jobs auto --cores 0
+      echo "Test activation complete. Reboot to revert."
     '')
   ]) ++ (lib.optionals cfg.user.updateCmdPermission [
     # --- Conditional Commands ---
@@ -212,7 +225,7 @@ in
       echo "This will update all flake inputs and then rebuild the system."
       echo "Using flake: $FLAKE_PATH"
 
-      sudo nixos-rebuild switch --upgrade --flake "$FLAKE_PATH"
+      sudo nixos-rebuild switch --upgrade --flake "$FLAKE_PATH" --impure --max-jobs auto --cores 0
       echo "System upgrade complete."
     '')
   ]);

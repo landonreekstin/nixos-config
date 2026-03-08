@@ -8,6 +8,16 @@ This is a modular NixOS configuration flake that manages multiple hosts with sha
 
 ## Development Commands
 
+### Running as sudo (Claude Code)
+
+When Claude Code is launched with `sudo`, it inherits `SSH_AUTH_SOCK` from the parent session, but the SSH key may not be loaded into the agent yet. Before any `git push` or SSH operation, check if the key is available:
+
+```bash
+ssh-add -l 2>/dev/null || ssh-add /home/lando/.ssh/id_ed25519
+```
+
+This is a no-op if the key is already loaded.
+
 ### System Management
 - `rebuild` - Rebuild the current host configuration using the local flake
 - `sync` - Pull latest changes from the remote repository (handles merge conflicts)
@@ -303,6 +313,31 @@ When running on the `blaney-pc` host, apply these additional guidelines:
 - Always use `nixos-rebuild test` first for significant changes, allowing the user to verify before switching permanently
 - Clearly warn about any changes that could affect system stability or boot
 - Keep changes focused and minimal to reduce the chance of issues
+
+## Task Workflow (TASKS.md)
+
+A `TASKS.md` file in the repo root contains a prioritized list of pending work. **Only work on tasks when explicitly asked** — do not autonomously pick up tasks between sessions.
+
+When asked to work on tasks, follow this workflow for each task:
+
+1. **Branch** — create a feature branch (`feat/`, `fix/`, etc.) from `main`
+2. **Implement** — make the changes
+3. **Eval-check** — verify the config evaluates for all hosts (can't run `sudo nixos-rebuild` without a terminal):
+   ```bash
+   NIXPKGS_ALLOW_UNFREE=1 nix eval --impure .#nixosConfigurations.<host>.config.system.build.toplevel.drvPath
+   ```
+   For changes to shared modules, check **all hosts**:
+   ```bash
+   for host in gaming-pc optiplex blaney-pc justus-pc asus-laptop asus-m15 atl-mini-pc optiplex-nas; do
+     echo -n "$host: " && NIXPKGS_ALLOW_UNFREE=1 nix eval --impure ".#nixosConfigurations.${host}.config.system.build.toplevel.drvPath" 2>&1 | tail -1
+   done
+   ```
+   CI (GitHub Actions) also runs this automatically on every PR.
+4. **Commit and push** the branch
+5. **Open a PR** via `gh pr create`
+6. **Check off** the task in `TASKS.md` on `main` (or mark it as pending in-person testing if it needs a reboot/display to verify)
+
+Tasks that require physical machine testing (reboot, display, hardware) should be noted in TASKS.md as `*(PR open — needs in-person test)*` and merged when the user confirms they work.
 
 ## Notes
 

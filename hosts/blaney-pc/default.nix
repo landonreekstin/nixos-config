@@ -25,6 +25,11 @@
       timeZone = "America/New_York"; # As per your old core.nix
       locale = "en_US.UTF-8"; # As per your old core.nix
     };
+
+    bootloader.plymouth = {
+      enable = true;
+      theme = "hexa_retro";
+    };
     
     desktop = {
       environments = [ "kde" ];
@@ -99,7 +104,8 @@
         #"chromium"
         "desmume"
         "mgba"
-        "claude-code"      
+        "claude-code" 
+        "signal-desktop"     
       ];
       homeManager = with pkgs; [
         kitty
@@ -116,6 +122,8 @@
         desmume
         mgba
         claude-code
+        wireguard-ui
+        signal-desktop
       ];
       flatpak = {
         enable = true;

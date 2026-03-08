@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  evaluate:
+    name: Evaluate NixOS configurations
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v30
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+
+      - name: Evaluate all host configurations
+        env:
+          NIXPKGS_ALLOW_UNFREE: "1"
+        run: |
+          hosts=(gaming-pc optiplex blaney-pc justus-pc asus-laptop asus-m15 atl-mini-pc optiplex-nas)
+          failed=0
+          for host in "${hosts[@]}"; do
+            echo "::group::Evaluating $host"
+            if nix eval --impure ".#nixosConfigurations.${host}.config.system.build.toplevel.drvPath" 2>&1; then
+              echo "✓ $host OK"
+            else
+              echo "✗ $host FAILED"
+              failed=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $failed

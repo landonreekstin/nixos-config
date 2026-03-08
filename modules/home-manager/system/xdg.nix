@@ -7,18 +7,13 @@
     createDirectories = true; # Optional: create them if they don't exist
   };
 
+  xdg.enable = true;
+
   # Fixes KDE screen share
   xdg.portal.extraPortals = osConfig.xdg.portal.extraPortals;
 
   # Configure XDG Portals
-  xdg = {
-    enable = true;
-    portal.config = {
-      common = {
-        default = "*";
-      };
-    };
-  };
+  xdg.portal.config.common.default = "*";
     # Note: The installation of portal backend packages (e.g., pkgs.xdg-desktop-portal-hyprland)
     # is typically handled in the system's configuration.nix (environment.systemPackages)
     # as they often need system-level D-Bus services.

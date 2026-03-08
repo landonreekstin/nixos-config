@@ -30,7 +30,11 @@
     };
 
     bootloader = {
-      quietBoot = false; # show boot messages
+      quietBoot = false;
+      plymouth = {
+        enable = true;
+        theme = "circuit";
+      };
     };
 
     desktop = {
@@ -48,13 +52,14 @@
       # ];
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "ly"; # Or "greetd", "gdm", or "none" based on your preference
+        type = "sddm"; # Or "greetd", "gdm", or "none" based on your preference
+        ly.theme = "century-series";
         sddm = {
           theme = "sddm-astronaut";
           #embeddedTheme = "pixel_sakura";
           customTheme = {
             enable = true;
-            wallpaper = ../../assets/wallpapers/soviet-retro-future.jpg;
+            wallpaper = ../../assets/wallpapers/F18_background.mp4;
             blur = 2.0;
             roundCorners = 20;
             colors = {
@@ -87,6 +92,12 @@
         enable = true; # Enable peripheral configurations
         ckb-next.enable = true; # Enable CKB-Next for Corsair device support
       };
+      monitors = [
+        { name = "DP-4";     rotation = "Normal";    scale = 1.15; } # Main: LG 2560x1440 @ 180Hz
+        { name = "HDMI-A-2"; rotation = "Rotated90"; }               # Left: Dell 1080p portrait
+        { name = "DP-5";     rotation = "Rotated90"; }               # Right: Samsung 1080p portrait
+        { name = "DP-6";     rotation = "Normal"; }                  # Above: Hisense TV 1080p
+      ];
     };
 
     programs = {
@@ -112,6 +123,7 @@
 
     homeManager = {
       enable = true;
+      services.updateNotification.enable = true;
       themes = {
         #hyprland = "future-aviation"; # Set to the theme you want for Hyprland
       };
@@ -122,6 +134,7 @@
         kitty
         pavucontrol
         mullvad-vpn
+        tmux
 
         # smbclient and kio-extras for Dolphin network shares
         kdePackages.kio-extras
@@ -174,9 +187,15 @@
       };
     };
 
-    networking.wakeOnLan = {
-      enable = true;
-      interface = "enp8s0";
+    networking = {
+      wakeOnLan = {
+        enable = true;
+        interface = "enp8s0";
+      };
+      encryptedDns = {
+        enable = true;
+        resolver = "cloudflare";
+      };
     };
 
     services = {

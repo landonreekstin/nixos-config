@@ -80,14 +80,22 @@ in
       PROMPT_COMMAND="''${PROMPT_COMMAND:+$PROMPT_COMMAND; }_ps1_prompt_wrapper"
     '';
 
-    # This condition checks if Home Manager's Hyprland module is enabled and there is no display manager
-    profileExtra = lib.mkIf ((lib.elem "hyprland" customConfig.desktop.environments) && (customConfig.desktop.displayManager.type == "none")) ''
-      # Start Hyprland automatically on TTY1 if not already in a graphical session
-      if [ -z "$DISPLAY" ] && [ -z "$WAYLAND_DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
-        echo "Attempting to start Hyprland from profileExtra on TTY1..."
-        exec ${pkgs.hyprland}/bin/Hyprland
-      fi
-    ''; # End profileExtra
+    # Auto-launch the first DE on TTY1 when no display manager is configured
+    profileExtra =
+      let
+        des = customConfig.desktop.environments;
+        firstDE = if des != [] then lib.head des else "none";
+        launchCmd =
+          if firstDE == "hyprland" then "exec ${pkgs.hyprland}/bin/Hyprland"
+          else if firstDE == "kde" then "exec dbus-run-session startplasma-wayland"
+          else if firstDE == "cosmic" then "exec cosmic-session"
+          else null;
+      in
+      lib.mkIf (customConfig.desktop.displayManager.type == "none" && launchCmd != null) ''
+        if [ -z "$DISPLAY" ] && [ -z "$WAYLAND_DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
+          ${launchCmd}
+        fi
+      ''; # End profileExtra
   }; # End of lib.mkIf for programs.bash
 
   # === Enable direnv ===

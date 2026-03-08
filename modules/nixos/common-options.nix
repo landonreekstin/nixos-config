@@ -73,8 +73,20 @@ in
     bootloader = {
       quietBoot = mkOption {
         type = types.bool;
-        default = false; # Default to false, enable explicitly for quiet boot
+        default = false;
         description = "Whether to enable quiet boot (suppress boot messages).";
+      };
+      plymouth = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Whether to enable Plymouth boot splash screen.";
+        };
+        theme = mkOption {
+          type = types.str;
+          default = "spinner";
+          description = "Plymouth theme to use. Bundled options: spinner, bgrt, breeze, spinfinity.";
+        };
       };
     };
 
@@ -150,6 +162,18 @@ in
           default = null;
           description = "The network interface to enable Wake-on-LAN on (e.g., 'enp8s0').";
           example = "enp8s0";
+        };
+      };
+      encryptedDns = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable encrypted DNS via dnscrypt-proxy2.";
+        };
+        resolver = mkOption {
+          type = types.enum [ "cloudflare" "quad9" "mullvad" ];
+          default = "cloudflare";
+          description = "Which upstream DNS resolver to use. cloudflare = 1.1.1.1 (DoH), quad9 = filtered DoH, mullvad = privacy-focused DoH.";
         };
       };
     };
@@ -446,6 +470,13 @@ in
             };
           };
         };
+        ly = {
+          theme = mkOption {
+            type = types.str;
+            default = "none";
+            description = "The Ly theme to apply. 'none' uses Ly defaults. Available themes: 'doom'.";
+          };
+        };
       };
     };
 
@@ -528,8 +559,15 @@ in
         gammastep = {
           enable = mkOption {
             type = types.bool;
-            default = (lib.elem "hyprland" config.customConfig.desktop.environments); # Enable by default, can be overridden in user config
+            default = (lib.elem "hyprland" config.customConfig.desktop.environments);
             description = "Whether to enable gammastep for night light adjustments.";
+          };
+        };
+        updateNotification = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Whether to enable a once-per-login desktop notification when the nixos-config repo has upstream updates.";
           };
         };
       };
@@ -678,6 +716,64 @@ in
         type = types.bool;
         default = false;
         description = "Whether to source the entire hardware stack (kernel, initrd modules, etc.) from nixpkgs-unstable.";
+      };
+
+      monitors = mkOption {
+        type = types.listOf (types.submodule {
+          options = {
+            name = mkOption {
+              type = types.str;
+              description = "Output connector name (e.g., DP-1, HDMI-A-1). Must match the kernel connector name.";
+              example = "DP-4";
+            };
+            width = mkOption {
+              type = types.nullOr types.int;
+              default = null;
+              description = "Horizontal resolution in pixels. null = preferred mode.";
+            };
+            height = mkOption {
+              type = types.nullOr types.int;
+              default = null;
+              description = "Vertical resolution in pixels. null = preferred mode.";
+            };
+            refreshRate = mkOption {
+              type = types.nullOr types.int;
+              default = null;
+              description = "Refresh rate in Hz. null = preferred mode.";
+            };
+            x = mkOption {
+              type = types.int;
+              default = 0;
+              description = "Horizontal position in the virtual display space (pixels from left).";
+            };
+            y = mkOption {
+              type = types.int;
+              default = 0;
+              description = "Vertical position in the virtual display space (pixels from top).";
+            };
+            rotation = mkOption {
+              type = types.enum [ "Normal" "Rotated90" "Rotated180" "Rotated270" ];
+              default = "Normal";
+              description = "Display rotation. Rotated90 = 90° clockwise (use for portrait monitors physically rotated CCW).";
+            };
+            scale = mkOption {
+              type = types.float;
+              default = 1.0;
+              description = "Display scale factor (e.g., 1.25 for 125% scaling).";
+            };
+            enabled = mkOption {
+              type = types.bool;
+              default = true;
+              description = "Whether this output is active.";
+            };
+          };
+        });
+        default = [];
+        description = ''
+          Declarative monitor configuration. Currently used by SDDM (KWin) for rotation and scale.
+          Hyprland and KDE support will be added in future tasks.
+          Connector names can be found via: cat ~/.config/kwinoutputconfig.json
+        '';
       };
       nvidia = {
           enable = mkOption {
@@ -945,6 +1041,71 @@ in
             default = false; # Default to false, enable explicitly for Bazarr
             description = "Enable Bazarr, a subtitle manager for Radarr and Sonarr.";
           };
+        };
+      };
+
+      transmission = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable Transmission, a lightweight torrent client.";
+        };
+      };
+
+      mullvad = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable Mullvad VPN daemon for system-wide VPN.";
+        };
+      };
+
+      jellyseerr = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable Jellyseerr, a media request manager for Jellyfin.";
+        };
+      };
+
+      flaresolverr = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable FlareSolverr, a Cloudflare bypass proxy for indexers.";
+        };
+      };
+
+      mediaLinker = {
+        enable = lib.mkEnableOption "media-linker service for per-user Jellyfin libraries";
+
+        mediaUsers = mkOption {
+          type = types.listOf (types.submodule {
+            options = {
+              name = mkOption {
+                type = types.str;
+                description = "Directory name for this user under media/users/.";
+              };
+              jellyseerrId = mkOption {
+                type = types.int;
+                description = "Jellyseerr user ID (visible in Jellyseerr admin panel).";
+              };
+            };
+          });
+          default = [];
+          description = "List of media users to create per-user Jellyfin libraries for.";
+        };
+
+        interval = mkOption {
+          type = types.str;
+          default = "5min";
+          description = "How often to sync per-user libraries.";
+        };
+
+        envFile = mkOption {
+          type = types.path;
+          default = "/root/secrets/media-linker.env";
+          description = "Path to environment file with JELLYSEERR_API_KEY, RADARR_API_KEY, SONARR_API_KEY.";
         };
       };
     };

@@ -78,7 +78,7 @@
       # This will be created during your installation.
       name = "lando"; # Or whatever user your script creates
       email = "landonreekstin@gmail.com";
-      shell.bash.color = "bright-blue";
+      shell.bash.color = "bright-green";
     };
     
     system = {
@@ -160,12 +160,37 @@
           # The port defaults to 4445.
         };
       };
-      jellyfin.enable = false;
+      jellyfin = {
+        enable = true;
+        hwTranscoding = true;
+      };
       mediaSetup = {
         enable = true;
         user = config.customConfig.user.name; # This pulls "lando" from the user section
         storagePath = "/mnt/storage";
         cachePath = "/mnt/cache";
+      };
+      arr = {
+        prowlarr.enable = true;
+        radarr.enable = true;
+        sonarr.enable = true;
+        bazarr.enable = true;
+      };
+      transmission.enable = true;
+      mullvad.enable = true;
+      jellyseerr.enable = true;
+      flaresolverr.enable = true;
+      mediaLinker = {
+        enable = true;
+        mediaUsers = [
+          # Look up Jellyseerr user IDs at http://192.168.1.76:5055/users
+          # and replace the placeholder IDs below.
+          { name = "chris"; jellyseerrId = 3; }
+          { name = "blaney"; jellyseerrId = 5; }
+          { name = "em"; jellyseerrId = 6; }
+          { name = "russell"; jellyseerrId = 8; }
+          { name = "cmoore"; jellyseerrId = 7; }
+        ];
       };
     };
   };
