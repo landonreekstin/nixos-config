@@ -20,6 +20,7 @@ in {
     ./wofi.nix
     ./kitty.nix
     ./dunst.nix
+    ./swaylock.nix
   ];
 
   # Module arguments are passed differently in NixOS

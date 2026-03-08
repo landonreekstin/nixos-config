@@ -204,7 +204,7 @@ in
           "$mainMod SHIFT, left, movetoworkspace, e-1"
 
           # System & Utility Bindings
-          "$ctrlMod, L, exec, ${pkgs.swaylock}/bin/swaylock" # needs full theme overhaul
+          "$mainMod, L, exec, swaylock"
           "$mainMod, V, exec, ${pkgs.cliphist}/bin/cliphist list | ${pkgs.wofi}/bin/wofi --dmenu | ${pkgs.cliphist}/bin/cliphist decode | ${pkgs.wl-clipboard}/bin/wl-copy"
           "$mainMod SHIFT, S, exec, ${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp)\" ${config.home.homeDirectory}/Pictures/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
           "$mainMod SHIFT, R, exec, hyprctl reload"
@@ -232,6 +232,14 @@ in
       }; # End of wayland.windowManager.hyprland.settings
     }; # End of wayland.windowManager.hyprland
 
+    # -------------------------------------------------------------------------- #
+    # Swaylock - Default configuration (themes can override)
+    # -------------------------------------------------------------------------- #
+    programs.swaylock = {
+      enable = lib.mkDefault true;
+      # Basic swaylock package; themes may override with swaylock-effects
+      package = lib.mkDefault pkgs.swaylock;
+    };
 
     # -------------------------------------------------------------------------- #
     # Waybar Wrapper Script
@@ -287,7 +295,7 @@ in
 
       # From Hyprland exec/binds not covered by services:
       (if pkgs ? vscode then vscode else null) # Conditional if package might not exist
-      swaylock
+      # swaylock provided by programs.swaylock (theme or default)
       grim
       slurp
       wl-clipboard # For cliphist/wofi integration
