@@ -195,6 +195,192 @@ in
         example = [ "kde" "hyprland" ];
         description = "A list of desktop environments or window managers to make available on the system.";
       };
+      monitors = mkOption {
+        type = with types; listOf (submodule {
+          options = {
+            name = mkOption {
+              type = types.str;
+              description = "A descriptive name for this monitor configuration.";
+              example = "main";
+            };
+            identifier = mkOption {
+              type = types.str;
+              description = "The monitor identifier. Can be a manufacturer description (desc:...) or output name (DP-1, HDMI-A-1, etc.).";
+              example = "Dell Inc. DELL S2721HGF DZR2123";
+            };
+            resolution = mkOption {
+              type = types.str;
+              default = "preferred";
+              description = "Monitor resolution and refresh rate.";
+              example = "1920x1080@144";
+            };
+            position = mkOption {
+              type = types.str;
+              default = "0x0";
+              description = "Monitor position in pixels (x,y).";
+              example = "1920x0";
+            };
+            scale = mkOption {
+              type = types.str;
+              default = "1";
+              description = "Monitor scaling factor.";
+              example = "1.5";
+            };
+            transform = mkOption {
+              type = types.nullOr (types.enum [ "0" "1" "2" "3" ]);
+              default = null;
+              description = "Monitor rotation: 0=normal, 1=90°, 2=180°, 3=270°.";
+            };
+            enabled = mkOption {
+              type = types.bool;
+              default = true;
+              description = "Whether this monitor configuration is enabled.";
+            };
+          };
+        });
+        default = [];
+        description = "List of monitor configurations for Hyprland.";
+        example = literalExpression ''
+          [
+            {
+              name = "main";
+              identifier = "Dell Inc. DELL S2721HGF DZR2123";
+              resolution = "1920x1080@144";
+              position = "0x0";
+              scale = "1";
+            }
+            {
+              name = "secondary";
+              identifier = "DP-2";
+              resolution = "1920x1080@60";
+              position = "1920x0";
+              scale = "1";
+            }
+          ]
+        '';
+      };
+      wayvnc = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Whether to enable wayvnc VNC server for Hyprland.";
+        };
+        targetMonitor = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = "Name of the monitor to use for wayvnc. Corresponds to monitor.name in desktop.monitors.";
+          example = "tv";
+        };
+      };
+      hyprland = {
+        applications = {
+          taskManager = mkOption {
+            type = types.str;
+            default = "${pkgs.btop-rocm}/bin/btop";
+            description = "Command to launch task manager (Ctrl+Shift+Escape in terminal).";
+            example = "\${pkgs.htop}/bin/htop";
+          };
+          ide = mkOption {
+            type = types.str;
+            default = "${pkgs.vscode}/bin/code";
+            description = "Command to launch IDE (Super+I).";
+            example = "\${pkgs.neovim}/bin/nvim";
+          };
+          editor = mkOption {
+            type = types.str;
+            default = "${pkgs.kdePackages.kate}/bin/kate";
+            description = "Command to launch text editor (Super+T).";
+            example = "\${pkgs.vim}/bin/vim";
+          };
+          fileManagerTUI = mkOption {
+            type = types.str;
+            default = "${pkgs.yazi}/bin/yazi";
+            description = "Command to launch terminal file manager (Super+F in terminal).";
+            example = "\${pkgs.ranger}/bin/ranger";
+          };
+          browser = mkOption {
+            type = types.str;
+            default = "${pkgs.librewolf}/bin/librewolf";
+            description = "Command to launch primary browser (Super+B).";
+            example = "\${pkgs.firefox}/bin/firefox";
+          };
+          browserAlt = mkOption {
+            type = types.str;
+            default = "${pkgs.brave}/bin/brave";
+            description = "Command to launch alternative browser (Super+Shift+B).";
+            example = "\${pkgs.chromium}/bin/chromium";
+          };
+          music = mkOption {
+            type = types.str;
+            default = "${pkgs.spotify}/bin/spotify --enable-features=UseOzonePlatform --ozone-platform=wayland";
+            description = "Command to launch music player (Super+M).";
+            example = "\${pkgs.rhythmbox}/bin/rhythmbox";
+          };
+          chat = mkOption {
+            type = types.str;
+            default = "${pkgs.discord}/bin/discord";
+            description = "Command to launch chat application (Super+D).";
+            example = "\${pkgs.element-desktop}/bin/element-desktop";
+          };
+          gaming = mkOption {
+            type = types.str;
+            default = "steam";
+            description = "Command to launch primary gaming platform (Super+G).";
+            example = "\${pkgs.steam}/bin/steam";
+          };
+          gamingAlt = mkOption {
+            type = types.str;
+            default = "${pkgs.lutris}/bin/lutris";
+            description = "Command to launch alternative gaming platform (Super+Shift+G).";
+            example = "\${pkgs.heroic}/bin/heroic";
+          };
+        };
+        launcher = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable the Hyprland launcher bar (typically at bottom center).";
+          };
+          pinnedApps = mkOption {
+            type = with types; listOf (submodule {
+              options = {
+                label = mkOption {
+                  type = types.str;
+                  description = "Display label for the launcher button (e.g., 'TERM', 'NAV', 'CODE').";
+                  example = "TERM";
+                };
+                command = mkOption {
+                  type = types.str;
+                  description = "Command to execute when the launcher button is clicked.";
+                  example = "\${pkgs.kitty}/bin/kitty";
+                };
+                tooltip = mkOption {
+                  type = types.nullOr types.str;
+                  default = null;
+                  description = "Optional tooltip text for the launcher button.";
+                  example = "Launch Terminal";
+                };
+              };
+            });
+            default = [];
+            description = "List of pinned applications for the launcher bar.";
+            example = literalExpression ''
+              [
+                {
+                  label = "TERM";
+                  command = "\${pkgs.kitty}/bin/kitty";
+                  tooltip = "Terminal";
+                }
+                {
+                  label = "FILES";
+                  command = "\${pkgs.cosmic-files}/bin/cosmic-files";
+                  tooltip = "File Manager";
+                }
+              ]
+            '';
+          };
+        };
+      };
       displayManager = {
         enable = mkOption {
           type = types.bool;
@@ -393,7 +579,7 @@ in
         };
         plasmaOverride = mkEnableOption "Override user-session set Plasma configuration.";
         hyprland = mkOption {
-          type = types.enum [ "future-aviation" "none" ];
+          type = types.enum [ "future-aviation" "century-series" "none" ];
           default = "none";
           description = "Set the Hyprland theme for Home Manager.";
         };
@@ -421,6 +607,28 @@ in
               "applications:code.desktop"
             ]
           '';
+        };
+        bashPrompt = {
+          style = mkOption {
+            type = types.enum [ "default" "themed" "powerline" ];
+            default = "default";
+            description = ''
+              Bash prompt style.
+              - "default": Simple prompt with customConfig.user.shell.bash.color
+              - "themed": Theme-aware colors (amber for century-series)
+              - "powerline": Fancy prompt with Nerd Font symbols, segments, and git status
+            '';
+          };
+          showGitBranch = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Whether to show the current git branch in the prompt.";
+          };
+          showHostname = mkOption {
+            type = types.bool;
+            default = true;
+            description = "Whether to show the hostname in the prompt.";
+          };
         };
       };
       # You can add more themes here later, e.g., 'cosmic', 'kde', etc.

@@ -32,9 +32,90 @@
       environments = [ "hyprland" "kde" ];
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "sddm";
-        sddm = {
-          theme = "sddm-windows7"; # Custom SDDM theme
+        type = "ly";
+        ly.theme = "century-series";
+      };
+      monitors = [
+        {
+          name = "main";
+          identifier = "Dell Inc. DELL S2721HGF DZR2123";
+          resolution = "1920x1080@144";
+          position = "0x0";
+          scale = "1";
+        }
+        {
+          name = "left";
+          identifier = "Dell Inc. OptiPlex 7760 0x36419E0A";
+          resolution = "preferred";
+          position = "-1080x-410";
+          scale = "1";
+          transform = "1";
+        }
+        {
+          name = "right";
+          identifier = "Samsung Electric Company S27R65x H4TW800293";
+          resolution = "preferred";
+          position = "1920x-390";
+          scale = "1";
+          transform = "1";
+        }
+        {
+          name = "tv";
+          identifier = "Hisense Electric Co. Ltd. 4Series43 0x00000278";
+          resolution = "preferred";
+          position = "0x-1080";
+          scale = "1";
+        }
+      ];
+      wayvnc = {
+        enable = true;
+        targetMonitor = "tv";
+      };
+      hyprland = {
+        launcher = {
+          enable = true;
+          pinnedApps = [
+            {
+              label = "TERM";
+              command = "${pkgs.kitty}/bin/kitty";
+              tooltip = "Terminal Emulator";
+            }
+            {
+              label = "FILES";
+              command = "${pkgs.cosmic-files}/bin/cosmic-files";
+              tooltip = "File Manager";
+            }
+            {
+              label = "NAV";
+              command = "${pkgs.librewolf}/bin/librewolf";
+              tooltip = "Web Browser";
+            }
+            {
+              label = "CODE";
+              command = "${pkgs.vscode}/bin/code";
+              tooltip = "IDE";
+            }
+            {
+              label = "EDIT";
+              command = "${pkgs.kdePackages.kate}/bin/kate";
+              tooltip = "Text Editor";
+            }
+            {
+              label = "AUDIO";
+              command = "${pkgs.spotify}/bin/spotify --enable-features=UseOzonePlatform --ozone-platform=wayland";
+              tooltip = "Music Player";
+            }
+            {
+              label = "COMM";
+              command = "${pkgs.discord}/bin/discord";
+              tooltip = "Communications";
+            }
+            {
+              label = "GAME";
+              command = "steam";
+              tooltip = "Gaming Platform";
+            }
+          ];
         };
       };
     };
@@ -63,8 +144,8 @@
       enable = true;
       themes = {
         plasmaOverride = false;
-        kde = "default";
-        hyprland = "future-aviation";
+        kde = "windows7-alt";
+        hyprland = "century-series";
         wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
         pinnedApps = [
           "applications:org.kde.konsole.desktop"
@@ -85,6 +166,11 @@
           "applications:OpenRGB.desktop"
           "applications:io.github.nuttyartist.notes.desktop"
         ];
+        bashPrompt = {
+          style = "powerline";
+          showGitBranch = true;
+          showHostname = true;
+        };
       };
     };
 
@@ -96,7 +182,7 @@
       ];
       unstable-override = [ 
         "vscode"
-        "librewolf"
+        #"librewolf"
         "ungoogled-chromium"
       ];
       homeManager = with pkgs; [ 

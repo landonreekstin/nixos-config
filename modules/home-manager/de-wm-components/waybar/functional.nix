@@ -4,6 +4,20 @@
 let
 
   isHyprlandHost = lib.elem "hyprland" customConfig.desktop.environments;
+  launcherEnabled = customConfig.desktop.hyprland.launcher.enable;
+  pinnedApps = customConfig.desktop.hyprland.launcher.pinnedApps;
+
+  # Generate custom module configurations for launcher buttons
+  generateLauncherModules = apps:
+    lib.listToAttrs (lib.imap0 (idx: app: {
+      name = "custom/launcher${toString idx}";
+      value = {
+        format = app.label;
+        on-click = app.command;
+        tooltip = lib.mkIf (app.tooltip != null) true;
+        tooltip-format = if app.tooltip != null then app.tooltip else app.label;
+      };
+    }) apps);
 
 in
 {
@@ -17,28 +31,31 @@ in
       enable = true;
       systemd.enable = false; # Ensures Waybar must be launched implicitly by the wayland compositor such as Hyprland
 
-      settings = {
-        mainBar = { # Assuming a single bar named "mainBar"
-          layer = "top";
-          position = "top";
-          height = 30; # Base height, can be overridden by theme if needed
-          spacing = 4; # Base spacing, can be overridden
+      settings = lib.mkMerge [
+        # Main bar configuration (always present)
+        {
+          mainBar = {
+            layer = "top";
+            position = "top";
+            height = 30; # Base height, can be overridden by theme if needed
+            spacing = 4; # Base spacing, can be overridden
+            # Note: omitting 'output' field means show on all monitors
 
-          modules-left = [
-            "hyprland/workspaces"
-            "hyprland/mode"
-          ];
-          modules-center = [
-            "hyprland/window"
-          ];
-          modules-right = [
-            "network"
-            "pulseaudio#sink_switcher"
-            "cpu"
-            "memory"
-            "clock"
-            "tray"
-          ];
+            modules-left = [
+              "hyprland/workspaces"
+              "hyprland/mode"
+            ];
+            modules-center = [
+              "hyprland/window"
+            ];
+            modules-right = [
+              "network"
+              "pulseaudio#sink_switcher"
+              "cpu"
+              "memory"
+              "clock"
+              "tray"
+            ];
 
           # === Functional Module Settings ===
           "hyprland/window" = {
@@ -93,9 +110,23 @@ in
             # persistent_workspaces could be functional if you always want a fixed number.
             # persistent_workspaces = { "*": 5 }; # Example: uncomment if desired functionally
           };
-
         }; # End mainBar
-      }; # End settings
+        }
+
+        # Launcher bar configuration (conditional)
+        (lib.mkIf launcherEnabled {
+          launcherBar = {
+            layer = "bottom";
+            position = "bottom";
+            height = 48; # Base height for launcher
+            spacing = 8; # Spacing between launcher items
+
+            modules-left = [];
+            modules-center = map (idx: "custom/launcher${toString idx}") (lib.lists.range 0 ((lib.length pinnedApps) - 1));
+            modules-right = [];
+          } // (generateLauncherModules pinnedApps);
+        })
+      ]; # End settings mkMerge
     }; # End programs.waybar
 
     home.packages = with pkgs; [

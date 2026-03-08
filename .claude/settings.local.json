@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(echo:*)",
+      "Bash(systemctl status:*)",
+      "Bash(systemctl list-units:*)",
+      "Bash(busctl list:*)",
+      "Bash(busctl introspect:*)",
+      "Bash(pgrep:*)",
+      "Bash(systemctl:*)",
+      "Bash(cat:*)",
+      "Bash(/dev/input/ckb1/cmd)",
+      "Bash(sudo systemctl:*)",
+      "Bash(lsusb:*)",
+      "Bash(sudo tee:*)",
+      "Bash(sudo chown:*)",
+      "Bash(rebuild)",
+      "Bash(git add:*)",
+      "Bash(journalctl:*)",
+      "Bash(grep:*)",
+      "Bash(git stash:*)",
+      "Bash(waybar:*)",
+      "Bash(python3:*)",
+      "Bash(sed:*)",
+      "Bash(hyprctl:*)",
+      "Bash(nix search:*)",
+      "Bash(/nix/store/d6dhy3smjmfhqzm3i10wawmywwq9i6xz-hyprpolkitagent-0.1.2/bin/hyprpolkitagent --help)"
+    ],
+    "deny": [],
+    "ask": [],
+    "additionalDirectories": [
+      "/nix/store",
+      "/home/lando/.local/share/wallpapers",
+      "/home/lando/.config/waybar"
+    ]
+  }
+}
