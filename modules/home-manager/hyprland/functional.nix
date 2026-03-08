@@ -40,8 +40,9 @@ let
 in
 {
   imports = [
-    # Import the set-wayvnc-output script
+    # Import scripts
     ../scripts/set-wayvnc-output.nix
+    ../scripts/keybind-help.nix
   ];
 
   config = lib.mkIf ((customConfig.desktop.enable) && (lib.elem "hyprland" customConfig.desktop.environments)) {
@@ -204,6 +205,7 @@ in
           "$mainMod SHIFT, left, movetoworkspace, e-1"
 
           # System & Utility Bindings
+          "$mainMod, slash, exec, hypr-keybinds"
           "$mainMod, L, exec, swaylock"
           "$mainMod, V, exec, ${pkgs.cliphist}/bin/cliphist list | ${pkgs.wofi}/bin/wofi --dmenu | ${pkgs.cliphist}/bin/cliphist decode | ${pkgs.wl-clipboard}/bin/wl-copy"
           "$mainMod SHIFT, S, exec, ${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp)\" ${config.home.homeDirectory}/Pictures/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
