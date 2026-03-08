@@ -166,6 +166,11 @@
           "applications:OpenRGB.desktop"
           "applications:io.github.nuttyartist.notes.desktop"
         ];
+        bashPrompt = {
+          style = "themed";
+          showGitBranch = true;
+          showHostname = true;
+        };
       };
     };
 

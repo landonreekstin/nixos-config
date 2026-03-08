@@ -2,18 +2,18 @@
 { config, lib, pkgs, customConfig, ... }:
 
 let
-
+  # Standard ANSI color map
   colorMap = {
     "black"   = "0;30";
     "red"     = "0;31";
-    "green"   = "0;32"; # This is now dark green
+    "green"   = "0;32";
     "yellow"  = "0;33";
     "blue"    = "0;34";
     "magenta" = "0;35";
     "cyan"    = "0;36";
     "white"   = "0;37";
 
-    "bright-black"   = "1;30"; # Often gray
+    "bright-black"   = "1;30";
     "bright-red"     = "1;31";
     "bright-green"   = "1;32";
     "bright-yellow"  = "1;33";
@@ -23,14 +23,64 @@ let
     "bright-white"   = "1;37";
   };
 
-  # Look up the color code from the map using the string from your config
-  bashColor = colorMap.${customConfig.user.shell.bash.color};
+  # Theme settings
+  themeCfg = customConfig.homeManager.themes.bashPrompt;
+  hyprlandTheme = customConfig.homeManager.themes.hyprland;
+
+  # Determine the color to use
+  # - "themed" style uses theme-specific colors (amber for century-series)
+  # - "default" style uses customConfig.user.shell.bash.color
+  promptColor =
+    if themeCfg.style == "themed" then
+      if hyprlandTheme == "century-series" then
+        "38;2;255;158;59"  # True color amber (#ff9e3b)
+      else if hyprlandTheme == "future-aviation" then
+        "38;2;92;207;230"  # True color cyan (#5ccfe6)
+      else
+        colorMap.${customConfig.user.shell.bash.color}
+    else
+      colorMap.${customConfig.user.shell.bash.color};
+
+  # Secondary color for path (dimmer)
+  pathColor =
+    if themeCfg.style == "themed" then
+      if hyprlandTheme == "century-series" then
+        "38;2;127;218;137"  # Phosphor green (#7fda89)
+      else if hyprlandTheme == "future-aviation" then
+        "38;2;92;207;230"  # Cyan
+      else
+        "1;34"  # Bright blue default
+    else
+      "1;34";  # Bright blue default
+
+  # Build prompt components
+  showHost = themeCfg.showHostname;
+  showGit = themeCfg.showGitBranch;
+
+  # Git branch function (only included if showGitBranch is true)
+  gitBranchFunc = lib.optionalString showGit ''
+    # Get current git branch
+    parse_git_branch() {
+      local branch
+      branch=$(git symbolic-ref --short HEAD 2>/dev/null || git describe --tags --exact-match 2>/dev/null || git rev-parse --short HEAD 2>/dev/null)
+      if [ -n "$branch" ]; then
+        echo " ($branch)"
+      fi
+    }
+  '';
+
+  # Build the PS1 string based on configuration
+  # Format: [user@host:path (branch)]$ or [user:path (branch)]$ if no hostname
+  hostPart = if showHost then ''\u@\h'' else ''\u'';
+  gitPart = if showGit then ''$(parse_git_branch)'' else "";
+
+  # Standard prompt (outside dev environments)
+  standardPS1 = ''\n\[\033[${promptColor}m\][\[\e]0;${hostPart}: \w\a\]${hostPart}:\[\033[${pathColor}m\]\w\[\033[${promptColor}m\]${gitPart}]\$\[\033[0m\] '';
+
 in
 {
-  # The 'programs.bash' attribute set itself is made conditional.
-  # This is the correct way to do it.
   programs.bash = lib.mkIf (customConfig.user.shell.bash.enable) {
-    enable = true; # Explicitly manage bash config files
+    enable = true;
 
     shellAliases = {
       c = "clear";
@@ -39,6 +89,8 @@ in
     };
 
     bashrcExtra = ''
+      ${gitBranchFunc}
+
       # Function to update PS1 based on dev environment
       update_ps1() {
         if [ -n "$DEV_ENV_NAME" ]; then
@@ -56,17 +108,16 @@ in
               PS1='\[\033[1;35m\][gbdk-dev]\[\033[0m\] \[\033[1;34m\]\w\[\033[0m\]\$ '
               ;;
             *)
-              PS1="\n\[\033[${bashColor}m\][\[\e]0;\u@\h: \w\a\]\u@\h:\w]\$\[\033[0m\]"
+              PS1="${standardPS1}"
               ;;
           esac
         else
-          PS1="\n\[\033[${bashColor}m\][\[\e]0;\u@\h: \w\a\]\u@\h:\w]\$\[\033[0m\]"
+          PS1="${standardPS1}"
         fi
       }
 
       # Wrapper that ensures it stays in PROMPT_COMMAND
       _ps1_prompt_wrapper() {
-        # Re-add ourselves if we've been removed from PROMPT_COMMAND
         if [[ "$PROMPT_COMMAND" != *"_ps1_prompt_wrapper"* ]]; then
           PROMPT_COMMAND="''${PROMPT_COMMAND:+$PROMPT_COMMAND; }_ps1_prompt_wrapper"
         fi
@@ -95,14 +146,12 @@ in
         if [ -z "$DISPLAY" ] && [ -z "$WAYLAND_DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
           ${launchCmd}
         fi
-      ''; # End profileExtra
-  }; # End of lib.mkIf for programs.bash
+      '';
+  };
 
   # === Enable direnv ===
   programs.direnv = {
     enable = true;
-    # This is the crucial part that integrates direnv with Nix Flakes
     nix-direnv.enable = true;
   };
-  
 }
