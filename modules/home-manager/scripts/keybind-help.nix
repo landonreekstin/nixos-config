@@ -59,61 +59,61 @@ let
     # Add static descriptions for special bindings
     static_binds() {
       cat << 'BINDS'
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  HYPRLAND KEYBINDINGS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+========================================
+       HYPRLAND KEYBINDINGS
+========================================
 
-▸ APPLICATIONS
-  Super+Space        App Launcher (wofi)
-  Super+Return       Terminal (kitty)
-  Super+B            Browser
-  Super+Shift+B      Alt Browser
-  Super+M            Music Player
-  Super+D            Chat (Discord)
-  Super+G            Gaming (Lutris)
-  Super+Shift+G      Gaming Alt (Steam)
-  Super+I            IDE (VSCode)
-  Super+T            Editor (Kate)
-  Super+F            File Manager (TUI)
-  Super+Shift+F      File Manager (GUI)
-  Ctrl+Shift+Esc     Task Manager
+-- APPLICATIONS --
+Super+Space        App Launcher (wofi)
+Super+Return       Terminal (kitty)
+Super+B            Browser
+Super+Shift+B      Alt Browser
+Super+M            Music Player
+Super+D            Chat (Discord)
+Super+G            Gaming (Lutris)
+Super+Shift+G      Gaming Alt (Steam)
+Super+I            IDE (VSCode)
+Super+T            Editor (Kate)
+Super+F            File Manager (TUI)
+Super+Shift+F      File Manager (GUI)
+Ctrl+Shift+Esc     Task Manager
 
-▸ WINDOWS
-  Super+Q            Close Window
-  Super+H/J/K/L      Focus Left/Down/Up/Right
-  Super+Arrows       Swap Window Direction
-  Super+Shift+HJKL   Resize Window
-  Super+Ctrl+F       Toggle Floating
-  Super+F11          Fullscreen
-  Super+[            Dwindle Layout
-  Super+]            Master Layout
-  Super+Mouse1       Move Window (drag)
-  Super+Mouse2       Resize Window (drag)
+-- WINDOWS --
+Super+Q            Close Window
+Super+H/J/K/L      Focus Left/Down/Up/Right
+Super+Arrows       Swap Window Direction
+Super+Shift+HJKL   Resize Window
+Super+Ctrl+F       Toggle Floating
+Super+F11          Fullscreen
+Super+[            Dwindle Layout
+Super+]            Master Layout
+Super+Mouse1       Move Window (drag)
+Super+Mouse2       Resize Window (drag)
 
-▸ WORKSPACES
-  Super+Ctrl+1-9     Go to Workspace 1-9
-  Super+Ctrl+Shift+N Move Window to WS N
-  Super+Ctrl+←/→     Prev/Next Workspace
-  Super+Shift+←/→    Move Window Prev/Next WS
+-- WORKSPACES --
+Super+Ctrl+1-9     Go to Workspace 1-9
+Super+Ctrl+Shift+N Move Window to WS N
+Super+Ctrl+L/R     Prev/Next Workspace
+Super+Shift+L/R    Move Window Prev/Next
 
-▸ SYSTEM
-  Super+L            Lock Screen
-  Super+V            Clipboard History
-  Super+Shift+S      Screenshot (region)
-  Super+Shift+R      Reload Hyprland
-  Super+Shift+Q      Exit Hyprland
-  Super+/            This Help Menu
+-- SYSTEM --
+Super+L            Lock Screen
+Super+V            Clipboard History
+Super+Shift+S      Screenshot (region)
+Super+Shift+R      Reload Hyprland
+Super+Shift+Q      Exit Hyprland
+Super+/            This Help Menu
 
-▸ MEDIA
-  XF86AudioPlay      Play/Pause
-  XF86AudioNext      Next Track
-  XF86AudioPrev      Previous Track
-  XF86AudioMute      Toggle Mute
-  XF86Audio↑/↓       Volume Up/Down
+-- MEDIA --
+AudioPlay          Play/Pause
+AudioNext          Next Track
+AudioPrev          Previous Track
+AudioMute          Toggle Mute
+AudioVol+/-        Volume Up/Down
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Press Escape to close
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+========================================
+      Press Escape to close
+========================================
 BINDS
     }
 
