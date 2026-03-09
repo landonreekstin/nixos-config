@@ -207,6 +207,7 @@ in
           # System & Utility Bindings
           "$mainMod, slash, exec, hypr-keybinds"
           "$mainMod, ESCAPE, exec, swaylock"
+          "$mainMod, BackSpace, exec, wlogout"
           "$mainMod, V, exec, ${pkgs.cliphist}/bin/cliphist list | ${pkgs.wofi}/bin/wofi --dmenu | ${pkgs.cliphist}/bin/cliphist decode | ${pkgs.wl-clipboard}/bin/wl-copy"
           "$mainMod SHIFT, S, exec, ${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp)\" ${config.home.homeDirectory}/Pictures/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
           "$mainMod SHIFT, R, exec, hyprctl reload"

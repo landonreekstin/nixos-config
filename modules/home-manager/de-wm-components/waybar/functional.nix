@@ -55,6 +55,7 @@ in
               "memory"
               "clock"
               "tray"
+              "custom/power"
             ];
 
           # === Functional Module Settings ===
@@ -98,6 +99,13 @@ in
           tray = {
             spacing = 10; # Functional spacing for tray items
             # icon-size is ricing
+          };
+
+          "custom/power" = {
+            format = lib.mkDefault "⏻";  # Unicode power symbol, theme can override
+            tooltip = true;
+            tooltip-format = lib.mkDefault "Power Menu";
+            on-click = "${pkgs.wlogout}/bin/wlogout";
           };
 
           "hyprland/mode" = {

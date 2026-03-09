@@ -23,6 +23,7 @@ in {
     ./swaylock.nix
     ./btop.nix
     ./yazi.nix
+    ./wlogout.nix
   ];
 
   # Module arguments are passed differently in NixOS

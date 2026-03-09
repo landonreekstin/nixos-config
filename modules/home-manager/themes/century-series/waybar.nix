@@ -82,9 +82,15 @@ in {
 
           battery = {
             format = "BAT {capacity}%";
-            format-charging = "CHG {capacity}%"; 
+            format-charging = "CHG {capacity}%";
             format-plugged = "EXT PWR";
             format-full = "BAT FULL";
+          };
+
+          # Power button - Engine control
+          "custom/power" = {
+            format = mkForce "PWR";  # Aviation style label
+            tooltip-format = mkForce "ENG PWR MENU";  # Aviation terminology
           };
         };
       } // lib.optionalAttrs launcherEnabled {
@@ -164,6 +170,23 @@ in {
         #tray {
           padding: 0 8px;
           background-color: ${c.bg-secondary};
+        }
+
+        /* Power button - Engine control switch */
+        #custom-power {
+          padding: 0 12px;
+          margin: 2px 4px;
+          background-color: ${c.bg-secondary};
+          border: 2px solid ${c.warning-red};
+          color: ${c.warning-red};
+          font-weight: bold;
+          transition: all 0.2s ease;
+        }
+
+        #custom-power:hover {
+          background-color: ${c.warning-red};
+          color: ${c.bg-primary};
+          box-shadow: 0 0 8px ${c.warning-red}80;
         }
 
         /* Tooltip styling - Info displays */

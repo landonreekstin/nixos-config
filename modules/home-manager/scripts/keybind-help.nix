@@ -61,6 +61,7 @@ Super+Shift+Arrow   Move Win Prev/Next
 
 SYSTEM
 Super+Escape        Lock Screen
+Super+Backspace     Power Menu
 Super+V             Clipboard
 Super+Shift+S       Screenshot
 Super+Shift+R       Reload
