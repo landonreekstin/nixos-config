@@ -40,7 +40,9 @@ in {
       papirus-icon-theme
     ];
 
-    # GTK theme for consistency
+    # GTK theme for consistency (covers GTK apps like wofi, librewolf, etc.)
+    # Note: QT theming is intentionally omitted - hosts with KDE handle QT via
+    # their Plasma theme, and Hyprland-focused apps are mostly GTK or terminal-based
     gtk = {
       enable = true;
       theme = {

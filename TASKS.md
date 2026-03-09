@@ -117,7 +117,7 @@ Format: `- [ ] **Title** — description`
 
 - [x] **Bash prompt color/style via customConfig** — Add `customConfig.homeManager.themes.bashPrompt` (color, style). Century Series default: amber PS1 with hostname and git branch. Override-able per host.
 
-- [ ] **QT and GTK themes** — Set QT (`qt.style`) and GTK (`gtk.theme`) to dark themes compatible with Century Series. Kvantum for QT, a dark GTK2/GTK3 theme. Configured via Home Manager.
+- [x] **QT and GTK themes** — GTK set to Adwaita-dark with Papirus-Dark icons. QT theming intentionally omitted: hosts with both KDE and Hyprland use KDE's Plasma theme for QT apps, and Hyprland-focused apps (kitty, wofi, waybar, yazi) are GTK or terminal-based.
 
 - [ ] **Audio output selection widget** — A rofi menu listing available PipeWire sinks, selecting one switches the default output. Invocable from Waybar or keybind.
 
