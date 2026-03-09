@@ -1,18 +1,48 @@
 # ~/nixos-config/modules/home-manager/hyprland/functional.nix
+
 { config, pkgs, lib, customConfig, ... }:
 
 let
-  # Monitor descriptions (functional, as they define layout)
-  monitorDescMainDell = "Dell Inc. DELL S2721HGF DZR2123";
-  monitorDescLeftVirt = "Dell Inc. OptiPlex 7760 0x36419E0A";
-  monitorDescRightVirt = "Samsung Electric Company S27R65x H4TW800293";
-  monitorDescTV = "Hisense Electric Co. Ltd. 4Series43 0x00000278";
-  targetWayvncMonitorDescription = monitorDescTV;
+  # Helper function to generate Hyprland monitor configuration
+  generateMonitorConfig = monitor: 
+    let
+      # Determine if identifier should use desc: prefix
+      identifierString = 
+        if lib.strings.hasPrefix "desc:" monitor.identifier
+        then monitor.identifier
+        else if (lib.strings.hasInfix " " monitor.identifier) || (lib.strings.hasInfix "." monitor.identifier)
+        then "desc:${monitor.identifier}"
+        else monitor.identifier;
+      
+      # Build transform string
+      transformString = if monitor.transform != null then ", transform,${monitor.transform}" else "";
+    in
+    "${identifierString}, ${monitor.resolution}, ${monitor.position}, ${monitor.scale}${transformString}";
+
+  # Get the wayvnc target monitor description
+  wayvncTargetMonitor = 
+    if customConfig.desktop.wayvnc.enable && customConfig.desktop.wayvnc.targetMonitor != null
+    then 
+      let 
+        targetMon = lib.findFirst 
+          (m: m.name == customConfig.desktop.wayvnc.targetMonitor) 
+          null 
+          customConfig.desktop.monitors;
+      in
+        if targetMon != null 
+        then if lib.strings.hasPrefix "desc:" targetMon.identifier
+             then targetMon.identifier
+             else if (lib.strings.hasInfix " " targetMon.identifier) || (lib.strings.hasInfix "." targetMon.identifier)
+             then "desc:${targetMon.identifier}"
+             else targetMon.identifier
+        else null
+    else null;
 in
 {
   imports = [
-    # Import the set-wayvnc-output script
+    # Import scripts
     ../scripts/set-wayvnc-output.nix
+    ../scripts/keybind-help.nix
   ];
 
   config = lib.mkIf ((customConfig.desktop.enable) && (lib.elem "hyprland" customConfig.desktop.environments)) {
@@ -48,22 +78,30 @@ in
         "$fileManager" = "${pkgs.cosmic-files}/bin/cosmic-files"; # Ensure cosmic-files is available
         "$menu" = "${pkgs.wofi}/bin/wofi --show drun"; # Ensure wofi is available
 
-        # Monitor configuration
-        monitor = [
-          "desc:${monitorDescMainDell}, 1920x1080@144, 0x0, 1"
-          "desc:${monitorDescLeftVirt}, preferred, -1080x-410, 1, transform,1"
-          "desc:${monitorDescRightVirt}, preferred, 1920x-390, 1, transform,1"
-          "desc:${monitorDescTV}, preferred, 0x-1080, 1"
-        ];
+        # Monitor configuration from customConfig
+        monitor = lib.mkDefault (
+          let
+            enabledMonitors = lib.filter (m: m.enabled) customConfig.desktop.monitors;
+          in
+            if (lib.length enabledMonitors) > 0
+            then map generateMonitorConfig enabledMonitors
+            else [ "preferred" ] # Default configuration for single monitor systems
+        );
 
         # exec-once: For functional startup applications
-        "exec-once" = [
-          "${pkgs.wayvnc}/bin/wayvnc --render-cursor localhost 5900"
-          "set-wayvnc-output \"${targetWayvncMonitorDescription}\" > /tmp/set-wayvnc-output.log 2>&1"
-          "${pkgs.waybar}/bin/waybar &"
-          "${pkgs.hyprpaper}/bin/hyprpaper &"
-          "${pkgs.gammastep}/bin/gammastep &"
-        ];
+        "exec-once" = lib.mkDefault (
+          (lib.optionals customConfig.desktop.wayvnc.enable [
+            "${pkgs.wayvnc}/bin/wayvnc --render-cursor localhost 5900"
+          ] ++ lib.optionals (customConfig.desktop.wayvnc.enable && wayvncTargetMonitor != null) [
+            "set-wayvnc-output \"${wayvncTargetMonitor}\" > /tmp/set-wayvnc-output.log 2>&1"
+          ]) ++ [
+            # Launch waybar directly - it handles array configs natively
+            "sleep 1 && ${pkgs.waybar}/bin/waybar > /tmp/waybar-start.log 2>&1 &"
+            "${pkgs.hyprpaper}/bin/hyprpaper &"
+            "${pkgs.gammastep}/bin/gammastep &"
+            "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1 &"
+          ]
+        );
 
         # Environment variables
         env = [
@@ -102,10 +140,10 @@ in
           # new_is_master = true; # Example if you used this
         };
 
-        # Gestures settings
-        gestures = {
-          workspace_swipe = false;
-        };
+        # Gestures settings (removed in newer Hyprland versions)
+        # gestures = {
+        #   workspace_swipe = false;
+        # };
 
         # Miscellaneous functional settings
         misc = {
@@ -118,16 +156,17 @@ in
           # Applications
           "$mainMod, SPACE, exec, $menu"
           "$mainMod, RETURN, exec, $terminal"
-          "$mainMod, I, exec, ${pkgs.vscode}/bin/vscode"
-          "$mainMod, T, exec, ${pkgs.kdePackages.kate}/bin/kate"
-          "$mainMod, F, exec, $terminal -e ${pkgs.yazi}/bin/yazi"
-          "$mainMod SHIFT, F, exec, ${pkgs.cosmic-files}/bin/cosmic-files"
-          "$mainMod, B, exec, ${pkgs.librewolf}/bin/librewolf"
-          "$mainMod SHIFT, B, exec, ${pkgs.brave}/bin/brave"
-          "$mainMod, M, exec, ${pkgs.spotify}/bin/spotify --enable-features=UseOzonePlatform --ozone-platform=wayland"
-          "$mainMod, D, exec, ${pkgs.discord}/bin/discord-canary"
-          "$mainMod, G, exec, ${pkgs.steam.run}/bin/steam"
-          "$mainMod SHIFT, G, exec, ${pkgs.lutris}/bin/lutris"
+          "$ctrlMod SHIFT, ESCAPE, exec, $terminal -e ${customConfig.desktop.hyprland.applications.taskManager}"
+          "$mainMod, I, exec, ${customConfig.desktop.hyprland.applications.ide}"
+          "$mainMod, T, exec, ${customConfig.desktop.hyprland.applications.editor}"
+          "$mainMod, F, exec, $terminal -e ${customConfig.desktop.hyprland.applications.fileManagerTUI}"
+          "$mainMod SHIFT, F, exec, $fileManager"
+          "$mainMod, B, exec, ${customConfig.desktop.hyprland.applications.browser}"
+          "$mainMod SHIFT, B, exec, ${customConfig.desktop.hyprland.applications.browserAlt}"
+          "$mainMod, M, exec, ${customConfig.desktop.hyprland.applications.music}"
+          "$mainMod, D, exec, ${customConfig.desktop.hyprland.applications.chat}"
+          "$mainMod, G, exec, ${customConfig.desktop.hyprland.applications.gaming}"
+          "$mainMod SHIFT, G, exec, ${customConfig.desktop.hyprland.applications.gamingAlt}" 
 
           # Window Management
           "$mainMod, Q, killactive,"
@@ -151,17 +190,24 @@ in
           "$mainMod SHIFT, L, resizeactive, 20 0"
 
         ] ++ (lib.lists.concatMap (ws: [
-            "$mainMod $ctrlMod, ${toString ws}, workspace, ${toString ws}"
-            "$mainMod $ctrlMod SHIFT, ${toString ws}, movetoworkspace, ${toString ws}"
+            "$mainMod, ${toString ws}, workspace, ${toString ws}"
+            "$mainMod SHIFT, ${toString ws}, movetoworkspace, ${toString ws}"
           ]) (lib.lists.range 1 9)
         ) ++ [
-          "$mainMod $ctrlMod, 0, workspace, 10"
-          "$mainMod $ctrlMod SHIFT, 0, movetoworkspace, 10"
-          "$mainMod $ctrlMod, greater, movetoworkspace, e+1"
-          "$mainMod $ctrlMod, less, movetoworkspace, e-1"
+          "$mainMod, 0, workspace, 10"
+          "$mainMod SHIFT, 0, movetoworkspace, 10"
+          # Workspace navigation
+          "$ctrlMod $mainMod, right, workspace, e+1"
+          "$ctrlMod $mainMod, left, workspace, e-1"
+          
+          # Move window to next/previous workspace
+          "$mainMod SHIFT, right, movetoworkspace, e+1"
+          "$mainMod SHIFT, left, movetoworkspace, e-1"
 
           # System & Utility Bindings
-          "$ctrlMod, L, exec, ${pkgs.swaylock}/bin/swaylock"
+          "$mainMod, slash, exec, hypr-keybinds"
+          "$mainMod, ESCAPE, exec, swaylock"
+          "$mainMod, BackSpace, exec, wlogout"
           "$mainMod, V, exec, ${pkgs.cliphist}/bin/cliphist list | ${pkgs.wofi}/bin/wofi --dmenu | ${pkgs.cliphist}/bin/cliphist decode | ${pkgs.wl-clipboard}/bin/wl-copy"
           "$mainMod SHIFT, S, exec, ${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp)\" ${config.home.homeDirectory}/Pictures/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
           "$mainMod SHIFT, R, exec, hyprctl reload"
@@ -189,6 +235,48 @@ in
       }; # End of wayland.windowManager.hyprland.settings
     }; # End of wayland.windowManager.hyprland
 
+    # -------------------------------------------------------------------------- #
+    # Swaylock - Default configuration (themes can override)
+    # -------------------------------------------------------------------------- #
+    programs.swaylock = {
+      enable = lib.mkDefault true;
+      # Basic swaylock package; themes may override with swaylock-effects
+      package = lib.mkDefault pkgs.swaylock;
+    };
+
+    # -------------------------------------------------------------------------- #
+    # Waybar Wrapper Script
+    # -------------------------------------------------------------------------- #
+    home.file.".local/bin/waybar-start" = {
+      text = ''
+        #!/usr/bin/env bash
+        # Convert home-manager's array config to object format for waybar
+
+        CONFIG_SOURCE="$HOME/.config/waybar/config"
+        CONFIG_TEMP="/tmp/waybar-config.json"
+
+        # Check if config is an array
+        if ${pkgs.jq}/bin/jq -e 'type == "array"' "$CONFIG_SOURCE" > /dev/null 2>&1; then
+          # Get array length
+          ARRAY_LENGTH=$(${pkgs.jq}/bin/jq 'length' "$CONFIG_SOURCE")
+
+          if [ "$ARRAY_LENGTH" -gt 1 ]; then
+            # Multiple bars - convert to named object format
+            # Assuming first element is launcherBar, second is mainBar
+            ${pkgs.jq}/bin/jq '{launcherBar: .[0], mainBar: .[1]}' "$CONFIG_SOURCE" > "$CONFIG_TEMP"
+          else
+            # Single bar - extract first element
+            ${pkgs.jq}/bin/jq '.[0]' "$CONFIG_SOURCE" > "$CONFIG_TEMP"
+          fi
+
+          exec ${pkgs.waybar}/bin/waybar --config "$CONFIG_TEMP" "$@"
+        else
+          # Use config as-is
+          exec ${pkgs.waybar}/bin/waybar "$@"
+        fi
+      '';
+      executable = true;
+    };
 
     # -------------------------------------------------------------------------- #
     # Home Manager Packages for Functional Elements
@@ -200,23 +288,23 @@ in
       wofi
 
       # Core utilities from your original list, if not pulled by services:
-      yazi
       kdePackages.kate
       kdePackages.konsole # Often a dependency for Kate or other KDE apps
       librewolf
       brave
-      discord-canary
+      discord
 
       # From Hyprland exec/binds not covered by services:
-      wayvnc
       (if pkgs ? vscode then vscode else null) # Conditional if package might not exist
-      swaylock
+      # swaylock provided by programs.swaylock (theme or default)
       grim
       slurp
       wl-clipboard # For cliphist/wofi integration
       playerctl
       pulseaudio # For pactl
 
+    ] ++ lib.optionals customConfig.desktop.wayvnc.enable [
+      wayvnc
     ];
   };
 }
