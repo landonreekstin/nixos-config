@@ -60,7 +60,7 @@ Super+Ctrl+Arrow    Prev/Next WS
 Super+Shift+Arrow   Move Win to WS
 
 SYSTEM
-Super+L             Lock Screen
+Super+Escape        Lock Screen
 Super+V             Clipboard
 Super+Shift+S       Screenshot
 Super+Shift+R       Reload

@@ -156,7 +156,7 @@ in
           # Applications
           "$mainMod, SPACE, exec, $menu"
           "$mainMod, RETURN, exec, $terminal"
-          "$$ctrlMod SHIFT, ESCAPE, exec, $terminal -e ${customConfig.desktop.hyprland.applications.taskManager}"
+          "$ctrlMod SHIFT, ESCAPE, exec, $terminal -e ${customConfig.desktop.hyprland.applications.taskManager}"
           "$mainMod, I, exec, ${customConfig.desktop.hyprland.applications.ide}"
           "$mainMod, T, exec, ${customConfig.desktop.hyprland.applications.editor}"
           "$mainMod, F, exec, $terminal -e ${customConfig.desktop.hyprland.applications.fileManagerTUI}"
@@ -206,7 +206,7 @@ in
 
           # System & Utility Bindings
           "$mainMod, slash, exec, hypr-keybinds"
-          "$mainMod, L, exec, swaylock"
+          "$mainMod, ESCAPE, exec, swaylock"
           "$mainMod, V, exec, ${pkgs.cliphist}/bin/cliphist list | ${pkgs.wofi}/bin/wofi --dmenu | ${pkgs.cliphist}/bin/cliphist decode | ${pkgs.wl-clipboard}/bin/wl-copy"
           "$mainMod SHIFT, S, exec, ${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp)\" ${config.home.homeDirectory}/Pictures/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
           "$mainMod SHIFT, R, exec, hyprctl reload"
