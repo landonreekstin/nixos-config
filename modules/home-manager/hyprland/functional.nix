@@ -287,8 +287,6 @@ in
       wofi
 
       # Core utilities from your original list, if not pulled by services:
-      yazi
-      btop-rocm
       kdePackages.kate
       kdePackages.konsole # Often a dependency for Kate or other KDE apps
       librewolf

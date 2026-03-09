@@ -21,6 +21,8 @@ in {
     ./kitty.nix
     ./dunst.nix
     ./swaylock.nix
+    ./btop.nix
+    ./yazi.nix
   ];
 
   # Module arguments are passed differently in NixOS
