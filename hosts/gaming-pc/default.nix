@@ -41,7 +41,7 @@
       environments = [ "kde" ]; # Set to "hyprland", "cosmic", or "kde" based on your preference
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "sddm"; # Or "greetd", "gdm", or "none" based on your preference
+        type = "ly"; # Or "greetd", "gdm", or "none" based on your preference
         ly.theme = "century-series";
         sddm = {
           theme = "sddm-astronaut";
@@ -156,9 +156,7 @@
       ];
       flatpak = {
         enable = true;
-        packages = [
-          "com.spotify.Client"
-        ];
+        packages = [];
       };
     };
 
@@ -236,6 +234,16 @@
         # === Common User Environment Modules ===
         ../../modules/home-manager/default.nix
       ];
+      home.packages = [ pkgs.unstable.spotify ];
+      xdg.desktopEntries.spotify = {
+        name = "Spotify";
+        genericName = "Music Player";
+        exec = "spotify --enable-features=UseOzonePlatform --ozone-platform=wayland %U";
+        icon = "spotify";
+        terminal = false;
+        categories = [ "Audio" "Music" "Player" "AudioVideo" ];
+        mimeType = [ "x-scheme-handler/spotify" ];
+      };
     };
   };
   
