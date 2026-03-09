@@ -241,8 +241,8 @@
   };
 
   # Rotate console framebuffer for vertical native display (Ly login manager)
-  # rotate:1 = 90° clockwise to match the physical monitor orientation
-  boot.kernelParams = [ "fbcon=rotate:1" ];
+  # rotate:3 = 270° clockwise (90° counter-clockwise) to match physical orientation
+  boot.kernelParams = [ "fbcon=rotate:3" ];
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {
