@@ -229,10 +229,12 @@ in {
           # Browsers - amber accent border
           "bordercolor rgb(${removePrefix "#" c.accent-amber}) rgb(${removePrefix "#" c.accent-amber-dim}) 45deg, class:^(firefox|chromium|brave).*$"
 
-          # wlogout - fullscreen overlay with transparency
-          "float, class:^(wlogout)$"
-          "fullscreenstate 0 2, class:^(wlogout)$"
-          "noanim, class:^(wlogout)$"
+        ];
+
+        # Layer rules for overlay applications (wlogout uses "gtk-layer-shell")
+        layerrule = [
+          "blur, gtk-layer-shell"
+          "ignorezero, gtk-layer-shell"
         ];
       };
 
