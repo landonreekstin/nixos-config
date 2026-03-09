@@ -27,6 +27,13 @@
       timeZone = "America/Chicago"; # As per your old core.nix
       locale = "en_US.UTF-8"; # As per your old core.nix
     };
+
+    bootloader = {
+      plymouth = {
+        enable = true;
+        theme = "hexagon_hud";  # HUD-style boot splash matching Century Series
+      };
+    };
     
     desktop = {
       environments = [ "hyprland" "kde" ];
