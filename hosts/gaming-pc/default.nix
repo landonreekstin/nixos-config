@@ -38,18 +38,76 @@
     };
 
     desktop = {
-      environments = [ "kde" ]; # Set to "hyprland", "cosmic", or "kde" based on your preference
-      # Monitor configuration for when Hyprland is enabled
-      # monitors = [
-      #   {
-      #     name = "main";
-      #     identifier = "DP-1"; # Update this with actual gaming-pc monitor identifier
-      #     resolution = "2560x1440@165";
-      #     position = "0x0";
-      #     scale = "1";
-      #     wallpaper = ../../assets/wallpapers/f104-retro-future.jpg;
-      #   }
-      # ];
+      environments = [ "kde" "hyprland" ];
+      monitors = [
+        {
+          name = "main";
+          identifier = "DP-4";
+          resolution = "2560x1440@180";
+          position = "0x0";
+          scale = "1.15";
+        }
+        {
+          name = "left";
+          identifier = "HDMI-A-2";
+          resolution = "preferred";
+          position = "-1080x-410";
+          scale = "1";
+          transform = "1";
+        }
+        {
+          name = "right";
+          identifier = "DP-5";
+          resolution = "preferred";
+          position = "2226x-390";
+          scale = "1";
+          transform = "1";
+        }
+        {
+          name = "tv";
+          identifier = "DP-6";
+          resolution = "preferred";
+          position = "0x-1080";
+          scale = "1";
+        }
+      ];
+      hyprland = {
+        launcher = {
+          enable = true;
+          pinnedApps = [
+            {
+              label = "TERM";
+              command = "${pkgs.kitty}/bin/kitty";
+              tooltip = "Terminal Emulator";
+            }
+            {
+              label = "NAV";
+              command = "${pkgs.librewolf}/bin/librewolf";
+              tooltip = "Web Browser";
+            }
+            {
+              label = "CODE";
+              command = "${pkgs.vscode}/bin/code";
+              tooltip = "IDE";
+            }
+            {
+              label = "AUDIO";
+              command = "${pkgs.unstable.spotify}/bin/spotify --enable-features=UseOzonePlatform --ozone-platform=wayland";
+              tooltip = "Music Player";
+            }
+            {
+              label = "COMM";
+              command = "${pkgs.discord-canary}/bin/discord-canary";
+              tooltip = "Communications";
+            }
+            {
+              label = "GAME";
+              command = "steam";
+              tooltip = "Gaming Platform";
+            }
+          ];
+        };
+      };
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
         type = "ly"; # Or "greetd", "gdm", or "none" based on your preference
@@ -125,7 +183,12 @@
       enable = true;
       services.updateNotification.enable = true;
       themes = {
-        #hyprland = "future-aviation"; # Set to the theme you want for Hyprland
+        hyprland = "century-series";
+        bashPrompt = {
+          style = "powerline";
+          showGitBranch = true;
+          showHostname = true;
+        };
       };
     };
 

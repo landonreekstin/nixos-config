@@ -32,7 +32,39 @@
     };
     
     desktop = {
-      environments = [ "kde" ];
+      environments = [ "kde" "hyprland" ];
+      hyprland = {
+        launcher = {
+          enable = true;
+          pinnedApps = [
+            {
+              label = "TERM";
+              command = "${pkgs.kitty}/bin/kitty";
+              tooltip = "Terminal Emulator";
+            }
+            {
+              label = "NAV";
+              command = "flatpak run org.chromium.Chromium";
+              tooltip = "Web Browser";
+            }
+            {
+              label = "CODE";
+              command = "${pkgs.vscode}/bin/code";
+              tooltip = "IDE";
+            }
+            {
+              label = "COMM";
+              command = "flatpak run com.discordapp.Discord";
+              tooltip = "Communications";
+            }
+            {
+              label = "GAME";
+              command = "steam";
+              tooltip = "Gaming Platform";
+            }
+          ];
+        };
+      };
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
         type = "sddm";
@@ -71,6 +103,12 @@
       themes = {
         plasmaOverride = true;
         kde = "windows7-alt";
+        hyprland = "century-series";
+        bashPrompt = {
+          style = "powerline";
+          showGitBranch = true;
+          showHostname = true;
+        };
         wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
         pinnedApps = [
           "applications:org.kde.konsole.desktop"
