@@ -34,6 +34,7 @@ in {
     home.packages = with pkgs; [
       # Font for aviation-style numerals and text
       jetbrains-mono
+      nerd-fonts.jetbrains-mono  # Nerd Font version with icons
       fira-code
       # Icon theme that works well with the aesthetic
       papirus-icon-theme
