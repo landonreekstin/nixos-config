@@ -210,6 +210,20 @@ tweak(gaming-pc): enable ckb-next
 docs(claude): add blaney-pc guidelines
 ```
 
+### Git Workflow
+
+**Test before committing**: When making changes that can be tested on the current machine, always rebuild, test, and verify the changes work before committing. Do not commit untested changes.
+
+**Branching strategy**:
+- **Direct to main**: Documentation changes (`docs`), minor tweaks (`tweak`), and simple additions like adding a package can be committed directly to main after verification
+- **Feature/PR branches**: Use branches for changes that require testing on a different machine than where the change is being made. Create a PR and note that it needs in-person testing on the target machine
+- **Never commit broken changes to main**: Only merge to main once changes have been rebuilt, tested, and verified to work
+
+**Workflow by scenario**:
+1. **Same-machine testable change**: Edit → Rebuild → Test → Verify → Commit to main
+2. **Cross-machine change**: Edit → Eval-check → Branch → Commit → PR → Test on target machine → Merge when verified
+3. **Documentation/minor tweak**: Edit → Commit to main (no rebuild needed for docs-only changes)
+
 ### Hardware Configurations
 Hardware configs are auto-generated during installation and should not be manually edited. They're stored per-host in `hosts/<hostname>/hardware-configuration.nix`.
 
