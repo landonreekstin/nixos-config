@@ -170,42 +170,42 @@ let
     }
   '';
 
-  # Layout configuration with aviation terminology
+  # Layout configuration with aviation terminology and Nerd Font icons
   wlogoutLayout = [
     {
       label = "lock";
       action = "swaylock";
-      text = "SECURE";
+      text = "󰌾  SECURE";  # nf-md-lock
       keybind = "l";
     }
     {
       label = "logout";
       action = "hyprctl dispatch exit";
-      text = "EJECT";
+      text = "󰗼  EJECT";  # nf-md-exit_run
       keybind = "e";
     }
     {
       label = "suspend";
       action = "systemctl suspend";
-      text = "STANDBY";
+      text = "󰒲  STANDBY";  # nf-md-sleep
       keybind = "s";
     }
     {
       label = "hibernate";
       action = "systemctl hibernate";
-      text = "DEEP STBY";
+      text = "󰋊  DEEP STBY";  # nf-md-harddisk
       keybind = "h";
     }
     {
       label = "shutdown";
       action = "systemctl poweroff";
-      text = "ENG CUT";
+      text = "󰐥  ENG CUT";  # nf-md-power
       keybind = "p";
     }
     {
       label = "reboot";
       action = "systemctl reboot";
-      text = "ENG RESTART";
+      text = "󰜉  ENG RESTART";  # nf-md-restart
       keybind = "r";
     }
   ];
