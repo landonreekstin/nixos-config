@@ -136,6 +136,12 @@
         enable = true; # Set to true if Optiplex has an NVIDIA GPU needing proprietary drivers
         package = "stable"; # GTX 1050 requires 580.xx legacy driver (not supported in 590.xx+)
       };
+      # Monitor configuration for DM rotation (connector names from /sys/class/drm/*/status)
+      # Currently only HDMI-A-3 (native OptiPlex) is connected - vertical orientation
+      monitors = [
+        { name = "HDMI-A-3"; rotation = "Rotated90"; }           # Native OptiPlex display (vertical)
+        # Additional monitors can be added when connected
+      ];
       peripherals = {
         enable = true; # Enable peripheral configurations
         openrgb.enable = true; # Enable OpenRGB for RGB control
@@ -233,6 +239,10 @@
     };
 
   };
+
+  # Rotate console framebuffer for vertical native display (Ly login manager)
+  # rotate:1 = 90° clockwise to match the physical monitor orientation
+  boot.kernelParams = [ "fbcon=rotate:1" ];
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {
