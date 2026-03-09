@@ -54,10 +54,10 @@ Super+Ctrl+F        Toggle Float
 Super+F11           Fullscreen
 
 WORKSPACES
-Super+Ctrl+1-9      Workspace 1-9
-Super+Ctrl+Shift+N  Move to WS
+Super+1-9           Workspace 1-9
+Super+Shift+1-9     Move Window to WS
 Super+Ctrl+Arrow    Prev/Next WS
-Super+Shift+Arrow   Move Win to WS
+Super+Shift+Arrow   Move Win Prev/Next
 
 SYSTEM
 Super+Escape        Lock Screen

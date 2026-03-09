@@ -190,11 +190,11 @@ in
           "$mainMod SHIFT, L, resizeactive, 20 0"
 
         ] ++ (lib.lists.concatMap (ws: [
-            "$mainMod $ctrlMod, ${toString ws}, workspace, ${toString ws}"
-            "$mainMod $ctrlMod SHIFT, ${toString ws}, movetoworkspace, ${toString ws}"
+            "$mainMod, ${toString ws}, workspace, ${toString ws}"
+            "$mainMod SHIFT, ${toString ws}, movetoworkspace, ${toString ws}"
           ]) (lib.lists.range 1 9)
         ) ++ [
-          "$mainMod $ctrlMod, 0, workspace, 10"
+          "$mainMod, 0, workspace, 10"
           "$mainMod SHIFT, 0, movetoworkspace, 10"
           # Workspace navigation
           "$ctrlMod $mainMod, right, workspace, e+1"

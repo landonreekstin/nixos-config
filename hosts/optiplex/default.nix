@@ -117,6 +117,9 @@
             }
           ];
         };
+        applications = {
+          browserAlt = "${pkgs.chromium}/bin/chromium";
+        };
       };
     };
 
