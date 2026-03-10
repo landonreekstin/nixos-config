@@ -92,6 +92,8 @@
       };
     };
 
+    networking.firewall.enable=false;
+
     programs = {
       partydeck.enable = true;
     };
