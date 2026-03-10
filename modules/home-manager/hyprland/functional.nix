@@ -76,7 +76,7 @@ in
         "$ctrlMod" = "CONTROL";
         "$terminal" = "${pkgs.kitty}/bin/kitty"; # Ensure kitty is in home.packages or systemPackages
         "$fileManager" = "${pkgs.cosmic-files}/bin/cosmic-files"; # Ensure cosmic-files is available
-        "$menu" = "${pkgs.wofi}/bin/wofi --show drun"; # Ensure wofi is available
+        "$menu" = "${pkgs.rofi}/bin/rofi -show drun";
 
         # Monitor configuration from customConfig
         monitor = lib.mkDefault (
@@ -208,7 +208,7 @@ in
           "$mainMod, slash, exec, hypr-keybinds"
           "$mainMod, ESCAPE, exec, swaylock"
           "$mainMod, BackSpace, exec, wlogout"
-          "$mainMod, V, exec, ${pkgs.cliphist}/bin/cliphist list | ${pkgs.wofi}/bin/wofi --dmenu | ${pkgs.cliphist}/bin/cliphist decode | ${pkgs.wl-clipboard}/bin/wl-copy"
+          "$mainMod, V, exec, ${pkgs.cliphist}/bin/cliphist list | ${pkgs.rofi}/bin/rofi -dmenu -p 'CLIPBOARD' | ${pkgs.cliphist}/bin/cliphist decode | ${pkgs.wl-clipboard}/bin/wl-copy"
           "$mainMod SHIFT, S, exec, ${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp)\" ${config.home.homeDirectory}/Pictures/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
           "$mainMod SHIFT, R, exec, hyprctl reload"
           "$mainMod SHIFT, Q, exit,"
@@ -285,7 +285,7 @@ in
       # Terminals, Launchers, File Managers (if not specified elsewhere and used in binds)
       kitty
       cosmic-files # if you decide to use this
-      wofi
+      rofi
 
       # Core utilities from your original list, if not pulled by services:
       kdePackages.kate
@@ -299,7 +299,7 @@ in
       # swaylock provided by programs.swaylock (theme or default)
       grim
       slurp
-      wl-clipboard # For cliphist/wofi integration
+      wl-clipboard # For cliphist/rofi integration
       playerctl
       pulseaudio # For pactl
 

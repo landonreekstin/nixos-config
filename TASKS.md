@@ -111,7 +111,7 @@ Format: `- [ ] **Title** — description`
 
 - [ ] **Theme rofi to look like MFD** — Style rofi-wayland with CSS to match the Century Series aesthetic: phosphor green on instrument-panel black, monospace font, MFD-style borders. Replace wofi after the rofi migration above.
 
-- [ ] **Theme swaylock** — Configure swaylock to match Century Series: dark background, amber/green text, MFD-style layout.
+- [x] **Theme swaylock** — Configure swaylock to match Century Series: dark background, amber/green text, MFD-style layout.
 
 - [x] **Theme apps (btop, yazi)** — Apply Century Series color scheme to btop (custom theme file) and yazi (theme.toml). Phosphor green on black.
 

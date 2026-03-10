@@ -3,25 +3,11 @@
 { pkgs, lib, config, customConfig, ... }:
 
 let
-  # Minimal wofi config for text-only display
-  wofiConfig = pkgs.writeText "wofi-keybinds.conf" ''
-    width=520
-    height=650
-    show=dmenu
-    prompt=Keybindings
-    allow_images=false
-    allow_markup=false
-    insensitive=true
-    hide_scroll=true
-    cache_file=/dev/null
-    image_size=0
-  '';
-
-  # Script to display all Hyprland keybindings in wofi
+  # Script to display all Hyprland keybindings in rofi
   keybindHelpScript = pkgs.writeShellScriptBin "hypr-keybinds" ''
     #!${pkgs.stdenv.shell}
 
-    ${pkgs.wofi}/bin/wofi --conf ${wofiConfig} << 'EOF'
+    ${pkgs.rofi}/bin/rofi -dmenu -p "KEYBINDINGS" -i -no-custom -width 520 << 'EOF'
 HYPRLAND KEYBINDINGS
 
 APPLICATIONS

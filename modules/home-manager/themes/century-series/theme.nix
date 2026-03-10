@@ -17,7 +17,7 @@ in {
   imports = [
     ./hyprland.nix
     ./waybar.nix
-    ./wofi.nix
+    ./rofi.nix
     ./kitty.nix
     ./dunst.nix
     ./swaylock.nix
