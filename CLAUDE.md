@@ -328,6 +328,12 @@ When running on the `blaney-pc` host, apply these additional guidelines:
 - Clearly warn about any changes that could affect system stability or boot
 - Keep changes focused and minimal to reduce the chance of issues
 
+**Git Workflow (STRICT)**:
+- **Always create a feature branch** for any changes — never commit directly to `main`
+- **Always open a PR** via `gh pr create` after pushing the branch
+- **Never merge a PR** from this host or when the git user is `insideabush` — merging must be done by the repository owner (`landonreekstin`) on another machine
+- This applies regardless of how trivial the change seems
+
 ## Task Workflow (TASKS.md)
 
 A `TASKS.md` file in the repo root contains a prioritized list of pending work. **Only work on tasks when explicitly asked** — do not autonomously pick up tasks between sessions.
