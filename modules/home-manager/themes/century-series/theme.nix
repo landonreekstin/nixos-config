@@ -18,6 +18,7 @@ in {
     ./hyprland.nix
     ./waybar.nix
     ./rofi.nix
+    ./eww
     ./kitty.nix
     ./dunst.nix
     ./swaylock.nix

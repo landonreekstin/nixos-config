@@ -100,6 +100,8 @@ in
             "${pkgs.hyprpaper}/bin/hyprpaper &"
             "${pkgs.gammastep}/bin/gammastep &"
             "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1 &"
+            # Eww widget daemon for MFD launcher
+            "${pkgs.eww}/bin/eww daemon &"
           ]
         );
 
@@ -155,6 +157,7 @@ in
         bind = [
           # Applications
           "$mainMod, SPACE, exec, $menu"
+          "$mainMod $altMod, SPACE, exec, mfd-toggle"  # MFD-style launcher (experimental)
           "$mainMod, RETURN, exec, $terminal"
           "$ctrlMod SHIFT, ESCAPE, exec, $terminal -e ${customConfig.desktop.hyprland.applications.taskManager}"
           "$mainMod, I, exec, ${customConfig.desktop.hyprland.applications.ide}"
@@ -228,10 +231,14 @@ in
           "$mainMod, mouse:273, resizewindow"
         ];
 
-        # Window rules (example, uncomment and populate as needed)
-        # windowrulev2 = [
-        #   "float,class:^(kitty)$,title:^(kitty)$"
-        # ];
+        # Window rules
+        windowrulev2 = [
+          # Eww MFD launcher
+          "float,class:^(eww)$"
+          "pin,class:^(eww)$"
+          "stayfocused,class:^(eww)$"
+          "dimaround,class:^(eww)$"
+        ];
       }; # End of wayland.windowManager.hyprland.settings
     }; # End of wayland.windowManager.hyprland
 
