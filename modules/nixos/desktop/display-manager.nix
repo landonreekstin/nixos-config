@@ -36,6 +36,26 @@ config = lib.mkIf cfg.enable {
     services.displayManager.sddm = lib.mkIf (cfg.type == "sddm") {
       enable = true;
       wayland.enable = true;
+      settings.Theme = {
+        CursorTheme = "Adwaita";
+        CursorSize = 24;
+      };
+    };
+
+    # Write KWin cursor config for the sddm user so the cursor is visible on Wayland.
+    # KWin ignores sddm.conf's CursorTheme and reads kcminputrc instead.
+    system.activationScripts.sddm-cursor-config = lib.mkIf (cfg.type == "sddm") {
+      deps = [ "users" "groups" ];
+      text = ''
+        mkdir -p /var/lib/sddm/.config
+        cat > /var/lib/sddm/.config/kcminputrc << 'EOF'
+[Mouse]
+cursorTheme=Adwaita
+cursorSize=24
+EOF
+        chown sddm:sddm /var/lib/sddm/.config/kcminputrc
+        chmod 644 /var/lib/sddm/.config/kcminputrc
+      '';
     };
 
     # Patch KWin output config for SDDM so monitor rotation/scale applies at the login screen.
@@ -177,6 +197,7 @@ config = lib.mkIf cfg.enable {
       # Use lib.optionals which returns a list or []
       (lib.optionals (cfg.type == "sddm") [
         pkgs.sddm-sugar-dark
+        pkgs.adwaita-icon-theme
       ])
       ++ # Concatenate the lists
       (lib.optionals (cfg.type == "greetd") [

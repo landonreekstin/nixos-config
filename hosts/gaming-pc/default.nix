@@ -110,8 +110,7 @@
       };
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "ly"; # Or "greetd", "gdm", or "none" based on your preference
-        ly.theme = "century-series";
+        type = "sddm";
         sddm = {
           theme = "sddm-astronaut";
           #embeddedTheme = "pixel_sakura";
@@ -267,6 +266,11 @@
   };
 
   # === Additional nixos configuration for this host ===
+
+  # Enable NVIDIA DRM fbdev for TTY/Ly framebuffer support.
+  # Note: NVIDIA proprietary ignores video= kernel params, so TTY resolution is limited
+  # by the EFI GOP mode (1080p) inherited from the AMD iGPU on this machine.
+  boot.kernelParams = [ "nvidia-drm.fbdev=1" ];
 
   # Enable the Samba client-side name resolution daemon (nmbd).
   # This allows the PC to discover other Samba hosts (like optiplex-nas)
