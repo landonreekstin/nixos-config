@@ -87,7 +87,7 @@ Format: `- [ ] **Title** — description`
 
 - [ ] **Workspace arrange preset** — Shell script using `hyprctl` to open a defined set of apps into specific workspaces (e.g. workspace 1: terminal + browser, workspace 2: editor, workspace 3: music). Invocable by keybind or autostart.
 
-- [ ] **Switch wofi to rofi-wayland** — `rofi-wayland` supports frecency sorting (most recently used apps first) which wofi lacks. Migrate launcher, run dialog, and any scripts currently using wofi.
+- [x] **Switch wofi to rofi-wayland** — `rofi-wayland` supports frecency sorting (most recently used apps first) which wofi lacks. Migrate launcher, run dialog, and any scripts currently using wofi. *(Completed: rofi with MFD theming on main branch)*
 
 ---
 
@@ -109,7 +109,7 @@ Format: `- [ ] **Title** — description`
 
 > **Note:** Substantial work already exists in the `dev-century-series-theme` branch. Review and merge/rebase that branch before starting any of these tasks rather than starting from scratch.
 
-- [ ] **Theme rofi to look like MFD** — Style rofi-wayland with CSS to match the Century Series aesthetic: phosphor green on instrument-panel black, monospace font, MFD-style borders. Replace wofi after the rofi migration above.
+- [x] **Theme rofi to look like MFD** — Style rofi-wayland with CSS to match the Century Series aesthetic: phosphor green on instrument-panel black, monospace font, MFD-style borders. *(Completed: amber/green theme with mode-switcher buttons)*
 
 - [x] **Theme swaylock** — Configure swaylock to match Century Series: dark background, amber/green text, MFD-style layout.
 
@@ -124,3 +124,43 @@ Format: `- [ ] **Title** — description`
 - [x] **Engine power switch (wlogout styled)** — Style wlogout to look like aviation engine controls: shutdown = engine cut, restart = engine restart, logout = eject. Custom icons and CSS matching Century Series.
 
 - [ ] **Additional wallpapers** — Curate a set of aviation/cockpit wallpapers for Century Series. Add to `customConfig.homeManager.themes.wallpaper` options or a wallpaper rotation list.
+
+---
+
+## MFD Launcher (Eww)
+
+> **Branch:** `feat/eww-mfd-launcher`
+> **Keybind:** `Super+Alt+Space`
+>
+> Multi-Function Display style application launcher built with Eww. Features cockpit button frame with functional side buttons and multiple "pages" switched via bottom MFD buttons.
+
+### Current State (MVP)
+
+| Page | Status | Description |
+|------|--------|-------------|
+| **APPS** | Working | Searchable app launcher with real-time filtering, click to launch |
+| **SYS** | Working | Live system stats (CPU, RAM, disk usage, uptime) with progress bars |
+| **PWR** | Working | Power controls: Lock, Logout, Reboot, Shutdown |
+| **WEB** | Working | DuckDuckGo web search (type + Enter opens browser) |
+| **FILES** | Placeholder | Shows "coming soon" message |
+
+### Known Issues
+
+- [ ] **Window sizing** — Window size shifts slightly between pages
+- [ ] **App icons** — Icons don't display (eww image widget needs icon theme path resolution)
+- [ ] **Initial focus** — Search input doesn't auto-focus on open
+- [ ] **ESC to close** — No keyboard shortcut to dismiss (must click away or use ESC button)
+
+### Future Enhancements
+
+- [ ] **FILES page: fd integration** — Implement real file search using `fd`, display results, click to open with xdg-open
+- [ ] **Side button functions** — Wire up L1-L5 and R1-R5 buttons (quick launch favorites, page up/down, etc.)
+- [ ] **Top button functions** — T1-T5 could be workspace switchers or window actions
+- [ ] **Calculator mode** — Add CALC page with basic calculator functionality
+- [ ] **Clipboard history** — Add CLIP page showing cliphist entries
+- [ ] **Keyboard navigation** — Arrow keys to navigate app list, Enter to launch
+- [ ] **Auto-focus search** — Focus search input when APPS page opens
+- [ ] **ESC keybind** — Close MFD on Escape key press
+- [ ] **Icon theme resolution** — Resolve icon names to full paths for eww image widget
+- [ ] **Consistent page sizing** — Fix layout so all pages render at same dimensions
+- [ ] **Search across modes** — Single search bar that searches apps, files, and web simultaneously with categorized results
