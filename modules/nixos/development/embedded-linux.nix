@@ -11,6 +11,14 @@ let
       exec ${lib.getBin toolchain.stdenv.cc}/bin/${toolchain.stdenv.cc.targetPrefix}${tool-name} "$@"
     '';
 
+  # Wrapper for 'make menuconfig' in BusyBox/kernel source trees.
+  # GCC 14+ rejects C89-style 'main() {}' used in kconfig's lxdialog check
+  # unless we explicitly set -std=gnu89. Since BusyBox/kernel Makefiles
+  # reset HOSTCC internally, we must pass it on the make command line.
+  kconfig-menuconfig = pkgs.writeShellScriptBin "kconfig-menuconfig" ''
+    exec make menuconfig HOSTCC="gcc -std=gnu89" "$@"
+  '';
+
   # Serial console connection script for BeagleBone Black
   bbb-serial = pkgs.writeShellScriptBin "bbb-serial" ''
     #!/usr/bin/env bash
@@ -92,8 +100,8 @@ in
       pkgs.mkShell {
         buildInputs = with pkgs; [
           # General build tools
-          autoconf automake bc bison bzip2 cmake dtc flex gawk gcc gettext git gperf
-          gnutls help2man libtool libuuid ncurses openssl patch python3 rsync swig texinfo unzip wget xz
+          autoconf automake bc bison bzip2 cmake dtc flex gawk gcc gettext git gperf tree ncurses ncurses.dev pkg-config
+          gnutls help2man libtool libuuid openssl patch python3 rsync swig texinfo unzip wget xz
           qemu_full ubootTools minicom picocom
 
           # SD card formatting utilities
@@ -104,10 +112,18 @@ in
           pkgsBBB.gdb pkgsBBB.binutils
 
           # Helper scripts
-          bbb-serial
+          bbb-serial kconfig-menuconfig
         ] ++ qemuWrappers ++ bbbWrappers;
 
         shellHook = ''
+          # Allow host tools (e.g. BusyBox/kernel menuconfig) to find ncurses.
+          # NixOS does not install libs to standard FHS paths, so we must point
+          # HOSTCFLAGS/HOSTLDFLAGS explicitly at the Nix store paths.
+          # -std=gnu89: BusyBox/kernel kconfig tools use C89-style 'main() {}'
+          # which GCC 14+ rejects by default (-Wimplicit-int is now an error).
+          export HOSTCFLAGS="-I${pkgs.ncurses.dev}/include -std=gnu89"
+          export HOSTLDFLAGS="-L${pkgs.ncurses}/lib"
+
           export PS1='\[\033[1;33m\][embedded-linux]\[\033[0m\] \[\033[1;34m\]\w\[\033[0m\]\$ '
           echo "--------------------------------------------------------"
           echo "Entered Unified Embedded Linux Dev Shell."
@@ -119,6 +135,9 @@ in
           echo "Serial console:"
           echo "  bbb-serial              # Auto-detect and connect"
           echo "  bbb-serial /dev/ttyUSB0 # Specify device"
+          echo
+          echo "menuconfig (GCC 14 fix for kconfig lxdialog check):"
+          echo "  kconfig-menuconfig      # Use in BusyBox/kernel source tree"
           echo "--------------------------------------------------------"
         '';
       };
