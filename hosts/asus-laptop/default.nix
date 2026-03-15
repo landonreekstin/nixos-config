@@ -30,10 +30,10 @@
     };
     
     desktop = {
-      environments = [ "kde" ];
+      environments = [ "kde" "hyprland" ];
       displayManager = {
         enable = true;
-        type = "sddm";
+        type = "ly";
         sddm = {
           theme = "sddm-astronaut";
           embeddedTheme = "pixel_sakura";
@@ -65,20 +65,20 @@
       enable = true;
       themes = {
         kde = "none";
-        hyprland = "future-aviation";
+        hyprland = "century-series";
       };
     };
 
     packages = {
       nixos = with pkgs; [ 
         kitty
-        claude-code
       ];
       unstable-override = [ 
         "discord-canary"  
         "vscode"
         "librewolf"
         "brave"
+        "claude-code"
       ];
       homeManager = with pkgs; [ 
         jamesdsp
@@ -87,6 +87,8 @@
         librewolf
         brave
         discord-canary
+        claude-code
+        signal-desktop
       ];
       flatpak = {
         enable = true;
@@ -142,6 +144,7 @@
     useGlobalPkgs = true;
     useUserPackages = true;
     backupFileExtension = "hm-backup";
+    overwriteBackup = true;
     extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
     users.${config.customConfig.user.name} = {
       imports = [
