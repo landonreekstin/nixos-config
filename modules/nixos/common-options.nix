@@ -259,6 +259,29 @@ in
           ]
         '';
       };
+      autostart = mkOption {
+        type = types.listOf (types.submodule {
+          options = {
+            command = mkOption {
+              type = types.str;
+              description = "Command to run on startup.";
+              example = "discord";
+            };
+            desktops = mkOption {
+              type = types.listOf types.str;
+              default = [];
+              description = "Desktop environments to autostart on. Empty list means all enabled DEs.";
+              example = [ "hyprland" "kde" ];
+            };
+          };
+        });
+        default = [];
+        description = ''
+          Applications to autostart at login. Each entry specifies a command and
+          optionally which desktop environments should start it. An empty `desktops`
+          list means start on all enabled DEs.
+        '';
+      };
       wayvnc = {
         enable = mkOption {
           type = types.bool;

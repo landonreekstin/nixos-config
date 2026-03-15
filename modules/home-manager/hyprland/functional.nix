@@ -19,8 +19,13 @@ let
     in
     "${identifierString}, ${monitor.resolution}, ${monitor.position}, ${monitor.scale}${transformString}";
 
+  # Filter autostart entries for Hyprland
+  hyprlandAutostart = lib.filter (app:
+    app.desktops == [] || lib.elem "hyprland" app.desktops
+  ) customConfig.desktop.autostart;
+
   # Get the wayvnc target monitor description
-  wayvncTargetMonitor = 
+  wayvncTargetMonitor =
     if customConfig.desktop.wayvnc.enable && customConfig.desktop.wayvnc.targetMonitor != null
     then 
       let 
@@ -94,11 +99,12 @@ in
             "${pkgs.wayvnc}/bin/wayvnc --render-cursor localhost 5900"
           ] ++ lib.optionals (customConfig.desktop.wayvnc.enable && wayvncTargetMonitor != null) [
             "set-wayvnc-output \"${wayvncTargetMonitor}\" > /tmp/set-wayvnc-output.log 2>&1"
-          ]) ++ [
+          ])
+          ++ (map (app: app.command) hyprlandAutostart)
+          ++ [
             # Launch waybar directly - it handles array configs natively
             "sleep 1 && ${pkgs.waybar}/bin/waybar > /tmp/waybar-start.log 2>&1 &"
             "${pkgs.hyprpaper}/bin/hyprpaper &"
-            "${pkgs.gammastep}/bin/gammastep &"
             "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1 &"
           ]
         );
