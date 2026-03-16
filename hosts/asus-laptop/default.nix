@@ -20,6 +20,7 @@
     user = {
       name = "lando";
       email = "landonreekstin@gmail.com";
+      shell.bash.color = "blue";
     };
     
     system = {
@@ -32,6 +33,43 @@
     desktop = {
       environments = [ "kde" "hyprland" ];
       autostart = [];
+      hyprland = {
+        launcher = {
+          enable = true;
+          pinnedApps = [
+            {
+              label = "TERM";
+              command = "${pkgs.kitty}/bin/kitty";
+              tooltip = "Terminal Emulator";
+            }
+            {
+              label = "NAV";
+              command = "${pkgs.librewolf}/bin/librewolf";
+              tooltip = "Web Browser";
+            }
+            {
+              label = "CODE";
+              command = "${pkgs.vscode}/bin/code";
+              tooltip = "IDE";
+            }
+            {
+              label = "AUDIO";
+              command = "flatpak run com.spotify.Client";
+              tooltip = "Music Player";
+            }
+            {
+              label = "COMM";
+              command = "${pkgs.discord-canary}/bin/discord-canary";
+              tooltip = "Communications";
+            }
+            {
+              label = "GAME";
+              command = "steam";
+              tooltip = "Gaming Platform";
+            }
+          ];
+        };
+      };
       displayManager = {
         enable = true;
         type = "ly";
@@ -67,6 +105,11 @@
       themes = {
         kde = "none";
         hyprland = "century-series";
+        bashPrompt = {
+          style = "powerline";
+          showGitBranch = true;
+          showHostname = true;
+        };
       };
     };
 

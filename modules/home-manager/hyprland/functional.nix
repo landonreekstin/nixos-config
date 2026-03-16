@@ -105,7 +105,7 @@ in
           in
             if (lib.length enabledMonitors) > 0
             then map generateMonitorConfig enabledMonitors
-            else [ "preferred" ] # Default configuration for single monitor systems
+            else [ ",preferred,auto,1" ] # Default catch-all for single monitor systems
         );
 
         # exec-once: For functional startup applications
