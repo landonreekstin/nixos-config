@@ -19,10 +19,23 @@ let
     in
     "${identifierString}, ${monitor.resolution}, ${monitor.position}, ${monitor.scale}${transformString}";
 
-  # Filter autostart entries for Hyprland
+  # Filter autostart entries for Hyprland and build exec-once commands
   hyprlandAutostart = lib.filter (app:
     app.desktops == [] || lib.elem "hyprland" app.desktops
   ) customConfig.desktop.autostart;
+
+  # Use [workspace N silent] prefix only when no windowClass is provided.
+  # When windowClass is set, workspace assignment is handled by windowrulev2 (more reliable for XWayland).
+  mkExecOnce = app:
+    if app.workspace != null && app.windowClass == null
+    then "[workspace ${toString app.workspace} silent] ${app.command}"
+    else app.command;
+
+  # Generate windowrulev2 lines for apps with both windowClass and workspace set
+  autostartWindowRules = lib.concatMapStrings (app:
+    lib.optionalString (app.windowClass != null && app.workspace != null)
+      "windowrulev2 = workspace ${toString app.workspace} silent, class:^(${app.windowClass})$\n"
+  ) hyprlandAutostart;
 
   # Get the wayvnc target monitor description
   wayvncTargetMonitor =
@@ -74,6 +87,8 @@ in
 
       systemd.enable = false;
 
+      extraConfig = autostartWindowRules;
+
       settings = {
         # Variables for tools and modifiers
         "$mainMod" = "SUPER";
@@ -100,7 +115,7 @@ in
           ] ++ lib.optionals (customConfig.desktop.wayvnc.enable && wayvncTargetMonitor != null) [
             "set-wayvnc-output \"${wayvncTargetMonitor}\" > /tmp/set-wayvnc-output.log 2>&1"
           ])
-          ++ (map (app: app.command) hyprlandAutostart)
+          ++ (map mkExecOnce hyprlandAutostart)
           ++ [
             # Launch waybar directly - it handles array configs natively
             "sleep 1 && ${pkgs.waybar}/bin/waybar > /tmp/waybar-start.log 2>&1 &"

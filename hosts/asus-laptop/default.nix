@@ -31,11 +31,7 @@
     
     desktop = {
       environments = [ "kde" "hyprland" ];
-      autostart = [
-        { command = "discord-canary"; desktops = []; }
-        { command = "steam"; desktops = []; }
-        { command = "code"; desktops = []; }
-      ];
+      autostart = [];
       displayManager = {
         enable = true;
         type = "ly";

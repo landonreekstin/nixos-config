@@ -273,6 +273,18 @@ in
               description = "Desktop environments to autostart on. Empty list means all enabled DEs.";
               example = [ "hyprland" "kde" ];
             };
+            workspace = mkOption {
+              type = types.nullOr types.int;
+              default = null;
+              description = "Hyprland workspace number to open the app on silently. Null means no preference.";
+              example = 2;
+            };
+            windowClass = mkOption {
+              type = types.nullOr types.str;
+              default = null;
+              description = "Hyprland window class for workspace assignment via windowrulev2 (more reliable than exec-once prefix for XWayland apps). Use hyprctl clients to find the class.";
+              example = "discord";
+            };
           };
         });
         default = [];
