@@ -65,7 +65,7 @@ Format: `- [ ] **Title** — description`
 
 ## KDE
 
-- [ ] **KDE bigsur: auto light/dark with time of day** — Use KDE Plasma 6's built-in automatic dark/light switching (sunset/sunrise). Configure via plasma-manager. First verify whether the bigsur nixpkgs theme includes both light and dark variants. *(PR open — needs in-person test: verify the 20:00 dark timer fires, morning login applies light theme)*
+- [x] **KDE bigsur: auto light/dark with time of day** — Use KDE Plasma 6's built-in automatic dark/light switching (sunset/sunrise). Configure via plasma-manager. First verify whether the bigsur nixpkgs theme includes both light and dark variants.
 
 ---
 
