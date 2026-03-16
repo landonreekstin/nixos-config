@@ -10,6 +10,9 @@ let
     cmakeFlags = (oldAttrs.cmakeFlags or []) ++ [ "-DUSE_DBUS_MENU=0" ];
   });
 
+  # Custom librepods package (no upstream flake available at this time)
+  librepods = pkgs.callPackage ../../../pkgs/librepods.nix {};
+
 in
 {
   config = lib.mkIf cfg.enable {
@@ -81,6 +84,22 @@ in
       };
     };
 
+    # === AirPods support via librepods ===
+    hardware.bluetooth.enable = lib.mkIf cfg.airpods.enable (lib.mkDefault true);
+
+    # Autostart librepods as a user systemd service so it runs in the graphical session
+    systemd.user.services.librepods = lib.mkIf cfg.airpods.enable {
+      description = "LibrePods — AirPods ANC, ear detection, and battery on Linux";
+      wantedBy = [ "graphical-session.target" ];
+      after = [ "graphical-session.target" ];
+      partOf = [ "graphical-session.target" ];
+      serviceConfig = {
+        ExecStart = "${librepods}/bin/librepods";
+        Restart = "on-failure";
+        RestartSec = 3;
+      };
+    };
+
     # === Add user to necessary peripheral groups ===
     # The 'input' group is not needed for input-remapper as the service runs as root.
     users.users.${user}.extraGroups = with lib.lists;
@@ -100,7 +119,9 @@ in
       # Input Remapper
       ++ optionals cfg.input-remapper.enable [ unstable.input-remapper ]
       # Asus
-      ++ optionals cfg.asus.enable [ asusctl ];
+      ++ optionals cfg.asus.enable [ asusctl ]
+      # AirPods
+      ++ optionals cfg.airpods.enable [ librepods ];
 
   };
 }
