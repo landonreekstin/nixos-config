@@ -294,6 +294,20 @@ in
           list means start on all enabled DEs.
         '';
       };
+      idle = {
+        lockTimeout = mkOption {
+          type = types.nullOr types.int;
+          default = 600;
+          description = "Seconds of idle before the screen locks. Set to null to disable auto-lock.";
+          example = 900;
+        };
+        sleepTimeout = mkOption {
+          type = types.nullOr types.int;
+          default = 1800;
+          description = "Seconds of idle before the system suspends. Set to null to disable auto-sleep.";
+          example = 3600;
+        };
+      };
       wayvnc = {
         enable = mkOption {
           type = types.bool;
