@@ -162,6 +162,7 @@
         claude-code
         wireguard-ui
         signal-desktop
+        (callPackage ../../pkgs/worldmonitor { })
       ];
       flatpak = {
         enable = true;

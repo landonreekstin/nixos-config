@@ -175,6 +175,11 @@
       };
     };
 
+    # Custom packages not in nixpkgs
+    packages.x86_64-linux = {
+      worldmonitor = pkgs.callPackage ./pkgs/worldmonitor { };
+    };
+
     # Development Shells provided by this flake
     devShells.x86_64-linux = {
       kernel-dev = pkgs.mkShell referenceHostConfig.customConfig.profiles.development.kernel.devShell;
