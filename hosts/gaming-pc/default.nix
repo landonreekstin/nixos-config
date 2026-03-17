@@ -226,6 +226,7 @@
         kdePackages.konversation
         kdePackages.kdenlive
         claude-code
+        (callPackage ../../pkgs/worldmonitor { })
       ];
       flatpak = {
         enable = true;
