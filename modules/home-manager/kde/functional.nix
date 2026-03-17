@@ -45,10 +45,14 @@ in
         # plasma-manager requires idleTimeout >= 60; clamp to satisfy the constraint
         autoSuspend.idleTimeout = if idleCfg.sleepTimeout != null then lib.max 60 idleCfg.sleepTimeout else null;
         # plasma-manager requires idleTimeout >= 30; clamp to satisfy the constraint
-        # plasma-manager requires idleTimeout >= 30; clamp to satisfy the constraint
-        turnOffDisplay.idleTimeout = if screensaverCfg.enable then "never"
-                                     else if idleCfg.lockTimeout != null then lib.max 30 idleCfg.lockTimeout
-                                     else "never";
+        # Turn off display at sleepTimeout (after lock), so kscreenlocker is
+        # already rendered when the screen wakes — avoids showing kernel console.
+        # Falls back to lockTimeout if sleepTimeout is null. Clamp to min 30s.
+        turnOffDisplay.idleTimeout =
+          if screensaverCfg.enable then "never"
+          else if idleCfg.sleepTimeout != null then lib.max 30 idleCfg.sleepTimeout
+          else if idleCfg.lockTimeout != null then lib.max 30 idleCfg.lockTimeout
+          else "never";
       };
     };
   };

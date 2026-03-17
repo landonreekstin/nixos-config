@@ -17,6 +17,10 @@ in
     exec-once = systemctl --user start swayidle
   '';
 
+  # Prevent swayidle from auto-starting in non-Hyprland sessions (e.g. KDE).
+  # The service is started explicitly by Hyprland's exec-once instead.
+  systemd.user.services.swayidle.Install.WantedBy = lib.mkIf (isHyprland && (idleCfg.lockTimeout != null || idleCfg.sleepTimeout != null)) (lib.mkForce []);
+
   services.swayidle = lib.mkIf (isHyprland && (idleCfg.lockTimeout != null || idleCfg.sleepTimeout != null)) {
     enable = true;
     timeouts =
