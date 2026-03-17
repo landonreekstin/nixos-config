@@ -298,14 +298,28 @@ in
         lockTimeout = mkOption {
           type = types.nullOr types.int;
           default = 600;
-          description = "Seconds of idle before the screen locks. Set to null to disable auto-lock.";
+          description = "Seconds of idle before the screen locks (AC power). Set to null to disable auto-lock.";
           example = 900;
         };
         sleepTimeout = mkOption {
           type = types.nullOr types.int;
           default = 1800;
-          description = "Seconds of idle before the system suspends. Set to null to disable auto-sleep.";
+          description = "Seconds of idle before the display turns off (AC power). Set to null to disable.";
           example = 3600;
+        };
+        battery = {
+          lockTimeout = mkOption {
+            type = types.nullOr types.int;
+            default = null;
+            description = "Seconds of idle before the screen locks on battery. Null falls back to idle.lockTimeout.";
+            example = 600;
+          };
+          sleepTimeout = mkOption {
+            type = types.nullOr types.int;
+            default = null;
+            description = "Seconds of idle before the display turns off on battery. Null falls back to idle.sleepTimeout.";
+            example = 900;
+          };
         };
       };
       wayvnc = {

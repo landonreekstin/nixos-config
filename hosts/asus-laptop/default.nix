@@ -33,6 +33,14 @@
     desktop = {
       environments = [ "kde" "hyprland" ];
       autostart = [];
+      idle = {
+        lockTimeout  = 900;   # 15 min (AC)
+        sleepTimeout = 1200;  # 20 min (AC)
+        battery = {
+          lockTimeout  = 600; # 10 min
+          sleepTimeout = 900; # 15 min
+        };
+      };
       hyprland = {
         launcher = {
           enable = true;
