@@ -117,6 +117,8 @@ in
           ])
           ++ (map mkExecOnce hyprlandAutostart)
           ++ [
+            # Import Wayland session vars into systemd/dbus so user services can use them
+            "dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP"
             # Launch waybar directly - it handles array configs natively
             "sleep 1 && ${pkgs.waybar}/bin/waybar > /tmp/waybar-start.log 2>&1 &"
             "${pkgs.hyprpaper}/bin/hyprpaper &"

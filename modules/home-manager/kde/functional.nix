@@ -3,6 +3,7 @@
 
 let
   screensaverCfg = customConfig.desktop.displayManager.sddm.screensaver;
+  idleCfg = customConfig.desktop.idle;
   isKdeDesktop = lib.elem "kde" customConfig.desktop.environments;
 
   kdeAutostart = lib.filter (app:
@@ -31,19 +32,27 @@ in
       enable = true;
 
       kscreenlocker = {
-        # --- LOGIC CORRECTION ---
-        # Disable Plasma's autolock if our custom screensaver is ENABLED.
-        autoLock = !screensaverCfg.enable;
-        # Enable lock-on-resume if our custom screensaver is DISABLED.
+        autoLock = !screensaverCfg.enable && idleCfg.lockTimeout != null;
         lockOnResume = !screensaverCfg.enable;
-        # Set a default timeout only if our custom screensaver is DISABLED.
-        timeout = if screensaverCfg.enable then null else 15; # 15 minutes
+        # plasma-manager expects minutes; divide seconds by 60
+        timeout = if (screensaverCfg.enable || idleCfg.lockTimeout == null)
+                  then null
+                  else idleCfg.lockTimeout / 60;
       };
 
-      # Power Management logic remains correct.
       powerdevil.AC = {
-        autoSuspend.action = "nothing";
-        turnOffDisplay.idleTimeout = if screensaverCfg.enable then "never" else 900; # 15 minutes in seconds
+        autoSuspend.action = if idleCfg.sleepTimeout != null then "sleep" else "nothing";
+        # plasma-manager requires idleTimeout >= 60; clamp to satisfy the constraint
+        autoSuspend.idleTimeout = if idleCfg.sleepTimeout != null then lib.max 60 idleCfg.sleepTimeout else null;
+        # plasma-manager requires idleTimeout >= 30; clamp to satisfy the constraint
+        # Turn off display at sleepTimeout (after lock), so kscreenlocker is
+        # already rendered when the screen wakes — avoids showing kernel console.
+        # Falls back to lockTimeout if sleepTimeout is null. Clamp to min 30s.
+        turnOffDisplay.idleTimeout =
+          if screensaverCfg.enable then "never"
+          else if idleCfg.sleepTimeout != null then lib.max 30 idleCfg.sleepTimeout
+          else if idleCfg.lockTimeout != null then lib.max 30 idleCfg.lockTimeout
+          else "never";
       };
     };
   };

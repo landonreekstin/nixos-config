@@ -18,6 +18,26 @@ ssh-add -l 2>/dev/null || ssh-add /home/lando/.ssh/id_ed25519
 
 This is a no-op if the key is already loaded.
 
+**File ownership**: When running as sudo, `$USER` resolves to `root`, not `lando`. Always use the explicit path:
+
+```bash
+sudo chown -R lando:users /home/lando/nixos-config
+```
+
+Never use `sudo chown -R $USER:users ~/nixos-config` — both `$USER` and `~` expand to root when running as sudo, making it a no-op or targeting the wrong path.
+
+**Git identity**: When making commits or pushes as sudo, git may not inherit the correct user config. Set identity explicitly if needed:
+
+```bash
+git -c user.name="lando" -c user.email="landonreekstin@gmail.com" commit ...
+```
+
+Or verify the git config is set correctly before committing:
+```bash
+git config user.name   # should be: lando
+git config user.email  # should be: landonreekstin@gmail.com
+```
+
 ### System Management
 - `rebuild` - Rebuild the current host configuration using the local flake
 - `sync` - Pull latest changes from the remote repository (handles merge conflicts)
@@ -39,8 +59,10 @@ rebuild
 
 For testing changes without switching, use `rebuild` with the test argument via nixos-rebuild directly, but let the system identify itself:
 ```bash
-sudo nixos-rebuild test --flake ~/nixos-config#$(hostname) --impure
+sudo nixos-rebuild test --flake /home/lando/nixos-config#$(hostname) --impure
 ```
+
+Note: Use the absolute path `/home/lando/nixos-config` rather than `~/nixos-config` — when running as sudo, `~` expands to `/root`.
 
 ### Development Shells
 Access development environments via:
@@ -267,10 +289,12 @@ Using `$(hostname)` ensures the correct host is always targeted.
 After making edits to files in the repository, some files may end up with incorrect ownership. To fix permissions and restore proper ownership to the user:
 
 ```bash
-sudo chown -R $USER:users ~/nixos-config
+sudo chown -R lando:users /home/lando/nixos-config
 ```
 
 This prevents permission issues and ensures files remain editable. **This must be done before rebuilding.**
+
+Note: Do NOT use `sudo chown -R $USER:users ~/nixos-config` — when running as sudo, `$USER` and `~` both expand to `root`.
 
 ### 2. Rebuild System (REQUIRED)
 **ALWAYS rebuild to apply configuration changes:**
@@ -279,18 +303,18 @@ This prevents permission issues and ensures files remain editable. **This must b
 rebuild
 ```
 
-This command rebuilds the current host configuration using the local flake. 
+This command rebuilds the current host configuration using the local flake.
 
 ### 3. Test Changes (Optional)
 For testing changes without permanently switching, use:
 
 ```bash
-sudo nixos-rebuild test --flake ~/nixos-config#<hostname> --impure
+sudo nixos-rebuild test --flake /home/lando/nixos-config#$(hostname) --impure
 ```
 
 ### Complete Workflow:
 1. **Edit configuration files**
-2. **`sudo chown -R $USER:users ~/nixos-config`** ← CRITICAL
+2. **`sudo chown -R lando:users /home/lando/nixos-config`** ← CRITICAL
 3. **`rebuild`** ← REQUIRED
 4. **Verify changes work correctly**
 
