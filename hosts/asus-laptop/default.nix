@@ -132,7 +132,7 @@
         "brave"
         "claude-code"
       ];
-      homeManager = with pkgs; [ 
+      homeManager = with pkgs; [
         jamesdsp
         remmina
         vscode
@@ -141,6 +141,7 @@
         discord-canary
         claude-code
         signal-desktop
+        (callPackage ../../pkgs/worldmonitor { })
       ];
       flatpak = {
         enable = true;
