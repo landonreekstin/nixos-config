@@ -42,7 +42,8 @@ in
 
       powerdevil.AC = {
         autoSuspend.action = if idleCfg.sleepTimeout != null then "sleep" else "nothing";
-        autoSuspend.idleTimeout = idleCfg.sleepTimeout;
+        # plasma-manager requires idleTimeout >= 60; clamp to satisfy the constraint
+        autoSuspend.idleTimeout = if idleCfg.sleepTimeout != null then lib.max 60 idleCfg.sleepTimeout else null;
         # plasma-manager requires idleTimeout >= 30; clamp to satisfy the constraint
         # plasma-manager requires idleTimeout >= 30; clamp to satisfy the constraint
         turnOffDisplay.idleTimeout = if screensaverCfg.enable then "never"
