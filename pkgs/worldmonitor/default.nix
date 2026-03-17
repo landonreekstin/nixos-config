@@ -31,6 +31,8 @@ appimageTools.wrapType2 {
   extraInstallCommands = ''
     install -Dm644 "${appimageContents}/World Monitor.desktop" \
       $out/share/applications/world-monitor.desktop
+    sed -i 's|Exec=world-monitor|Exec=worldmonitor|' \
+      $out/share/applications/world-monitor.desktop
     find ${appimageContents} -name "*.png" -path "*/icons/*" \
       -exec cp --parents {} $out/share/ \; 2>/dev/null || true
   '';
