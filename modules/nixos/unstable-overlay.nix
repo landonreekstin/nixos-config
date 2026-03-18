@@ -22,6 +22,12 @@ in
           unstable = import inputs.nixpkgs-unstable {
             system = prev.stdenv.hostPlatform.system;
             config = prev.config;
+            overlays = [
+              # electron_39 (39.8.2) has a broken nixpkgs patch — use electron_40 until fixed upstream
+              (selfU: superU: {
+                electron_39 = superU.electron_40;
+              })
+            ];
           };
         })
         # Conditionally replaces the kernel.
