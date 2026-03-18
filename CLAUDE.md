@@ -199,9 +199,10 @@ All modules should follow this standard header format:
 
 ### Making Changes
 1. Edit configuration files in your local `~/nixos-config` clone
-2. Use `rebuild` to test changes
-3. Commit and push changes when satisfied
-4. Other machines can `sync` to pull updates
+2. `sudo chown -R lando:users /home/lando/nixos-config`
+3. `rebuild` — **do not commit until this succeeds and changes are verified**
+4. Commit and push changes when satisfied
+5. Other machines can `sync` to pull updates
 
 ### Commit Message Style
 Follow the established commit message convention:
@@ -234,7 +235,7 @@ docs(claude): add blaney-pc guidelines
 
 ### Git Workflow
 
-**Test before committing**: When making changes that can be tested on the current machine, always rebuild, test, and verify the changes work before committing. Do not commit untested changes.
+**CRITICAL: Always test before committing.** If the current machine can test the change, it MUST be rebuilt and verified before any commit is made. Never commit untested configuration changes — not even "obviously correct" ones.
 
 **Branching strategy**:
 - **Direct to main**: Documentation changes (`docs`), minor tweaks (`tweak`), and simple additions like adding a package can be committed directly to main after verification
@@ -242,9 +243,11 @@ docs(claude): add blaney-pc guidelines
 - **Never commit broken changes to main**: Only merge to main once changes have been rebuilt, tested, and verified to work
 
 **Workflow by scenario**:
-1. **Same-machine testable change**: Edit → Rebuild → Test → Verify → Commit to main
+1. **Same-machine testable change**: Edit → chown → Rebuild → Verify → **then** Commit to main
 2. **Cross-machine change**: Edit → Eval-check → Branch → Commit → PR → Test on target machine → Merge when verified
 3. **Documentation/minor tweak**: Edit → Commit to main (no rebuild needed for docs-only changes)
+
+**The rule in plain terms**: commit comes *after* a successful rebuild and manual verification, never before.
 
 ### Hardware Configurations
 Hardware configs are auto-generated during installation and should not be manually edited. They're stored per-host in `hosts/<hostname>/hardware-configuration.nix`.
@@ -266,57 +269,35 @@ Available via `customConfig.homelab`:
 - Samba file sharing
 - *arr stack (Radarr, Sonarr, Prowlarr, Bazarr)
 
-## PRIMARY RULES: After Making Changes
+## PRIMARY RULES: Making and Committing Changes
 
-**CRITICAL**: These steps must be followed after ANY configuration changes:
+**CRITICAL**: Follow this exact order — commit only comes AFTER verify:
 
-```bash
-rebuild
-```
+1. **Edit** configuration files
+2. **`sudo chown -R lando:users /home/lando/nixos-config`** ← always do this before rebuild
+3. **`rebuild`** ← REQUIRED before committing
+4. **Verify** the changes work correctly (open the app, check the setting, confirm the behavior)
+5. **Commit** — only after steps 3 and 4 succeed
 
-This command rebuilds the current host configuration using the local flake. **Never manually specify the hostname** - the `rebuild` command automatically uses the correct host.
+Never commit before rebuilding and verifying. This applies even to "obviously correct" changes.
+
+The `rebuild` command automatically detects the current host. **Never manually specify the hostname.**
 
 For testing changes without permanently switching:
-
-```bash
-sudo nixos-rebuild test --flake ~/nixos-config#$(hostname) --impure
-```
-
-Using `$(hostname)` ensures the correct host is always targeted.
-
-## File Permissions
-
-After making edits to files in the repository, some files may end up with incorrect ownership. To fix permissions and restore proper ownership to the user:
-
-```bash
-sudo chown -R lando:users /home/lando/nixos-config
-```
-
-This prevents permission issues and ensures files remain editable. **This must be done before rebuilding.**
-
-Note: Do NOT use `sudo chown -R $USER:users ~/nixos-config` — when running as sudo, `$USER` and `~` both expand to `root`.
-
-### 2. Rebuild System (REQUIRED)
-**ALWAYS rebuild to apply configuration changes:**
-
-```bash
-rebuild
-```
-
-This command rebuilds the current host configuration using the local flake.
-
-### 3. Test Changes (Optional)
-For testing changes without permanently switching, use:
 
 ```bash
 sudo nixos-rebuild test --flake /home/lando/nixos-config#$(hostname) --impure
 ```
 
-### Complete Workflow:
-1. **Edit configuration files**
-2. **`sudo chown -R lando:users /home/lando/nixos-config`** ← CRITICAL
-3. **`rebuild`** ← REQUIRED
-4. **Verify changes work correctly**
+## File Permissions
+
+After making edits, files may end up with incorrect ownership. Fix with:
+
+```bash
+sudo chown -R lando:users /home/lando/nixos-config
+```
+
+Note: Do NOT use `sudo chown -R $USER:users ~/nixos-config` — when running as sudo, `$USER` and `~` both expand to `root`.
 
 ## Host-Specific Guidelines
 
