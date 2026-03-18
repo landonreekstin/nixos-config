@@ -21,6 +21,8 @@ Format: `- [ ] **Title** — description`
 
 - [x] **GitHub update notification**
 
+- [ ] **Remove electron_39 → electron_40 alias** — Added in `modules/nixos/unstable-overlay.nix` as a workaround for a broken nixpkgs patch on `electron 39.8.2`. After any `flake update`, test removal by deleting the alias overlay and running `NIXPKGS_ALLOW_UNFREE=1 nix eval --impure .#nixosConfigurations.asus-laptop.config.system.build.toplevel.drvPath`. If eval passes, the upstream fix is in and the alias can be deleted.
+
 - [ ] **Nix SOPS secrets management** — Add `sops-nix` as a flake input. Migrate secrets (WireGuard keys, passwords, API tokens) to encrypted SOPS files stored in the repo. Requires generating age keys per host. Significant scope — plan as a dedicated session.
 
 - [x] **Encrypted DNS** — Add `customConfig.networking.encryptedDns.enable` backed by `services.dnscrypt-proxy2`. Include option for resolver selection (Cloudflare, Quad9, etc.).
