@@ -46,14 +46,11 @@ in
 
       powerdevil.AC = {
         autoSuspend.action = if idleCfg.sleepTimeout != null then "sleep" else "nothing";
-        # plasma-manager requires idleTimeout >= 60; clamp to satisfy the constraint
         autoSuspend.idleTimeout = if idleCfg.sleepTimeout != null then lib.max 60 idleCfg.sleepTimeout else null;
-        # Turn off display at sleepTimeout (after lock), so kscreenlocker is
-        # already rendered when the screen wakes — avoids showing kernel console.
-        # Falls back to lockTimeout if sleepTimeout is null. Clamp to min 30s.
+        # Turn off display at the same time as lock so kscreenlocker is already
+        # the frontmost window when the display wakes — avoids the NVIDIA console flash.
         turnOffDisplay.idleTimeout =
           if screensaverCfg.enable then "never"
-          else if idleCfg.sleepTimeout != null then lib.max 30 idleCfg.sleepTimeout
           else if idleCfg.lockTimeout != null then lib.max 30 idleCfg.lockTimeout
           else "never";
       };
@@ -63,7 +60,6 @@ in
         autoSuspend.idleTimeout = if batterySleep != null then lib.max 60 batterySleep else null;
         turnOffDisplay.idleTimeout =
           if screensaverCfg.enable then "never"
-          else if batterySleep != null then lib.max 30 batterySleep
           else if batteryLock != null then lib.max 30 batteryLock
           else "never";
       };
