@@ -671,28 +671,6 @@ in
             ]
           '';
         };
-        bashPrompt = {
-          style = mkOption {
-            type = types.enum [ "default" "themed" "powerline" ];
-            default = "default";
-            description = ''
-              Bash prompt style.
-              - "default": Simple prompt with customConfig.user.shell.bash.color
-              - "themed": Theme-aware colors (amber for century-series)
-              - "powerline": Fancy prompt with Nerd Font symbols, segments, and git status
-            '';
-          };
-          showGitBranch = mkOption {
-            type = types.bool;
-            default = false;
-            description = "Whether to show the current git branch in the prompt.";
-          };
-          showHostname = mkOption {
-            type = types.bool;
-            default = true;
-            description = "Whether to show the hostname in the prompt.";
-          };
-        };
       };
       # You can add more themes here later, e.g., 'cosmic', 'kde', etc.
     };

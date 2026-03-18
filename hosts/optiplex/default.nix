@@ -182,11 +182,6 @@
           "applications:OpenRGB.desktop"
           "applications:io.github.nuttyartist.notes.desktop"
         ];
-        bashPrompt = {
-          style = "powerline";
-          showGitBranch = true;
-          showHostname = true;
-        };
       };
     };
 

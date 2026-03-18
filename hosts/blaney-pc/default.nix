@@ -104,11 +104,6 @@
         plasmaOverride = true;
         kde = "windows7-alt";
         hyprland = "century-series";
-        bashPrompt = {
-          style = "powerline";
-          showGitBranch = true;
-          showHostname = true;
-        };
         wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
         pinnedApps = [
           "applications:org.kde.konsole.desktop"

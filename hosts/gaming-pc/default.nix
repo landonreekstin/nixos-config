@@ -183,11 +183,6 @@
       services.updateNotification.enable = true;
       themes = {
         hyprland = "century-series";
-        bashPrompt = {
-          style = "powerline";
-          showGitBranch = true;
-          showHostname = true;
-        };
       };
     };
 

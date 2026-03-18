@@ -24,6 +24,7 @@ in {
     ./btop.nix
     ./yazi.nix
     ./wlogout.nix
+    ./bash.nix
   ];
 
   # Module arguments are passed differently in NixOS
