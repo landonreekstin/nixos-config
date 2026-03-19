@@ -41,8 +41,11 @@ in
     };
 
     initExtra = ''
-      ncc() {
+      ccnc() {
         cd /home/lando/nixos-config && sudo claude -c .
+      }
+      ccn() {
+        cd /home/lando/nixos-config && sudo claude .
       }
     '';
 
