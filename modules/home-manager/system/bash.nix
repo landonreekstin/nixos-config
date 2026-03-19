@@ -40,6 +40,12 @@ in
       ipr = "sudo input-remapper-gtk";
     };
 
+    initExtra = ''
+      ncc() {
+        cd /home/lando/nixos-config && sudo claude -c .
+      }
+    '';
+
     bashrcExtra = ''
       parse_git_branch() {
         local branch
