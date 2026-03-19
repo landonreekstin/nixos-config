@@ -930,6 +930,22 @@ in
           };
         };
       };
+      display = {
+        backlight = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable screen backlight control (brightnessctl). Shows brightness widget in Waybar.";
+          };
+        };
+      };
+      kbdBacklight = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable keyboard backlight control via brightnessctl. Shows kbd brightness widget in Waybar.";
+        };
+      };
     };
 
     # -------------------------------------------------------------------------- #

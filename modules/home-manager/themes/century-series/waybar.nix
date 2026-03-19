@@ -14,6 +14,8 @@ let
 
   # Check if launcher is enabled
   launcherEnabled = customConfig.desktop.hyprland.launcher.enable;
+  hasScreenBacklight = customConfig.hardware.display.backlight.enable;
+  hasKbdBacklight = customConfig.hardware.kbdBacklight.enable;
 
 in {
   config = mkIf centurySeriesThemeCondition {
@@ -71,8 +73,20 @@ in {
 
           network = {
             format-wifi = mkForce "LINK {signalStrength}%";
-            format-ethernet = mkForce "LINK UP"; 
+            format-ethernet = mkForce "LINK UP";
             format-disconnected = mkForce "LINK DOWN";
+            tooltip-format = mkForce "NET: {ifname} via {gwaddr}";
+          };
+
+          backlight = mkIf hasScreenBacklight {
+            format = mkForce "SCR {percent}%";
+            tooltip-format = "Screen brightness: {percent}%";
+          };
+
+          "custom/kbd-brightness" = mkIf hasKbdBacklight {
+            format = mkForce "KBD {}";
+            tooltip = true;
+            tooltip-format = "Keyboard backlight: {}";
           };
 
           "pulseaudio#sink_switcher" = {
@@ -157,13 +171,26 @@ in {
         }
 
         /* Module base styling - Instrument readouts */
-        #cpu, #memory, #temperature, #network, #battery, #pulseaudio {
+        #cpu, #memory, #temperature, #network, #battery, #pulseaudio,
+        #backlight, #custom-kbd-brightness {
           padding: 0 8px;
           margin: 2px;
           background-color: ${c.bg-tertiary};
           border: 1px solid ${c.border-secondary};
           color: ${c.text-primary};
           font-family: "JetBrains Mono", monospace;
+        }
+
+        /* Screen brightness - Illumination readout */
+        #backlight {
+          color: ${c.accent-amber};
+          border-color: ${c.accent-amber-dim};
+        }
+
+        /* Keyboard backlight - Cockpit lighting control */
+        #custom-kbd-brightness {
+          color: ${c.accent-green};
+          border-color: ${c.accent-green-dim};
         }
 
         /* System tray */
@@ -256,5 +283,18 @@ in {
         }
       '';
     };
+
+    # networkmanager_dmenu config - use rofi (with Century Series styling) instead of dmenu
+    xdg.configFile."networkmanager-dmenu/config.ini".text = ''
+      [dmenu]
+      dmenu_command = rofi -dmenu
+      rofi_highlight = True
+      list_saved = True
+      wifi_chars = ▂▄▆█
+
+      [editor]
+      terminal = kitty
+      gui_if_available = True
+    '';
   };
 }

@@ -6,6 +6,8 @@ let
   isHyprlandHost = lib.elem "hyprland" customConfig.desktop.environments;
   launcherEnabled = customConfig.desktop.hyprland.launcher.enable;
   pinnedApps = customConfig.desktop.hyprland.launcher.pinnedApps;
+  hasScreenBacklight = customConfig.hardware.display.backlight.enable;
+  hasKbdBacklight = customConfig.hardware.kbdBacklight.enable;
 
   # Generate custom module configurations for launcher buttons
   generateLauncherModules = apps:
@@ -48,7 +50,9 @@ in
             modules-center = [
               "hyprland/window"
             ];
-            modules-right = [
+            modules-right = lib.optionals hasScreenBacklight [ "backlight" ]
+              ++ lib.optionals hasKbdBacklight [ "custom/kbd-brightness" ]
+              ++ [
               "network"
               "pulseaudio#sink_switcher"
               "cpu"
@@ -75,6 +79,21 @@ in
 
           memory = {
             # Specific format is in rice
+          };
+
+          backlight = lib.mkIf hasScreenBacklight {
+            format = "{percent}%";  # Theme will override with cockpit label
+            on-scroll-up = "${pkgs.brightnessctl}/bin/brightnessctl set +5%";
+            on-scroll-down = "${pkgs.brightnessctl}/bin/brightnessctl set 5%-";
+            smooth-scrolling-threshold = 1;
+          };
+
+          "custom/kbd-brightness" = lib.mkIf hasKbdBacklight {
+            exec = "${pkgs.brightnessctl}/bin/brightnessctl -d asus::kbd_backlight get";
+            interval = 2;
+            format = "{}";  # Theme will override with cockpit label
+            on-scroll-up = "${pkgs.brightnessctl}/bin/brightnessctl -d asus::kbd_backlight set +1";
+            on-scroll-down = "${pkgs.brightnessctl}/bin/brightnessctl -d asus::kbd_backlight set 1-";
           };
 
           network = {
@@ -141,6 +160,7 @@ in
       # Dependencies for functional aspects of Waybar modules
       networkmanager_dmenu # For network module on-click
       pavucontrol          # For pulseaudio module on-click-right
+      brightnessctl        # For backlight and kbd-brightness modules
       # audio-switcher script dependencies should be handled by its own module if it has any non-pkgs ones
     ];
 
