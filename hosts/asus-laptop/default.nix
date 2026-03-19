@@ -23,9 +23,12 @@
       shell.bash.color = "blue";
     };
     
-    bootloader.plymouth = {
-      enable = true;
-      theme = "green_blocks";
+    bootloader = {
+      quietBoot = true;
+      plymouth = {
+        enable = true;
+        theme = "green_blocks";
+      };
     };
 
     system = {
