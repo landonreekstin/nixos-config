@@ -23,6 +23,11 @@
       shell.bash.color = "blue";
     };
     
+    bootloader.plymouth = {
+      enable = true;
+      theme = "green_blocks";
+    };
+
     system = {
       hostName = "asus-laptop";
       stateVersion = "25.05"; # DO NOT CHANGE
