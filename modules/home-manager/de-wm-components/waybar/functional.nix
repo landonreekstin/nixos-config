@@ -90,10 +90,11 @@ in
 
           "custom/kbd-brightness" = lib.mkIf hasKbdBacklight {
             exec = "${pkgs.brightnessctl}/bin/brightnessctl -d asus::kbd_backlight get";
-            interval = 2;
+            interval = 3;
+            signal = 8;
             format = "{}";  # Theme will override with cockpit label
-            on-scroll-up = "${pkgs.brightnessctl}/bin/brightnessctl -d asus::kbd_backlight set +1";
-            on-scroll-down = "${pkgs.brightnessctl}/bin/brightnessctl -d asus::kbd_backlight set 1-";
+            on-scroll-up = "${pkgs.brightnessctl}/bin/brightnessctl -d asus::kbd_backlight set +1 && pkill -RTMIN+8 waybar";
+            on-scroll-down = "${pkgs.brightnessctl}/bin/brightnessctl -d asus::kbd_backlight set 1- && pkill -RTMIN+8 waybar";
           };
 
           network = {
