@@ -170,6 +170,7 @@ in {
 
         "element-text selected.normal" = {
           text-color = mkLiteral "@text-dark";
+          highlight = mkLiteral "bold #ffffff";
         };
 
         "element selected.active" = {
@@ -180,6 +181,7 @@ in {
 
         "element-text selected.active" = {
           text-color = mkLiteral "@text-dark";
+          highlight = mkLiteral "bold #ffffff";
         };
 
         "element selected.urgent" = {
@@ -190,6 +192,7 @@ in {
 
         "element-text selected.urgent" = {
           text-color = mkLiteral "@text-dark";
+          highlight = mkLiteral "bold #ffffff";
         };
 
         # Alternate row styling (subtle)
