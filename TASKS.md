@@ -37,6 +37,8 @@ Format: `- [ ] **Title** — description`
 
 - [ ] **Logitech G305 Lightspeed support** — Enable `customConfig.hardware.peripherals.solaar = true` on gaming-pc. Optionally add `piper`/`libratbagd` for button remapping. Verify G305 is in solaar's supported device list.
 
+- [ ] **Asus-laptop: keyboard brightness lower key not working** — The raise keyboard backlight key works (asusctl is functional) but the lower key does not. Likely a missing Hyprland keybind for the decrease action (`asusctl -k down` or equivalent). Add the missing bind in the asus-laptop Hyprland config alongside the existing raise bind.
+
 - [x] **Global monitor configuration (customConfig.hardware.monitors)** — Add a `customConfig.hardware.monitors` option (list of monitor specs: name, resolution, refresh, position, orientation, scale). Default: single 1920x1080 horizontal monitor. All modules that need monitor info (Hyprland, SDDM, KDE) read from this one place instead of duplicating. Medium-large scope.
 
 ---
@@ -69,6 +71,8 @@ Format: `- [ ] **Title** — description`
 
 - [x] **KDE bigsur: auto light/dark with time of day** — Use KDE Plasma 6's built-in automatic dark/light switching (sunset/sunrise). Configure via plasma-manager. First verify whether the bigsur nixpkgs theme includes both light and dark variants.
 
+- [ ] **KDE captive portal auto-open** — Public wifi landing pages don't automatically open in KDE. Enable NetworkManager's connectivity check (`networking.networkmanager.connectionConfig`) and/or ensure `plasma-nm` captive portal detection is active so the browser launches automatically when a captive portal is detected.
+
 ---
 
 ## Hyprland
@@ -99,6 +103,10 @@ Format: `- [ ] **Title** — description`
 
 - [ ] **Gammastep toggle module** — Add a Waybar custom module that toggles gammastep on/off (or cycles through off → warm → very warm presets). Click to toggle, scroll to adjust temperature.
 
+- [ ] **Waybar screen + keyboard brightness modules** — Add Waybar modules showing current screen brightness (via `brightnessctl`) and keyboard backlight brightness (via `asusctl`), each with appropriate icons. Clicking or scrolling should adjust the value. Scope to hosts with Hyprland (gaming-pc, asus-laptop). *(PR open — needs in-person test on asus-laptop)*
+
+- [ ] **Waybar network: replace LINK with networkmanager_dmenu** — The current network module click action only shows the active adapter. Replace with `networkmanager_dmenu` so clicking opens a rofi-based wifi/wired picker for connecting to and managing networks. Theme the dmenu instance to match the Century Series aesthetic (phosphor green on black, monospace, MFD borders). *(PR open — needs in-person test on asus-laptop)*
+
 ---
 
 ## Librewolf
@@ -112,6 +120,8 @@ Format: `- [ ] **Title** — description`
 > **Note:** Substantial work already exists in the `dev-century-series-theme` branch. Review and merge/rebase that branch before starting any of these tasks rather than starting from scratch.
 
 - [ ] **Theme rofi to look like MFD** — Style rofi-wayland with CSS to match the Century Series aesthetic: phosphor green on instrument-panel black, monospace font, MFD-style borders. Replace wofi after the rofi migration above.
+
+- [ ] **Century Series rofi: matched text invisible when selected** — When an item is selected in rofi, the highlighted matching characters are the same color as the selection box background, making them invisible. Fix the rofi CSS theme so matched/highlighted characters use a contrasting color (e.g. bright amber or white) within the selected row.
 
 - [x] **Theme swaylock** — Configure swaylock to match Century Series: dark background, amber/green text, MFD-style layout.
 
