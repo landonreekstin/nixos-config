@@ -364,6 +364,8 @@ When asked to work on tasks, follow this workflow for each task:
 
 Tasks that require physical machine testing (reboot, display, hardware) should be noted in TASKS.md as `*(PR open — needs in-person test)*` and merged when the user confirms they work.
 
+**Always update TASKS.md after completing a task** — mark it `[x]` and commit the change to `main`, even if it was verified outside the formal task workflow (e.g. a fix done mid-conversation that corresponds to a listed task).
+
 ## Notes
 
 - **CRITICAL**: Always use the `rebuild` command, never manually specify `--flake .#<hostname>`. Each host has different users and hardware - applying the wrong host config can remove user accounts, break authentication, and cause boot failures.
