@@ -239,15 +239,15 @@ docs(claude): add blaney-pc guidelines
 
 **Branching strategy**:
 - **Direct to main**: Documentation changes (`docs`), minor tweaks (`tweak`), and simple additions like adding a package can be committed directly to main after verification
-- **Feature/PR branches**: Use branches for changes that require testing on a different machine than where the change is being made. Create a PR and note that it needs in-person testing on the target machine
+- **Feature/PR branches**: Use branches for changes that are being developed on the local machine. Rebuild and verify on the branch first, then open a PR to merge into main. Also use branches for changes that can only be tested on a different machine — in that case, note in the PR that in-person testing is needed.
 - **Never commit broken changes to main**: Only merge to main once changes have been rebuilt, tested, and verified to work
 
 **Workflow by scenario**:
-1. **Same-machine testable change**: Edit → chown → Rebuild → Verify → **then** Commit to main
-2. **Cross-machine change**: Edit → Eval-check → Branch → Commit → PR → Test on target machine → Merge when verified
+1. **Locally testable feature/fix**: Branch → Edit → chown → Rebuild → Verify → Commit → PR → Merge
+2. **Cross-machine change**: Branch → Edit → Eval-check → Commit → PR (note needs in-person test on target machine) → Test on target → Merge when verified
 3. **Documentation/minor tweak**: Edit → Commit to main (no rebuild needed for docs-only changes)
 
-**The rule in plain terms**: commit comes *after* a successful rebuild and manual verification, never before.
+**The rule in plain terms**: commit comes *after* a successful rebuild and manual verification, never before. The only exception is changes that require a different machine to test — those go into a PR and are merged once verified on the target host.
 
 ### Hardware Configurations
 Hardware configs are auto-generated during installation and should not be manually edited. They're stored per-host in `hosts/<hostname>/hardware-configuration.nix`.
@@ -273,13 +273,16 @@ Available via `customConfig.homelab`:
 
 **CRITICAL**: Follow this exact order — commit only comes AFTER verify:
 
-1. **Edit** configuration files
-2. **`sudo chown -R lando:users /home/lando/nixos-config`** ← always do this before rebuild
-3. **`rebuild`** ← REQUIRED before committing
-4. **Verify** the changes work correctly (open the app, check the setting, confirm the behavior)
-5. **Commit** — only after steps 3 and 4 succeed
+1. **Branch** — create a feature/fix branch
+2. **Edit** configuration files
+3. **`sudo chown -R lando:users /home/lando/nixos-config`** ← always do this before rebuild
+4. **`rebuild`** ← REQUIRED before committing
+5. **Verify** the changes work correctly (open the app, check the setting, confirm the behavior)
+6. **Commit and PR** — only after steps 4 and 5 succeed
 
-Never commit before rebuilding and verifying. This applies even to "obviously correct" changes.
+**Exception**: Changes that can only be tested on a different host (different machine, hardware, or display required) skip steps 4–5 locally. Instead: eval-check → commit → PR → note that in-person testing is needed → merge after confirmed on target.
+
+Never commit to main before rebuilding and verifying. This applies even to "obviously correct" changes.
 
 The `rebuild` command automatically detects the current host. **Never manually specify the hostname.**
 
