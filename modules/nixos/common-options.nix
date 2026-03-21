@@ -1023,10 +1023,57 @@ in
             description = "A list of peers (clients) that are allowed to connect to this server.";
           };
         };
-        # This structure allows for a client module to be added later, like so:
-        # client = {
-        #   enable = mkOption { ... };
-        # };
+        client = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable the WireGuard client configuration.";
+          };
+
+          interfaceName = mkOption {
+            type = types.str;
+            default = "wg0";
+            description = "The name of the WireGuard network interface.";
+          };
+
+          address = mkOption {
+            type = types.str;
+            example = "10.10.0.3/32";
+            description = "The IP address for this client within the tunnel.";
+          };
+
+          dns = mkOption {
+            type = with types; listOf str;
+            default = [];
+            description = "DNS servers to use when the tunnel is active.";
+          };
+
+          privateKeyFile = mkOption {
+            type = types.path;
+            description = "Absolute path to the file containing the client's private key.";
+          };
+
+          peer = {
+            publicKey = mkOption {
+              type = types.str;
+              description = "The public key of the WireGuard server.";
+            };
+            allowedIPs = mkOption {
+              type = with types; listOf str;
+              default = [ "0.0.0.0/0" ];
+              description = "IP ranges to route through the tunnel.";
+            };
+            endpoint = mkOption {
+              type = types.str;
+              description = "The server endpoint as host:port.";
+            };
+            persistentKeepalive = mkOption {
+              type = types.int;
+              default = 25;
+              description = "Keepalive interval in seconds (0 to disable).";
+            };
+          };
+        };
       };
     };
 
