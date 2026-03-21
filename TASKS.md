@@ -23,7 +23,7 @@ Format: `- [ ] **Title** — description`
 
 - [ ] **Remove electron_39 → electron_40 alias** — Added in `modules/nixos/unstable-overlay.nix` as a workaround for a broken nixpkgs patch on `electron 39.8.2`. After any `flake update`, test removal by deleting the alias overlay and running `NIXPKGS_ALLOW_UNFREE=1 nix eval --impure .#nixosConfigurations.asus-laptop.config.system.build.toplevel.drvPath`. If eval passes, the upstream fix is in and the alias can be deleted.
 
-- [ ] **Nix SOPS secrets management** — Add `sops-nix` as a flake input. Migrate secrets (WireGuard keys, passwords, API tokens) to encrypted SOPS files stored in the repo. Requires generating age keys per host. Significant scope — plan as a dedicated session.
+- [x] **Nix SOPS secrets management** — Core infrastructure added: sops-nix flake input, `modules/nixos/sops.nix` imported by all hosts (age identity derived from SSH host key at runtime), `sops`, `age`, `ssh-to-age` in system packages, `.sops.yaml` key config, `secrets/` directory. See sops section below for migration tasks.
 
 - [x] **Encrypted DNS** — Add `customConfig.networking.encryptedDns.enable` backed by `services.dnscrypt-proxy2`. Include option for resolver selection (Cloudflare, Quad9, etc.).
 
@@ -136,3 +136,32 @@ Format: `- [ ] **Title** — description`
 - [x] **Engine power switch (wlogout styled)** — Style wlogout to look like aviation engine controls: shutdown = engine cut, restart = engine restart, logout = eject. Custom icons and CSS matching Century Series.
 
 - [ ] **Additional wallpapers** — Curate a set of aviation/cockpit wallpapers for Century Series. Add to `customConfig.homeManager.themes.wallpaper` options or a wallpaper rotation list.
+
+---
+
+## Secrets Management (sops-nix)
+
+> Core infrastructure is on `main`. Tasks here are sequenced — the age key collection task (first) unblocks most of the rest.
+
+### Prerequisites
+
+- [ ] **Collect age keys for all hosts** — On each machine, run `cat /etc/ssh/ssh_host_ed25519_key.pub | ssh-to-age` and replace the `age1PLACEHOLDER_<host>` entries in `.sops.yaml`. Hosts to visit: gaming-pc, optiplex, blaney-pc, justus-pc, asus-m15, atl-mini-pc, optiplex-nas. No Nix changes needed — just update `.sops.yaml` and commit to main.
+
+### Declarative User Passwords (High Value)
+
+- [ ] **User passwords via sops** — Currently all user passwords are set manually via `passwd` after install, which is not reproducible. For each host: create a sops secret `user-password-hash` (generate with `mkpasswd -m sha-512`), then set `users.users.<name>.hashedPasswordFile = config.sops.secrets.user-password-hash.path`. This makes user accounts fully declarative and eliminates the manual password step from `post-install`. Affects all hosts. Requires age keys to be collected first.
+
+### Service Secrets
+
+- [ ] **media-linker API keys → sops (optiplex-nas)** — The media-linker service reads `JELLYSEERR_API_KEY`, `RADARR_API_KEY`, and `SONARR_API_KEY` from `/root/secrets/media-linker.env`. Migrate to a sops secret file: encrypt the env file as `secrets/optiplex-nas.yaml`, expose it via `sops.secrets.media-linker-env` with `owner = "root"`, and update `customConfig.homelab.mediaLinker.envFile` (currently set in common-options.nix) to point to `config.sops.secrets.media-linker-env.path`. Removes the manual file creation step from optiplex-nas setup.
+
+- [ ] **atl-mini-pc WireGuard server private key → sops** — The WireGuard server config on atl-mini-pc references `/etc/nixos/secrets/wireguard/server-privatekey` (currently disabled). Before enabling, migrate to sops: add a `wireguard-server-private-key` secret to `secrets/atl-mini-pc.yaml`, update `customConfig.services.wireguard.server.privateKeyFile` to use `config.sops.secrets.wireguard-server-private-key.path`. Mirror the pattern already used for the asus-laptop client key.
+
+### Install Script Integration
+
+- [ ] **install-new-host.sh: sops bootstrapping** — When a new host is installed, its SSH host key is generated but its age key isn't yet in `.sops.yaml`. Add a post-install step (or a separate `scripts/add-host-key.sh`) that: (1) reads the new host's SSH ed25519 public key, (2) converts it to age via `ssh-to-age`, (3) adds it to `.sops.yaml` under the right host anchor and creation rules, (4) re-encrypts any `secrets/common.yaml` to include the new host. This must run on the admin machine (gaming-pc) since it needs the age admin key.
+
+### Not Suitable for sops (Reference)
+
+- **optiplex-nas LUKS key** — The LUKS key at `/root/secrets/private_luks.key` is needed at initrd time, before sops-nix activates. Keep using `boot.initrd.secrets` as-is. If reproducible initrd secrets are ever needed, evaluate `systemd-cryptenroll` with a TPM2 or FIDO2 key instead.
+- **WireGuard peer public keys / endpoint IPs** — Public keys are not secret by design. The endpoint IP `68.184.198.204:51822` is semi-sensitive but hardcoding it in the Nix config is acceptable; it's not a credential.
