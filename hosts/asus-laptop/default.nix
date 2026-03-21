@@ -190,6 +190,18 @@
 
   sops.secrets.wireguard-private-key = {};
 
+  # gaming-pc is on the home LAN (192.168.1.0/24), which conflicts with many
+  # external networks. Add a /32 host route via the WireGuard interface so
+  # the more-specific route wins over the local subnet route.
+  networking.wg-quick.interfaces.wg0.postUp = [
+    "ip route add 192.168.1.60/32 dev wg0"
+  ];
+  networking.wg-quick.interfaces.wg0.preDown = [
+    "ip route del 192.168.1.60/32 dev wg0 || true"
+  ];
+
+  networking.hosts."192.168.1.60" = [ "gaming-pc" ];
+
   # In your NixOS configuration
   services.flatpak.enable = true;
   services.keyd = {
@@ -228,6 +240,7 @@
       # Override optiplex-fw SSH hostname for VPN (full-tunnel WireGuard routes all
       # traffic through the tunnel, so we must use the WireGuard VPN IP, not the LAN IP)
       programs.ssh.matchBlocks."optiplex-fw".hostname = lib.mkForce "10.10.0.1";
+      programs.ssh.matchBlocks."gaming-pc".hostname = lib.mkForce "gaming-pc";
     };
   };
   
