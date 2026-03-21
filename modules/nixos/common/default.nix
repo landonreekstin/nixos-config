@@ -13,5 +13,6 @@
     ./networking.nix
     ./audio.nix
     ./commands.nix
+    ./home-manager.nix
   ];
 }
