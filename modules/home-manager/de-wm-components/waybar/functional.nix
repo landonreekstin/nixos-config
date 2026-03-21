@@ -14,9 +14,9 @@ let
 
   vpnStatusScript = pkgs.writeShellScript "waybar-vpn-status" ''
     if systemctl is-active --quiet wg-quick-${vpnInterface}.service; then
-      printf '{"text":"VPN ON","class":"active","tooltip":"WireGuard tunnel active\nClick to disconnect"}'
+      printf '{"text":"VPN ON","class":"active","tooltip":"WireGuard active — click to disconnect"}'
     else
-      printf '{"text":"VPN OFF","class":"inactive","tooltip":"WireGuard tunnel inactive\nClick to connect"}'
+      printf '{"text":"VPN OFF","class":"inactive","tooltip":"WireGuard inactive — click to connect"}'
     fi
   '';
 

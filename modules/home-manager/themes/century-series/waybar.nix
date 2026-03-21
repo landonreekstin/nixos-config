@@ -197,8 +197,8 @@ in {
         #custom-vpn {
           font-weight: bold;
           letter-spacing: 1px;
-          border-color: ${c.text-tertiary};
-          color: ${c.text-tertiary};
+          border-color: ${c.border-primary};
+          color: ${c.text-secondary};
           transition: all 0.3s ease;
         }
 
@@ -209,7 +209,7 @@ in {
         }
 
         #custom-vpn.inactive {
-          color: ${c.text-tertiary};
+          color: ${c.text-secondary};
           border-color: ${c.border-primary};
         }
 

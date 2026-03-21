@@ -225,6 +225,9 @@
         # === Common User Environment Modules ===
         ../../modules/home-manager/default.nix
       ];
+      # Override optiplex-fw SSH hostname for VPN (full-tunnel WireGuard routes all
+      # traffic through the tunnel, so we must use the WireGuard VPN IP, not the LAN IP)
+      programs.ssh.matchBlocks."optiplex-fw".hostname = lib.mkForce "10.10.0.1";
     };
   };
   
