@@ -170,12 +170,26 @@
     services = {
       ssh.enable = true;
       vscodeServer.enable = true;
+      wireguard.client = {
+        enable = true;
+        address = "10.10.0.3/32";
+        dns = [ "1.1.1.1" ];
+        privateKeyFile = config.sops.secrets.wireguard-private-key.path;
+        peer = {
+          publicKey = "Z1ZtZiXE59cBZvmjkvcWr5nlEtmHVJJ16P0pb4QtFiY=";
+          allowedIPs = [ "0.0.0.0/0" ];
+          endpoint = "68.184.198.204:51822";
+          persistentKeepalive = 25;
+        };
+      };
     };
 
   };
 
   # === Additional nixos configuration for this host ===
-  
+
+  sops.secrets.wireguard-private-key = {};
+
   # In your NixOS configuration
   services.flatpak.enable = true;
   services.keyd = {
@@ -211,6 +225,9 @@
         # === Common User Environment Modules ===
         ../../modules/home-manager/default.nix
       ];
+      # Override optiplex-fw SSH hostname for VPN (full-tunnel WireGuard routes all
+      # traffic through the tunnel, so we must use the WireGuard VPN IP, not the LAN IP)
+      programs.ssh.matchBlocks."optiplex-fw".hostname = lib.mkForce "10.10.0.1";
     };
   };
   

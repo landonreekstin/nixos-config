@@ -1,0 +1,65 @@
+keys:
+  # Personal admin key (asus-laptop, generated 2026-03-20)
+  # Stored at ~/.config/sops/age/keys.txt
+  - &lando age1vnc3fnww3q9m9zau3ew8t0uzqfa9gp3w4za7y46rt5wu9xvrqggqcj8pfm
+
+  # Per-host keys (derived from SSH host ed25519 keys via ssh-to-age)
+  # Run: ssh-keyscan -t ed25519 <host> | ssh-to-age
+  # Or on host: cat /etc/ssh/ssh_host_ed25519_key.pub | ssh-to-age
+  - &asus-laptop age142cejz500hknyqzq4zgqu83hmc0jeugjypmuxruxfe7962z9pcyqmp6853
+  # TODO: fill in after visiting each machine
+  - &gaming-pc age1PLACEHOLDER_gaming-pc
+  - &optiplex age1PLACEHOLDER_optiplex
+  - &blaney-pc age1PLACEHOLDER_blaney-pc
+  - &justus-pc age1PLACEHOLDER_justus-pc
+  - &asus-m15 age1PLACEHOLDER_asus-m15
+  - &atl-mini-pc age1PLACEHOLDER_atl-mini-pc
+  - &optiplex-nas age1PLACEHOLDER_optiplex-nas
+
+creation_rules:
+  # Host-specific secrets: readable by that host + admin
+  - path_regex: secrets/asus-laptop\.yaml$
+    key_groups:
+      - age: [*asus-laptop, *lando]
+
+  - path_regex: secrets/gaming-pc\.yaml$
+    key_groups:
+      - age: [*gaming-pc, *lando]
+
+  - path_regex: secrets/optiplex\.yaml$
+    key_groups:
+      - age: [*optiplex, *lando]
+
+  - path_regex: secrets/blaney-pc\.yaml$
+    key_groups:
+      - age: [*blaney-pc, *lando]
+
+  - path_regex: secrets/justus-pc\.yaml$
+    key_groups:
+      - age: [*justus-pc, *lando]
+
+  - path_regex: secrets/asus-m15\.yaml$
+    key_groups:
+      - age: [*asus-m15, *lando]
+
+  - path_regex: secrets/atl-mini-pc\.yaml$
+    key_groups:
+      - age: [*atl-mini-pc, *lando]
+
+  - path_regex: secrets/optiplex-nas\.yaml$
+    key_groups:
+      - age: [*optiplex-nas, *lando]
+
+  # Common secrets readable by all hosts + admin
+  - path_regex: secrets/common\.yaml$
+    key_groups:
+      - age:
+          - *lando
+          - *asus-laptop
+          - *gaming-pc
+          - *optiplex
+          - *blaney-pc
+          - *justus-pc
+          - *asus-m15
+          - *atl-mini-pc
+          - *optiplex-nas
