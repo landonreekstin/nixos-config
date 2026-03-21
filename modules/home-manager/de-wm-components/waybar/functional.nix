@@ -10,8 +10,10 @@ let
   hasKbdBacklight = customConfig.hardware.kbdBacklight.enable;
   hasVpnClient = customConfig.services.wireguard.client.enable;
 
+  vpnInterface = customConfig.services.wireguard.client.interfaceName;
+
   vpnStatusScript = pkgs.writeShellScript "waybar-vpn-status" ''
-    if ${pkgs.networkmanager}/bin/nmcli connection show --active 2>/dev/null | grep -q wireguard; then
+    if systemctl is-active --quiet wg-quick-${vpnInterface}.service; then
       printf '{"text":"VPN ON","class":"active","tooltip":"WireGuard tunnel active\nClick to disconnect"}'
     else
       printf '{"text":"VPN OFF","class":"inactive","tooltip":"WireGuard tunnel inactive\nClick to connect"}'
@@ -19,12 +21,10 @@ let
   '';
 
   vpnToggleScript = pkgs.writeShellScript "waybar-vpn-toggle" ''
-    if ${pkgs.networkmanager}/bin/nmcli connection show --active 2>/dev/null | grep -q wireguard; then
-      conn=$(${pkgs.networkmanager}/bin/nmcli -t -f NAME,TYPE connection show --active | grep wireguard | cut -d: -f1)
-      ${pkgs.networkmanager}/bin/nmcli connection down "$conn"
+    if systemctl is-active --quiet wg-quick-${vpnInterface}.service; then
+      pkexec systemctl stop wg-quick-${vpnInterface}.service
     else
-      conn=$(${pkgs.networkmanager}/bin/nmcli -t -f NAME,TYPE connection | grep wireguard | cut -d: -f1 | head -1)
-      ${pkgs.networkmanager}/bin/nmcli connection up "$conn"
+      pkexec systemctl start wg-quick-${vpnInterface}.service
     fi
     pkill -RTMIN+9 waybar
   '';
