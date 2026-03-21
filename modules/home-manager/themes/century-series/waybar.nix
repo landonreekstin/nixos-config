@@ -172,7 +172,7 @@ in {
 
         /* Module base styling - Instrument readouts */
         #cpu, #memory, #temperature, #network, #battery, #pulseaudio,
-        #backlight, #custom-kbd-brightness {
+        #backlight, #custom-kbd-brightness, #custom-vpn {
           padding: 0 8px;
           margin: 2px;
           background-color: ${c.bg-tertiary};
@@ -191,6 +191,32 @@ in {
         #custom-kbd-brightness {
           color: ${c.accent-green};
           border-color: ${c.accent-green-dim};
+        }
+
+        /* VPN - Secure comms indicator */
+        #custom-vpn {
+          font-weight: bold;
+          letter-spacing: 1px;
+          border-color: ${c.text-tertiary};
+          color: ${c.text-tertiary};
+          transition: all 0.3s ease;
+        }
+
+        #custom-vpn.active {
+          color: ${c.accent-green};
+          border-color: ${c.accent-green-dim};
+          box-shadow: 0 0 6px ${c.accent-green}44;
+        }
+
+        #custom-vpn.inactive {
+          color: ${c.text-tertiary};
+          border-color: ${c.border-primary};
+        }
+
+        #custom-vpn:hover {
+          background-color: ${c.bg-secondary};
+          color: ${c.accent-green};
+          border-color: ${c.accent-green};
         }
 
         /* System tray */

@@ -8,6 +8,26 @@ let
   pinnedApps = customConfig.desktop.hyprland.launcher.pinnedApps;
   hasScreenBacklight = customConfig.hardware.display.backlight.enable;
   hasKbdBacklight = customConfig.hardware.kbdBacklight.enable;
+  hasVpnClient = customConfig.services.wireguard.client.enable;
+
+  vpnStatusScript = pkgs.writeShellScript "waybar-vpn-status" ''
+    if ${pkgs.networkmanager}/bin/nmcli connection show --active 2>/dev/null | grep -q wireguard; then
+      printf '{"text":"VPN ON","class":"active","tooltip":"WireGuard tunnel active\nClick to disconnect"}'
+    else
+      printf '{"text":"VPN OFF","class":"inactive","tooltip":"WireGuard tunnel inactive\nClick to connect"}'
+    fi
+  '';
+
+  vpnToggleScript = pkgs.writeShellScript "waybar-vpn-toggle" ''
+    if ${pkgs.networkmanager}/bin/nmcli connection show --active 2>/dev/null | grep -q wireguard; then
+      conn=$(${pkgs.networkmanager}/bin/nmcli -t -f NAME,TYPE connection show --active | grep wireguard | cut -d: -f1)
+      ${pkgs.networkmanager}/bin/nmcli connection down "$conn"
+    else
+      conn=$(${pkgs.networkmanager}/bin/nmcli -t -f NAME,TYPE connection | grep wireguard | cut -d: -f1 | head -1)
+      ${pkgs.networkmanager}/bin/nmcli connection up "$conn"
+    fi
+    pkill -RTMIN+9 waybar
+  '';
 
   # Generate custom module configurations for launcher buttons
   generateLauncherModules = apps:
@@ -52,6 +72,7 @@ in
             ];
             modules-right = lib.optionals hasScreenBacklight [ "backlight" ]
               ++ lib.optionals hasKbdBacklight [ "custom/kbd-brightness" ]
+              ++ lib.optionals hasVpnClient [ "custom/vpn" ]
               ++ [
               "network"
               "pulseaudio#sink_switcher"
@@ -95,6 +116,14 @@ in
             format = "{}";  # Theme will override with cockpit label
             on-scroll-up = "${pkgs.brightnessctl}/bin/brightnessctl -d asus::kbd_backlight set +1 && pkill -RTMIN+8 waybar";
             on-scroll-down = "${pkgs.brightnessctl}/bin/brightnessctl -d asus::kbd_backlight set 1- && pkill -RTMIN+8 waybar";
+          };
+
+          "custom/vpn" = lib.mkIf hasVpnClient {
+            exec = "${vpnStatusScript}";
+            return-type = "json";
+            interval = 5;
+            signal = 9;
+            on-click = "${vpnToggleScript}";
           };
 
           network = {
