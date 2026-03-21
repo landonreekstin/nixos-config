@@ -225,18 +225,8 @@
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {
-    useGlobalPkgs = true;
-    useUserPackages = true;
-    backupFileExtension = "hm-backup";
-    overwriteBackup = true;
     extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
     users.${config.customConfig.user.name} = {
-      imports = [
-        # === Plasma Manager ===
-        inputs.plasma-manager.homeModules.plasma-manager
-        # === Common User Environment Modules ===
-        ../../modules/home-manager/default.nix
-      ];
       # Override optiplex-fw SSH hostname for VPN (full-tunnel WireGuard routes all
       # traffic through the tunnel, so we must use the WireGuard VPN IP, not the LAN IP)
       programs.ssh.matchBlocks."optiplex-fw".hostname = lib.mkForce "10.10.0.1";

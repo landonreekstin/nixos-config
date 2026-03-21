@@ -241,19 +241,8 @@
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {
-    useGlobalPkgs = true;
-    useUserPackages = true;
-    backupFileExtension = "hm-backup"; # Your existing setting
     extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
-    # Use the username from customConfig
-    users.${config.customConfig.user.name} = { pkgs', lib', config'', ... }: { # config'' here is the HM config being built for this user
-      imports = [
-        # === Plasma Manager ===
-        inputs.plasma-manager.homeModules.plasma-manager
-        # === Common User Environment Modules ===
-        ../../modules/home-manager/default.nix
-      ];
-    };
+    users.${config.customConfig.user.name} = {};
   };
   
 }
