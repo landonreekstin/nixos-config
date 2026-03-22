@@ -112,6 +112,7 @@
       };
       display.backlight.enable = true;
       kbdBacklight.enable = true;
+      battery.enable = true;
     };
 
     programs = {

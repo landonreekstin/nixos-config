@@ -946,6 +946,13 @@ in
           description = "Enable keyboard backlight control via brightnessctl. Shows kbd brightness widget in Waybar.";
         };
       };
+      battery = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable battery status widget in Waybar. Enable for laptops with a battery.";
+        };
+      };
     };
 
     # -------------------------------------------------------------------------- #

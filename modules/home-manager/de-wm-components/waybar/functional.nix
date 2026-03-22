@@ -8,6 +8,7 @@ let
   pinnedApps = customConfig.desktop.hyprland.launcher.pinnedApps;
   hasScreenBacklight = customConfig.hardware.display.backlight.enable;
   hasKbdBacklight = customConfig.hardware.kbdBacklight.enable;
+  hasBattery = customConfig.hardware.battery.enable;
   hasVpnClient = customConfig.services.wireguard.client.enable;
 
   vpnInterface = customConfig.services.wireguard.client.interfaceName;
@@ -73,6 +74,7 @@ in
             modules-right = lib.optionals hasScreenBacklight [ "backlight" ]
               ++ lib.optionals hasKbdBacklight [ "custom/kbd-brightness" ]
               ++ lib.optionals hasVpnClient [ "custom/vpn" ]
+              ++ lib.optionals hasBattery [ "battery" ]
               ++ [
               "network"
               "pulseaudio#sink_switcher"
@@ -124,6 +126,20 @@ in
             interval = 5;
             signal = 9;
             on-click = "${vpnToggleScript}";
+          };
+
+          battery = lib.mkIf hasBattery {
+            interval = 30;
+            states = {
+              warning = 20;
+              critical = 10;
+            };
+            format = lib.mkDefault "{capacity}%";
+            format-charging = lib.mkDefault "CHG {capacity}%";
+            format-plugged = lib.mkDefault "PLG {capacity}%";
+            format-full = lib.mkDefault "FULL";
+            tooltip = true;
+            tooltip-format = "{timeTo} — {capacity}% ({power:.1f}W)";
           };
 
           network = {
