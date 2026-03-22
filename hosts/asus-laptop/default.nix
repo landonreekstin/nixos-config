@@ -196,12 +196,15 @@
   # the more-specific route wins over the local subnet route.
   networking.wg-quick.interfaces.wg0.postUp = [
     "ip route add 192.168.1.60/32 dev wg0"
+    "ip route add 192.168.1.76/32 dev wg0"
   ];
   networking.wg-quick.interfaces.wg0.preDown = [
     "ip route del 192.168.1.60/32 dev wg0 || true"
+    "ip route del 192.168.1.76/32 dev wg0 || true"
   ];
 
   networking.hosts."192.168.1.60" = [ "gaming-pc" ];
+  networking.hosts."192.168.1.76" = [ "optiplex-nas" ];
 
   # In your NixOS configuration
   services.flatpak.enable = true;
