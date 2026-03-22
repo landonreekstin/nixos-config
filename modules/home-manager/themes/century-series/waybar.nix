@@ -16,6 +16,7 @@ let
   launcherEnabled = customConfig.desktop.hyprland.launcher.enable;
   hasScreenBacklight = customConfig.hardware.display.backlight.enable;
   hasKbdBacklight = customConfig.hardware.kbdBacklight.enable;
+  hasBattery = customConfig.hardware.battery.enable;
 
 in {
   config = mkIf centurySeriesThemeCondition {
@@ -94,11 +95,11 @@ in {
             format-muted = mkForce "VOL MUTE";
           };
 
-          battery = {
-            format = "BAT {capacity}%";
-            format-charging = "CHG {capacity}%";
-            format-plugged = "EXT PWR";
-            format-full = "BAT FULL";
+          battery = mkIf hasBattery {
+            format = mkForce "BAT {capacity}%";
+            format-charging = mkForce "CHG {capacity}%";
+            format-plugged = mkForce "EXT PWR";
+            format-full = mkForce "BAT FULL";
           };
 
           # Power button - Engine control
@@ -191,6 +192,41 @@ in {
         #custom-kbd-brightness {
           color: ${c.accent-green};
           border-color: ${c.accent-green-dim};
+        }
+
+        /* Battery - Power cell readout */
+        #battery {
+          color: ${c.accent-green};
+          border-color: ${c.accent-green-dim};
+        }
+
+        #battery.charging {
+          color: ${c.accent-amber};
+          border-color: ${c.accent-amber-dim};
+        }
+
+        #battery.plugged {
+          color: ${c.accent-amber};
+          border-color: ${c.accent-amber-dim};
+        }
+
+        #battery.warning {
+          color: ${c.caution-yellow};
+          border-color: ${c.caution-yellow};
+        }
+
+        #battery.critical {
+          color: ${c.warning-red};
+          border-color: ${c.warning-red};
+          animation-name: blink;
+          animation-duration: 1s;
+          animation-timing-function: linear;
+          animation-iteration-count: infinite;
+          animation-direction: alternate;
+        }
+
+        @keyframes blink {
+          to { opacity: 0.5; }
         }
 
         /* VPN - Secure comms indicator */
