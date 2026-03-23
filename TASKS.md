@@ -149,11 +149,11 @@ Format: `- [ ] **Title** — description`
 
 ### Declarative User Passwords (High Value)
 
-- [ ] **User passwords via sops** — Use `customConfig.user.sopsPasswordEnable = true` and create encrypted `secrets/<host>.yaml` with `user-password-hash` key. Infrastructure complete: shared option wires `hashedPasswordFile` and sets `mutableUsers = false`. *(Done: gaming-pc, optiplex. Remaining: optiplex-nas. Off-network hosts deferred.)*
+- [ ] **User passwords via sops** — Use `customConfig.user.sopsPasswordEnable = true` and create encrypted `secrets/<host>.yaml` with `user-password-hash` key. Infrastructure complete: shared option wires `hashedPasswordFile` and sets `mutableUsers = false`. *(Done: gaming-pc, optiplex, optiplex-nas. Off-network hosts deferred.)*
 
 ### Service Secrets
 
-- [ ] **media-linker API keys → sops (optiplex-nas)** — The media-linker service reads `JELLYSEERR_API_KEY`, `RADARR_API_KEY`, and `SONARR_API_KEY` from `/root/secrets/media-linker.env`. Migrate to a sops secret file: encrypt the env file as `secrets/optiplex-nas.yaml`, expose it via `sops.secrets.media-linker-env` with `owner = "root"`, and update `customConfig.homelab.mediaLinker.envFile` (currently set in common-options.nix) to point to `config.sops.secrets.media-linker-env.path`. Removes the manual file creation step from optiplex-nas setup.
+- [x] **media-linker API keys → sops (optiplex-nas)** — The media-linker service reads `JELLYSEERR_API_KEY`, `RADARR_API_KEY`, and `SONARR_API_KEY` from `/root/secrets/media-linker.env`. Migrate to a sops secret file: encrypt the env file as `secrets/optiplex-nas.yaml`, expose it via `sops.secrets.media-linker-env` with `owner = "root"`, and update `customConfig.homelab.mediaLinker.envFile` (currently set in common-options.nix) to point to `config.sops.secrets.media-linker-env.path`. Removes the manual file creation step from optiplex-nas setup.
 
 - [ ] **atl-mini-pc WireGuard server private key → sops** — The WireGuard server config on atl-mini-pc references `/etc/nixos/secrets/wireguard/server-privatekey` (currently disabled). Before enabling, migrate to sops: add a `wireguard-server-private-key` secret to `secrets/atl-mini-pc.yaml`, update `customConfig.services.wireguard.server.privateKeyFile` to use `config.sops.secrets.wireguard-server-private-key.path`. Mirror the pattern already used for the asus-laptop client key.
 
