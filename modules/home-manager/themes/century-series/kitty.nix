@@ -20,6 +20,123 @@ let
     else if (centuryConfig.accentMode or "mixed") == "green" then c.accent-green-dim
     else c.accent-green-dim;
 
+  # CRT shader - Full retro effects
+  # Includes scanlines, curvature, chromatic aberration, vignetting, and flicker
+  crtShader = ''
+    #version 330 core
+
+    in vec2 fragCoord;
+    out vec4 fragColor;
+
+    uniform sampler2D text;
+    uniform vec2 dimensions;
+    uniform float time;
+
+    // Effect intensity controls
+    const float SCANLINE_INTENSITY = 0.15;
+    const float CURVATURE_AMOUNT = 0.03;
+    const float CHROMATIC_AMOUNT = 0.002;
+    const float VIGNETTE_INTENSITY = 0.25;
+    const float FLICKER_INTENSITY = 0.02;
+    const float BLOOM_INTENSITY = 0.08;
+
+    // Apply barrel distortion for CRT curvature
+    vec2 curveUV(vec2 uv) {
+        uv = uv * 2.0 - 1.0;
+        vec2 offset = abs(uv.yx) / vec2(6.0, 4.0);
+        uv = uv + uv * offset * offset * CURVATURE_AMOUNT * 10.0;
+        uv = uv * 0.5 + 0.5;
+        return uv;
+    }
+
+    // Chromatic aberration - RGB channel separation
+    vec3 chromaticAberration(vec2 uv) {
+        vec2 center = uv - 0.5;
+        float dist = length(center);
+
+        vec2 redOffset = uv + center * dist * CHROMATIC_AMOUNT;
+        vec2 greenOffset = uv;
+        vec2 blueOffset = uv - center * dist * CHROMATIC_AMOUNT;
+
+        float r = texture(text, redOffset).r;
+        float g = texture(text, greenOffset).g;
+        float b = texture(text, blueOffset).b;
+
+        return vec3(r, g, b);
+    }
+
+    // Scanline effect
+    float scanline(vec2 uv) {
+        float scanlineCount = dimensions.y * 0.75;
+        float scanlinePhase = sin(uv.y * scanlineCount * 3.14159 * 2.0);
+        return 1.0 - SCANLINE_INTENSITY * (0.5 + 0.5 * scanlinePhase);
+    }
+
+    // Vignette - darker edges
+    float vignette(vec2 uv) {
+        vec2 center = uv - 0.5;
+        float dist = length(center);
+        return 1.0 - dist * dist * VIGNETTE_INTENSITY * 4.0;
+    }
+
+    // Phosphor flicker simulation
+    float flicker() {
+        float noise = fract(sin(time * 12.9898) * 43758.5453);
+        return 1.0 - FLICKER_INTENSITY * (0.5 + 0.5 * noise);
+    }
+
+    // Simple bloom approximation
+    vec3 bloom(vec2 uv, vec3 color) {
+        vec3 bloomColor = vec3(0.0);
+        float blurSize = 1.0 / min(dimensions.x, dimensions.y);
+
+        for (int x = -2; x <= 2; x++) {
+            for (int y = -2; y <= 2; y++) {
+                vec2 offset = vec2(float(x), float(y)) * blurSize * 2.0;
+                bloomColor += texture(text, uv + offset).rgb;
+            }
+        }
+        bloomColor /= 25.0;
+
+        return color + bloomColor * BLOOM_INTENSITY;
+    }
+
+    void main() {
+        vec2 uv = fragCoord / dimensions;
+
+        // Apply CRT curvature
+        vec2 curvedUV = curveUV(uv);
+
+        // Check if we're outside the curved screen area
+        if (curvedUV.x < 0.0 || curvedUV.x > 1.0 || curvedUV.y < 0.0 || curvedUV.y > 1.0) {
+            fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+            return;
+        }
+
+        // Get base color with chromatic aberration
+        vec3 color = chromaticAberration(curvedUV);
+
+        // Apply bloom for phosphor glow
+        color = bloom(curvedUV, color);
+
+        // Apply scanlines
+        color *= scanline(curvedUV);
+
+        // Apply vignette
+        color *= vignette(curvedUV);
+
+        // Apply flicker
+        color *= flicker();
+
+        // Subtle green/amber phosphor tint based on brightness
+        float luminance = dot(color, vec3(0.299, 0.587, 0.114));
+        vec3 phosphorTint = vec3(0.9, 1.0, 0.85);  // Slight green phosphor cast
+        color = mix(color, color * phosphorTint, luminance * 0.1);
+
+        fragColor = vec4(color, 1.0);
+    }
+  '';
+
   # Terminal color scheme - Phosphor CRT aesthetic
   # Colors adapted to look like glowing phosphor on dark screen
   termColors = {
@@ -50,6 +167,9 @@ let
 
 in {
   config = mkIf centurySeriesThemeCondition {
+    # Place the CRT shader in kitty's config directory
+    xdg.configFile."kitty/crt-shader.glsl".text = crtShader;
+
     programs.kitty = {
       enable = true;
 
@@ -59,6 +179,9 @@ in {
       };
 
       settings = {
+        # CRT shader for full retro effect
+        shader = "${config.xdg.configHome}/kitty/crt-shader.glsl";
+
         # Window appearance - CRT monitor bezel
         window_padding_width = 8;
         window_border_width = "1.0pt";
