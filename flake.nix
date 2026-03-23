@@ -167,6 +167,18 @@
         ];
       };
 
+      # Configuration for AJ's Laptop (ASUS ROG Zephyrus G14)
+      aj-laptop = nixpkgs.lib.nixosSystem {
+        specialArgs = specialArgs;
+        modules = [
+          ./hosts/aj-laptop/default.nix
+          inputs.home-manager.nixosModules.default
+          inputs.disko.nixosModules.default
+          # Set system architecture
+          { nixpkgs.hostPlatform = "x86_64-linux"; }
+        ];
+      };
+
       # Configuration for the Optiplex NAS
       optiplex-nas = nixpkgs.lib.nixosSystem {
         specialArgs = specialArgs;
