@@ -113,7 +113,6 @@ let
     && customConfig.homeManager.themes.hyprland == "century-series";
 
   shaderPath = "${config.home.homeDirectory}/.config/hypr/shaders/crt-phosphor.glsl";
-  passthroughShaderPath = "${config.home.homeDirectory}/.config/hypr/shaders/passthrough.glsl";
 
   crtShader = ''
     #version 320 es
@@ -155,7 +154,7 @@ let
         // Shift bright areas toward amber — radar altimeter / attack scope glow
         vec3 phosphorAmber = vec3(1.0, 0.62, 0.23);  // #ff9e3b
         float luminance = dot(color.rgb, vec3(0.299, 0.587, 0.114));
-        color.rgb = mix(color.rgb, color.rgb * phosphorAmber, luminance * 0.18);
+        color.rgb = mix(color.rgb, color.rgb * phosphorAmber, luminance * 0.35);
 
         // === FILM GRAIN ===
         float grain = hash(uv);
@@ -170,18 +169,16 @@ let
     # Listen to Hyprland events and auto-disable the CRT filter for fullscreen windows.
     # Restores the previous shader state (on or off) when fullscreen exits.
     SHADER="${shaderPath}"
-    PASSTHROUGH="${passthroughShaderPath}"
     STATE_FILE="/tmp/century-crt-fs-state"
 
     handle() {
         local line="$1"
-        # Match fullscreen events regardless of Hyprland version event format
         if [[ "$line" == fullscreen* ]]; then
             if [[ "$line" == *1* ]]; then
-                # Entering fullscreen — save current state, switch to passthrough
+                # Entering fullscreen — save current state and disable shader
                 hyprctl getoption decoration:screen_shader \
                     | grep "str:" | awk '{print $2}' > "$STATE_FILE"
-                hyprctl keyword decoration:screen_shader "$PASSTHROUGH"
+                hyprctl keyword decoration:screen_shader ""
             else
                 # Exiting fullscreen — restore previous state
                 if [ -f "$STATE_FILE" ]; then
@@ -201,16 +198,13 @@ let
 
   crtToggleScript = ''
     #!/usr/bin/env bash
-    # Toggle between CRT shader and passthrough — never unset screen_shader
-    # entirely as that causes Hyprland to drop layer surfaces (waybar, etc.)
     SHADER="${shaderPath}"
-    PASSTHROUGH="${passthroughShaderPath}"
     CURRENT=$(hyprctl getoption decoration:screen_shader | grep "str:" | awk '{print $2}')
-    if [ "$CURRENT" = "$PASSTHROUGH" ]; then
+    if [ -z "$CURRENT" ] || [ "$CURRENT" = "[[EMPTY]]" ]; then
         hyprctl keyword decoration:screen_shader "$SHADER"
         notify-send -t 1500 -i display "CRT Filter" "Phosphor display ONLINE"
     else
-        hyprctl keyword decoration:screen_shader "$PASSTHROUGH"
+        hyprctl keyword decoration:screen_shader ""
         notify-send -t 1500 -i display "CRT Filter" "Phosphor display OFFLINE"
     fi
   '';
@@ -219,16 +213,6 @@ in {
   config = mkIf centurySeriesThemeCondition {
     # CRT phosphor shader, passthrough shader, and toggle script
     home.file.".config/hypr/shaders/crt-phosphor.glsl".text = crtShader;
-    home.file.".config/hypr/shaders/passthrough.glsl".text = ''
-      #version 320 es
-      precision highp float;
-      in vec2 v_texcoord;
-      uniform sampler2D tex;
-      out vec4 fragColor;
-      void main() {
-          fragColor = texture(tex, v_texcoord);
-      }
-    '';
     home.file.".local/bin/century-crt-toggle" = {
       text = crtToggleScript;
       executable = true;
