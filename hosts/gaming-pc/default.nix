@@ -263,6 +263,13 @@
 
   # === Additional nixos configuration for this host ===
 
+  # User password via sops secret (declarative, no manual passwd needed)
+  sops.secrets.user-password-hash = {
+    neededForUsers = true; # Ensures secret is available during user activation
+  };
+  users.users.${config.customConfig.user.name}.hashedPasswordFile =
+    config.sops.secrets.user-password-hash.path;
+
   # Enable NVIDIA DRM fbdev for TTY/Ly framebuffer support.
   # Note: NVIDIA proprietary ignores video= kernel params, so TTY resolution is limited
   # by the EFI GOP mode (1080p) inherited from the AMD iGPU on this machine.

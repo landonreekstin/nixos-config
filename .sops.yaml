@@ -8,7 +8,7 @@ keys:
   # Or on host: cat /etc/ssh/ssh_host_ed25519_key.pub | ssh-to-age
   - &asus-laptop age142cejz500hknyqzq4zgqu83hmc0jeugjypmuxruxfe7962z9pcyqmp6853
   # TODO: fill in after visiting each machine
-  - &gaming-pc age1PLACEHOLDER_gaming-pc
+  - &gaming-pc age17fzlyzfpd645tpg4e8a6drwpswnpmcnas872lhjatz8r6dxy435q357lg6
   - &optiplex age1PLACEHOLDER_optiplex
   - &blaney-pc age1PLACEHOLDER_blaney-pc
   - &justus-pc age1PLACEHOLDER_justus-pc
