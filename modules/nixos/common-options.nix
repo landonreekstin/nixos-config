@@ -68,6 +68,11 @@ in
         default = false;
         description = "Enable a separate, stronger password for sudo authentication, managed via a secondary password file.";
       };
+      sopsPassword = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Manage user (and optionally root) password hashes via SOPS secrets instead of imperative chpasswd. Requires secrets/<hostname>.yaml to contain user-password-hash (and root-password-hash if sudoPassword is also enabled).";
+      };
     };
 
     bootloader = {
