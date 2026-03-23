@@ -122,6 +122,11 @@ let
     uniform sampler2D tex;
     out vec4 fragColor;
 
+    float hash(vec2 p) {
+        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    }
+
+
     void main() {
         vec2 uv = v_texcoord;
 
@@ -148,13 +153,50 @@ let
 
         // === PHOSPHOR TINT ===
         // Shift bright areas toward amber — radar altimeter / attack scope glow
-        // Dark areas stay dark; only luminous elements pick up the tint
         vec3 phosphorAmber = vec3(1.0, 0.62, 0.23);  // #ff9e3b
         float luminance = dot(color.rgb, vec3(0.299, 0.587, 0.114));
         color.rgb = mix(color.rgb, color.rgb * phosphorAmber, luminance * 0.18);
 
+        // === FILM GRAIN ===
+        float grain = hash(uv);
+        color.rgb += (grain - 0.5) * 0.025;
+
         fragColor = color;
     }
+  '';
+
+  crtWatcherScript = ''
+    #!/usr/bin/env bash
+    # Listen to Hyprland events and auto-disable the CRT filter for fullscreen windows.
+    # Restores the previous shader state (on or off) when fullscreen exits.
+    SHADER="${shaderPath}"
+    PASSTHROUGH="${passthroughShaderPath}"
+    STATE_FILE="/tmp/century-crt-fs-state"
+
+    handle() {
+        local line="$1"
+        # Match fullscreen events regardless of Hyprland version event format
+        if [[ "$line" == fullscreen* ]]; then
+            if [[ "$line" == *1* ]]; then
+                # Entering fullscreen — save current state, switch to passthrough
+                hyprctl getoption decoration:screen_shader \
+                    | grep "str:" | awk '{print $2}' > "$STATE_FILE"
+                hyprctl keyword decoration:screen_shader "$PASSTHROUGH"
+            else
+                # Exiting fullscreen — restore previous state
+                if [ -f "$STATE_FILE" ]; then
+                    hyprctl keyword decoration:screen_shader "$(cat "$STATE_FILE")"
+                    rm -f "$STATE_FILE"
+                else
+                    hyprctl keyword decoration:screen_shader "$SHADER"
+                fi
+            fi
+        fi
+    }
+
+    ${pkgs.socat}/bin/socat -U - \
+        "UNIX-CONNECT:$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock" \
+        | while IFS= read -r line; do handle "$line"; done
   '';
 
   crtToggleScript = ''
@@ -191,6 +233,12 @@ in {
       text = crtToggleScript;
       executable = true;
     };
+    home.file.".local/bin/century-crt-watcher" = {
+      text = crtWatcherScript;
+      executable = true;
+    };
+
+    home.packages = [ pkgs.socat ];
 
     # Wallpaper file linking for Cold War aviation theme
     home.file.".local/share/wallpapers/f-15-satellite.jpg".source = ../../../../assets/wallpapers/f-15-satellite.jpg;
@@ -325,6 +373,9 @@ in {
 
       # Environment variables for consistent theming
       extraConfig = ''
+        # Start CRT fullscreen watcher
+        exec-once = ~/.local/bin/century-crt-watcher
+
         # Toolkit theming
         env = QT_QPA_PLATFORMTHEME,qt5ct
         env = QT_STYLE_OVERRIDE,adwaita-dark
