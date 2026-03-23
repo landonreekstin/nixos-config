@@ -4,6 +4,9 @@ let
   cfg = config.customConfig; # Shortcut
 in
 {
+  # When using sops-managed passwords, disable mutable users so NixOS enforces
+  # the declarative password on every activation
+  users.mutableUsers = lib.mkIf cfg.user.sopsPasswordEnable false;
 
   users.users.${cfg.user.name} = {
     isNormalUser = true;
@@ -27,5 +30,7 @@ in
     ];
     shell = cfg.user.shell.bash.pkg;
     home = cfg.user.home;
+    # Use sops-managed password hash if enabled, otherwise password is set manually via passwd
+    hashedPasswordFile = lib.mkIf cfg.user.sopsPasswordEnable config.sops.secrets.user-password-hash.path;
   };
 }

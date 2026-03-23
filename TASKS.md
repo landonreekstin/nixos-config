@@ -145,11 +145,11 @@ Format: `- [ ] **Title** — description`
 
 ### Prerequisites
 
-- [ ] **Collect age keys for all hosts** — On each machine, run `cat /etc/ssh/ssh_host_ed25519_key.pub | ssh-to-age` and replace the `age1PLACEHOLDER_<host>` entries in `.sops.yaml`. Hosts to visit: ~~gaming-pc~~, optiplex, blaney-pc, justus-pc, asus-m15, atl-mini-pc, optiplex-nas. No Nix changes needed — just update `.sops.yaml` and commit to main.
+- [ ] **Collect age keys for all hosts** — On each machine, run `cat /etc/ssh/ssh_host_ed25519_key.pub | ssh-to-age` and replace the `age1PLACEHOLDER_<host>` entries in `.sops.yaml`. Hosts to visit: ~~gaming-pc~~, ~~optiplex~~, blaney-pc, justus-pc, asus-m15, atl-mini-pc, optiplex-nas. No Nix changes needed — just update `.sops.yaml` and commit to main.
 
 ### Declarative User Passwords (High Value)
 
-- [ ] **User passwords via sops** — Currently all user passwords are set manually via `passwd` after install, which is not reproducible. For each host: create a sops secret `user-password-hash` (generate with `mkpasswd -m sha-512`), then set `users.users.<name>.hashedPasswordFile = config.sops.secrets.user-password-hash.path`. This makes user accounts fully declarative and eliminates the manual password step from `post-install`. Affects all hosts. Requires age keys to be collected first. *(Done: gaming-pc. Remaining: optiplex, blaney-pc, justus-pc, asus-m15, atl-mini-pc, optiplex-nas)*
+- [ ] **User passwords via sops** — Currently all user passwords are set manually via `passwd` after install, which is not reproducible. For each host: create a sops secret `user-password-hash` (generate with `mkpasswd -m sha-512`), then set `users.users.<name>.hashedPasswordFile = config.sops.secrets.user-password-hash.path`. This makes user accounts fully declarative and eliminates the manual password step from `post-install`. Affects all hosts. Requires age keys to be collected first. *(Done: gaming-pc, optiplex. Remaining: blaney-pc, justus-pc, asus-m15, atl-mini-pc, optiplex-nas)*
 
 ### Service Secrets
 

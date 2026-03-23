@@ -68,6 +68,11 @@ in
         default = false;
         description = "Enable a separate, stronger password for sudo authentication, managed via a secondary password file.";
       };
+      sopsPasswordEnable = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Use sops-nix to manage the user's login password. Requires secrets/<hostname>.yaml with user-password-hash key.";
+      };
     };
 
     bootloader = {

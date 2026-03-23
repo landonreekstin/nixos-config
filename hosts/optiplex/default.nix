@@ -19,6 +19,7 @@
       # home = "/home/lando"; # Defaults correctly based on user.name
       email = "landonreekstin@gmail.com";
       shell.bash.color = "bright-cyan";
+      sopsPasswordEnable = true;  # User password managed via sops
     };
     
     system = {

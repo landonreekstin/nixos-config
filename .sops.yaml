@@ -9,7 +9,7 @@ keys:
   - &asus-laptop age142cejz500hknyqzq4zgqu83hmc0jeugjypmuxruxfe7962z9pcyqmp6853
   # TODO: fill in after visiting each machine
   - &gaming-pc age17fzlyzfpd645tpg4e8a6drwpswnpmcnas872lhjatz8r6dxy435q357lg6
-  - &optiplex age1PLACEHOLDER_optiplex
+  - &optiplex age10wjdswnj02evmuzt6vrrxkmqr6395lykamy069xkvkkp8cafr3qqmyqxd0
   - &blaney-pc age1PLACEHOLDER_blaney-pc
   - &justus-pc age1PLACEHOLDER_justus-pc
   - &asus-m15 age1PLACEHOLDER_asus-m15

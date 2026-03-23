@@ -20,6 +20,7 @@
       # home = "/home/lando"; # Defaults correctly based on user.name
       email = "landonreekstin@gmail.com";
       shell.bash.color = "blue";
+      sopsPasswordEnable = true;  # User password managed via sops
     };
 
     system = {
@@ -262,13 +263,6 @@
   };
 
   # === Additional nixos configuration for this host ===
-
-  # User password via sops secret (declarative, no manual passwd needed)
-  sops.secrets.user-password-hash = {
-    neededForUsers = true; # Ensures secret is available during user activation
-  };
-  users.users.${config.customConfig.user.name}.hashedPasswordFile =
-    config.sops.secrets.user-password-hash.path;
 
   # Enable NVIDIA DRM fbdev for TTY/Ly framebuffer support.
   # Note: NVIDIA proprietary ignores video= kernel params, so TTY resolution is limited
