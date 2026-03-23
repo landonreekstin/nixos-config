@@ -9,7 +9,7 @@ in
   boot.loader = {
     systemd-boot = {
       enable = true;
-      configurationLimit = 10;
+      configurationLimit = config.customConfig.bootloader.configurationLimit;
     };
     efi.canTouchEfiVariables = true;
   };

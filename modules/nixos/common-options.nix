@@ -71,6 +71,12 @@ in
     };
 
     bootloader = {
+      configurationLimit = mkOption {
+        type = types.int;
+        default = 10;
+        description = "Maximum number of NixOS generations to keep in the boot menu. Lower for smaller /boot partitions.";
+        example = 3;
+      };
       quietBoot = mkOption {
         type = types.bool;
         default = false;
