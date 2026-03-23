@@ -112,8 +112,70 @@ let
   centurySeriesThemeCondition = lib.elem "hyprland" customConfig.desktop.environments
     && customConfig.homeManager.themes.hyprland == "century-series";
 
+  shaderPath = "${config.home.homeDirectory}/.config/hypr/shaders/crt-phosphor.glsl";
+  passthroughShaderPath = "${config.home.homeDirectory}/.config/hypr/shaders/passthrough.glsl";
+
+  crtShader = ''
+    #version 320 es
+    precision highp float;
+    in vec2 v_texcoord;
+    uniform sampler2D tex;
+    out vec4 fragColor;
+
+    void main() {
+        vec2 uv = v_texcoord;
+        vec4 color = texture(tex, uv);
+
+        // Scanlines — alternating dark bands every 2 pixels (resolution-independent)
+        float scanline = mod(floor(gl_FragCoord.y), 2.0);
+        color.rgb *= mix(0.62, 1.0, scanline);
+
+        // Vignette — dark edges like a CRT monitor mask
+        float vigX = uv.x * (1.0 - uv.x) * 4.0;
+        float vigY = uv.y * (1.0 - uv.y) * 4.0;
+        float vignette = pow(vigX * vigY, 0.3);
+        vignette = clamp(vignette, 0.6, 1.0);
+        color.rgb *= vignette;
+
+        fragColor = color;
+    }
+  '';
+
+  crtToggleScript = ''
+    #!/usr/bin/env bash
+    # Toggle between CRT shader and passthrough — never unset screen_shader
+    # entirely as that causes Hyprland to drop layer surfaces (waybar, etc.)
+    SHADER="${shaderPath}"
+    PASSTHROUGH="${passthroughShaderPath}"
+    CURRENT=$(hyprctl getoption decoration:screen_shader | grep "str:" | awk '{print $2}')
+    if [ "$CURRENT" = "$PASSTHROUGH" ]; then
+        hyprctl keyword decoration:screen_shader "$SHADER"
+        notify-send -t 1500 -i display "CRT Filter" "Phosphor display ONLINE"
+    else
+        hyprctl keyword decoration:screen_shader "$PASSTHROUGH"
+        notify-send -t 1500 -i display "CRT Filter" "Phosphor display OFFLINE"
+    fi
+  '';
+
 in {
   config = mkIf centurySeriesThemeCondition {
+    # CRT phosphor shader, passthrough shader, and toggle script
+    home.file.".config/hypr/shaders/crt-phosphor.glsl".text = crtShader;
+    home.file.".config/hypr/shaders/passthrough.glsl".text = ''
+      #version 320 es
+      precision highp float;
+      in vec2 v_texcoord;
+      uniform sampler2D tex;
+      out vec4 fragColor;
+      void main() {
+          fragColor = texture(tex, v_texcoord);
+      }
+    '';
+    home.file.".local/bin/century-crt-toggle" = {
+      text = crtToggleScript;
+      executable = true;
+    };
+
     # Wallpaper file linking for Cold War aviation theme
     home.file.".local/share/wallpapers/f-15-satellite.jpg".source = ../../../../assets/wallpapers/f-15-satellite.jpg;
     home.file.".local/share/wallpapers/f-4-cockpit.png".source = ../../../../assets/wallpapers/f-4-cockpit.png;
@@ -154,6 +216,7 @@ in {
         # Decoration - Cockpit glass and metal materials
         decoration = {
           rounding = 0;  # Cockpit displays are rectangular
+          screen_shader = shaderPath;
 
           # Dim inactive windows like non-active MFD panels
           dim_inactive = true;
@@ -235,6 +298,12 @@ in {
         layerrule = [
           "blur, gtk-layer-shell"
           "ignorezero, gtk-layer-shell"
+        ];
+
+        # Theme-specific keybinds
+        bind = [
+          # Toggle CRT phosphor filter on/off
+          "SUPER CTRL, G, exec, ~/.local/bin/century-crt-toggle"
         ];
       };
 
