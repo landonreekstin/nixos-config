@@ -145,7 +145,7 @@ Format: `- [ ] **Title** — description`
 
 ### Prerequisites
 
-- [ ] **Collect age keys for all hosts** — On each machine, run `cat /etc/ssh/ssh_host_ed25519_key.pub | ssh-to-age` and replace the `age1PLACEHOLDER_<host>` entries in `.sops.yaml`. Hosts to visit: ~~gaming-pc~~, ~~optiplex~~, blaney-pc, justus-pc, asus-m15, atl-mini-pc, optiplex-nas. No Nix changes needed — just update `.sops.yaml` and commit to main.
+- [ ] **Collect age keys for all hosts** — On each machine, run `cat /etc/ssh/ssh_host_ed25519_key.pub | ssh-to-age` and replace the `age1PLACEHOLDER_<host>` entries in `.sops.yaml`. Hosts to visit: ~~gaming-pc~~, ~~optiplex~~, blaney-pc, justus-pc, asus-m15, atl-mini-pc, ~~optiplex-nas~~. No Nix changes needed — just update `.sops.yaml` and commit to main.
 
 ### Declarative User Passwords (High Value)
 
