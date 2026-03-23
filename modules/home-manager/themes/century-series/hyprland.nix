@@ -124,18 +124,34 @@ let
 
     void main() {
         vec2 uv = v_texcoord;
-        vec4 color = texture(tex, uv);
 
-        // Scanlines — alternating dark bands every 2 pixels (resolution-independent)
+        // === CHROMATIC ABERRATION ===
+        // Slight RGB channel separation — misaligned analog display / HUD optics
+        float aberration = 0.0006;
+        float r = texture(tex, vec2(uv.x - aberration, uv.y)).r;
+        float g = texture(tex, uv).g;
+        float b = texture(tex, vec2(uv.x + aberration, uv.y)).b;
+        vec4 color = vec4(r, g, b, 1.0);
+
+        // === SCANLINES ===
+        // Alternating dark bands every 2 pixels (resolution-independent)
         float scanline = mod(floor(gl_FragCoord.y), 2.0);
         color.rgb *= mix(0.62, 1.0, scanline);
 
-        // Vignette — dark edges like a CRT monitor mask
+        // === VIGNETTE ===
+        // Dark edges like a CRT monitor mask
         float vigX = uv.x * (1.0 - uv.x) * 4.0;
         float vigY = uv.y * (1.0 - uv.y) * 4.0;
         float vignette = pow(vigX * vigY, 0.3);
         vignette = clamp(vignette, 0.6, 1.0);
         color.rgb *= vignette;
+
+        // === PHOSPHOR TINT ===
+        // Shift bright areas toward amber — radar altimeter / attack scope glow
+        // Dark areas stay dark; only luminous elements pick up the tint
+        vec3 phosphorAmber = vec3(1.0, 0.62, 0.23);  // #ff9e3b
+        float luminance = dot(color.rgb, vec3(0.299, 0.587, 0.114));
+        color.rgb = mix(color.rgb, color.rgb * phosphorAmber, luminance * 0.18);
 
         fragColor = color;
     }
