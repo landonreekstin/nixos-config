@@ -1251,6 +1251,12 @@ in
           default = "/root/secrets/media-linker.env";
           description = "Path to environment file with JELLYSEERR_API_KEY, RADARR_API_KEY, SONARR_API_KEY.";
         };
+
+        sopsEnvEnable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Use sops-nix to manage media-linker API keys. Requires secrets/<hostname>.yaml with media-linker-env key.";
+        };
       };
     };
 

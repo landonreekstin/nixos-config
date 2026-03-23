@@ -79,6 +79,7 @@
       name = "lando"; # Or whatever user your script creates
       email = "landonreekstin@gmail.com";
       shell.bash.color = "bright-green";
+      sopsPasswordEnable = true;  # Declarative password via sops
     };
     
     system = {
@@ -182,6 +183,7 @@
       flaresolverr.enable = true;
       mediaLinker = {
         enable = true;
+        sopsEnvEnable = true;  # API keys managed via sops
         mediaUsers = [
           # Look up Jellyseerr user IDs at http://192.168.1.76:5055/users
           # and replace the placeholder IDs below.
