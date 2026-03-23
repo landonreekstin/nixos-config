@@ -145,15 +145,15 @@ Format: `- [ ] **Title** — description`
 
 ### Prerequisites
 
-- [ ] **Collect age keys for all hosts** — On each machine, run `cat /etc/ssh/ssh_host_ed25519_key.pub | ssh-to-age` and replace the `age1PLACEHOLDER_<host>` entries in `.sops.yaml`. Hosts to visit: ~~gaming-pc~~, optiplex, blaney-pc, justus-pc, asus-m15, atl-mini-pc, optiplex-nas. No Nix changes needed — just update `.sops.yaml` and commit to main.
+- [x] **Collect age keys for primary hosts** — Run `cat /etc/ssh/ssh_host_ed25519_key.pub | ssh-to-age` and replace placeholders in `.sops.yaml`. Done: gaming-pc, optiplex, optiplex-nas. Remaining hosts (blaney-pc, justus-pc, asus-m15, atl-mini-pc) are off-network and working fine without sops — collect if/when needed.
 
 ### Declarative User Passwords (High Value)
 
-- [ ] **User passwords via sops** — Currently all user passwords are set manually via `passwd` after install, which is not reproducible. For each host: create a sops secret `user-password-hash` (generate with `mkpasswd -m sha-512`), then set `users.users.<name>.hashedPasswordFile = config.sops.secrets.user-password-hash.path`. This makes user accounts fully declarative and eliminates the manual password step from `post-install`. Affects all hosts. Requires age keys to be collected first. *(Done: gaming-pc. Remaining: optiplex, blaney-pc, justus-pc, asus-m15, atl-mini-pc, optiplex-nas)*
+- [ ] **User passwords via sops** — Use `customConfig.user.sopsPasswordEnable = true` and create encrypted `secrets/<host>.yaml` with `user-password-hash` key. Infrastructure complete: shared option wires `hashedPasswordFile` and sets `mutableUsers = false`. *(Done: gaming-pc, optiplex, optiplex-nas. Off-network hosts deferred.)*
 
 ### Service Secrets
 
-- [ ] **media-linker API keys → sops (optiplex-nas)** — The media-linker service reads `JELLYSEERR_API_KEY`, `RADARR_API_KEY`, and `SONARR_API_KEY` from `/root/secrets/media-linker.env`. Migrate to a sops secret file: encrypt the env file as `secrets/optiplex-nas.yaml`, expose it via `sops.secrets.media-linker-env` with `owner = "root"`, and update `customConfig.homelab.mediaLinker.envFile` (currently set in common-options.nix) to point to `config.sops.secrets.media-linker-env.path`. Removes the manual file creation step from optiplex-nas setup.
+- [x] **media-linker API keys → sops (optiplex-nas)** — The media-linker service reads `JELLYSEERR_API_KEY`, `RADARR_API_KEY`, and `SONARR_API_KEY` from `/root/secrets/media-linker.env`. Migrate to a sops secret file: encrypt the env file as `secrets/optiplex-nas.yaml`, expose it via `sops.secrets.media-linker-env` with `owner = "root"`, and update `customConfig.homelab.mediaLinker.envFile` (currently set in common-options.nix) to point to `config.sops.secrets.media-linker-env.path`. Removes the manual file creation step from optiplex-nas setup.
 
 - [ ] **atl-mini-pc WireGuard server private key → sops** — The WireGuard server config on atl-mini-pc references `/etc/nixos/secrets/wireguard/server-privatekey` (currently disabled). Before enabling, migrate to sops: add a `wireguard-server-private-key` secret to `secrets/atl-mini-pc.yaml`, update `customConfig.services.wireguard.server.privateKeyFile` to use `config.sops.secrets.wireguard-server-private-key.path`. Mirror the pattern already used for the asus-laptop client key.
 

@@ -34,7 +34,9 @@ in
 
     # When sopsPassword is enabled, source the user's password hash from a SOPS secret
     # instead of relying on imperative chpasswd during installation.
+    # mutableUsers = false ensures NixOS enforces the declarative password on every activation.
     (lib.mkIf cfg.user.sopsPassword {
+      users.mutableUsers = false;
       sops.secrets.user-password-hash = {
         neededForUsers = true;
       };
