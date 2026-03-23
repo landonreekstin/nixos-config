@@ -5,24 +5,30 @@ let
   cfg = config.customConfig;
 in
 {
-  # Only apply these changes if the feature is enabled for the host.
-  config = lib.mkIf cfg.user.sudoPassword {
+  config = lib.mkIf cfg.user.sudoPassword (lib.mkMerge [
+    {
+      # Configure sudo to prompt for root's password instead of the user's.
+      security.sudo.extraConfig = ''
+        Defaults rootpw
+      '';
+    }
 
-    # The install script uses `chpasswd` to set the initial user password.
-    # We override its PAM configuration to be a minimal service that ONLY
-    # uses pam_unix to set the password. This bypasses the default password
-    # quality checks (pam_pwquality) and allows a weak password to be set
-    # for the graphical login, which is our specific goal for this host.
-    security.pam.services.chpasswd.text = ''
-      password required ${config.security.pam.package}/lib/security/pam_unix.so
-    '';
+    # Sops path: root password hash stored as a secret (preferred for sops-enabled hosts).
+    (lib.mkIf cfg.user.sopsPassword {
+      sops.secrets.root-password-hash = {
+        neededForUsers = true;
+      };
+      users.users.root.hashedPasswordFile =
+        config.sops.secrets.root-password-hash.path;
+    })
 
-    # Add the 'rootpw' option to the sudoers configuration.
-    # This tells sudo to prompt for the root user's password instead of
-    # the invoking user's password.
-    security.sudo.extraConfig = ''
-      Defaults rootpw
-    '';
-
-  };
+    # Legacy path: override PAM chpasswd to bypass quality checks so the install
+    # script can set a weak graphical-login password without error. Only active
+    # on hosts not yet migrated to sops (sopsPassword = false).
+    (lib.mkIf (!cfg.user.sopsPassword) {
+      security.pam.services.chpasswd.text = ''
+        password required ${config.security.pam.package}/lib/security/pam_unix.so
+      '';
+    })
+  ]);
 }

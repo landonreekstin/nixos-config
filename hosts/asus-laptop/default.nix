@@ -21,6 +21,7 @@
       name = "lando";
       email = "landonreekstin@gmail.com";
       shell.bash.color = "blue";
+      sopsPassword = true;
     };
     
     bootloader = {
