@@ -364,6 +364,11 @@ in {
           force_default_wallpaper = mkForce 0;  # Let hyprpaper handle wallpapers
         };
 
+        # screen_shader requires full repaints to avoid stale pixel artifacts
+        debug = {
+          damage_tracking = 0;
+        };
+
         # Window rules for specific applications
         windowrulev2 = [
           # Float and center dialogs like popup instruments
