@@ -4,6 +4,7 @@
   rustPlatform,
   fetchFromGitHub,
   pkg-config,
+  makeWrapper,
   llvmPackages,
   openssl,
   alsa-lib,
@@ -26,6 +27,7 @@ rustPlatform.buildRustPackage rec {
 
   nativeBuildInputs = [
     pkg-config
+    makeWrapper
     llvmPackages.clang
     llvmPackages.libclang
   ];
@@ -38,6 +40,11 @@ rustPlatform.buildRustPackage rec {
   ];
 
   LIBCLANG_PATH = "${llvmPackages.libclang.lib}/lib";
+
+  postInstall = ''
+    wrapProgram $out/bin/spotatui \
+      --run 'mkdir -p /tmp/spotatui_logs'
+  '';
 
   meta = with lib; {
     description = "A Spotify client for the terminal written in Rust, powered by Ratatui";
