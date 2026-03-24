@@ -149,6 +149,7 @@
         claude-code
         signal-desktop
         (callPackage ../../pkgs/worldmonitor { })
+        (callPackage ../../pkgs/spotatui { })
         mapscii
         astroterm
       ];

@@ -183,6 +183,7 @@
     # Custom packages not in nixpkgs
     packages.x86_64-linux = {
       worldmonitor = pkgs.callPackage ./pkgs/worldmonitor { };
+      spotatui = pkgs.callPackage ./pkgs/spotatui { };
     };
 
     # Development Shells provided by this flake
