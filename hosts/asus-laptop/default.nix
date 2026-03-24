@@ -149,6 +149,8 @@
         claude-code
         signal-desktop
         (callPackage ../../pkgs/worldmonitor { })
+        mapscii
+        astroterm
       ];
       flatpak = {
         enable = true;
