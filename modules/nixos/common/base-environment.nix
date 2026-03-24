@@ -14,6 +14,7 @@
     bat
     glow
     gh
+    speedtest-cli
   ] ++ config.customConfig.packages.nixos; # Appends host-specific system packages
 
   # Point gh at the user's config directory even when running as root (e.g. sudo claude-code)
