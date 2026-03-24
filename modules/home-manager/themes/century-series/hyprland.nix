@@ -112,9 +112,7 @@ let
   centurySeriesThemeCondition = lib.elem "hyprland" customConfig.desktop.environments
     && customConfig.homeManager.themes.hyprland == "century-series";
 
-  shaderPath = "${config.home.homeDirectory}/.config/hypr/shaders/crt-phosphor.glsl";
   barrelShaderPath = "${config.home.homeDirectory}/.config/hypr/shaders/crt-barrel.glsl";
-  barsHiddenFile = "/tmp/century-bars-hidden";
 
   # GLSL header shared by both shaders
   crtGlslHeader = ''
@@ -163,17 +161,6 @@ let
         fragColor = color;
   '';
 
-  # Standard CRT shader — no barrel distortion, safe for desktop use
-  crtShader = ''
-    ${crtGlslHeader}
-    void main() {
-        vec2 uv = v_texcoord;
-        ${crtEffectsBody}
-    }
-  '';
-
-  # Fullscreen CRT shader — adds barrel distortion, used for kitty fullscreen
-  # No UI elements at edges so the hard black corners are safe and look authentic
   crtBarrelShader = ''
     ${crtGlslHeader}
     void main() {
@@ -192,53 +179,12 @@ let
     }
   '';
 
-  crtWatcherScript = ''
-    #!/usr/bin/env bash
-    # Adds barrel distortion when any window goes fullscreen.
-    # Restores previous shader state on fullscreen exit.
-    SHADER="${shaderPath}"
-    BARREL_SHADER="${barrelShaderPath}"
-    STATE_FILE="/tmp/century-crt-fs-state"
-
-    handle() {
-        local line="$1"
-        if [[ "$line" == fullscreen* ]]; then
-            if [[ "$line" == *1* ]]; then
-                # Save current state and switch to barrel shader
-                hyprctl getoption decoration:screen_shader \
-                    | grep "str:" | awk '{print $2}' > "$STATE_FILE"
-                hyprctl keyword decoration:screen_shader "$BARREL_SHADER"
-            else
-                # Restore previous state
-                if [ -f "$STATE_FILE" ]; then
-                    hyprctl keyword decoration:screen_shader "$(cat "$STATE_FILE")"
-                    rm -f "$STATE_FILE"
-                else
-                    hyprctl keyword decoration:screen_shader "$SHADER"
-                fi
-            fi
-        fi
-    }
-
-    ${pkgs.socat}/bin/socat -U - \
-        "UNIX-CONNECT:$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock" \
-        | while IFS= read -r line; do handle "$line"; done
-  '';
-
   crtToggleScript = ''
     #!/usr/bin/env bash
-    SHADER="${shaderPath}"
     BARREL_SHADER="${barrelShaderPath}"
     CURRENT=$(hyprctl getoption decoration:screen_shader | grep "str:" | awk '{print $2}')
     if [ -z "$CURRENT" ] || [ "$CURRENT" = "[[EMPTY]]" ]; then
-        # Turning on — use barrel shader if fullscreen or bars are hidden
-        IS_FULLSCREEN=$(hyprctl activewindow -j 2>/dev/null | grep -c '"fullscreen":[^f0]')
-        IS_BARS_HIDDEN=0; [ -f "${barsHiddenFile}" ] && IS_BARS_HIDDEN=1
-        if { [ "$IS_FULLSCREEN" -gt 0 ] || [ "$IS_BARS_HIDDEN" -eq 1 ]; } 2>/dev/null; then
-            hyprctl keyword decoration:screen_shader "$BARREL_SHADER"
-        else
-            hyprctl keyword decoration:screen_shader "$SHADER"
-        fi
+        hyprctl keyword decoration:screen_shader "$BARREL_SHADER"
         notify-send -t 1500 -i display "CRT Filter" "Phosphor display ONLINE"
     else
         hyprctl keyword decoration:screen_shader ""
@@ -248,47 +194,14 @@ let
 
   crtBarsToggleScript = ''
     #!/usr/bin/env bash
-    SHADER="${shaderPath}"
-    BARREL_SHADER="${barrelShaderPath}"
-    BARS_HIDDEN="${barsHiddenFile}"
-
-    if [ -f "$BARS_HIDDEN" ]; then
-        # Bars are hidden → show them
-        pkill -SIGUSR1 waybar
-        rm -f "$BARS_HIDDEN"
-        # Restore regular shader unless still fullscreen
-        CURRENT=$(hyprctl getoption decoration:screen_shader | grep "str:" | awk '{print $2}')
-        if [ -n "$CURRENT" ] && [ "$CURRENT" != "[[EMPTY]]" ]; then
-            IS_FULLSCREEN=$(hyprctl activewindow -j 2>/dev/null | grep -c '"fullscreen":[^f0]')
-            if [ "$IS_FULLSCREEN" -eq 0 ] 2>/dev/null; then
-                hyprctl keyword decoration:screen_shader "$SHADER"
-            fi
-        fi
-        notify-send -t 1500 -i display "HUD" "Bars online"
-    else
-        # Bars are shown → hide them
-        pkill -SIGUSR1 waybar
-        touch "$BARS_HIDDEN"
-        # Switch to barrel if CRT is on
-        CURRENT=$(hyprctl getoption decoration:screen_shader | grep "str:" | awk '{print $2}')
-        if [ -n "$CURRENT" ] && [ "$CURRENT" != "[[EMPTY]]" ]; then
-            hyprctl keyword decoration:screen_shader "$BARREL_SHADER"
-        fi
-        notify-send -t 1500 -i display "HUD" "Bars offline"
-    fi
+    pkill -SIGUSR1 waybar
   '';
 
 in {
   config = mkIf centurySeriesThemeCondition {
-    # CRT phosphor shader, passthrough shader, and toggle script
-    home.file.".config/hypr/shaders/crt-phosphor.glsl".text = crtShader;
     home.file.".config/hypr/shaders/crt-barrel.glsl".text = crtBarrelShader;
     home.file.".local/bin/century-crt-toggle" = {
       text = crtToggleScript;
-      executable = true;
-    };
-    home.file.".local/bin/century-crt-watcher" = {
-      text = crtWatcherScript;
       executable = true;
     };
     home.file.".local/bin/century-bars-toggle" = {
@@ -296,7 +209,6 @@ in {
       executable = true;
     };
 
-    home.packages = [ pkgs.socat ];
 
     # Wallpaper file linking for Cold War aviation theme
     home.file.".local/share/wallpapers/f-15-satellite.jpg".source = ../../../../assets/wallpapers/f-15-satellite.jpg;
@@ -338,7 +250,7 @@ in {
         # Decoration - Cockpit glass and metal materials
         decoration = {
           rounding = 0;  # Cockpit displays are rectangular
-          screen_shader = shaderPath;
+          screen_shader = barrelShaderPath;
 
           # Dim inactive windows like non-active MFD panels
           dim_inactive = true;
@@ -439,7 +351,6 @@ in {
       # Environment variables for consistent theming
       extraConfig = ''
         # Start CRT fullscreen watcher
-        exec-once = ~/.local/bin/century-crt-watcher
 
         # Toolkit theming
         env = QT_QPA_PLATFORMTHEME,qt5ct
