@@ -193,9 +193,7 @@ let
 
   crtWatcherScript = ''
     #!/usr/bin/env bash
-    # Listen to Hyprland events.
-    # - kitty fullscreen: keep CRT filter + add barrel distortion
-    # - everything else fullscreen: disable filter (games, video)
+    # Adds barrel distortion when any window goes fullscreen.
     # Restores previous shader state on fullscreen exit.
     SHADER="${shaderPath}"
     BARREL_SHADER="${barrelShaderPath}"
@@ -205,18 +203,12 @@ let
         local line="$1"
         if [[ "$line" == fullscreen* ]]; then
             if [[ "$line" == *1* ]]; then
-                # Save current shader state before doing anything
+                # Save current state and switch to barrel shader
                 hyprctl getoption decoration:screen_shader \
                     | grep "str:" | awk '{print $2}' > "$STATE_FILE"
-                # Check which app went fullscreen
-                WINDOW_CLASS=$(hyprctl activewindow | awk '/class:/{print $2}')
-                if [ "$WINDOW_CLASS" = "kitty" ]; then
-                    hyprctl keyword decoration:screen_shader "$BARREL_SHADER"
-                else
-                    hyprctl keyword decoration:screen_shader ""
-                fi
+                hyprctl keyword decoration:screen_shader "$BARREL_SHADER"
             else
-                # Exiting fullscreen — restore previous state
+                # Restore previous state
                 if [ -f "$STATE_FILE" ]; then
                     hyprctl keyword decoration:screen_shader "$(cat "$STATE_FILE")"
                     rm -f "$STATE_FILE"
@@ -235,9 +227,16 @@ let
   crtToggleScript = ''
     #!/usr/bin/env bash
     SHADER="${shaderPath}"
+    BARREL_SHADER="${barrelShaderPath}"
     CURRENT=$(hyprctl getoption decoration:screen_shader | grep "str:" | awk '{print $2}')
     if [ -z "$CURRENT" ] || [ "$CURRENT" = "[[EMPTY]]" ]; then
-        hyprctl keyword decoration:screen_shader "$SHADER"
+        # Turning on — use barrel shader if a window is currently fullscreen
+        IS_FULLSCREEN=$(hyprctl activewindow -j 2>/dev/null | grep -c '"fullscreen":[^f0]')
+        if [ "$IS_FULLSCREEN" -gt 0 ] 2>/dev/null; then
+            hyprctl keyword decoration:screen_shader "$BARREL_SHADER"
+        else
+            hyprctl keyword decoration:screen_shader "$SHADER"
+        fi
         notify-send -t 1500 -i display "CRT Filter" "Phosphor display ONLINE"
     else
         hyprctl keyword decoration:screen_shader ""
