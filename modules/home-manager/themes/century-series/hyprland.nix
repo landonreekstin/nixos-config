@@ -114,6 +114,7 @@ let
 
   shaderPath = "${config.home.homeDirectory}/.config/hypr/shaders/crt-phosphor.glsl";
   barrelShaderPath = "${config.home.homeDirectory}/.config/hypr/shaders/crt-barrel.glsl";
+  barsHiddenFile = "/tmp/century-bars-hidden";
 
   # GLSL header shared by both shaders
   crtGlslHeader = ''
@@ -230,9 +231,10 @@ let
     BARREL_SHADER="${barrelShaderPath}"
     CURRENT=$(hyprctl getoption decoration:screen_shader | grep "str:" | awk '{print $2}')
     if [ -z "$CURRENT" ] || [ "$CURRENT" = "[[EMPTY]]" ]; then
-        # Turning on — use barrel shader if a window is currently fullscreen
+        # Turning on — use barrel shader if fullscreen or bars are hidden
         IS_FULLSCREEN=$(hyprctl activewindow -j 2>/dev/null | grep -c '"fullscreen":[^f0]')
-        if [ "$IS_FULLSCREEN" -gt 0 ] 2>/dev/null; then
+        IS_BARS_HIDDEN=0; [ -f "${barsHiddenFile}" ] && IS_BARS_HIDDEN=1
+        if { [ "$IS_FULLSCREEN" -gt 0 ] || [ "$IS_BARS_HIDDEN" -eq 1 ]; } 2>/dev/null; then
             hyprctl keyword decoration:screen_shader "$BARREL_SHADER"
         else
             hyprctl keyword decoration:screen_shader "$SHADER"
@@ -241,6 +243,38 @@ let
     else
         hyprctl keyword decoration:screen_shader ""
         notify-send -t 1500 -i display "CRT Filter" "Phosphor display OFFLINE"
+    fi
+  '';
+
+  crtBarsToggleScript = ''
+    #!/usr/bin/env bash
+    SHADER="${shaderPath}"
+    BARREL_SHADER="${barrelShaderPath}"
+    BARS_HIDDEN="${barsHiddenFile}"
+
+    if [ -f "$BARS_HIDDEN" ]; then
+        # Bars are hidden → show them
+        pkill -SIGUSR1 waybar
+        rm -f "$BARS_HIDDEN"
+        # Restore regular shader unless still fullscreen
+        CURRENT=$(hyprctl getoption decoration:screen_shader | grep "str:" | awk '{print $2}')
+        if [ -n "$CURRENT" ] && [ "$CURRENT" != "[[EMPTY]]" ]; then
+            IS_FULLSCREEN=$(hyprctl activewindow -j 2>/dev/null | grep -c '"fullscreen":[^f0]')
+            if [ "$IS_FULLSCREEN" -eq 0 ] 2>/dev/null; then
+                hyprctl keyword decoration:screen_shader "$SHADER"
+            fi
+        fi
+        notify-send -t 1500 -i display "HUD" "Bars online"
+    else
+        # Bars are shown → hide them
+        pkill -SIGUSR1 waybar
+        touch "$BARS_HIDDEN"
+        # Switch to barrel if CRT is on
+        CURRENT=$(hyprctl getoption decoration:screen_shader | grep "str:" | awk '{print $2}')
+        if [ -n "$CURRENT" ] && [ "$CURRENT" != "[[EMPTY]]" ]; then
+            hyprctl keyword decoration:screen_shader "$BARREL_SHADER"
+        fi
+        notify-send -t 1500 -i display "HUD" "Bars offline"
     fi
   '';
 
@@ -255,6 +289,10 @@ in {
     };
     home.file.".local/bin/century-crt-watcher" = {
       text = crtWatcherScript;
+      executable = true;
+    };
+    home.file.".local/bin/century-bars-toggle" = {
+      text = crtBarsToggleScript;
       executable = true;
     };
 
@@ -393,6 +431,8 @@ in {
         bind = [
           # Toggle CRT phosphor filter on/off
           "SUPER CTRL, G, exec, ~/.local/bin/century-crt-toggle"
+          # Toggle top/bottom bars — also applies barrel distortion if CRT is on
+          "SUPER, F10, exec, ~/.local/bin/century-bars-toggle"
         ];
       };
 
