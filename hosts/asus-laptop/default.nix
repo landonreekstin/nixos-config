@@ -193,6 +193,12 @@
 
   # === Additional nixos configuration for this host ===
 
+  # spotatui writes logs to /tmp/spotatui_logs/ — create it at boot with
+  # world-writable + sticky-bit so any user can write their own log files.
+  systemd.tmpfiles.rules = [
+    "d /tmp/spotatui_logs 1777 root root -"
+  ];
+
   sops.secrets.wireguard-private-key = {};
 
   # gaming-pc is on the home LAN (192.168.1.0/24), which conflicts with many
