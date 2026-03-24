@@ -172,6 +172,7 @@ in
         misc = {
           force_default_wallpaper = -1; # Important if another tool handles wallpaper
           disable_hyprland_logo = true;
+          vfr = false; # Prevents damage tracking artifacts (black lines, stale pixels)
         };
 
         # Keybindings
