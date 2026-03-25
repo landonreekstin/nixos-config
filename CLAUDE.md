@@ -249,6 +249,8 @@ docs(claude): add blaney-pc guidelines
 
 **The rule in plain terms**: commit comes *after* a successful rebuild and manual verification, never before. The only exception is changes that require a different machine to test — those go into a PR and are merged once verified on the target host.
 
+**Do not open a PR until the change has been tested on the machine currently being developed on.** If Claude Code is running on `asus-laptop` and the change targets `asus-laptop`, do a `rebuild` and verify it works *before* creating the PR — not after. PRs should represent verified, working changes, not speculative ones.
+
 ### Hardware Configurations
 Hardware configs are auto-generated during installation and should not be manually edited. They're stored per-host in `hosts/<hostname>/hardware-configuration.nix`.
 
@@ -278,9 +280,10 @@ Available via `customConfig.homelab`:
 3. **`sudo chown -R lando:users /home/lando/nixos-config`** ← always do this before rebuild
 4. **`rebuild`** ← REQUIRED before committing
 5. **Verify** the changes work correctly (open the app, check the setting, confirm the behavior)
-6. **Commit and PR** — only after steps 4 and 5 succeed
+6. **Commit** — only after steps 4 and 5 succeed
+7. **PR** — only after step 6; do not open a PR before the change is verified working on the current host
 
-**Exception**: Changes that can only be tested on a different host (different machine, hardware, or display required) skip steps 4–5 locally. Instead: eval-check → commit → PR → note that in-person testing is needed → merge after confirmed on target.
+**Exception**: Changes that can only be tested on a different host (different machine, hardware, or display required) skip steps 4–5 locally. Instead: eval-check → commit → PR (note in-person testing needed) → merge after confirmed on target.
 
 Never commit to main before rebuilding and verifying. This applies even to "obviously correct" changes.
 
