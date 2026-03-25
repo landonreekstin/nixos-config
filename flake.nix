@@ -184,6 +184,7 @@
     packages.x86_64-linux = {
       worldmonitor = pkgs.callPackage ./pkgs/worldmonitor { };
       spotatui = pkgs.callPackage ./pkgs/spotatui { };
+      tuisic = pkgs.callPackage ./pkgs/tuisic { };
     };
 
     # Development Shells provided by this flake
