@@ -940,6 +940,13 @@ in
             description = "Enable ASUS laptop specific services and tools (asusctl).";
           };
         };
+        airpods = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable librepods for AirPods ANC, ear detection, and battery status on Linux.";
+          };
+        };
       };
       display = {
         backlight = {

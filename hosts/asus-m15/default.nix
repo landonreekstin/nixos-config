@@ -81,6 +81,7 @@
       peripherals = {
         enable = true;
         asus.enable = true;
+        airpods.enable = true;
       };
     };
 
@@ -117,11 +118,13 @@
         "vscode"
         "chromium"
         "firefox"
+        "claude-code"
       ];
       homeManager = with pkgs; [
         vscode
         chromium
         firefox
+        claude-code
       ];
       flatpak = {
         enable = true;
