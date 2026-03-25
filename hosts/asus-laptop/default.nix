@@ -150,6 +150,7 @@
         signal-desktop
         (callPackage ../../pkgs/worldmonitor { })
         (callPackage ../../pkgs/spotatui { })
+        (callPackage ../../pkgs/tuisic { })
         mapscii
         astroterm
       ];
