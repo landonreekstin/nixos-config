@@ -4,10 +4,15 @@
 let
   isHyprland = lib.elem "hyprland" customConfig.desktop.environments;
   idleCfg = customConfig.desktop.idle;
-  # Reference the configured swaylock package (may be swaylock-effects from theme).
-  # Run in background (&) so swayidle's -w flag doesn't block it from firing
-  # subsequent timeouts (e.g. dpms off) or resume commands while lock is active.
-  swaylockCmd = "${config.programs.swaylock.package}/bin/swaylock &";
+  swaylockBin = "${config.programs.swaylock.package}/bin/swaylock";
+  # Run in background (&) so swayidle's -w flag doesn't block subsequent timeouts.
+  swaylockCmd = "${swaylockBin} &";
+  # On resume, delay swaylock by 0.3s so Hyprland finishes re-initializing input
+  # before swaylock grabs the keyboard — prevents the first password key being dropped.
+  swaylockResumeScript = pkgs.writeShellScript "swaylock-resume" ''
+    sleep 0.3
+    exec ${swaylockBin}
+  '';
 in
 {
   # On Hyprland with systemd.enable=false, WAYLAND_DISPLAY isn't in the systemd environment
@@ -34,7 +39,9 @@ in
         resumeCommand = "/run/current-system/sw/bin/hyprctl dispatch dpms on";
       };
     events = [
-      { event = "before-sleep"; command = "pidof swaylock || ${swaylockCmd}"; }
+      # Lock after resume rather than before sleep — swaylock starts fresh once
+      # Hyprland has fully re-initialized, avoiding the frozen render loop issue.
+      { event = "after-resume"; command = "pidof swaylock || ${swaylockResumeScript} &"; }
       { event = "lock";         command = "pidof swaylock || ${swaylockCmd}"; }
     ];
   };
