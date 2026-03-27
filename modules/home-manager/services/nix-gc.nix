@@ -8,7 +8,7 @@
     Unit.Description = "Clean old home-manager generations";
     Service = {
       Type = "oneshot";
-      ExecStart = "${pkgs.nh}/bin/nh clean home --keep 3";
+      ExecStart = "${pkgs.nh}/bin/nh clean user --keep 3";
     };
   };
 
