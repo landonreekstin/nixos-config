@@ -91,7 +91,7 @@ Format: `- [ ] **Title** — description`
 
 ## Hyprland
 
-- [ ] **Hyprland lid close lock bug** — When closing the laptop lid, hyprlock activates but the lock screen is frozen: the password entry field does not animate or visually respond to keypresses, though the password is accepted and the session resumes correctly. Investigate: likely a Hyprland/hyprlock race condition on DPMS or monitor sleep during lid close. Check `swayidle` lid-close logic and hyprlock `--immediate` flag interaction. Scope: asus-laptop Hyprland.
+- [ ] **Hyprland lid close lock bug** — *(PR open — needs in-person test: [#25](https://github.com/landonreekstin/nixos-config/pull/25))* Partially fixed: changed from `before-sleep` to `after-resume` locking — lock screen now appears after Hyprland re-initializes on wake, with proper animation. Known remaining issue: the first password keypress after swaylock appears on resume is dropped (swaylock grabs the keyboard before the key event completes). Multiple delay values tried (0.1s, 0.3s, 0.5s) but the issue persists. Needs in-person testing to confirm behavior and determine if acceptable or worth further investigation.
 
 - [ ] **Refactor exec shortcuts to customConfig variables** — Add `customConfig.hyprland.apps.terminal`, `.editor`, `.browser`, `.music`, `.fileManager` with sane defaults (kitty, neovim, librewolf, spotify, yazi). Keybindings reference these instead of hardcoded commands.
 
@@ -114,7 +114,7 @@ Format: `- [ ] **Title** — description`
 
 ## Waybar
 
-- [ ] **Century Series: battery percentage gradient** — The existing Waybar battery module changes text/icon at low/AC states. Extend it to show a continuous color gradient as percentage changes: green (100%) → yellow (~50%) → orange (~25%) → red (~10%). Implement via a custom script or `format-icons` array that covers enough steps to appear smooth. Apply to any host with a battery (gated on `customConfig.hardware.isLaptop` or battery presence detection).
+- [ ] **Century Series: battery percentage gradient** — *(PR open — needs in-person battery drain test: [#26](https://github.com/landonreekstin/nixos-config/pull/26))* The existing Waybar battery module changes text/icon at low/AC states. Extend it to show a continuous color gradient as percentage changes: green (100%) → yellow (~50%) → orange (~25%) → red (~10%). Implement via a custom script or `format-icons` array that covers enough steps to appear smooth. Apply to any host with a battery (gated on `customConfig.hardware.isLaptop` or battery presence detection).
 
 - [ ] **Dynamic audio icons by output device** — Replace the static pulseaudio module with a custom script that detects the current PipeWire sink (headphones vs. speakers vs. USB DAC) and shows a matching icon.
 
