@@ -143,7 +143,7 @@ in
           kb_rules = "";
           follow_mouse = 1;
           touchpad = {
-            natural_scroll = false;
+            natural_scroll = lib.mkDefault customConfig.hardware.touchpad.naturalScroll;
           };
           sensitivity = 0;
         };

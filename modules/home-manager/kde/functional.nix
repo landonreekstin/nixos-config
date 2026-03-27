@@ -63,6 +63,8 @@ in
           else if batteryLock != null then lib.max 30 batteryLock
           else "never";
       };
+
+      configFile."kcminputrc"."LibinputPointer"."NaturalScroll" = customConfig.hardware.touchpad.naturalScroll;
     };
   };
 }

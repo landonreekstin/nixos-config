@@ -9,6 +9,10 @@ Format: `- [ ] **Title** — description`
 
 ## System / Core
 
+- [ ] **Update notification: sync & rebuild action button** — Extend `modules/home-manager/services/update-notification.nix` to include a dunst action button labeled "Update & Rebuild" that runs `sync && rebuild` in a terminal (or background with follow-up notification). Add a second notification on completion indicating success or failure. KDE: use `kdialog` or a `.desktop` action instead of dunstify. Gate behind the existing `cfg.enable` option.
+
+- [ ] **Branch maintenance workflow** — Define cleanup guidelines and optionally a GitHub Actions workflow for recurring branch hygiene. Guidelines for Claude to follow when asked to do a branch audit: (1) list all remote branches with last-commit date, (2) for each stale branch (no commits in >30 days), check if its diff is already present in main via `git log --cherry-pick --left-right`, (3) categorize as: *merged/obsolete* (all commits present in main — safe to delete), *superseded* (changes exist but reimplemented differently — needs human confirm), *in-progress* (diverged, unique work — keep), (4) present a summary and wait for explicit approval before deleting anything. GitHub Actions stretch goal: a scheduled workflow (monthly) that opens a GitHub Issue listing stale branches with their categorization, so the audit is triggered automatically and the conversation happens in the issue.
+
 - [x] **rebuild: -j flag + rebuild-test command** — Add `--max-jobs auto` to the rebuild script for parallel builds. Add a `rebuild-test` command alias that runs `nixos-rebuild test` (activates config without creating a boot entry, reverts on reboot).
 
 - [x] **Gamemode polkit fix** — Two polkit auth windows appear when launching games. Cause: gamemode is trying to set the CPU governor but the polkit rule granting the `gamemode` group permission is missing. Add the polkit rule to the gaming profile so it happens silently.
@@ -33,13 +37,15 @@ Format: `- [ ] **Title** — description`
 
 ## Hardware / Peripherals
 
+- [x] **Touchpad natural scroll (Hyprland + declarative KDE)** — Set `natural_scroll = true` in `hyprland/functional.nix` (currently hardcoded to `false`). Add a `customConfig` boolean option (e.g. `customConfig.hardware.touchpad.naturalScroll`, default `true`) so it's configurable per-host. Also declare KDE touchpad scroll direction via plasma-manager in `kde/functional.nix` — it's currently set only via GUI and not in nix. Scope: any host with a touchpad (primarily asus-laptop; conditionally apply if touchpad present).
+
+- [ ] **Laptop battery saving mode** — Add battery optimization for laptop hosts. For ASUS laptops: surface `asusctl` power profile switching (Quiet/Balanced/Performance) as a Waybar module or Hyprland keybind and a KDE widget/shortcut. For non-ASUS laptops: enable `services.tlp` (note: conflicts with power-profiles-daemon — guard with `mkIf !config.services.power-profiles-daemon.enable`). Add a `customConfig.hardware.laptop.batteryOptimization` option. Consider: screen brightness-on-battery, WiFi powersave, NVMe ASPM. Gate all of this behind `customConfig.hardware.isLaptop`.
+
 - [ ] **Asus-m15: AirPods Max support (librepods)** — Add librepods as a flake input (it has a Nix flake). Enable as a systemd service on asus-m15 only, gated behind a `customConfig` option. Provides ANC control, battery status, and ear detection.
 
 - [ ] **Asus-m15: Touchpad gestures in KDE** — Configure 3-finger swipe for virtual desktop switching and 4-finger swipe for app overview using KDE Plasma 6 native gesture support (no extra package needed). Configure declaratively via plasma-manager.
 
-- [ ] **Logitech G305 Lightspeed support** — Enable `customConfig.hardware.peripherals.solaar = true` on gaming-pc. Optionally add `piper`/`libratbagd` for button remapping. Verify G305 is in solaar's supported device list.
-
-- [ ] **Asus-laptop: keyboard brightness lower key not working** — The raise keyboard backlight key works (asusctl is functional) but the lower key does not. Likely a missing Hyprland keybind for the decrease action (`asusctl -k down` or equivalent). Add the missing bind in the asus-laptop Hyprland config alongside the existing raise bind.
+- [ ] **Asus-laptop: keyboard brightness lower key not working** — Likely a hardware issue with the keyboard itself (F7 and F2 produce no keysym even in terminal, while F8 works). Defer until tested with an external keyboard to confirm whether it's a keybind or hardware problem.
 
 - [x] **Global monitor configuration (customConfig.hardware.monitors)** — Add a `customConfig.hardware.monitors` option (list of monitor specs: name, resolution, refresh, position, orientation, scale). Default: single 1920x1080 horizontal monitor. All modules that need monitor info (Hyprland, SDDM, KDE) read from this one place instead of duplicating. Medium-large scope.
 
@@ -69,6 +75,12 @@ Format: `- [ ] **Title** — description`
 
 ---
 
+## KDE Themes
+
+- [ ] **aerothemeplasma: upstream as standalone flake** — The Windows 7 / Aero theme derivation in `modules/home-manager/themes/aerothemeplasma/` is a custom Nix package. Goal: publish it as a standalone Nix flake that others can use. Steps: (1) Check upstream activity at gitgud.io/aeroshell/atp/aerothemeplasma — it has recent commits, so coordinate rather than fork. (2) Determine if a PR to add a `flake.nix` to upstream is appropriate, or if a separate repo that wraps it as a flake is better. (3) Once published, replace the inline derivation in this config with a flake input. Medium scope; requires upstream communication.
+
+---
+
 ## KDE
 
 - [x] **KDE bigsur: auto light/dark with time of day** — Use KDE Plasma 6's built-in automatic dark/light switching (sunset/sunrise). Configure via plasma-manager. First verify whether the bigsur nixpkgs theme includes both light and dark variants.
@@ -79,9 +91,11 @@ Format: `- [ ] **Title** — description`
 
 ## Hyprland
 
+- [ ] **Hyprland lid close lock bug** — When closing the laptop lid, hyprlock activates but the lock screen is frozen: the password entry field does not animate or visually respond to keypresses, though the password is accepted and the session resumes correctly. Investigate: likely a Hyprland/hyprlock race condition on DPMS or monitor sleep during lid close. Check `swayidle` lid-close logic and hyprlock `--immediate` flag interaction. Scope: asus-laptop Hyprland.
+
 - [ ] **Refactor exec shortcuts to customConfig variables** — Add `customConfig.hyprland.apps.terminal`, `.editor`, `.browser`, `.music`, `.fileManager` with sane defaults (kitty, neovim, librewolf, spotify, yazi). Keybindings reference these instead of hardcoded commands.
 
-- [ ] **All keybind functionality** — Audit and fill out missing keybindings in hyprland/functional.nix: window focus/move/resize (vim keys), workspace management, screenshot (grim+slurp), clipboard (cliphist), screen lock (swaylock), brightness, volume.
+- [x] **All keybind functionality** — Audit and fill out missing keybindings in hyprland/functional.nix: window focus/move/resize (vim keys), workspace management, screenshot (grim+slurp), clipboard (cliphist), screen lock (swaylock), brightness, volume.
 
 - [x] **Power/logout menu (wlogout)** — Add `wlogout` with a keybind (e.g. `super+escape`). Style it to match the active Hyprland theme.
 
@@ -95,11 +109,12 @@ Format: `- [ ] **Title** — description`
 
 - [ ] **Workspace arrange preset** — Shell script using `hyprctl` to open a defined set of apps into specific workspaces (e.g. workspace 1: terminal + browser, workspace 2: editor, workspace 3: music). Invocable by keybind or autostart.
 
-- [ ] **Switch wofi to rofi-wayland** — `rofi-wayland` supports frecency sorting (most recently used apps first) which wofi lacks. Migrate launcher, run dialog, and any scripts currently using wofi.
 
 ---
 
 ## Waybar
+
+- [ ] **Century Series: battery percentage gradient** — The existing Waybar battery module changes text/icon at low/AC states. Extend it to show a continuous color gradient as percentage changes: green (100%) → yellow (~50%) → orange (~25%) → red (~10%). Implement via a custom script or `format-icons` array that covers enough steps to appear smooth. Apply to any host with a battery (gated on `customConfig.hardware.isLaptop` or battery presence detection).
 
 - [ ] **Dynamic audio icons by output device** — Replace the static pulseaudio module with a custom script that detects the current PipeWire sink (headphones vs. speakers vs. USB DAC) and shows a matching icon.
 
