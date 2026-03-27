@@ -100,6 +100,13 @@ in {
             format-charging = mkForce "CHG {capacity}%";
             format-plugged = mkForce "EXT PWR";
             format-full = mkForce "BAT FULL";
+            states = mkForce {
+              critical = 10;   # red + blink
+              low      = 25;   # orange
+              medium   = 50;   # yellow
+              high     = 75;   # yellow-green
+              # >75%: default green (no state class)
+            };
           };
 
           # Power button - Engine control
@@ -194,10 +201,25 @@ in {
           border-color: ${c.accent-green-dim};
         }
 
-        /* Battery - Power cell readout */
+        /* Battery - Power cell readout (gradient: green → yellow-green → yellow → orange → red) */
         #battery {
           color: ${c.accent-green};
           border-color: ${c.accent-green-dim};
+        }
+
+        #battery.high {
+          color: ${c.caution-yellow-green};
+          border-color: ${c.caution-yellow-green};
+        }
+
+        #battery.medium {
+          color: ${c.caution-yellow};
+          border-color: ${c.caution-yellow};
+        }
+
+        #battery.low {
+          color: ${c.warning-orange};
+          border-color: ${c.warning-orange};
         }
 
         #battery.charging {
@@ -208,11 +230,6 @@ in {
         #battery.plugged {
           color: ${c.accent-amber};
           border-color: ${c.accent-amber-dim};
-        }
-
-        #battery.warning {
-          color: ${c.caution-yellow};
-          border-color: ${c.caution-yellow};
         }
 
         #battery.critical {
