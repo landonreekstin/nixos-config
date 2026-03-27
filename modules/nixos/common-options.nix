@@ -964,6 +964,13 @@ in
           description = "Enable battery status widget in Waybar. Enable for laptops with a battery.";
         };
       };
+      touchpad = {
+        naturalScroll = mkOption {
+          type = types.bool;
+          default = true;
+          description = "Enable natural (macOS-style) scrolling for touchpad. Content follows finger direction. Applied to Hyprland and KDE.";
+        };
+      };
     };
 
     # -------------------------------------------------------------------------- #
