@@ -31,7 +31,9 @@
 
     # Warning/Caution system
     warning-red = "#ff3838";      # Master warning
+    warning-orange = "#ff7a1a";   # Low fuel / approaching critical
     caution-yellow = "#ffb454";   # Caution/advisory
+    caution-yellow-green = "#c8dc30"; # Advisory / mid-range
     info-blue = "#5ccfe6";        # Information
 
     # Material colors
