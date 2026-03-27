@@ -114,7 +114,7 @@ Format: `- [ ] **Title** — description`
 
 ## Waybar
 
-- [ ] **Century Series: battery percentage gradient** — *(PR open — needs in-person battery drain test: [#26](https://github.com/landonreekstin/nixos-config/pull/26))* The existing Waybar battery module changes text/icon at low/AC states. Extend it to show a continuous color gradient as percentage changes: green (100%) → yellow (~50%) → orange (~25%) → red (~10%). Implement via a custom script or `format-icons` array that covers enough steps to appear smooth. Apply to any host with a battery (gated on `customConfig.hardware.isLaptop` or battery presence detection).
+- [x] **Century Series: battery percentage gradient** — The existing Waybar battery module changes text/icon at low/AC states. Extend it to show a continuous color gradient as percentage changes: green (100%) → yellow (~50%) → orange (~25%) → red (~10%). Implement via a custom script or `format-icons` array that covers enough steps to appear smooth. Apply to any host with a battery (gated on `customConfig.hardware.isLaptop` or battery presence detection).
 
 - [ ] **Dynamic audio icons by output device** — Replace the static pulseaudio module with a custom script that detects the current PipeWire sink (headphones vs. speakers vs. USB DAC) and shows a matching icon.
 
