@@ -2,6 +2,8 @@
 { config, pkgs, lib, ... }:
 {
 
+  environment.systemPackages = [ pkgs.nh ];
+
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
     # Binary sources
