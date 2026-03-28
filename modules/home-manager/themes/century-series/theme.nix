@@ -20,7 +20,7 @@ in {
     ./rofi.nix
     ./kitty.nix
     ./dunst.nix
-    ./swaylock.nix
+    ./hyprlock.nix
     ./btop.nix
     ./yazi.nix
     ./wlogout.nix
