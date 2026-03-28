@@ -78,7 +78,11 @@
       "Bash(sudo -u lando XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus journalctl --user -u hm-gc.service -n 20 2>&1)",
       "Bash(NIXPKGS_ALLOW_UNFREE=1 nix eval --impure \".#nixosConfigurations.asus-laptop.config.system.build.toplevel.drvPath\" 2>&1 | tail -1)",
       "Bash(nixos-rebuild list-generations:*)",
-      "Bash(which hyprlock:*)"
+      "Bash(which hyprlock:*)",
+      "Read(//proc/acpi/button/lid/**)",
+      "Bash(loginctl list-sessions:*)",
+      "Bash(systemd-inhibit:*)",
+      "Bash(NIXPKGS_ALLOW_UNFREE=1 nix eval --impure \".#nixosConfigurations.asus-laptop.config.system.build.toplevel.drvPath\" 2>&1 | tail -5)"
     ],
     "deny": [],
     "ask": [],
