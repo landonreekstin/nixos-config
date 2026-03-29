@@ -12,5 +12,6 @@
     ./jellyseerr.nix
     ./flaresolverr.nix
     ./media-linker.nix
+    ./vaultwarden.nix
   ];
 }

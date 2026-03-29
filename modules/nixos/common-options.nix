@@ -1252,6 +1252,48 @@ in
           description = "Path to environment file with JELLYSEERR_API_KEY, RADARR_API_KEY, SONARR_API_KEY.";
         };
       };
+
+      vaultwarden = {
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = "Enable Vaultwarden, a self-hosted Bitwarden-compatible password manager.";
+        };
+        domain = lib.mkOption {
+          type = lib.types.str;
+          default = "localhost";
+          description = "Domain (or IP) for Vaultwarden. Used in the DOMAIN config var and Caddy virtual host. Example: vault.yourdomain.com";
+        };
+        port = lib.mkOption {
+          type = lib.types.port;
+          default = 8222;
+          description = "Internal port Vaultwarden listens on (proxied by Caddy). Defaults to 8222 to avoid collisions.";
+        };
+        signupsAllowed = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = "Allow new user signups. Disable after initial account creation.";
+        };
+        environmentFile = lib.mkOption {
+          type = lib.types.path;
+          default = "/var/lib/vaultwarden/vaultwarden.env";
+          description = ''
+            Path to environment file with Vaultwarden secrets.
+            Must contain at least: ADMIN_TOKEN=<value>
+            Generate a secure token with:
+              echo -n "your-token" | argon2 somesalt -id -t 3 -m 16 -p 4 -l 32 -e
+            Optional: SMTP_HOST, SMTP_FROM, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD
+          '';
+        };
+        tls = {
+          enable = lib.mkOption {
+            type = lib.types.bool;
+            default = true;
+            description = "Enable Caddy reverse proxy for automatic HTTPS. Bitwarden clients require HTTPS.";
+          };
+        };
+      };
+
     };
 
     # -------------------------------------------------------------------------- #
