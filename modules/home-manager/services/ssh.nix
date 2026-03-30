@@ -19,12 +19,12 @@ in
                 serverAliveInterval = 60;
                 serverAliveCountMax = 3;
             };
-            "optiplex-fw" = {
+            "fw" = {
                 hostname = "192.168.1.189";
                 user = "lando";
             };
 
-            "optiplex-nas" = {
+            "nas" = {
                 hostname = "192.168.1.76";
                 user = "lando";
             };
@@ -37,13 +37,13 @@ in
             "mini-server" = {
                 hostname = "192.168.100.103";
                 user = "lando";
-                proxyJump = "optiplex-fw";
+                proxyJump = "fw";
             };
 
             "optiplex" = {
                 hostname = "192.168.100.100";
                 user = "lando";
-                proxyJump = "optiplex-fw";
+                proxyJump = "fw";
             };
             };
 
