@@ -1,41 +1,49 @@
 # ~/nixos-config/modules/home-manager/services/swayidle.nix
+# NOTE: despite the filename, this now configures hypridle (hyprlock's companion daemon).
+# hypridle is used instead of swayidle because its before_sleep_cmd uses loginctl lock-session
+# (returns immediately) while lock_cmd handles the actual hyprlock start — avoiding the
+# swayidle inhibitor-deadlock and hyprlock-dies-during-sleep issues.
 { config, pkgs, lib, customConfig, ... }:
 
 let
   isHyprland = lib.elem "hyprland" customConfig.desktop.environments;
   idleCfg = customConfig.desktop.idle;
-  # Reference the configured swaylock package (may be swaylock-effects from theme).
-  # Run in background (&) so swayidle's -w flag doesn't block it from firing
-  # subsequent timeouts (e.g. dpms off) or resume commands while lock is active.
-  swaylockCmd = "${config.programs.swaylock.package}/bin/swaylock &";
+  hyprlock = "${pkgs.hyprlock}/bin/hyprlock";
+  hyprctl = "/run/current-system/sw/bin/hyprctl";
 in
-{
-  # On Hyprland with systemd.enable=false, WAYLAND_DISPLAY isn't in the systemd environment
-  # at boot. After hyprland/functional.nix imports it via dbus-update-activation-environment,
-  # we explicitly start the service so the ConditionEnvironment check passes.
-  wayland.windowManager.hyprland.extraConfig = lib.mkIf (isHyprland && (idleCfg.lockTimeout != null || idleCfg.sleepTimeout != null)) ''
-    exec-once = systemctl --user start swayidle
+lib.mkIf (isHyprland && (idleCfg.lockTimeout != null || idleCfg.sleepTimeout != null)) {
+
+  # Start hypridle via exec-once so it has WAYLAND_DISPLAY in scope.
+  # (Hyprland has systemd.enable=false so the systemd env isn't populated at boot.)
+  wayland.windowManager.hyprland.extraConfig = ''
+    exec-once = systemctl --user start hypridle
   '';
 
-  # Prevent swayidle from auto-starting in non-Hyprland sessions (e.g. KDE).
-  # The service is started explicitly by Hyprland's exec-once instead.
-  systemd.user.services.swayidle.Install.WantedBy = lib.mkIf (isHyprland && (idleCfg.lockTimeout != null || idleCfg.sleepTimeout != null)) (lib.mkForce []);
+  # Prevent hypridle auto-starting in non-Hyprland sessions (e.g. KDE).
+  # Hyprland's exec-once starts it explicitly after WAYLAND_DISPLAY is ready.
+  services.hypridle.settings.general.daemon = false;
+  systemd.user.services.hypridle.Install.WantedBy = lib.mkForce [];
 
-  services.swayidle = lib.mkIf (isHyprland && (idleCfg.lockTimeout != null || idleCfg.sleepTimeout != null)) {
+  services.hypridle = {
     enable = true;
-    timeouts =
-      lib.optional (idleCfg.lockTimeout != null) {
-        timeout = idleCfg.lockTimeout;
-        command = "pidof swaylock || ${swaylockCmd}";
-      }
-      ++ lib.optional (idleCfg.sleepTimeout != null) {
-        timeout = idleCfg.sleepTimeout;
-        command = "/run/current-system/sw/bin/hyprctl dispatch dpms off";
-        resumeCommand = "/run/current-system/sw/bin/hyprctl dispatch dpms on";
+    settings = {
+      general = {
+        # lock_cmd: what to run when a lock is requested (loginctl lock-session triggers this)
+        lock_cmd      = "pidof hyprlock || ${hyprlock}";
+        # before_sleep_cmd: loginctl lock-session returns immediately — no inhibitor deadlock.
+        # hypridle releases the sleep inhibitor right after this, while lock_cmd runs the locker.
+        before_sleep_cmd = "loginctl lock-session";
+        after_sleep_cmd  = "${hyprctl} dispatch dpms on";
       };
-    events = [
-      { event = "before-sleep"; command = "pidof swaylock || ${swaylockCmd}"; }
-      { event = "lock";         command = "pidof swaylock || ${swaylockCmd}"; }
-    ];
+
+      listener = lib.optional (idleCfg.lockTimeout != null) {
+        timeout   = idleCfg.lockTimeout;
+        on-timeout = "loginctl lock-session";
+      } ++ lib.optional (idleCfg.sleepTimeout != null) {
+        timeout    = idleCfg.sleepTimeout;
+        on-timeout = "${hyprctl} dispatch dpms off";
+        on-resume  = "${hyprctl} dispatch dpms on";
+      };
+    };
   };
 }

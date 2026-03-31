@@ -252,7 +252,7 @@ in
 
           # System & Utility Bindings
           "$mainMod, slash, exec, hypr-keybinds"
-          "$mainMod, ESCAPE, exec, swaylock"
+          "$mainMod, ESCAPE, exec, hyprlock"
           "$mainMod, BackSpace, exec, wlogout"
           "$mainMod, V, exec, ${pkgs.cliphist}/bin/cliphist list | ${pkgs.rofi}/bin/rofi -dmenu -p 'CLIPBOARD' | ${pkgs.cliphist}/bin/cliphist decode | ${pkgs.wl-clipboard}/bin/wl-copy"
           "$mainMod SHIFT, S, exec, ${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp)\" ${config.home.homeDirectory}/Pictures/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
@@ -282,12 +282,10 @@ in
     }; # End of wayland.windowManager.hyprland
 
     # -------------------------------------------------------------------------- #
-    # Swaylock - Default configuration (themes can override)
+    # Hyprlock - Default enable (themes configure styling)
     # -------------------------------------------------------------------------- #
-    programs.swaylock = {
+    programs.hyprlock = {
       enable = lib.mkDefault true;
-      # Basic swaylock package; themes may override with swaylock-effects
-      package = lib.mkDefault pkgs.swaylock;
     };
 
     # -------------------------------------------------------------------------- #
