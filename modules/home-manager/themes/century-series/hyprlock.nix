@@ -23,22 +23,20 @@ in {
           disable_loading_bar = true;
           hide_cursor             = true;
           grace                   = 0;
-          no_fade_in              = false;
+          no_fade_in              = true;
           no_fade_out             = false;
           ignore_empty_input      = false;
         };
 
         # ─── Background ─────────────────────────────────────────────────────── #
-        # Blurred screenshot, dimmed — like looking through a tinted canopy
+        # Static wallpaper, dimmed. Using a wallpaper instead of a live screenshot
+        # avoids hyprlock crashing when triggered during sleep (before_sleep_cmd),
+        # where the compositor may already be tearing down outputs.
         background = [{
-          path            = "screenshot";
-          blur_passes     = 3;
+          path            = config.home.homeDirectory + "/.local/share/wallpapers/f-15-satellite.jpg";
+          blur_passes     = 2;
           blur_size       = 7;
-          noise           = 0.0117;
-          contrast        = 0.9;
-          brightness      = 0.5;
-          vibrancy        = 0.1;
-          vibrancy_darkness = 0.0;
+          brightness      = 0.4;
         }];
 
         # ─── Input Field ─────────────────────────────────────────────────────── #
