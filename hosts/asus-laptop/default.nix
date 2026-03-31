@@ -211,6 +211,47 @@
   networking.hosts."192.168.1.60" = [ "gaming-pc" ];
   networking.hosts."192.168.1.76" = [ "optiplex-nas" ];
 
+  # Captive portal handling: WireGuard (full-tunnel, allowedIPs=0.0.0.0/0) blocks NM's
+  # connectivity check on public WiFi, so portals are never detected and traffic is blackholed.
+  # This dispatcher script stops WireGuard when connectivity drops on WiFi so NM/plasma-nm
+  # can reach the portal, then auto-restarts it once the user authenticates.
+  networking.networkmanager.dispatcherScripts = [
+    {
+      source = pkgs.writeShellScript "captive-portal-wg-handler" ''
+        INTERFACE="$1"
+        EVENT="$2"
+        LOCKFILE="/tmp/.nm-captive-portal-wg-stopped"
+
+        [ "$EVENT" = "connectivity-change" ] || exit 0
+
+        CONNECTIVITY=$(nmcli -t -f CONNECTIVITY general 2>/dev/null | tail -1)
+        ACTIVE_WIFI=$(nmcli -t -f DEVICE,TYPE,STATE device 2>/dev/null \
+          | grep ":wifi:connected" | cut -d: -f1 | head -1)
+
+        case "$CONNECTIVITY" in
+          portal|limited|none)
+            [ -n "$ACTIVE_WIFI" ] || exit 0
+            [ -f "$LOCKFILE" ] && exit 0  # Already handled, avoid re-triggering
+            if systemctl is-active --quiet wg-quick-wg0.service 2>/dev/null; then
+              systemctl stop wg-quick-wg0.service
+              touch "$LOCKFILE"
+              # NM will recheck connectivity; plasma-nm will prompt for captive portal login
+            fi
+            ;;
+          full)
+            if [ -f "$LOCKFILE" ]; then
+              rm -f "$LOCKFILE"
+              if ! systemctl is-active --quiet wg-quick-wg0.service 2>/dev/null; then
+                systemctl start wg-quick-wg0.service
+              fi
+            fi
+            ;;
+        esac
+      '';
+      type = "basic";
+    }
+  ];
+
   # In your NixOS configuration
   services.flatpak.enable = true;
   services.keyd = {
