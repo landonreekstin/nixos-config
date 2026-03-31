@@ -91,7 +91,7 @@ Format: `- [ ] **Title** — description`
 
 ## Hyprland
 
-- [ ] **Hyprland lid close lock bug** — *(PR open: [#25](https://github.com/landonreekstin/nixos-config/pull/25))* Current state of the branch: swaylock replaced with **hyprlock** (ext-session-lock protocol — fixes dropped first keypress), swayidle replaced with **hypridle** (`loginctl lock-session` as before_sleep_cmd to avoid inhibitor deadlock). Manual lock via `Super+Escape` works correctly. Lid close triggering lock+sleep has not been successfully tested — multi-session environment during testing may have been confounding the results (4 active sessions on seat0 prevents logind from handling lid switch). Next steps: test in a clean single-session environment; if still broken, check `loginctl lock-session` is actually triggering hyprlock and that hypridle is running (`systemctl --user status hypridle`).
+- [x] **Hyprland lid close lock bug** — *(PR [#25](https://github.com/landonreekstin/nixos-config/pull/25))* Replaced swaylock+swayidle with hyprlock+hypridle. Root cause of lock crash: hyprlock's `screenshot` background path crashed when launched via `before_sleep_cmd` because the compositor was already tearing down outputs. Fixed by switching to a static wallpaper. Also set `no_fade_in = true` so input is immediately ready on manual lock.
 
 - [ ] **Refactor exec shortcuts to customConfig variables** — Add `customConfig.hyprland.apps.terminal`, `.editor`, `.browser`, `.music`, `.fileManager` with sane defaults (kitty, neovim, librewolf, spotify, yazi). Keybindings reference these instead of hardcoded commands.
 
