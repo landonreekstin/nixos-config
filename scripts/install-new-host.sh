@@ -96,6 +96,29 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then exit 1; fi
 nix --extra-experimental-features "nix-command flakes" run github:nix-community/disko -- --mode disko --flake "$CONFIG_ROOT#$HOST_NAME"
 echo "✅ Disko partitioning complete."
 
+# --- Step 2.5: Low-Memory Detection ---
+# nixos-install is memory-intensive. On machines with ≤6GB RAM there is no swap
+# yet (the swapfile is on the freshly-formatted disk but not active), which can
+# cause a hard kernel freeze mid-install. Activate the swapfile now if present,
+# and limit nix parallelism to reduce peak memory usage.
+NIXOS_INSTALL_EXTRA_ARGS=""
+TOTAL_MEM_GB=$(awk '/MemTotal/ { printf "%d", $2 / 1024 / 1024 }' /proc/meminfo)
+LOW_MEM_THRESHOLD_GB=6
+if [[ "$TOTAL_MEM_GB" -lt "$LOW_MEM_THRESHOLD_GB" ]]; then
+    echo "⚠️  Low memory detected: ${TOTAL_MEM_GB}GB RAM (threshold: ${LOW_MEM_THRESHOLD_GB}GB)."
+    SWAPFILE="/mnt/.swapvol/swapfile"
+    if [[ -f "$SWAPFILE" ]]; then
+        swapon "$SWAPFILE"
+        echo "✅ Swap activated: $SWAPFILE ($(( $(stat -c %s "$SWAPFILE") / 1024 / 1024 / 1024 ))GB)"
+    else
+        echo "⚠️  Swapfile not found at $SWAPFILE — host may not have a swap subvolume configured."
+    fi
+    NIXOS_INSTALL_EXTRA_ARGS="--max-jobs 2 --cores 2"
+    echo "   nixos-install will run with: $NIXOS_INSTALL_EXTRA_ARGS"
+else
+    echo "✅ Memory check passed: ${TOTAL_MEM_GB}GB RAM — no swap activation needed."
+fi
+
 # --- Step 3: Final Hardware Configuration Generation ---
 echo "--- Generating Final Hardware Configuration ---"
 nixos-generate-config --no-filesystems --root /mnt
@@ -268,7 +291,7 @@ fi
 
 # --- Step 11: Execute NixOS Installation ---
 echo "--- Installing NixOS for host: $HOST_NAME ---"
-nixos-install --no-root-passwd --flake "$CONFIG_ROOT#$HOST_NAME" --impure
+nixos-install --no-root-passwd --flake "$CONFIG_ROOT#$HOST_NAME" --impure $NIXOS_INSTALL_EXTRA_ARGS
 echo "✅ Base system installed."
 
 # --- Step 12: Set Passwords (legacy path for non-sops hosts only) ---
