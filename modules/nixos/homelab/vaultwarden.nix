@@ -9,11 +9,12 @@ in
 
     services.vaultwarden = {
       enable = true;
-      # Bind to localhost only — Caddy proxies externally
       config = {
-        DOMAIN = "https://${cfg.domain}";
+        # When TLS/Caddy is active, use https and bind to localhost only.
+        # When accessing directly (no Caddy), use http and bind to all interfaces.
+        DOMAIN = if cfg.tls.enable then "https://${cfg.domain}" else "http://${cfg.domain}";
         ROCKET_PORT = cfg.port;
-        ROCKET_ADDRESS = "127.0.0.1";
+        ROCKET_ADDRESS = if cfg.tls.enable then "127.0.0.1" else "0.0.0.0";
         SIGNUPS_ALLOWED = cfg.signupsAllowed;
       };
       # File must contain at least: ADMIN_TOKEN=<hashed-token>

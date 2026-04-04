@@ -178,6 +178,18 @@
           { nixpkgs.hostPlatform = "x86_64-linux"; }
         ];
       };
+
+      # Configuration for the HP T620 Thin Client (Vaultwarden server)
+      t620 = nixpkgs.lib.nixosSystem {
+        specialArgs = specialArgs;
+        modules = [
+          ./hosts/t620/default.nix
+          inputs.home-manager.nixosModules.default
+          inputs.disko.nixosModules.default
+          # Set system architecture
+          { nixpkgs.hostPlatform = "x86_64-linux"; }
+        ];
+      };
     };
 
     # Custom packages not in nixpkgs
