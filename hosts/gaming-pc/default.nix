@@ -72,6 +72,13 @@
           scale = "1";
         }
       ];
+      autostart = [
+        {
+          command = "ckb-next";
+          desktops = [ "kde" "hyprland" ];
+        }
+      ];
+
       hyprland = {
         launcher = {
           enable = true;
