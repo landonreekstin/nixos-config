@@ -213,7 +213,7 @@
         "librewolf"
         "brave"
         "ungoogled-chromium"
-        "claude-code"
+        #"claude-code"
       ];
       homeManager = with pkgs; [
         jamesdsp

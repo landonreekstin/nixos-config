@@ -137,7 +137,7 @@
         "vscode"
         "librewolf"
         "brave"
-        "claude-code"
+        #"claude-code"
       ];
       homeManager = with pkgs; [
         jamesdsp
