@@ -230,6 +230,8 @@
         kdePackages.kdenlive
         claude-code
         (callPackage ../../pkgs/worldmonitor { })
+        zoom-us
+        gurk-rs
       ];
       flatpak = {
         enable = true;
@@ -270,6 +272,7 @@
   };
 
   # === Additional nixos configuration for this host ===
+  programs.zoom-us.enable = true;
 
   # Enable NVIDIA DRM fbdev for TTY/Ly framebuffer support.
   # Note: NVIDIA proprietary ignores video= kernel params, so TTY resolution is limited
