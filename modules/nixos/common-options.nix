@@ -684,6 +684,22 @@ in
         };
       };
       # You can add more themes here later, e.g., 'cosmic', 'kde', etc.
+      librewolf = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Whether to enable the declarative Librewolf browser profile preset.";
+        };
+        overrideConfig = mkOption {
+          type = types.bool;
+          default = true;
+          description = ''
+            When true, user.js is managed by HM and enforced every browser restart.
+            When false, user.js is written only once (if absent) and user edits persist.
+            Extensions and userChrome.css are always managed regardless of this setting.
+          '';
+        };
+      };
     };
 
     # -------------------------------------------------------------------------- #

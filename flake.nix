@@ -91,6 +91,8 @@
           ./hosts/optiplex/default.nix
           # home-manager module
           inputs.home-manager.nixosModules.default
+          # NUR — required for firefox-addons (librewolf extensions)
+          inputs.nur.modules.nixos.default
           # Set system architecture
           { nixpkgs.hostPlatform = "x86_64-linux"; }
         ];
