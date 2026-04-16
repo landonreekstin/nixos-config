@@ -49,7 +49,7 @@ let
       *)              ICON="?";  CLASS="unknown" ;;
     esac
 
-    if [ "${toString weatherUseFahrenheit}" = "true" ]; then
+    if [ "${toString weatherUseFahrenheit}" = "1" ]; then
       TEMP="''${TEMP_F}°F"
       FEELS="''${FEELS_F}°F"
     else
