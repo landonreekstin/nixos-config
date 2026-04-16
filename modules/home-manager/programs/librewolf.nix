@@ -132,9 +132,9 @@ in
           settings = lib.mkIf cfg.overrideConfig userJsSettings;
 
           bookmarks = {
-            # force = true resets bookmarks to this list on every rebuild.
-            # force = false only writes them if the bookmarks file is absent.
-            force = cfg.overrideConfig;
+            # HM requires force = true whenever bookmarks.settings is set.
+            # Bookmarks are always managed declaratively; only user.js respects overrideConfig.
+            force = true;
             settings = [
               {
                 name = "Bookmarks Toolbar";

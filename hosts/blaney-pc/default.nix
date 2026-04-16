@@ -123,6 +123,10 @@
           "applications:io.github.nuttyartist.notes.desktop"
         ];
       };
+      librewolf = {
+        enable = true;
+        overrideConfig = false;
+      };
     };
 
     packages = {

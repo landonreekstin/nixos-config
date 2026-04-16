@@ -116,6 +116,7 @@
          modules = [
           ./hosts/blaney-pc/default.nix
           inputs.home-manager.nixosModules.default
+          inputs.nur.modules.nixos.default
           # Set system architecture
           { nixpkgs.hostPlatform = "x86_64-linux"; }
         ];
