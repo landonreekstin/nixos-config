@@ -62,6 +62,7 @@ in
         echo "--- GBDK 2020 Dev Shell ---"
         echo "GBDK_HOME is set to: $GBDK_HOME"
         echo "Compiler 'lcc' and emulator 'mgba' are available in your path."
+        code .
       '';
     };
   };
