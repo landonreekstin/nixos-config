@@ -187,7 +187,7 @@
       };
       librewolf = {
         enable = true;
-        overrideConfig = true;
+        overrideConfig = false;
       };
     };
 

@@ -336,7 +336,6 @@ in
       # Core utilities from your original list, if not pulled by services:
       kdePackages.kate
       kdePackages.konsole # Often a dependency for Kate or other KDE apps
-      librewolf
       brave
       discord
 
@@ -349,6 +348,10 @@ in
       playerctl
       pulseaudio # For pactl
 
+    # Only add plain librewolf if the homeManager.librewolf module is not managing it;
+    # that module installs its own patched derivation and having both causes a policies.json conflict.
+    ] ++ lib.optionals (!customConfig.homeManager.librewolf.enable) [
+      pkgs.librewolf
     ] ++ lib.optionals customConfig.desktop.wayvnc.enable [
       wayvnc
     ];
