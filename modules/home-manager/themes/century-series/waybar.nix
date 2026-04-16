@@ -295,6 +295,69 @@ in {
           box-shadow: 0 0 8px ${c.warning-red}80;
         }
 
+        /* Weather — Atmospheric condition indicator light */
+        #custom-weather {
+          padding: 0 10px;
+          margin: 2px;
+          background-color: ${c.bg-tertiary};
+          border: 1px solid ${c.border-secondary};
+          color: ${c.text-primary};
+          font-family: "JetBrains Mono", monospace;
+          letter-spacing: 1px;
+        }
+
+        #custom-weather.clear {
+          color: ${c.caution-yellow};
+          border-color: ${c.caution-yellow};
+          text-shadow: 0 0 8px ${c.caution-yellow}cc;
+        }
+
+        #custom-weather.partly-cloudy {
+          color: ${c.accent-amber};
+          border-color: ${c.accent-amber-dim};
+          text-shadow: 0 0 6px ${c.accent-amber}88;
+        }
+
+        #custom-weather.cloudy {
+          color: ${c.text-secondary};
+          border-color: ${c.border-secondary};
+        }
+
+        #custom-weather.fog {
+          color: ${c.info-blue};
+          border-color: ${c.info-blue};
+          opacity: 0.75;
+        }
+
+        #custom-weather.rain {
+          color: ${c.info-blue};
+          border-color: ${c.info-blue};
+          text-shadow: 0 0 6px ${c.info-blue}aa;
+        }
+
+        #custom-weather.snow {
+          color: #b0d4ff;
+          border-color: #b0d4ff;
+          text-shadow: 0 0 8px #b0d4ffaa;
+        }
+
+        #custom-weather.storm {
+          color: ${c.warning-red};
+          border-color: ${c.warning-red};
+          text-shadow: 0 0 8px ${c.warning-red}cc;
+          animation-name: blink;
+          animation-duration: 2s;
+          animation-timing-function: linear;
+          animation-iteration-count: infinite;
+          animation-direction: alternate;
+        }
+
+        #custom-weather.error, #custom-weather.unknown {
+          color: ${c.text-tertiary};
+          border-color: ${c.border-primary};
+          opacity: 0.5;
+        }
+
         /* Tooltip styling - Info displays */
         tooltip {
           background-color: ${c.bg-primary};

@@ -10,8 +10,58 @@ let
   hasKbdBacklight = customConfig.hardware.kbdBacklight.enable;
   hasBattery = customConfig.hardware.battery.enable;
   hasVpnClient = customConfig.services.wireguard.client.enable;
+  hasWeather = customConfig.desktop.hyprland.weather.enable;
+  weatherLocation = customConfig.desktop.hyprland.weather.location;
+  weatherUseFahrenheit = customConfig.desktop.hyprland.weather.useFahrenheit;
 
   vpnInterface = customConfig.services.wireguard.client.interfaceName;
+
+  weatherScript = pkgs.writeShellScript "waybar-weather" ''
+    LOC="${weatherLocation}"
+    URL="https://wttr.in/''${LOC}?format=j1"
+
+    DATA=$(${pkgs.curl}/bin/curl -sf --max-time 10 "$URL" 2>/dev/null)
+    if [ -z "$DATA" ]; then
+      printf '{"text":"WX ERR","class":"error","tooltip":"Weather data unavailable"}'
+      exit 0
+    fi
+
+    CODE=$(printf '%s' "$DATA" | ${pkgs.jq}/bin/jq -r '.current_condition[0].weatherCode')
+    TEMP_F=$(printf '%s' "$DATA" | ${pkgs.jq}/bin/jq -r '.current_condition[0].temp_F')
+    TEMP_C=$(printf '%s' "$DATA" | ${pkgs.jq}/bin/jq -r '.current_condition[0].temp_C')
+    FEELS_F=$(printf '%s' "$DATA" | ${pkgs.jq}/bin/jq -r '.current_condition[0].FeelsLikeF')
+    HUMIDITY=$(printf '%s' "$DATA" | ${pkgs.jq}/bin/jq -r '.current_condition[0].humidity')
+    WIND=$(printf '%s' "$DATA" | ${pkgs.jq}/bin/jq -r '.current_condition[0].windspeedMiles')
+    WIND_DIR=$(printf '%s' "$DATA" | ${pkgs.jq}/bin/jq -r '.current_condition[0].winddir16Point')
+    DESC=$(printf '%s' "$DATA" | ${pkgs.jq}/bin/jq -r '.current_condition[0].weatherDesc[0].value')
+    AREA=$(printf '%s' "$DATA" | ${pkgs.jq}/bin/jq -r '.nearest_area[0].areaName[0].value // "UNKNOWN"')
+
+    case "$CODE" in
+      113)            ICON="☀";  CLASS="clear" ;;
+      116)            ICON="⛅"; CLASS="partly-cloudy" ;;
+      119|122)        ICON="☁";  CLASS="cloudy" ;;
+      143|248|260)    ICON="≡";  CLASS="fog" ;;
+      200|386|389)    ICON="⛈"; CLASS="storm" ;;
+      179|182|185|281|284|311|314|317|320|323|326|329|332|335|338|350|371|374|377|392|395)
+                      ICON="❄";  CLASS="snow" ;;
+      176|263|266|293|296|299|302|305|308|353|356|359)
+                      ICON="⛆"; CLASS="rain" ;;
+      *)              ICON="?";  CLASS="unknown" ;;
+    esac
+
+    if [ "${toString weatherUseFahrenheit}" = "true" ]; then
+      TEMP="''${TEMP_F}°F"
+      FEELS="''${FEELS_F}°F"
+    else
+      TEMP="''${TEMP_C}°C"
+      FEELS="''${FEELS_F}°F"
+    fi
+
+    TEXT="''${ICON} ''${TEMP}"
+    TOOLTIP="WX: ''${DESC}\nTEMP: ''${TEMP_F}°F / ''${TEMP_C}°C\nFEELS: ''${FEELS}\nHUMID: ''${HUMIDITY}%\nWIND: ''${WIND}mph ''${WIND_DIR}\nLOC: ''${AREA}"
+
+    printf '{"text":"%s","tooltip":"%s","class":"%s"}' "$TEXT" "$TOOLTIP" "$CLASS"
+  '';
 
   vpnStatusScript = pkgs.writeShellScript "waybar-vpn-status" ''
     if systemctl is-active --quiet wg-quick-${vpnInterface}.service; then
@@ -75,6 +125,7 @@ in
               ++ lib.optionals hasKbdBacklight [ "custom/kbd-brightness" ]
               ++ lib.optionals hasVpnClient [ "custom/vpn" ]
               ++ lib.optionals hasBattery [ "battery" ]
+              ++ lib.optionals hasWeather [ "custom/weather" ]
               ++ [
               "network"
               "pulseaudio#sink_switcher"
@@ -166,6 +217,14 @@ in
             # icon-size is ricing
           };
 
+          "custom/weather" = lib.mkIf hasWeather {
+            exec = "${weatherScript}";
+            return-type = "json";
+            interval = 300; # Refresh every 5 minutes
+            signal = 10;
+            format = lib.mkDefault "{}";
+          };
+
           "custom/power" = {
             format = lib.mkDefault "⏻";  # Unicode power symbol, theme can override
             tooltip = true;
@@ -207,6 +266,8 @@ in
       networkmanager_dmenu # For network module on-click
       pavucontrol          # For pulseaudio module on-click-right
       brightnessctl        # For backlight and kbd-brightness modules
+      curl                 # For weather module HTTP requests
+      jq                   # For weather module JSON parsing
       # audio-switcher script dependencies should be handled by its own module if it has any non-pkgs ones
     ];
 

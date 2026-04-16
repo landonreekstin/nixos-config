@@ -454,6 +454,24 @@ in
             '';
           };
         };
+        weather = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Whether to show a weather widget in the waybar.";
+          };
+          location = mkOption {
+            type = types.str;
+            default = "";
+            description = "Location for weather lookup (e.g. 'Austin' or 'New York'). Empty string auto-detects by IP.";
+            example = "Austin, TX";
+          };
+          useFahrenheit = mkOption {
+            type = types.bool;
+            default = true;
+            description = "Show temperature in Fahrenheit. Set false for Celsius.";
+          };
+        };
       };
       displayManager = {
         enable = mkOption {
