@@ -214,6 +214,7 @@
         "brave"
         "ungoogled-chromium"
         #"claude-code"
+        "gurk-rs"
       ];
       homeManager = with pkgs; [
         jamesdsp
