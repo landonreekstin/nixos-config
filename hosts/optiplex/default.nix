@@ -185,6 +185,10 @@
           "applications:io.github.nuttyartist.notes.desktop"
         ];
       };
+      librewolf = {
+        enable = true;
+        overrideConfig = true;
+      };
     };
 
     packages = {
@@ -202,7 +206,6 @@
         jamesdsp
         remmina
         vscode
-        librewolf
         ungoogled-chromium
         notes
       ];
