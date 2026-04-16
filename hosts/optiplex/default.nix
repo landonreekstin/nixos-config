@@ -129,6 +129,10 @@
         applications = {
           browserAlt = "${pkgs.chromium}/bin/chromium";
         };
+        weather = {
+          location = "";        # auto-detect by IP
+          useFahrenheit = true;
+        };
       };
     };
 
