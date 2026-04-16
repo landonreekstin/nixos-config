@@ -457,7 +457,7 @@ in
         weather = {
           enable = mkOption {
             type = types.bool;
-            default = false;
+            default = true;
             description = "Whether to show a weather widget in the waybar.";
           };
           location = mkOption {
