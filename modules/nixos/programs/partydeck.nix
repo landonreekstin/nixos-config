@@ -71,7 +71,7 @@ let
       cp ${partydeck-icon} $out/share/icons/hicolor/512x512/apps/partydeck.png
 
       wrapProgram $out/bin/partydeck \
-        --prefix PATH : ${lib.makeBinPath [ pkgs.gamescope pkgs.bubblewrap ]} \
+        --prefix PATH : ${lib.makeBinPath [ pkgs.gamescope pkgs.bubblewrap pkgs.umu-launcher ]} \
         --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [
           pkgs.libxkbcommon
           pkgs.libGL
