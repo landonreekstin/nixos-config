@@ -166,7 +166,7 @@
     };
 
     programs = {
-      partydeck.enable = false;
+      partydeck.enable = true;
       firefox = {
         enable = true;
         package = pkgs.firefox;

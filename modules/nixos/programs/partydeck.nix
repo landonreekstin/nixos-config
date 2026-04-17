@@ -13,27 +13,16 @@ let
 
   partydeck-pkg = pkgs.rustPlatform.buildRustPackage rec {
     pname = "partydeck-rs";
-    version = "0.5.2";
+    version = "0.8.6";
 
     src = pkgs.fetchFromGitHub {
       owner = "wunnr";
       repo = "partydeck-rs";
       rev = "v${version}";
-      hash = "sha256-3v/JGh6aX/zd5gMxKe4Cwlmwn9jREo1MklyIZaqS7ZI=";
+      hash = "sha256-BLgaQxmnLaKWo/RFOCpdjwfoYnyHXxoJy1ImJU/8ceI=";
     };
 
-    cargoHash = "sha256-3hO5ZtTX3uNqQBnSpm0rK3YsmgCRM7jcwPDb3J0aKVQ=";
-
-    # Patch to skip UMU launcher download which causes infinite loop on NixOS
-    postPatch = ''
-      # Patch the check_dependencies function to skip UMU entirely
-      if [ -f src/app/app.rs ]; then
-        # Comment out the entire UMU check block
-        sed -i '/if !PATH_RES.join("umu-run").exists()/,/^        }$/c\
-        // UMU launcher check disabled for NixOS - not needed\
-        // Original code checked for umu-run and downloaded if missing' src/app/app.rs
-      fi
-    '';
+    cargoHash = "sha256-pPbMKyp3e3umhVwZ7Aj3T9RUPPTdZlGYgWUjUdy2YB8=";
 
     nativeBuildInputs = [
       pkgs.makeWrapper
@@ -53,20 +42,25 @@ let
       pkgs.xorg.libXcursor
       pkgs.xorg.libXrandr
       pkgs.xorg.libXi
+      pkgs.xorg.libxcb
       # SDL2 support
       pkgs.SDL2
       # Font rendering
       pkgs.fontconfig
       pkgs.freetype
+      # D-Bus (for zbus crate)
+      pkgs.dbus
+      # Input devices (for evdev crate)
+      pkgs.libevdev
     ];
 
     desktopItems = [
       (pkgs.makeDesktopItem {
-        name = "partydeck-rs";
+        name = "partydeck";
         desktopName = "PartyDeck";
         comment = "A split-screen game launcher for Linux";
-        exec = "partydeck-rs";
-        icon = "partydeck-rs";
+        exec = "partydeck";
+        icon = "partydeck";
         categories = [ "Game" "Utility" ];
         keywords = [ "games" "launcher" "split-screen" "couch" "multiplayer" ];
       })
@@ -74,9 +68,9 @@ let
 
     postInstall = ''
       mkdir -p $out/share/icons/hicolor/512x512/apps
-      cp ${partydeck-icon} $out/share/icons/hicolor/512x512/apps/partydeck-rs.png
+      cp ${partydeck-icon} $out/share/icons/hicolor/512x512/apps/partydeck.png
 
-      wrapProgram $out/bin/partydeck-rs \
+      wrapProgram $out/bin/partydeck \
         --prefix PATH : ${lib.makeBinPath [ pkgs.gamescope pkgs.bubblewrap ]} \
         --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [
           pkgs.libxkbcommon
@@ -88,7 +82,6 @@ let
           pkgs.xorg.libXrandr
           pkgs.xorg.libXi
         ]} \
-        --set-default PARTYDECK_DATA_DIR "$HOME/.local/share/partydeck" \
         --set-default PARTYDECK_SKIP_UMU_UPDATE "1"
     '';
 
