@@ -180,6 +180,7 @@ in
           # Applications
           "$mainMod, SPACE, exec, $menu"
           "$mainMod, RETURN, exec, $terminal"
+          "$ctrlMod $mainMod, R, exec, $terminal -e rebuild"
           "$mainMod SHIFT, RETURN, workspace, empty"
           "$mainMod SHIFT, RETURN, exec, $terminal"
           "$ctrlMod SHIFT, ESCAPE, exec, $terminal -e ${customConfig.desktop.hyprland.applications.taskManager}"
