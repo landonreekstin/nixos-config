@@ -46,7 +46,7 @@
           identifier = "DP-4";
           resolution = "2560x1440@180";
           position = "0x0";
-          scale = "1.15";
+          scale = "1.0667";
         }
         {
           name = "left";
@@ -60,7 +60,7 @@
           name = "right";
           identifier = "DP-5";
           resolution = "preferred";
-          position = "2226x-390";
+          position = "2400x-390";
           scale = "1";
           transform = "1";
         }
