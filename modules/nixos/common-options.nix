@@ -472,6 +472,41 @@ in
             description = "Show temperature in Fahrenheit. Set false for Celsius.";
           };
         };
+        audioSinkMappings = mkOption {
+          type = types.listOf (types.submodule {
+            options = {
+              match = mkOption {
+                type = types.str;
+                description = "Substring to match against the sink description (as shown in pavucontrol Output Devices tab).";
+              };
+              icon = mkOption {
+                type = types.str;
+                description = "Nerd Font glyph for this device type (e.g. speaker 󰕾 U+F057E, headphones 󰋋 U+F040B).";
+              };
+              class = mkOption {
+                type = types.str;
+                default = "default";
+                description = "CSS class applied to the waybar widget when this sink is active (e.g. speakers, headphones).";
+              };
+              label = mkOption {
+                type = types.str;
+                default = "";
+                description = "Short text label shown alongside the sink name in the rofi sink-switcher menu.";
+              };
+            };
+          });
+          default = [];
+          description = ''
+            Map audio sink description substrings to Nerd Font icons for the waybar audio indicator
+            and the rofi sink-switcher menu. Useful on hosts where HDMI audio outputs are ambiguous
+            (e.g. an HDMI port feeding a monitor whose audio-out jack connects to headphones).
+            Patterns are matched as substrings against the sink description from pactl.
+          '';
+          example = [
+            { match = "Pro 7"; icon = "󰕾"; class = "speakers"; label = "SPKR"; }
+            { match = "Pro 8"; icon = "󰋋"; class = "headphones"; label = "HDPH"; }
+          ];
+        };
       };
       displayManager = {
         enable = mkOption {

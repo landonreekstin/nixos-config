@@ -13,8 +13,15 @@ let
   hasWeather = customConfig.desktop.hyprland.weather.enable;
   weatherLocation = customConfig.desktop.hyprland.weather.location;
   weatherUseFahrenheit = customConfig.desktop.hyprland.weather.useFahrenheit;
+  sinkMappings = customConfig.desktop.hyprland.audioSinkMappings;
 
   vpnInterface = customConfig.services.wireguard.client.interfaceName;
+
+  # Shell case statements for sink description → icon/class, Nix-interpolated at build time
+  audioMappingCases = lib.concatMapStrings (m: ''
+    *"${m.match}"*)
+      ICON="${m.icon}"; CLASS="${m.class}" ;;
+  '') sinkMappings;
 
   weatherScript = pkgs.writeShellScript "waybar-weather" ''
     LOC="${weatherLocation}"
@@ -61,6 +68,46 @@ let
     TOOLTIP="WX: ''${DESC}\nTEMP: ''${TEMP_F}°F / ''${TEMP_C}°C\nFEELS: ''${FEELS}\nHUMID: ''${HUMIDITY}%\nWIND: ''${WIND}mph ''${WIND_DIR}\nLOC: ''${AREA}"
 
     printf '{"text":"%s","tooltip":"%s","class":"%s"}' "$TEXT" "$TOOLTIP" "$CLASS"
+  '';
+
+  audioStatusScript = pkgs.writeShellScript "waybar-audio-status" ''
+    SINK=$(${pkgs.pulseaudio}/bin/pactl get-default-sink 2>/dev/null)
+    MUTED=$(${pkgs.pulseaudio}/bin/pactl get-sink-mute @DEFAULT_SINK@ 2>/dev/null | grep -c "yes" || echo 0)
+    VOLUME=$(${pkgs.pulseaudio}/bin/pactl get-sink-volume @DEFAULT_SINK@ 2>/dev/null \
+      | grep -oP '\d+(?=%)' | head -1)
+    VOLUME="''${VOLUME:-0}"
+
+    # Look up description for the current sink
+    DESC=$(${pkgs.pulseaudio}/bin/pactl list sinks | ${pkgs.gawk}/bin/awk -v sink="$SINK" '
+      /^\s*Name:/ { found = ($2 == sink) }
+      /^\s*Description:/ && found {
+        sub(/^\s*Description:\s*/, "")
+        print; exit
+      }
+    ')
+
+    # Default: volume-based fallback icon
+    if   [ "$VOLUME" -eq 0 ]; then ICON="󰸈"; CLASS="muted"
+    elif [ "$VOLUME" -le 33 ]; then ICON="󰕿"; CLASS="default"
+    elif [ "$VOLUME" -le 66 ]; then ICON="󰖀"; CLASS="default"
+    else ICON="󰕾"; CLASS="default"
+    fi
+
+    # Override with configured pattern mappings
+    case "$DESC" in
+      ${audioMappingCases}
+      *) ;;  # keep defaults
+    esac
+
+    if [ "$MUTED" -gt 0 ]; then
+      TEXT="󰸈 MUTE"
+      CLASS="muted"
+    else
+      TEXT="$ICON $VOLUME%"
+    fi
+
+    TOOLTIP="Sink: $SINK\nDesc: $DESC\nVol: $VOLUME%"
+    printf '{"text":"%s","class":"%s","tooltip":"%s"}' "$TEXT" "$CLASS" "$TOOLTIP"
   '';
 
   vpnStatusScript = pkgs.writeShellScript "waybar-vpn-status" ''
@@ -128,7 +175,7 @@ in
               ++ lib.optionals hasWeather [ "custom/weather" ]
               ++ [
               "network"
-              "pulseaudio#sink_switcher"
+              "custom/audio-sink"
               "cpu"
               "memory"
               "clock"
@@ -202,14 +249,15 @@ in
             on-click = "${pkgs.networkmanager_dmenu}/bin/networkmanager_dmenu"; # Functional action
           };
 
-          "pulseaudio#sink_switcher" = {
-            # Functional formats without icons; rice can override
-            format = "{volume}%";
-            format-bluetooth = "{volume}%"; # Base format for bluetooth state
-            format-muted = "Muted";          # Base format for muted state
-            scroll-step = 5;                 # Functional behavior
-            on-click = "switch-audio-sink";  # Functional action from imported script
-            on-click-right = "${pkgs.pavucontrol}/bin/pavucontrol"; # Functional action
+          "custom/audio-sink" = {
+            exec = "${audioStatusScript}";
+            return-type = "json";
+            interval = 2;
+            signal = 11;  # pkill -RTMIN+11 waybar forces an immediate refresh
+            on-click = "switch-audio-sink";
+            on-click-right = "${pkgs.pavucontrol}/bin/pavucontrol";
+            on-scroll-up = "${pkgs.pulseaudio}/bin/pactl set-sink-volume @DEFAULT_SINK@ +5%";
+            on-scroll-down = "${pkgs.pulseaudio}/bin/pactl set-sink-volume @DEFAULT_SINK@ -5%";
           };
 
           tray = {

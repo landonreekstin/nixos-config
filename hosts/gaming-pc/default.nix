@@ -80,6 +80,24 @@
       ];
 
       hyprland = {
+        # Audio sink → icon mappings for the waybar audio indicator.
+        # Match is a substring of the sink description shown in pavucontrol.
+        # Run: pactl list sinks | grep Description  to find exact strings.
+        # These may need updating if sink descriptions change with display connections.
+        audioSinkMappings = [
+          {
+            match = "Pro 7";    # DP audio → main monitor → speakers on 3.5mm out
+            icon = "󰕾";
+            class = "speakers";
+            label = "SPKR";
+          }
+          {
+            match = "Pro 8";    # HDMI audio → right portrait monitor → headphones on 3.5mm out
+            icon = "󰋋";
+            class = "headphones";
+            label = "HDPH";
+          }
+        ];
         launcher = {
           enable = true;
           pinnedApps = [
