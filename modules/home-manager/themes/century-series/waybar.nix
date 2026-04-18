@@ -90,10 +90,8 @@ in {
             tooltip-format = "Keyboard backlight: {}";
           };
 
-          "pulseaudio#sink_switcher" = {
-            format = mkForce "VOL {volume}%";
-            format-muted = mkForce "VOL MUTE";
-          };
+          # custom/audio-sink: format is returned by the script, no waybar format override needed
+          # (icon and volume are already embedded in the script's JSON "text" field)
 
           battery = mkIf hasBattery {
             format = mkForce "BAT {capacity}%";
@@ -179,7 +177,7 @@ in {
         }
 
         /* Module base styling - Instrument readouts */
-        #cpu, #memory, #temperature, #network, #battery, #pulseaudio,
+        #cpu, #memory, #temperature, #network, #battery, #custom-audio-sink,
         #backlight, #custom-kbd-brightness, #custom-vpn {
           padding: 0 8px;
           margin: 2px;
@@ -270,6 +268,24 @@ in {
           background-color: ${c.bg-secondary};
           color: ${c.accent-green};
           border-color: ${c.accent-green};
+        }
+
+        /* Audio sink indicator - device type states */
+        #custom-audio-sink.speakers {
+          color: ${c.accent-amber};
+          border-color: ${c.accent-amber-dim};
+        }
+
+        #custom-audio-sink.headphones {
+          color: ${c.accent-green};
+          border-color: ${c.accent-green-dim};
+          box-shadow: 0 0 6px ${c.accent-green}44;
+        }
+
+        #custom-audio-sink.muted {
+          color: ${c.text-tertiary};
+          border-color: ${c.border-primary};
+          opacity: 0.6;
         }
 
         /* System tray */

@@ -267,6 +267,13 @@ in
           ", XF86AudioMute, exec, ${pkgs.pulseaudio}/bin/pactl set-sink-mute @DEFAULT_SINK@ toggle"
           ", XF86AudioLowerVolume, exec, ${pkgs.pulseaudio}/bin/pactl set-sink-volume @DEFAULT_SINK@ -5%"
           ", XF86AudioRaiseVolume, exec, ${pkgs.pulseaudio}/bin/pactl set-sink-volume @DEFAULT_SINK@ +5%"
+
+          # Audio sink cycling — SUPER+VolumeUp/Down cycles through output devices.
+          # Works on any keyboard that emits XF86AudioRaiseVolume / XF86AudioLowerVolume.
+          # CTRL+SUPER+A is the fallback for keyboards without media keys.
+          "$mainMod, XF86AudioRaiseVolume, exec, cycle-audio-sink next"
+          "$mainMod, XF86AudioLowerVolume, exec, cycle-audio-sink prev"
+          "$ctrlMod $mainMod, A, exec, cycle-audio-sink next"
         ];
 
         # Mouse bindings
