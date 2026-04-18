@@ -61,6 +61,7 @@ in
     # Import scripts
     ../scripts/set-wayvnc-output.nix
     ../scripts/keybind-help.nix
+    ../scripts/toggle-monitor.nix
   ];
 
   config = lib.mkIf ((customConfig.desktop.enable) && (lib.elem "hyprland" customConfig.desktop.environments)) {
@@ -274,7 +275,18 @@ in
           "$mainMod, XF86AudioRaiseVolume, exec, cycle-audio-sink next"
           "$mainMod, XF86AudioLowerVolume, exec, cycle-audio-sink prev"
           "$ctrlMod $mainMod, A, exec, cycle-audio-sink next"
-        ];
+        ] ++ (lib.imap1 (i: mon:
+          let
+            monId =
+              if lib.strings.hasPrefix "desc:" mon.identifier
+              then mon.identifier
+              else if (lib.strings.hasInfix " " mon.identifier) || (lib.strings.hasInfix "." mon.identifier)
+              then "desc:${mon.identifier}"
+              else mon.identifier;
+            configStr = generateMonitorConfig mon;
+          in
+          "$ctrlMod $mainMod, ${toString i}, exec, toggle-monitor \"${monId}\" \"${configStr}\""
+        ) customConfig.desktop.monitors);
 
         # Mouse bindings
         bindm = [
