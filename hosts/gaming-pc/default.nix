@@ -88,7 +88,7 @@
         audioSinkMappings = [
           {
             match = "Pro 7";    # DP audio → main monitor → speakers on 3.5mm out
-            icon = "󰕾";
+            icon = "󰓃";
             class = "speakers";
             label = "SPKR";
           }
