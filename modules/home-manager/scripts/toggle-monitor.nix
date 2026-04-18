@@ -46,11 +46,17 @@ let
       # Monitor is disabled or not found — restore it
       ${pkgs.hyprland}/bin/hyprctl keyword monitor "$MON_CONFIG"
     fi
+
+    # Restart waybar to avoid duplicate instances caused by monitoradded/removed events
+    pkill waybar 2>/dev/null || true
+    sleep 0.5
+    ${pkgs.waybar}/bin/waybar > /tmp/waybar-restart.log 2>&1 &
   '';
 in
 {
   home.packages = [
     toggleMonitorScript
     pkgs.jq
+    pkgs.waybar
   ];
 }

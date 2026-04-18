@@ -70,6 +70,7 @@
           resolution = "preferred";
           position = "0x-1080";
           scale = "1";
+          transform = "0";
         }
       ];
       autostart = [
