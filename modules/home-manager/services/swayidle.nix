@@ -7,7 +7,20 @@ let
   # Reference the configured swaylock package (may be swaylock-effects from theme).
   # Run in background (&) so swayidle's -w flag doesn't block it from firing
   # subsequent timeouts (e.g. dpms off) or resume commands while lock is active.
-  swaylockCmd = "${config.programs.swaylock.package}/bin/swaylock &";
+  swaylockBin = "${config.programs.swaylock.package}/bin/swaylock";
+  playerctlBin = "${pkgs.playerctl}/bin/playerctl";
+  # Script that skips locking if any MPRIS player is active (Spotify, browser media,
+  # Jellyfin in Librewolf, etc.) or if a microphone stream is open (Discord calls).
+  lockIfIdle = pkgs.writeShellScript "lock-if-idle" ''
+    # Skip if any MPRIS player is currently playing (Spotify, browser media sessions)
+    ${playerctlBin} -a status 2>/dev/null | grep -q Playing && exit 0
+    # Skip if any app has an active microphone input (Discord/video calls)
+    ${pkgs.pulseaudio}/bin/pactl list short source-outputs 2>/dev/null | grep -q . && exit 0
+    # Lock if not already locked
+    pidof swaylock || ${swaylockBin} &
+  '';
+  # Unconditional lock (before-sleep, explicit lock events)
+  lockNow = "pidof swaylock || ${swaylockBin} &";
 in
 {
   # On Hyprland with systemd.enable=false, WAYLAND_DISPLAY isn't in the systemd environment
@@ -26,7 +39,8 @@ in
     timeouts =
       lib.optional (idleCfg.lockTimeout != null) {
         timeout = idleCfg.lockTimeout;
-        command = "pidof swaylock || ${swaylockCmd}";
+        # Use media-aware lock: skip if media is playing or mic is active
+        command = "${lockIfIdle}";
       }
       ++ lib.optional (idleCfg.sleepTimeout != null) {
         timeout = idleCfg.sleepTimeout;
@@ -34,8 +48,9 @@ in
         resumeCommand = "/run/current-system/sw/bin/hyprctl dispatch dpms on";
       };
     events = [
-      { event = "before-sleep"; command = "pidof swaylock || ${swaylockCmd}"; }
-      { event = "lock";         command = "pidof swaylock || ${swaylockCmd}"; }
+      # Lock unconditionally on sleep/explicit lock — don't skip for media
+      { event = "before-sleep"; command = lockNow; }
+      { event = "lock";         command = lockNow; }
     ];
   };
 }
