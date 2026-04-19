@@ -179,6 +179,7 @@
 
     profiles = {
       gaming.enable = true;
+      development.gbdk.enable = true;
     };
 
     services = {
