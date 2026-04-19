@@ -270,6 +270,7 @@
         kernel.enable = true;
         embedded-linux.enable = true;
         gbdk.enable = true;
+        cpp-practice.enable = true;
       };
     };
 

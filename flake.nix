@@ -199,6 +199,8 @@
       embedded-linux = referenceHostConfig.customConfig.profiles.development.embedded-linux.devShell;
 
       gbdk-dev = referenceHostConfig.customConfig.profiles.development.gbdk.devShell;
+
+      cpp-practice = referenceHostConfig.customConfig.profiles.development.cpp-practice.devShell;
     };
 
   };

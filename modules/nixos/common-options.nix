@@ -847,6 +847,13 @@ in
             description = "Enable Game Boy development tools and the GBDK dev shell.";
           };
         };
+        cpp-practice = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable C++ practice dev environment with compiler and build tools.";
+          };
+        };
       };
       # You could add other profiles like 'development', 'server', 'htpc' here later
     };

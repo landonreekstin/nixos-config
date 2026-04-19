@@ -7,5 +7,6 @@
     ./kernel.nix
     ./embedded-linux.nix
     ./gbdk.nix
+    ./cpp-practice.nix
   ];
 }
