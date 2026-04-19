@@ -250,8 +250,6 @@ in {
         # Decoration - Cockpit glass and metal materials
         decoration = {
           rounding = 0;  # Cockpit displays are rectangular
-          screen_shader = barrelShaderPath;
-
           # Dim inactive windows like non-active MFD panels
           dim_inactive = true;
           dim_strength = 0.15;
