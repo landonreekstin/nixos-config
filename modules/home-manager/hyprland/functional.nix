@@ -56,20 +56,6 @@ let
         else null
     else null;
 
-  # Submap that lets you keep pressing VolumeUp/Down (with or without SUPER held)
-  # to cycle sinks without releasing the modifier between presses.
-  # catchall exits the submap transparently on any unbound key.
-  sinkCycleSubmap = ''
-    submap = sink-cycle
-    binde = SUPER, XF86AudioRaiseVolume, exec, cycle-audio-sink next
-    binde = SUPER, XF86AudioLowerVolume, exec, cycle-audio-sink prev
-    binde = , XF86AudioRaiseVolume, exec, cycle-audio-sink next
-    binde = , XF86AudioLowerVolume, exec, cycle-audio-sink prev
-    binde = , A, exec, cycle-audio-sink next
-    bind = , escape, submap, reset
-    bind = , catchall, submap, reset
-    submap = reset
-  '';
 in
 {
   imports = [
@@ -103,7 +89,7 @@ in
 
       systemd.enable = false;
 
-      extraConfig = autostartWindowRules + sinkCycleSubmap;
+      extraConfig = autostartWindowRules;
 
       settings = {
         # Variables for tools and modifiers
@@ -297,13 +283,17 @@ in
           "$ctrlMod $mainMod, ${toString i}, exec, toggle-monitor \"${monId}\" \"${configStr}\""
         ) customConfig.desktop.monitors);
 
-        # Audio sink cycling — single exec that cycles AND enters the submap so
-        # subsequent presses (with or without SUPER held) keep cycling without
-        # needing to release the modifier between presses.
+        # Audio sink cycling.
+        # SUPER+VolumeUp/Down: fires once per SUPER press (XF86 media keys can't
+        # repeat while a modifier is held — Hyprland limitation).
+        # SUPER+, / SUPER+. and CTRL+SUPER+A: regular keys, work with binde repeat
+        # so you can hold SUPER and keep pressing to cycle through sinks.
         binde = [
-          "$mainMod, XF86AudioRaiseVolume, exec, cycle-audio-sink next && ${pkgs.hyprland}/bin/hyprctl dispatch submap sink-cycle"
-          "$mainMod, XF86AudioLowerVolume, exec, cycle-audio-sink prev && ${pkgs.hyprland}/bin/hyprctl dispatch submap sink-cycle"
-          "$ctrlMod $mainMod, A, exec, cycle-audio-sink next && ${pkgs.hyprland}/bin/hyprctl dispatch submap sink-cycle"
+          "$mainMod, XF86AudioRaiseVolume, exec, cycle-audio-sink next"
+          "$mainMod, XF86AudioLowerVolume, exec, cycle-audio-sink prev"
+          "$mainMod, comma,  exec, cycle-audio-sink prev"
+          "$mainMod, period, exec, cycle-audio-sink next"
+          "$ctrlMod $mainMod, A, exec, cycle-audio-sink next"
         ];
 
         # Mouse bindings
