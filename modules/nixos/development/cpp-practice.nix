@@ -22,6 +22,9 @@ in
         gdb
         clang-tools  # clangd LSP for editors
       ];
+      shellHook = ''
+        code .
+      '';
     };
   };
 }

@@ -3,22 +3,92 @@
 
 let
   cfg = customConfig.profiles.development.cpp-practice;
+  dir = "${config.home.homeDirectory}/cpp_practice";
+
   envrcContent = ''
     # Managed by your NixOS config. Activates the C++ practice dev shell.
     use flake ~/nixos-config#cpp-practice
   '';
+
+  makefileContent = ''
+    CXX      = g++
+    CXXFLAGS = -std=c++17 -Wall -Wextra -g
+
+    # Override with: make FILE=two_sum
+    FILE ?= solution
+
+    .PHONY: all run clean
+
+    all: $(FILE)
+
+    $(FILE): $(FILE).cpp
+    	$(CXX) $(CXXFLAGS) -o $@ $<
+
+    run: $(FILE)
+    	./$(FILE)
+
+    clean:
+    	rm -f $(FILE)
+  '';
+
+  tasksJson = ''
+    {
+      "version": "2.0.0",
+      "tasks": [
+        {
+          "label": "Build Active File",
+          "type": "shell",
+          "command": "make",
+          "args": ["FILE=''${fileBasenameNoExtension}"],
+          "group": { "kind": "build", "isDefault": true },
+          "presentation": { "reveal": "always", "panel": "shared", "clear": true },
+          "problemMatcher": "$gcc"
+        }
+      ]
+    }
+  '';
+
+  launchJson = ''
+    {
+      "version": "0.2.0",
+      "configurations": [
+        {
+          "name": "Build and Debug Active File",
+          "type": "cppdbg",
+          "request": "launch",
+          "program": "''${workspaceFolder}/''${fileBasenameNoExtension}",
+          "args": [],
+          "stopAtEntry": false,
+          "cwd": "''${workspaceFolder}",
+          "externalConsole": false,
+          "MIMode": "gdb",
+          "miDebuggerPath": "gdb",
+          "preLaunchTask": "Build Active File",
+          "setupCommands": [
+            { "text": "-enable-pretty-printing", "ignoreFailures": true }
+          ]
+        }
+      ]
+    }
+  '';
+
+  writeIfChanged = path: content: ''
+    content=${lib.escapeShellArg content}
+    if [ ! -f "${path}" ] || [ "$(cat "${path}")" != "$content" ]; then
+      [ -L "${path}" ] && rm "${path}"
+      echo "$content" > "${path}"
+    fi
+  '';
 in
 {
   config = lib.mkIf cfg.enable {
-    home.activation.createCppPracticeEnvrc = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      mkdir -p "${config.home.homeDirectory}/cpp_practice"
-      envrc_path="${config.home.homeDirectory}/cpp_practice/.envrc"
-      envrc_content=${lib.escapeShellArg envrcContent}
+    home.activation.createCppPracticeFiles = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      mkdir -p "${dir}/.vscode"
 
-      if [ ! -f "$envrc_path" ] || [ "$(cat "$envrc_path")" != "$envrc_content" ]; then
-        [ -L "$envrc_path" ] && rm "$envrc_path"
-        echo "$envrc_content" > "$envrc_path"
-      fi
+      ${writeIfChanged "${dir}/.envrc" envrcContent}
+      ${writeIfChanged "${dir}/Makefile" makefileContent}
+      ${writeIfChanged "${dir}/.vscode/tasks.json" tasksJson}
+      ${writeIfChanged "${dir}/.vscode/launch.json" launchJson}
     '';
   };
 }
