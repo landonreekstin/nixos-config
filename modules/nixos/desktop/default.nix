@@ -12,5 +12,6 @@
     ./custom-sddm-theme.nix
     ./ly-doom-theme.nix
     ./ly-century-series-theme.nix
+    ./ly-matrix-theme.nix
   ];
 }
