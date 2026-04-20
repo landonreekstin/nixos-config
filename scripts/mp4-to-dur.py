@@ -172,7 +172,7 @@ def build_dur_bytes(frames_data: list, cols: int, rows: int, fps: int, name: str
             "encoding": "utf-8",
             "name": name,
             "artist": "nixos-config",
-            "framerate": fps,
+            "framerate": float(fps),
             "columns": cols,
             "lines": rows,
             "preferredFont": "fixed",
