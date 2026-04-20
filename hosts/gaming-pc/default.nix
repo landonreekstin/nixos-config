@@ -294,7 +294,34 @@
   # === Additional nixos configuration for this host ===
   programs.zoom-us.enable = true;
 
-  boot.kernelParams = [ "nvidia-drm.fbdev=1" ];
+  # nvidia-drm.fbdev=1: expose NVIDIA as an fbdev so fbcon can use it.
+  # initcall_blacklist: prevent simpledrm from loading. Without this, simpledrm
+  # claims fb0 at the EFI GOP resolution (1920x1080) before NVIDIA loads, and
+  # fbcon inherits that mode — leaving the TTY at 240x67 even though NVIDIA
+  # later takes over fb0. Blocking simpledrm makes NVIDIA the first framebuffer,
+  # initialised at the native 2560x1440 → 320x90 TTY for Ly.
+  boot.kernelParams = [
+    "nvidia-drm.fbdev=1"
+    "initcall_blacklist=simpledrm_platform_driver_init"
+  ];
+
+  # Plymouth sets the fbdev visible geometry to 1920x1080 (EFI GOP resolution)
+  # for its splash screen. This persists after Plymouth exits, leaving fbcon
+  # at 240x67 even though the virtual buffer is 2560x1440. Reset to native
+  # resolution after Plymouth quits, before Ly starts, so fbcon recalculates
+  # to 320x90 and the F-18 animation fills the screen.
+  systemd.services.fbset-native-res = {
+    description = "Reset framebuffer to native 2560x1440 before Ly";
+    # Ly runs as display-manager.service in NixOS; ly.service is just an alias
+    # so wantedBy=ly.service doesn't create a working dependency.
+    wantedBy = [ "display-manager.service" ];
+    before    = [ "display-manager.service" ];
+    after     = [ "plymouth-quit.service" ];
+    serviceConfig = {
+      Type       = "oneshot";
+      ExecStart  = "${pkgs.fbset}/bin/fbset -g 2560 1440 2560 1440 32";
+    };
+  };
 
   # Enable the Samba client-side name resolution daemon (nmbd).
   # This allows the PC to discover other Samba hosts (like optiplex-nas)
