@@ -294,9 +294,11 @@
   # === Additional nixos configuration for this host ===
   programs.zoom-us.enable = true;
 
-  # Enable NVIDIA DRM fbdev for TTY/Ly framebuffer support.
-  # Note: NVIDIA proprietary ignores video= kernel params, so TTY resolution is limited
-  # by the EFI GOP mode (1080p) inherited from the AMD iGPU on this machine.
+  # Load NVIDIA KMS modules early in initrd so NVIDIA takes over the framebuffer
+  # before fbcon commits to the AMD iGPU's EFI GOP resolution (1080p).
+  # With nvidia-drm.fbdev=1, NVIDIA initialises fbcon at the native display
+  # resolution (2560x1440 on DP-4), giving a full-size TTY for Ly.
+  boot.initrd.kernelModules = [ "nvidia" "nvidia_modeset" "nvidia_uvm" "nvidia_drm" ];
   boot.kernelParams = [ "nvidia-drm.fbdev=1" ];
 
   # Enable the Samba client-side name resolution daemon (nmbd).
