@@ -24,10 +24,10 @@ in
       dur_x_offset       = 0;
       dur_y_offset       = 0;
 
-      # UI colors — Cold War cockpit palette
+      # UI colors — radar display palette
       bg                 = "0x000a0e14"; # deep instrument panel black — bg-primary
-      fg                 = "0x00ff9e3b"; # amber CRT display — accent-amber
-      border_fg          = "0x002a3441"; # gunmetal MFD frame — border-primary
+      fg                 = "0x0000ff41"; # radar phosphor green — accent-green
+      border_fg          = "0x00004d18"; # dark radar green frame — border-primary
       error_fg           = "0x00ff3838"; # master warning red — warning-red
 
       clock              = "%H:%M";
