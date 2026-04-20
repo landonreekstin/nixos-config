@@ -601,7 +601,7 @@ in
           theme = mkOption {
             type = types.str;
             default = "none";
-            description = "The Ly theme to apply. 'none' uses Ly defaults. Available themes: 'doom'.";
+            description = "The Ly theme to apply. 'none' uses Ly defaults. Available themes: 'doom', 'century-series'.";
           };
         };
       };

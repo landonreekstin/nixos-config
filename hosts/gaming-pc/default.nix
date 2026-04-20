@@ -137,33 +137,32 @@
       };
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
-        type = "sddm";
-        sddm = {
-          theme = "sddm-astronaut";
-          #embeddedTheme = "pixel_sakura";
-          customTheme = {
-            enable = true;
-            wallpaper = ../../assets/wallpapers/F18_background.mp4;
-            blur = 2.0;
-            roundCorners = 20;
-            colors = {
-              formBackground = "#1e1e2e";
-              dimBackground = "#1e1e2e";
-              headerText = "#cdd6f4";
-              dateText = "#cdd6f4";
-              timeText = "#cdd6f4";
-              placeholderText = "#a6adc8";
-              loginButtonBackground = "#89b4fa";
-              loginButtonText = "#1e1e2e";
-              highlightBackground = "#89b4fa";
-              systemButtonsIcons = "#cdd6f4";
-            };
-          };
-          screensaver = {
-            enable = false;
-            timeout = 45; # e.g., 10 minutes
-          };
-        };
+        type = "ly";
+        ly.theme = "century-series"; # F-18 ASCII animation + amber cockpit UI
+        # sddm config preserved below for easy rollback:
+        # type = "sddm";
+        # sddm = {
+        #   theme = "sddm-astronaut";
+        #   customTheme = {
+        #     enable = true;
+        #     wallpaper = ../../assets/wallpapers/F18_background.mp4;
+        #     blur = 2.0;
+        #     roundCorners = 20;
+        #     colors = {
+        #       formBackground = "#1e1e2e";
+        #       dimBackground = "#1e1e2e";
+        #       headerText = "#cdd6f4";
+        #       dateText = "#cdd6f4";
+        #       timeText = "#cdd6f4";
+        #       placeholderText = "#a6adc8";
+        #       loginButtonBackground = "#89b4fa";
+        #       loginButtonText = "#1e1e2e";
+        #       highlightBackground = "#89b4fa";
+        #       systemButtonsIcons = "#cdd6f4";
+        #     };
+        #   };
+        #   screensaver.enable = false;
+        # };
       };
     };
 

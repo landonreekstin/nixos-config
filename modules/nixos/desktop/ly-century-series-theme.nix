@@ -1,6 +1,6 @@
 # ~/nixos-config/modules/nixos/desktop/ly-century-series-theme.nix
 # Ly display manager "century-series" theme — Cold War aviation cockpit aesthetic
-# Matches the Hyprland century-series theme: phosphor green matrix rain, amber CRT UI
+# Uses a custom F-18 ASCII animation (.dur file) as the login screen background.
 { config, lib, ... }:
 
 let
@@ -9,11 +9,22 @@ let
 in
 {
   config = lib.mkIf enabled {
-    services.displayManager.ly.settings = {
-      animation          = "matrix";
-      cmatrix_fg         = "0x007fda89"; # phosphor green — accent-green
-      cmatrix_head_col   = "0x0039ff14"; # intense radar green — accent-radar
 
+    # Deploy the pre-generated .dur animation file to /etc/ly/
+    environment.etc."ly/f18-animation.dur" = {
+      source = ../../../assets/ly/f18-animation.dur;
+      mode   = "0444";
+    };
+
+    services.displayManager.ly.settings = {
+      # Custom F-18 ASCII animation
+      animation          = "dur_file";
+      dur_file_path      = "/etc/ly/f18-animation.dur";
+      dur_offset_alignment = "center";
+      dur_x_offset       = 0;
+      dur_y_offset       = 0;
+
+      # UI colors — Cold War cockpit palette
       bg                 = "0x000a0e14"; # deep instrument panel black — bg-primary
       fg                 = "0x00ff9e3b"; # amber CRT display — accent-amber
       border_fg          = "0x002a3441"; # gunmetal MFD frame — border-primary
