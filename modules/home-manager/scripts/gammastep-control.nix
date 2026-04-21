@@ -1,4 +1,8 @@
 # ~/nixos-config/modules/home-manager/scripts/gammastep-control.nix
+#
+# All scripts use gammastep -O (one-shot mode): applies gamma immediately and
+# exits. No daemon is tracked. This avoids geoclue2 D-Bus timing issues and
+# prevents waybar from blocking on a hung process.
 { pkgs, ... }:
 
 let
@@ -30,9 +34,7 @@ let
     echo "''${TEMP}:''${STATUS}" > "$STATE_FILE"
 
     if [ "$STATUS" = "enabled" ]; then
-      pkill -x gammastep 2>/dev/null || true
-      sleep 0.3
-      ${pkgs.gammastep}/bin/gammastep -l geoclue2 -t 6500:"''${TEMP}" &
+      ${pkgs.gammastep}/bin/gammastep -O "''${TEMP}"
     fi
 
     pkill -RTMIN+12 waybar 2>/dev/null || true
@@ -52,20 +54,16 @@ let
 
     if [ "$STATUS" = "enabled" ]; then
       echo "''${TEMP}:disabled" > "$STATE_FILE"
-      pkill -x gammastep 2>/dev/null || true
-      sleep 0.3
       ${pkgs.gammastep}/bin/gammastep -x
     else
       echo "''${TEMP}:enabled" > "$STATE_FILE"
-      pkill -x gammastep 2>/dev/null || true
-      sleep 0.3
-      ${pkgs.gammastep}/bin/gammastep -l geoclue2 -t 6500:"''${TEMP}" &
+      ${pkgs.gammastep}/bin/gammastep -O "''${TEMP}"
     fi
 
     pkill -RTMIN+12 waybar 2>/dev/null || true
   '';
 
-  # Called from Hyprland exec-once to restore state on login
+  # Called from Hyprland exec-once to restore saved temperature on login
   gammastepInitScript = pkgs.writeShellScriptBin "gammastep-init" ''
     STATE_FILE="${stateFile}"
 
@@ -78,7 +76,7 @@ let
     STATUS="''${STATE_LINE##*:}"
 
     if [ "$STATUS" = "enabled" ]; then
-      ${pkgs.gammastep}/bin/gammastep -l geoclue2 -t 6500:"''${TEMP}" &
+      ${pkgs.gammastep}/bin/gammastep -O "''${TEMP}"
     fi
   '';
 
