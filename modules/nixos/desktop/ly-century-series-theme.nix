@@ -30,6 +30,11 @@ in
       border_fg          = "0x00004d18"; # dark radar green frame — border-primary
       error_fg           = "0x00ff3838"; # master warning red — warning-red
 
+      # UI box sizing — larger than defaults (input_len=34, margin_box_h=2, margin_box_v=1)
+      input_len          = 50;
+      margin_box_h       = 6;
+      margin_box_v       = 3;
+
       clock              = "%H:%M";
       hide_version_string = true;
       text_in_center     = true;
