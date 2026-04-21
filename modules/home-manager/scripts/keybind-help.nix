@@ -45,12 +45,19 @@ Super+Shift+1-9     Move Window to WS
 Super+Ctrl+Arrow    Prev/Next WS
 Super+Shift+Arrow   Move Win Prev/Next
 
+DISPLAYS
+Ctrl+Super+1        Toggle Display 1
+Ctrl+Super+2        Toggle Display 2
+Ctrl+Super+3        Toggle Display 3
+Ctrl+Super+4        Toggle Display 4
+
 SYSTEM
 Super+Escape        Lock Screen
 Super+Backspace     Power Menu
 Super+V             Clipboard
 Super+Shift+S       Screenshot
 Super+Shift+R       Reload
+Ctrl+Super+R        Rebuild System
 Super+Shift+Q       Exit
 Super+Slash         This Menu
 
@@ -59,6 +66,8 @@ Play/Pause          Toggle Playback
 Next/Prev           Skip Track
 Mute                Toggle Mute
 Vol Up/Down         Adjust Volume
+Super+Vol Up/Down   Cycle Audio Output
+Ctrl+Super+A        Cycle Audio Output
 
 Press Escape to close
 EOF
