@@ -141,7 +141,7 @@ let
 
     if [ "$STATUS" = "enabled" ]; then
       TEXT="''${TEMP}K"
-      TOOLTIP="Night light: ''${TEMP}K\nGeoclue2 auto-transitions active\nScroll to adjust \u2022 Click to toggle"
+      TOOLTIP="Night light: ''${TEMP}K — scroll to adjust, click to toggle"
       if   [ "$TEMP" -ge 5501 ]; then CLASS="temp-cool"
       elif [ "$TEMP" -ge 4501 ]; then CLASS="temp-neutral"
       elif [ "$TEMP" -ge 3501 ]; then CLASS="temp-amber"
@@ -151,10 +151,61 @@ let
     else
       TEXT="OFF"
       CLASS="inactive"
-      TOOLTIP="Night light: disabled (''${TEMP}K preset)\nClick to enable"
+      TOOLTIP="Night light disabled (''${TEMP}K preset) — click to enable"
     fi
 
     printf '{"text":"%s","class":"%s","tooltip":"%s"}' "$TEXT" "$CLASS" "$TOOLTIP"
+  '';
+
+  gammastepAdjustScript = pkgs.writeShellScript "gammastep-waybar-adjust" ''
+    STATE_FILE="$HOME/.cache/gammastep-state"
+
+    if [ ! -f "$STATE_FILE" ]; then
+      echo "2500:enabled" > "$STATE_FILE"
+    fi
+
+    STATE_LINE=$(cat "$STATE_FILE")
+    TEMP="''${STATE_LINE%%:*}"
+    STATUS="''${STATE_LINE##*:}"
+
+    STEP=250
+    if [ "''${1:-up}" = "up" ]; then
+      TEMP=$((TEMP + STEP))
+      [ "$TEMP" -gt 6500 ] && TEMP=6500
+    else
+      TEMP=$((TEMP - STEP))
+      [ "$TEMP" -lt 1000 ] && TEMP=1000
+    fi
+
+    echo "''${TEMP}:''${STATUS}" > "$STATE_FILE"
+
+    if [ "$STATUS" = "enabled" ]; then
+      ${pkgs.gammastep}/bin/gammastep -O "''${TEMP}"
+    fi
+
+    pkill -RTMIN+12 waybar 2>/dev/null || true
+  '';
+
+  gammastepToggleScript = pkgs.writeShellScript "gammastep-waybar-toggle" ''
+    STATE_FILE="$HOME/.cache/gammastep-state"
+
+    if [ ! -f "$STATE_FILE" ]; then
+      echo "2500:enabled" > "$STATE_FILE"
+    fi
+
+    STATE_LINE=$(cat "$STATE_FILE")
+    TEMP="''${STATE_LINE%%:*}"
+    STATUS="''${STATE_LINE##*:}"
+
+    if [ "$STATUS" = "enabled" ]; then
+      echo "''${TEMP}:disabled" > "$STATE_FILE"
+      ${pkgs.gammastep}/bin/gammastep -x
+    else
+      echo "''${TEMP}:enabled" > "$STATE_FILE"
+      ${pkgs.gammastep}/bin/gammastep -O "''${TEMP}"
+    fi
+
+    pkill -RTMIN+12 waybar 2>/dev/null || true
   '';
 
   # Generate custom module configurations for launcher buttons
@@ -263,9 +314,10 @@ in
             return-type = "json";
             interval = 60;
             signal = 12;  # pkill -RTMIN+12 waybar forces an immediate refresh
-            on-click = "gammastep-toggle";
-            on-scroll-up = "gammastep-adjust up";
-            on-scroll-down = "gammastep-adjust down";
+            on-click = "${gammastepToggleScript}";
+            on-scroll-up = "${gammastepAdjustScript} up";
+            on-scroll-down = "${gammastepAdjustScript} down";
+            smooth-scrolling-threshold = 1;
           };
 
           battery = lib.mkIf hasBattery {
