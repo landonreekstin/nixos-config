@@ -148,9 +148,9 @@ let
 
     if [ "$STATUS" = "enabled" ]; then
       if [ "$IS_DAY" = "1" ]; then
-        TEXT="DAY"
+        TEXT="''${TEMP}K"
         CLASS="temp-day"
-        TOOLTIP="Day mode (6500K) — night preset: ''${TEMP}K — scroll to adjust preset — click to disable"
+        TOOLTIP="Day mode (6500K active) — night preset: ''${TEMP}K — scroll to adjust — click to disable"
       else
         TEXT="''${TEMP}K"
         TOOLTIP="Night: ''${TEMP}K — scroll to adjust, click to toggle"
