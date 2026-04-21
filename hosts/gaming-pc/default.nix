@@ -50,7 +50,7 @@
         }
         {
           name = "left";
-          identifier = "HDMI-A-2";
+          identifier = "DP-6";
           resolution = "preferred";
           position = "-1080x-410";
           scale = "1";
@@ -66,7 +66,7 @@
         }
         {
           name = "tv";
-          identifier = "DP-6";
+          identifier = "HDMI-A-2";
           resolution = "preferred";
           position = "0x-1080";
           scale = "1";
