@@ -139,19 +139,32 @@ let
     TEMP="''${STATE_LINE%%:*}"
     STATUS="''${STATE_LINE##*:}"
 
+    HOUR=$(date +%-H)
+    if [ "$HOUR" -ge 7 ] && [ "$HOUR" -lt 20 ]; then
+      IS_DAY=1
+    else
+      IS_DAY=0
+    fi
+
     if [ "$STATUS" = "enabled" ]; then
-      TEXT="''${TEMP}K"
-      TOOLTIP="Night light: ''${TEMP}K — scroll to adjust, click to toggle"
-      if   [ "$TEMP" -ge 5501 ]; then CLASS="temp-cool"
-      elif [ "$TEMP" -ge 4501 ]; then CLASS="temp-neutral"
-      elif [ "$TEMP" -ge 3501 ]; then CLASS="temp-amber"
-      elif [ "$TEMP" -ge 2001 ]; then CLASS="temp-warm"
-      else                            CLASS="temp-hot"
+      if [ "$IS_DAY" = "1" ]; then
+        TEXT="DAY"
+        CLASS="temp-day"
+        TOOLTIP="Day mode (6500K) — night preset: ''${TEMP}K — scroll to adjust preset — click to disable"
+      else
+        TEXT="''${TEMP}K"
+        TOOLTIP="Night: ''${TEMP}K — scroll to adjust, click to toggle"
+        if   [ "$TEMP" -ge 5501 ]; then CLASS="temp-cool"
+        elif [ "$TEMP" -ge 4501 ]; then CLASS="temp-neutral"
+        elif [ "$TEMP" -ge 3501 ]; then CLASS="temp-amber"
+        elif [ "$TEMP" -ge 2001 ]; then CLASS="temp-warm"
+        else                            CLASS="temp-hot"
+        fi
       fi
     else
       TEXT="OFF"
       CLASS="inactive"
-      TOOLTIP="Night light disabled (''${TEMP}K preset) — click to enable"
+      TOOLTIP="Night light disabled (''${TEMP}K night preset) — click to enable"
     fi
 
     printf '{"text":"%s","class":"%s","tooltip":"%s"}' "$TEXT" "$CLASS" "$TOOLTIP"
@@ -179,7 +192,9 @@ let
 
     echo "''${TEMP}:''${STATUS}" > "$STATE_FILE"
 
-    if [ "$STATUS" = "enabled" ]; then
+    # Only restart hyprsunset at night — daytime runs at fixed 6500K regardless of preset
+    HOUR=$(date +%-H)
+    if [ "$STATUS" = "enabled" ] && { [ "$HOUR" -lt 7 ] || [ "$HOUR" -ge 20 ]; }; then
       pkill -x hyprsunset 2>/dev/null || true
       sleep 0.2
       ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
@@ -199,6 +214,13 @@ let
     TEMP="''${STATE_LINE%%:*}"
     STATUS="''${STATE_LINE##*:}"
 
+    HOUR=$(date +%-H)
+    if [ "$HOUR" -ge 7 ] && [ "$HOUR" -lt 20 ]; then
+      IS_DAY=1
+    else
+      IS_DAY=0
+    fi
+
     if [ "$STATUS" = "enabled" ]; then
       echo "''${TEMP}:disabled" > "$STATE_FILE"
       pkill -x hyprsunset 2>/dev/null || true
@@ -206,7 +228,13 @@ let
       echo "''${TEMP}:enabled" > "$STATE_FILE"
       pkill -x hyprsunset 2>/dev/null || true
       sleep 0.2
-      ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
+      if [ "$IS_DAY" = "1" ]; then
+        # Daytime: enable at neutral 6500K
+        ${pkgs.hyprsunset}/bin/hyprsunset -t 6500 &
+      else
+        # Nighttime: enable at night preset
+        ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
+      fi
     fi
 
     pkill -RTMIN+12 waybar 2>/dev/null || true

@@ -397,6 +397,13 @@ in {
           opacity: 0.45;
         }
 
+        /* DAY - daytime ops, 6500K neutral, blue instrument light */
+        #custom-gammastep.temp-day {
+          color: ${c.info-blue};
+          border-color: ${c.info-blue};
+          text-shadow: 0 0 6px ${c.info-blue}88;
+        }
+
         /* 5501–6500K - near daylight, warm white */
         #custom-gammastep.temp-cool {
           color: #ffe8a0;
