@@ -1,64 +1,128 @@
 # ~/nixos-config/modules/home-manager/scripts/gammastep-control.nix
 #
-# gammastep-init: restores the saved temperature on Hyprland login via exec-once.
-# hyprsunset-schedule: applies day (6500K) or night (preset temp) based on time of day.
-#   Called by systemd timer at 07:00 and 20:00, and by gammastep-init on login.
-# The adjust/toggle scripts live inline in waybar/functional.nix so they can be
-# referenced by full Nix store path in the waybar config (avoids PATH ambiguity).
+# gammastep-init: applies correct temperature instantly on Hyprland login (exec-once).
+# hyprsunset-schedule: performs a GRADUAL transition to the time-of-day target.
+#   Only called by the systemd timer at dayStartHour and nightStartHour.
+#   All user interactions (waybar scroll/click) are instant — see waybar/functional.nix.
+#
+# State file: ~/.cache/gammastep-state  format: "NIGHT_TEMP:MODE"
+#   MODE: auto | manual | disabled
+# Active temp: ~/.cache/hyprsunset-active-temp  (currently applied K value)
+# Transition PID: ~/.cache/hyprsunset-transition.pid
 { pkgs, lib, customConfig, ... }:
 
 let
   hasGammastep = customConfig.homeManager.services.gammastep.enable;
+  cfg          = customConfig.homeManager.services.gammastep;
 
-  # Shared day/night constants — keep in sync with waybar/functional.nix scripts
-  dayStart = "7";   # 07:00 — switch to 6500K
-  nightStart = "20"; # 20:00 — switch to night preset
+  # Bake config constants into scripts at build time
+  dayTemp         = toString cfg.dayTemp;
+  defaultNight    = toString cfg.nightTemp;
+  dayStart        = toString cfg.dayStartHour;
+  nightStart      = toString cfg.nightStartHour;
+  transitionSecs  = toString (cfg.transitionMinutes * 60);
 
+  # ---- hyprsunset-schedule ------------------------------------------------
+  # Called ONLY by the systemd timer. Performs a gradual transition from the
+  # currently active temperature to the time-of-day target over transitionMinutes.
   hyprsunsetScheduleScript = pkgs.writeShellScriptBin "hyprsunset-schedule" ''
-    # Only run inside a Hyprland session
-    if [ "$XDG_CURRENT_DESKTOP" != "Hyprland" ]; then
-      exit 0
-    fi
+    if [ "$XDG_CURRENT_DESKTOP" != "Hyprland" ]; then exit 0; fi
 
     STATE_FILE="$HOME/.cache/gammastep-state"
+    ACTIVE_FILE="$HOME/.cache/hyprsunset-active-temp"
+    PID_FILE="$HOME/.cache/hyprsunset-transition.pid"
 
-    if [ ! -f "$STATE_FILE" ]; then
-      echo "2500:enabled" > "$STATE_FILE"
+    [ ! -f "$STATE_FILE" ] && echo "${defaultNight}:auto" > "$STATE_FILE"
+
+    STATE=$(cat "$STATE_FILE")
+    TEMP="''${STATE%%:*}"
+    MODE="''${STATE##*:}"
+
+    # Migrate from old 'enabled' format
+    if [ "$MODE" = "enabled" ]; then
+      MODE="auto"
+      echo "''${TEMP}:auto" > "$STATE_FILE"
     fi
 
-    STATE_LINE=$(cat "$STATE_FILE")
-    TEMP="''${STATE_LINE%%:*}"
-    STATUS="''${STATE_LINE##*:}"
+    # Only auto mode follows the schedule
+    [ "$MODE" = "disabled" ] || [ "$MODE" = "manual" ] && exit 0
 
-    if [ "$STATUS" != "enabled" ]; then
+    # Determine target temperature for the current time
+    HOUR=$(date +%-H)
+    if [ "$HOUR" -ge ${dayStart} ] && [ "$HOUR" -lt ${nightStart} ]; then
+      TARGET=${dayTemp}
+    else
+      TARGET="''${TEMP}"
+    fi
+
+    ACTIVE=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "''${TARGET}")
+
+    if [ "$ACTIVE" = "$TARGET" ]; then
+      pkill -RTMIN+12 waybar 2>/dev/null || true
       exit 0
     fi
 
+    # Kill any in-progress transition
+    if [ -f "$PID_FILE" ]; then
+      kill "$(cat "$PID_FILE")" 2>/dev/null || true
+      rm -f "$PID_FILE"
+    fi
+
+    STEPS=30
+    INTERVAL=$(( ${transitionSecs} / STEPS ))
+    A=$ACTIVE
+    T=$TARGET
+
+    (
+      echo $BASHPID > "$PID_FILE"
+      for i in $(seq 1 $STEPS); do
+        STEP=$(( A + (T - A) * i / STEPS ))
+        pkill -x hyprsunset 2>/dev/null || true
+        sleep 0.1
+        ${pkgs.hyprsunset}/bin/hyprsunset -t "$STEP" &
+        echo "$STEP" > "$ACTIVE_FILE"
+        pkill -RTMIN+12 waybar 2>/dev/null || true
+        [ "$i" -lt "$STEPS" ] && sleep "$INTERVAL"
+      done
+      rm -f "$PID_FILE"
+    ) &
+    disown
+  '';
+
+  # ---- gammastep-init -----------------------------------------------------
+  # Called from Hyprland exec-once. Applies the correct temperature INSTANTLY
+  # (no gradual transition — we're restoring state after login).
+  gammastepInitScript = pkgs.writeShellScriptBin "gammastep-init" ''
+    STATE_FILE="$HOME/.cache/gammastep-state"
+    ACTIVE_FILE="$HOME/.cache/hyprsunset-active-temp"
+
+    [ ! -f "$STATE_FILE" ] && echo "${defaultNight}:auto" > "$STATE_FILE"
+
+    STATE=$(cat "$STATE_FILE")
+    TEMP="''${STATE%%:*}"
+    MODE="''${STATE##*:}"
+
+    # Migrate from old 'enabled' format
+    if [ "$MODE" = "enabled" ]; then
+      MODE="auto"
+      echo "''${TEMP}:auto" > "$STATE_FILE"
+    fi
+
+    [ "$MODE" = "disabled" ] && exit 0
+
+    # Determine what to apply immediately
     HOUR=$(date +%-H)
+    if [ "$MODE" = "auto" ] && [ "$HOUR" -ge ${dayStart} ] && [ "$HOUR" -lt ${nightStart} ]; then
+      APPLY=${dayTemp}
+    else
+      APPLY="''${TEMP}"
+    fi
 
     pkill -x hyprsunset 2>/dev/null || true
     sleep 0.2
-
-    if [ "$HOUR" -ge ${dayStart} ] && [ "$HOUR" -lt ${nightStart} ]; then
-      # Daytime — neutral color temperature
-      ${pkgs.hyprsunset}/bin/hyprsunset -t 6500 &
-    else
-      # Nighttime — apply user's preset
-      ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
-    fi
-
+    ${pkgs.hyprsunset}/bin/hyprsunset -t "$APPLY" &
+    echo "$APPLY" > "$ACTIVE_FILE"
     pkill -RTMIN+12 waybar 2>/dev/null || true
-  '';
-
-  gammastepInitScript = pkgs.writeShellScriptBin "gammastep-init" ''
-    STATE_FILE="$HOME/.cache/gammastep-state"
-
-    if [ ! -f "$STATE_FILE" ]; then
-      echo "2500:enabled" > "$STATE_FILE"
-    fi
-
-    # Delegate to the schedule script — it applies the correct day/night temperature
-    ${hyprsunsetScheduleScript}/bin/hyprsunset-schedule
   '';
 
 in
@@ -70,7 +134,7 @@ in
 
   systemd.user.services.hyprsunset-schedule = lib.mkIf hasGammastep {
     Unit = {
-      Description = "Apply scheduled hyprsunset color temperature";
+      Description = "Apply scheduled hyprsunset color temperature transition";
     };
     Service = {
       Type = "oneshot";
@@ -84,10 +148,10 @@ in
     };
     Timer = {
       OnCalendar = [
-        "*-*-* 07:00:00"  # Morning: switch to 6500K
-        "*-*-* 20:00:00"  # Evening: switch to night preset
+        "*-*-* ${toString cfg.dayStartHour}:00:00"   # Morning: start day transition
+        "*-*-* ${toString cfg.nightStartHour}:00:00"  # Evening: start night transition
       ];
-      Persistent = true;  # Fire on session start if transition was missed
+      Persistent = true;  # Fire on session start if a transition was missed (e.g. resume from sleep)
     };
     Install = {
       WantedBy = [ "timers.target" ];

@@ -687,7 +687,32 @@ in
           enable = mkOption {
             type = types.bool;
             default = (lib.elem "hyprland" config.customConfig.desktop.environments);
-            description = "Whether to enable gammastep for night light adjustments.";
+            description = "Whether to enable night light (hyprsunset) for Hyprland.";
+          };
+          nightTemp = mkOption {
+            type = types.int;
+            default = 2500;
+            description = "Default night temperature in Kelvin (1000–6500). Adjustable at runtime via waybar scroll.";
+          };
+          dayTemp = mkOption {
+            type = types.int;
+            default = 6500;
+            description = "Day temperature in Kelvin applied during daytime hours.";
+          };
+          transitionMinutes = mkOption {
+            type = types.int;
+            default = 30;
+            description = "Duration of gradual day/night transitions in minutes (scheduled timer only).";
+          };
+          dayStartHour = mkOption {
+            type = types.int;
+            default = 7;
+            description = "Hour (0–23) when daytime begins and day temperature is applied.";
+          };
+          nightStartHour = mkOption {
+            type = types.int;
+            default = 20;
+            description = "Hour (0–23) when nighttime begins and night temperature is applied.";
           };
         };
         updateNotification = {

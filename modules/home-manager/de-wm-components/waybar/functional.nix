@@ -131,40 +131,42 @@ let
   gammastepStatusScript = pkgs.writeShellScript "gammastep-waybar-status" ''
     STATE_FILE="$HOME/.cache/gammastep-state"
 
-    if [ ! -f "$STATE_FILE" ]; then
-      echo "2500:enabled" > "$STATE_FILE"
-    fi
+    [ ! -f "$STATE_FILE" ] && echo "2500:auto" > "$STATE_FILE"
 
-    STATE_LINE=$(cat "$STATE_FILE")
-    TEMP="''${STATE_LINE%%:*}"
-    STATUS="''${STATE_LINE##*:}"
+    STATE=$(cat "$STATE_FILE")
+    TEMP="''${STATE%%:*}"
+    MODE="''${STATE##*:}"
+    [ "$MODE" = "enabled" ] && MODE="auto"
 
     HOUR=$(date +%-H)
-    if [ "$HOUR" -ge 7 ] && [ "$HOUR" -lt 20 ]; then
-      IS_DAY=1
-    else
-      IS_DAY=0
-    fi
+    if [ "$HOUR" -ge 7 ] && [ "$HOUR" -lt 20 ]; then IS_DAY=1; else IS_DAY=0; fi
 
-    if [ "$STATUS" = "enabled" ]; then
-      if [ "$IS_DAY" = "1" ]; then
-        TEXT="''${TEMP}K"
-        CLASS="temp-day"
-        TOOLTIP="Day mode (6500K active) — night preset: ''${TEMP}K — scroll to adjust — click to disable"
-      else
-        TEXT="''${TEMP}K"
-        TOOLTIP="Night: ''${TEMP}K — scroll to adjust, click to toggle"
-        if   [ "$TEMP" -ge 5501 ]; then CLASS="temp-cool"
-        elif [ "$TEMP" -ge 4501 ]; then CLASS="temp-neutral"
-        elif [ "$TEMP" -ge 3501 ]; then CLASS="temp-amber"
-        elif [ "$TEMP" -ge 2001 ]; then CLASS="temp-warm"
-        else                            CLASS="temp-hot"
-        fi
+    temp_class() {
+      T=$1
+      if   [ "$T" -ge 5501 ]; then echo "temp-cool"
+      elif [ "$T" -ge 4501 ]; then echo "temp-neutral"
+      elif [ "$T" -ge 3501 ]; then echo "temp-amber"
+      elif [ "$T" -ge 2001 ]; then echo "temp-warm"
+      else                         echo "temp-hot"
       fi
-    else
+    }
+
+    if [ "$MODE" = "disabled" ]; then
       TEXT="OFF"
       CLASS="inactive"
-      TOOLTIP="Night light disabled (''${TEMP}K night preset) — click to enable"
+      TOOLTIP="Night light off (''${TEMP}K preset) — click to enable"
+    elif [ "$MODE" = "manual" ]; then
+      TEXT="''${TEMP}K"
+      CLASS="manual"
+      TOOLTIP="Manual override: ''${TEMP}K — scroll to adjust — click to disable — right-click for auto"
+    elif [ "$IS_DAY" = "1" ]; then
+      TEXT="''${TEMP}K"
+      CLASS="temp-day"
+      TOOLTIP="Auto day (6500K active) — night preset: ''${TEMP}K — scroll to adjust — right-click for manual override"
+    else
+      TEXT="''${TEMP}K"
+      CLASS="$(temp_class ''${TEMP})"
+      TOOLTIP="Auto night: ''${TEMP}K — scroll to adjust — click to disable — right-click for manual"
     fi
 
     printf '{"text":"%s","class":"%s","tooltip":"%s"}' "$TEXT" "$CLASS" "$TOOLTIP"
@@ -172,14 +174,15 @@ let
 
   gammastepAdjustScript = pkgs.writeShellScript "gammastep-waybar-adjust" ''
     STATE_FILE="$HOME/.cache/gammastep-state"
+    ACTIVE_FILE="$HOME/.cache/hyprsunset-active-temp"
+    PID_FILE="$HOME/.cache/hyprsunset-transition.pid"
 
-    if [ ! -f "$STATE_FILE" ]; then
-      echo "2500:enabled" > "$STATE_FILE"
-    fi
+    [ ! -f "$STATE_FILE" ] && echo "2500:auto" > "$STATE_FILE"
 
-    STATE_LINE=$(cat "$STATE_FILE")
-    TEMP="''${STATE_LINE%%:*}"
-    STATUS="''${STATE_LINE##*:}"
+    STATE=$(cat "$STATE_FILE")
+    TEMP="''${STATE%%:*}"
+    MODE="''${STATE##*:}"
+    [ "$MODE" = "enabled" ] && MODE="auto"
 
     STEP=250
     if [ "''${1:-up}" = "up" ]; then
@@ -190,50 +193,117 @@ let
       [ "$TEMP" -lt 1000 ] && TEMP=1000
     fi
 
-    echo "''${TEMP}:''${STATUS}" > "$STATE_FILE"
+    echo "''${TEMP}:''${MODE}" > "$STATE_FILE"
 
-    # Only restart hyprsunset at night — daytime runs at fixed 6500K regardless of preset
+    # Kill any in-progress gradual transition
+    if [ -f "$PID_FILE" ]; then
+      kill "$(cat "$PID_FILE")" 2>/dev/null || true
+      rm -f "$PID_FILE"
+    fi
+
     HOUR=$(date +%-H)
-    if [ "$STATUS" = "enabled" ] && { [ "$HOUR" -lt 7 ] || [ "$HOUR" -ge 20 ]; }; then
+    if [ "$HOUR" -ge 7 ] && [ "$HOUR" -lt 20 ]; then IS_DAY=1; else IS_DAY=0; fi
+
+    # Apply immediately in manual mode, or in auto mode during nighttime.
+    # In auto daytime, just save the preset — display stays at dayTemp.
+    if [ "$MODE" = "manual" ] || { [ "$MODE" = "auto" ] && [ "$IS_DAY" = "0" ]; }; then
       pkill -x hyprsunset 2>/dev/null || true
       sleep 0.2
       ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
+      echo "''${TEMP}" > "$ACTIVE_FILE"
     fi
 
     pkill -RTMIN+12 waybar 2>/dev/null || true
   '';
 
+  # Left-click: toggle disabled ↔ auto
   gammastepToggleScript = pkgs.writeShellScript "gammastep-waybar-toggle" ''
     STATE_FILE="$HOME/.cache/gammastep-state"
+    ACTIVE_FILE="$HOME/.cache/hyprsunset-active-temp"
+    PID_FILE="$HOME/.cache/hyprsunset-transition.pid"
 
-    if [ ! -f "$STATE_FILE" ]; then
-      echo "2500:enabled" > "$STATE_FILE"
+    [ ! -f "$STATE_FILE" ] && echo "2500:auto" > "$STATE_FILE"
+
+    STATE=$(cat "$STATE_FILE")
+    TEMP="''${STATE%%:*}"
+    MODE="''${STATE##*:}"
+    [ "$MODE" = "enabled" ] && MODE="auto"
+
+    # Kill any in-progress transition
+    if [ -f "$PID_FILE" ]; then
+      kill "$(cat "$PID_FILE")" 2>/dev/null || true
+      rm -f "$PID_FILE"
     fi
-
-    STATE_LINE=$(cat "$STATE_FILE")
-    TEMP="''${STATE_LINE%%:*}"
-    STATUS="''${STATE_LINE##*:}"
 
     HOUR=$(date +%-H)
-    if [ "$HOUR" -ge 7 ] && [ "$HOUR" -lt 20 ]; then
-      IS_DAY=1
-    else
-      IS_DAY=0
-    fi
+    if [ "$HOUR" -ge 7 ] && [ "$HOUR" -lt 20 ]; then IS_DAY=1; else IS_DAY=0; fi
 
-    if [ "$STATUS" = "enabled" ]; then
-      echo "''${TEMP}:disabled" > "$STATE_FILE"
-      pkill -x hyprsunset 2>/dev/null || true
-    else
-      echo "''${TEMP}:enabled" > "$STATE_FILE"
+    if [ "$MODE" = "disabled" ]; then
+      # Enable in auto mode, apply correct time-of-day temp immediately
+      echo "''${TEMP}:auto" > "$STATE_FILE"
       pkill -x hyprsunset 2>/dev/null || true
       sleep 0.2
       if [ "$IS_DAY" = "1" ]; then
-        # Daytime: enable at neutral 6500K
-        ${pkgs.hyprsunset}/bin/hyprsunset -t 6500 &
+        ${pkgs.hyprsunset}/bin/hyprsunset -t ${toString customConfig.homeManager.services.gammastep.dayTemp} &
+        echo "${toString customConfig.homeManager.services.gammastep.dayTemp}" > "$ACTIVE_FILE"
       else
-        # Nighttime: enable at night preset
         ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
+        echo "''${TEMP}" > "$ACTIVE_FILE"
+      fi
+    else
+      # Disable — kill hyprsunset, Hyprland resets CTM to identity
+      echo "''${TEMP}:disabled" > "$STATE_FILE"
+      pkill -x hyprsunset 2>/dev/null || true
+    fi
+
+    pkill -RTMIN+12 waybar 2>/dev/null || true
+  '';
+
+  # Right-click: toggle auto ↔ manual
+  gammastepModeScript = pkgs.writeShellScript "gammastep-waybar-mode" ''
+    STATE_FILE="$HOME/.cache/gammastep-state"
+    ACTIVE_FILE="$HOME/.cache/hyprsunset-active-temp"
+    PID_FILE="$HOME/.cache/hyprsunset-transition.pid"
+
+    [ ! -f "$STATE_FILE" ] && echo "2500:auto" > "$STATE_FILE"
+
+    STATE=$(cat "$STATE_FILE")
+    TEMP="''${STATE%%:*}"
+    MODE="''${STATE##*:}"
+    [ "$MODE" = "enabled" ] && MODE="auto"
+
+    [ "$MODE" = "disabled" ] && exit 0  # no-op when disabled
+
+    # Kill any in-progress transition
+    if [ -f "$PID_FILE" ]; then
+      kill "$(cat "$PID_FILE")" 2>/dev/null || true
+      rm -f "$PID_FILE"
+    fi
+
+    HOUR=$(date +%-H)
+    if [ "$HOUR" -ge 7 ] && [ "$HOUR" -lt 20 ]; then IS_DAY=1; else IS_DAY=0; fi
+
+    if [ "$MODE" = "auto" ]; then
+      # Switch to manual — if daytime, snap to night preset so night light turns on NOW
+      echo "''${TEMP}:manual" > "$STATE_FILE"
+      if [ "$IS_DAY" = "1" ]; then
+        pkill -x hyprsunset 2>/dev/null || true
+        sleep 0.2
+        ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
+        echo "''${TEMP}" > "$ACTIVE_FILE"
+      fi
+      # If nighttime: already at TEMP, no change needed
+    else
+      # Switch to auto — snap to correct time-of-day temp immediately
+      echo "''${TEMP}:auto" > "$STATE_FILE"
+      pkill -x hyprsunset 2>/dev/null || true
+      sleep 0.2
+      if [ "$IS_DAY" = "1" ]; then
+        ${pkgs.hyprsunset}/bin/hyprsunset -t ${toString customConfig.homeManager.services.gammastep.dayTemp} &
+        echo "${toString customConfig.homeManager.services.gammastep.dayTemp}" > "$ACTIVE_FILE"
+      else
+        ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
+        echo "''${TEMP}" > "$ACTIVE_FILE"
       fi
     fi
 
@@ -347,6 +417,7 @@ in
             interval = 60;
             signal = 12;  # pkill -RTMIN+12 waybar forces an immediate refresh
             on-click = "${gammastepToggleScript}";
+            on-click-right = "${gammastepModeScript}";
             on-scroll-up = "${gammastepAdjustScript} up";
             on-scroll-down = "${gammastepAdjustScript} down";
             smooth-scrolling-threshold = 1;
