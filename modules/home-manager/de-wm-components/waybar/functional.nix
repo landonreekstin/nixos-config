@@ -11,6 +11,7 @@ let
   hasBattery = customConfig.hardware.battery.enable;
   hasVpnClient = customConfig.services.wireguard.client.enable;
   hasWeather = customConfig.desktop.hyprland.weather.enable;
+  hasGammastep = customConfig.homeManager.services.gammastep.enable;
   weatherLocation = customConfig.desktop.hyprland.weather.location;
   weatherUseFahrenheit = customConfig.desktop.hyprland.weather.useFahrenheit;
   sinkMappings = customConfig.desktop.hyprland.audioSinkMappings;
@@ -127,6 +128,30 @@ let
     pkill -RTMIN+9 waybar
   '';
 
+  gammastepStatusScript = pkgs.writeShellScript "gammastep-waybar-status" ''
+    STATE_FILE="$HOME/.cache/gammastep-state"
+
+    if [ ! -f "$STATE_FILE" ]; then
+      echo "2500:enabled" > "$STATE_FILE"
+    fi
+
+    STATE_LINE=$(cat "$STATE_FILE")
+    TEMP="''${STATE_LINE%%:*}"
+    STATUS="''${STATE_LINE##*:}"
+
+    if [ "$STATUS" = "enabled" ]; then
+      TEXT="''${TEMP}K"
+      CLASS="active"
+      TOOLTIP="Night light: ''${TEMP}K\nGeoclue2 auto-transitions active\nScroll to adjust \u2022 Click to toggle"
+    else
+      TEXT="OFF"
+      CLASS="inactive"
+      TOOLTIP="Night light: disabled (''${TEMP}K preset)\nClick to enable"
+    fi
+
+    printf '{"text":"%s","class":"%s","tooltip":"%s"}' "$TEXT" "$CLASS" "$TOOLTIP"
+  '';
+
   # Generate custom module configurations for launcher buttons
   generateLauncherModules = apps:
     lib.listToAttrs (lib.imap0 (idx: app: {
@@ -143,7 +168,8 @@ in
 {
   imports = [
     # Relative path from de-wm-components/waybar/ to scripts/
-    ../../scripts/audio-switcher.nix # Audio sink switcher script
+    ../../scripts/audio-switcher.nix    # Audio sink switcher script
+    ../../scripts/gammastep-control.nix # Gammastep control scripts
   ];
 
   config = lib.mkIf isHyprlandHost {
@@ -173,6 +199,7 @@ in
               ++ lib.optionals hasVpnClient [ "custom/vpn" ]
               ++ lib.optionals hasBattery [ "battery" ]
               ++ lib.optionals hasWeather [ "custom/weather" ]
+              ++ lib.optionals hasGammastep [ "custom/gammastep" ]
               ++ [
               "network"
               "custom/audio-sink"
@@ -224,6 +251,16 @@ in
             interval = 5;
             signal = 9;
             on-click = "${vpnToggleScript}";
+          };
+
+          "custom/gammastep" = lib.mkIf hasGammastep {
+            exec = "${gammastepStatusScript}";
+            return-type = "json";
+            interval = 60;
+            signal = 12;  # pkill -RTMIN+12 waybar forces an immediate refresh
+            on-click = "gammastep-toggle";
+            on-scroll-up = "gammastep-adjust up";
+            on-scroll-down = "gammastep-adjust down";
           };
 
           battery = lib.mkIf hasBattery {

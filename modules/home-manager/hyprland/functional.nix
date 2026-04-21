@@ -118,6 +118,9 @@ in
             "set-wayvnc-output \"${wayvncTargetMonitor}\" > /tmp/set-wayvnc-output.log 2>&1"
           ])
           ++ (map mkExecOnce hyprlandAutostart)
+          ++ lib.optionals customConfig.homeManager.services.gammastep.enable [
+            "gammastep-init"
+          ]
           ++ [
             # Import Wayland session vars into systemd/dbus so user services can use them
             "dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP"
