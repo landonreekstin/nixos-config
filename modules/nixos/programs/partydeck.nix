@@ -70,6 +70,9 @@ let
       mkdir -p $out/share/icons/hicolor/512x512/apps
       cp ${partydeck-icon} $out/share/icons/hicolor/512x512/apps/partydeck.png
 
+      # Copy required runtime resources (KWin scripts, icons, etc.)
+      cp -r $src/res $out/bin/res
+
       wrapProgram $out/bin/partydeck \
         --prefix PATH : ${lib.makeBinPath [ pkgs.gamescope pkgs.bubblewrap pkgs.umu-launcher pkgs.fuse-overlayfs ]} \
         --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [
