@@ -303,11 +303,6 @@
   boot.kernelParams = [
     "nvidia-drm.fbdev=1"
     "initcall_blacklist=simpledrm_platform_driver_init"
-    # Attempt to suppress TTY/fbcon output on non-primary monitors during Ly.
-    # NVIDIA proprietary may ignore these; Hyprland re-enables all outputs when it starts.
-    "video=HDMI-A-2:d" # left portrait
-    "video=DP-5:d"     # right portrait
-    "video=DP-6:d"     # TV above
   ];
 
   # Plymouth sets the fbdev visible geometry to 1920x1080 (EFI GOP resolution)
