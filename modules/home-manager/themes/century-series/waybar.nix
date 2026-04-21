@@ -107,6 +107,11 @@ in {
             };
           };
 
+          # Night light - Cockpit display thermal control
+          "custom/gammastep" = {
+            format = mkForce "NL {}";  # Night Light
+          };
+
           # Power button - Engine control
           "custom/power" = {
             format = mkForce "PWR";  # Aviation style label
@@ -372,6 +377,61 @@ in {
           color: ${c.text-tertiary};
           border-color: ${c.border-primary};
           opacity: 0.5;
+        }
+
+        /* Night light - Display thermal control indicator */
+        #custom-gammastep {
+          padding: 0 8px;
+          margin: 2px;
+          background-color: ${c.bg-tertiary};
+          border: 1px solid ${c.border-secondary};
+          color: ${c.text-primary};
+          font-family: "JetBrains Mono", monospace;
+          transition: color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+        }
+
+        /* OFF - disabled, greyed out */
+        #custom-gammastep.inactive {
+          color: ${c.text-tertiary};
+          border-color: ${c.border-primary};
+          opacity: 0.45;
+        }
+
+        /* 5501–6500K - near daylight, warm white */
+        #custom-gammastep.temp-cool {
+          color: #ffe8a0;
+          border-color: #ccba70;
+        }
+
+        /* 4501–5500K - amber-glow */
+        #custom-gammastep.temp-neutral {
+          color: ${c.caution-yellow};
+          border-color: ${c.accent-amber-dim};
+          text-shadow: 0 0 6px ${c.caution-yellow}88;
+        }
+
+        /* 3501–4500K - main amber */
+        #custom-gammastep.temp-amber {
+          color: ${c.accent-amber};
+          border-color: ${c.accent-amber-dim};
+          text-shadow: 0 0 6px ${c.accent-amber}88;
+          box-shadow: 0 0 4px ${c.accent-amber}33;
+        }
+
+        /* 2001–3500K - orange */
+        #custom-gammastep.temp-warm {
+          color: ${c.warning-orange};
+          border-color: ${c.warning-orange};
+          text-shadow: 0 0 8px ${c.warning-orange}aa;
+          box-shadow: 0 0 6px ${c.warning-orange}44;
+        }
+
+        /* 1000–2000K - red, very warm */
+        #custom-gammastep.temp-hot {
+          color: ${c.warning-red};
+          border-color: ${c.warning-red};
+          text-shadow: 0 0 10px ${c.warning-red}cc;
+          box-shadow: 0 0 8px ${c.warning-red}55;
         }
 
         /* Tooltip styling - Info displays */

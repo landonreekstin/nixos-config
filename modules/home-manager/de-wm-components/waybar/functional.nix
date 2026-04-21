@@ -141,8 +141,13 @@ let
 
     if [ "$STATUS" = "enabled" ]; then
       TEXT="''${TEMP}K"
-      CLASS="active"
       TOOLTIP="Night light: ''${TEMP}K\nGeoclue2 auto-transitions active\nScroll to adjust \u2022 Click to toggle"
+      if   [ "$TEMP" -ge 5501 ]; then CLASS="temp-cool"
+      elif [ "$TEMP" -ge 4501 ]; then CLASS="temp-neutral"
+      elif [ "$TEMP" -ge 3501 ]; then CLASS="temp-amber"
+      elif [ "$TEMP" -ge 2001 ]; then CLASS="temp-warm"
+      else                            CLASS="temp-hot"
+      fi
     else
       TEXT="OFF"
       CLASS="inactive"
