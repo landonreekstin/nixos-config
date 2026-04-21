@@ -95,7 +95,7 @@
     };
 
     programs = {
-      partydeck.enable = false;
+      partydeck.enable = true;
     };
 
     homeManager = {
