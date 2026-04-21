@@ -180,7 +180,9 @@ let
     echo "''${TEMP}:''${STATUS}" > "$STATE_FILE"
 
     if [ "$STATUS" = "enabled" ]; then
-      ${pkgs.gammastep}/bin/gammastep -O "''${TEMP}"
+      pkill -x hyprsunset 2>/dev/null || true
+      sleep 0.2
+      ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
     fi
 
     pkill -RTMIN+12 waybar 2>/dev/null || true
@@ -199,10 +201,12 @@ let
 
     if [ "$STATUS" = "enabled" ]; then
       echo "''${TEMP}:disabled" > "$STATE_FILE"
-      ${pkgs.gammastep}/bin/gammastep -x
+      pkill -x hyprsunset 2>/dev/null || true
     else
       echo "''${TEMP}:enabled" > "$STATE_FILE"
-      ${pkgs.gammastep}/bin/gammastep -O "''${TEMP}"
+      pkill -x hyprsunset 2>/dev/null || true
+      sleep 0.2
+      ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
     fi
 
     pkill -RTMIN+12 waybar 2>/dev/null || true

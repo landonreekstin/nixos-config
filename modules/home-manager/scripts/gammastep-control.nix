@@ -18,7 +18,7 @@ let
     STATUS="''${STATE_LINE##*:}"
 
     if [ "$STATUS" = "enabled" ]; then
-      ${pkgs.gammastep}/bin/gammastep -O "''${TEMP}"
+      ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
     fi
   '';
 
