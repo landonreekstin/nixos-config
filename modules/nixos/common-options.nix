@@ -687,7 +687,32 @@ in
           enable = mkOption {
             type = types.bool;
             default = (lib.elem "hyprland" config.customConfig.desktop.environments);
-            description = "Whether to enable gammastep for night light adjustments.";
+            description = "Whether to enable night light (hyprsunset) for Hyprland.";
+          };
+          nightTemp = mkOption {
+            type = types.int;
+            default = 2500;
+            description = "Default night temperature in Kelvin (1000–6500). Adjustable at runtime via waybar scroll.";
+          };
+          dayTemp = mkOption {
+            type = types.int;
+            default = 6500;
+            description = "Day temperature in Kelvin applied during daytime hours.";
+          };
+          transitionMinutes = mkOption {
+            type = types.int;
+            default = 30;
+            description = "Duration of gradual day/night transitions in minutes (scheduled timer only).";
+          };
+          dayStartHour = mkOption {
+            type = types.int;
+            default = 7;
+            description = "Hour (0–23) when daytime begins and day temperature is applied.";
+          };
+          nightStartHour = mkOption {
+            type = types.int;
+            default = 20;
+            description = "Hour (0–23) when nighttime begins and night temperature is applied.";
           };
         };
         updateNotification = {
@@ -991,8 +1016,18 @@ in
         ckb-next = {
           enable = mkOption {
             type = types.bool;
-            default = false; # Default to false, enable explicitly for Razer device support
-            description = "Enable OpenRazer for Razer device support.";
+            default = false;
+            description = "Enable ckb-next for Corsair device support.";
+          };
+          color = mkOption {
+            type = types.str;
+            default = "ffffff";
+            description = "Default RGB hex color for keyboard lighting (no #, e.g. 'ff0000' for red).";
+          };
+          brightness = mkOption {
+            type = types.ints.between 0 100;
+            default = 100;
+            description = "Default keyboard brightness (0–100).";
           };
         };
         input-remapper = {
