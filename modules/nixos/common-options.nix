@@ -1016,8 +1016,18 @@ in
         ckb-next = {
           enable = mkOption {
             type = types.bool;
-            default = false; # Default to false, enable explicitly for Razer device support
-            description = "Enable OpenRazer for Razer device support.";
+            default = false;
+            description = "Enable ckb-next for Corsair device support.";
+          };
+          color = mkOption {
+            type = types.str;
+            default = "ffffff";
+            description = "Default RGB hex color for keyboard lighting (no #, e.g. 'ff0000' for red).";
+          };
+          brightness = mkOption {
+            type = types.ints.between 0 100;
+            default = 100;
+            description = "Default keyboard brightness (0–100).";
           };
         };
         input-remapper = {

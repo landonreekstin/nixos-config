@@ -173,7 +173,11 @@
       };
       peripherals = {
         enable = true; # Enable peripheral configurations
-        ckb-next.enable = true; # Enable CKB-Next for Corsair device support
+        ckb-next = {
+          enable = true;
+          color = "39ff14"; # Radar green (century-series accent-radar)
+          brightness = 100;
+        };
       };
       monitors = [
         { name = "DP-4";     rotation = "Normal";    scale = 1.15; } # Main: LG 2560x1440 @ 180Hz
