@@ -10,11 +10,24 @@ let
     cmakeFlags = (oldAttrs.cmakeFlags or []) ++ [ "-DUSE_DBUS_MENU=0" ];
   });
 
-  # Script to set ckb-next lighting via the daemon's command pipe
+  # Script to set ckb-next lighting via the daemon's command pipe.
+  # Waits for the ckb-next GUI process to appear and load its saved profile,
+  # then overrides with the declarative color. Falls through after 30s if the
+  # GUI is not running (e.g. headless or manually closed).
   ckbLightingScript = pkgs.writeShellScript "ckb-next-set-lighting" ''
-    # Wait for daemon to initialize device pipes
-    sleep 2
-    # Find the cmd pipe — ckb0 is the internal control node, skip it
+    # Wait for the ckb-next GUI to start (max 30s, 300ms polling).
+    # NixOS wraps binaries so the process comm is ".ckb-next-wrapp", not "ckb-next".
+    # Use pgrep -a (full cmdline) and exclude the daemon to detect the GUI.
+    i=0
+    while ! ${pkgs.procps}/bin/pgrep -a ckb-next | grep -qv daemon; do
+      sleep 0.3
+      i=$((i + 1))
+      if [ "$i" -ge 100 ]; then break; fi  # fall through if GUI not running
+    done
+    # Wait for the GUI to finish connecting to the daemon and restoring its profile.
+    # The process appears quickly but profile restoration takes a few seconds.
+    sleep 6
+
     CMD_PIPE=$(ls /dev/input/ckb*/cmd 2>/dev/null | grep -v '/ckb0/' | head -1)
     if [ -z "$CMD_PIPE" ]; then
       echo "ckb-next-set-lighting: no device cmd pipe found" >&2
@@ -61,21 +74,19 @@ in
 
         # The command to execute: `systemctl stop ckb-next-daemon.service`
         # Using the full package path is robust.
-        ExecStart = "${pkgs.systemd}/bin/systemctl stop ckb-next-daemon.service";
+        ExecStart = "${pkgs.systemd}/bin/systemctl stop ckb-next.service";
       };
     };
 
     # === User-level service to apply declarative lighting after session starts ===
-    # Runs after graphical-session.target so it fires after login and after the
-    # ckb-next GUI app has had time to load its saved profile from ckb-next.conf.
-    # A short sleep ensures any autostart GUI profile restore has settled first.
+    # Fires at graphical-session.target; the script waits for the ckb-next GUI
+    # to appear and load its saved profile before overriding with the declared color.
     systemd.user.services.ckb-next-set-lighting = lib.mkIf cfg.ckb-next.enable {
       description = "Apply ckb-next keyboard color after graphical session starts";
       wantedBy = [ "graphical-session.target" ];
       after = [ "graphical-session.target" ];
       serviceConfig = {
         Type = "oneshot";
-        ExecStartPre = "${pkgs.coreutils}/bin/sleep 8";
         ExecStart = ckbLightingScript;
       };
     };
