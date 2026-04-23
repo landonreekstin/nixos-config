@@ -683,7 +683,7 @@ in
         description = "Whether Home Manager is configured for the primary user.";
       };
       services = {
-        gammastep = {
+        hyprsunset = {
           enable = mkOption {
             type = types.bool;
             default = (lib.elem "hyprland" config.customConfig.desktop.environments);

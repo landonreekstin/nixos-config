@@ -1,19 +1,19 @@
-# ~/nixos-config/modules/home-manager/scripts/gammastep-control.nix
+# ~/nixos-config/modules/home-manager/scripts/hyprsunset-control.nix
 #
-# gammastep-init: applies correct temperature instantly on Hyprland login (exec-once).
+# hyprsunset-init: applies correct temperature instantly on Hyprland login (exec-once).
 # hyprsunset-schedule: performs a GRADUAL transition to the time-of-day target.
 #   Only called by the systemd timer at dayStartHour and nightStartHour.
 #   All user interactions (waybar scroll/click) are instant — see waybar/functional.nix.
 #
-# State file: ~/.cache/gammastep-state  format: "NIGHT_TEMP:MODE"
+# State file: ~/.cache/hyprsunset-state  format: "NIGHT_TEMP:MODE"
 #   MODE: auto | manual | disabled
 # Active temp: ~/.cache/hyprsunset-active-temp  (currently applied K value)
 # Transition PID: ~/.cache/hyprsunset-transition.pid
 { pkgs, lib, customConfig, ... }:
 
 let
-  hasGammastep = customConfig.homeManager.services.gammastep.enable;
-  cfg          = customConfig.homeManager.services.gammastep;
+  hasHyprsunset   = customConfig.homeManager.services.hyprsunset.enable;
+  cfg             = customConfig.homeManager.services.hyprsunset;
 
   # Bake config constants into scripts at build time
   dayTemp         = toString cfg.dayTemp;
@@ -28,9 +28,15 @@ let
   hyprsunsetScheduleScript = pkgs.writeShellScriptBin "hyprsunset-schedule" ''
     if [ "$XDG_CURRENT_DESKTOP" != "Hyprland" ]; then exit 0; fi
 
-    STATE_FILE="$HOME/.cache/gammastep-state"
+    STATE_FILE="$HOME/.cache/hyprsunset-state"
     ACTIVE_FILE="$HOME/.cache/hyprsunset-active-temp"
     PID_FILE="$HOME/.cache/hyprsunset-transition.pid"
+
+    # Migrate state file from old gammastep location
+    OLD_STATE="$HOME/.cache/gammastep-state"
+    if [ -f "$OLD_STATE" ] && [ ! -f "$STATE_FILE" ]; then
+      mv "$OLD_STATE" "$STATE_FILE"
+    fi
 
     [ ! -f "$STATE_FILE" ] && echo "${defaultNight}:auto" > "$STATE_FILE"
 
@@ -89,12 +95,18 @@ let
     disown
   '';
 
-  # ---- gammastep-init -----------------------------------------------------
+  # ---- hyprsunset-init ----------------------------------------------------
   # Called from Hyprland exec-once. Applies the correct temperature INSTANTLY
   # (no gradual transition — we're restoring state after login).
-  gammastepInitScript = pkgs.writeShellScriptBin "gammastep-init" ''
-    STATE_FILE="$HOME/.cache/gammastep-state"
+  hyprsunsetInitScript = pkgs.writeShellScriptBin "hyprsunset-init" ''
+    STATE_FILE="$HOME/.cache/hyprsunset-state"
     ACTIVE_FILE="$HOME/.cache/hyprsunset-active-temp"
+
+    # Migrate state file from old gammastep location
+    OLD_STATE="$HOME/.cache/gammastep-state"
+    if [ -f "$OLD_STATE" ] && [ ! -f "$STATE_FILE" ]; then
+      mv "$OLD_STATE" "$STATE_FILE"
+    fi
 
     [ ! -f "$STATE_FILE" ] && echo "${defaultNight}:auto" > "$STATE_FILE"
 
@@ -127,12 +139,12 @@ let
 
 in
 {
-  home.packages = lib.mkIf hasGammastep [
-    gammastepInitScript
+  home.packages = lib.mkIf hasHyprsunset [
+    hyprsunsetInitScript
     hyprsunsetScheduleScript
   ];
 
-  systemd.user.services.hyprsunset-schedule = lib.mkIf hasGammastep {
+  systemd.user.services.hyprsunset-schedule = lib.mkIf hasHyprsunset {
     Unit = {
       Description = "Apply scheduled hyprsunset color temperature transition";
     };
@@ -142,7 +154,7 @@ in
     };
   };
 
-  systemd.user.timers.hyprsunset-schedule = lib.mkIf hasGammastep {
+  systemd.user.timers.hyprsunset-schedule = lib.mkIf hasHyprsunset {
     Unit = {
       Description = "Hyprsunset day/night schedule timer";
     };

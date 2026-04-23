@@ -5,8 +5,7 @@
   imports = [
     ./ssh.nix
     ./vscode-server.nix
-    ./geoclue2.nix
-    ./wireguard-server.nix
+./wireguard-server.nix
     ./wireguard-client.nix
   ];
 }

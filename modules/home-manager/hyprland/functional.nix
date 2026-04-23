@@ -118,8 +118,8 @@ in
             "set-wayvnc-output \"${wayvncTargetMonitor}\" > /tmp/set-wayvnc-output.log 2>&1"
           ])
           ++ (map mkExecOnce hyprlandAutostart)
-          ++ lib.optionals customConfig.homeManager.services.gammastep.enable [
-            "gammastep-init"
+          ++ lib.optionals customConfig.homeManager.services.hyprsunset.enable [
+            "hyprsunset-init"
           ]
           ++ [
             # Import Wayland session vars into systemd/dbus so user services can use them

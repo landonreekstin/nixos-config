@@ -3,8 +3,7 @@
 { ... }: # No specific args needed here usually, they are passed to the individual modules
 {
   imports = [
-    ./gammastep.nix
-    ./nix-gc.nix
+./nix-gc.nix
     ./ssh.nix
     ./swayidle.nix
     ./update-notification.nix

@@ -11,7 +11,7 @@ let
   hasBattery = customConfig.hardware.battery.enable;
   hasVpnClient = customConfig.services.wireguard.client.enable;
   hasWeather = customConfig.desktop.hyprland.weather.enable;
-  hasGammastep = customConfig.homeManager.services.gammastep.enable;
+  hasHyprsunset = customConfig.homeManager.services.hyprsunset.enable;
   weatherLocation = customConfig.desktop.hyprland.weather.location;
   weatherUseFahrenheit = customConfig.desktop.hyprland.weather.useFahrenheit;
   sinkMappings = customConfig.desktop.hyprland.audioSinkMappings;
@@ -129,7 +129,7 @@ let
   '';
 
   gammastepStatusScript = pkgs.writeShellScript "gammastep-waybar-status" ''
-    STATE_FILE="$HOME/.cache/gammastep-state"
+    STATE_FILE="$HOME/.cache/hyprsunset-state"
 
     [ ! -f "$STATE_FILE" ] && echo "2500:auto" > "$STATE_FILE"
 
@@ -173,7 +173,7 @@ let
   '';
 
   gammastepAdjustScript = pkgs.writeShellScript "gammastep-waybar-adjust" ''
-    STATE_FILE="$HOME/.cache/gammastep-state"
+    STATE_FILE="$HOME/.cache/hyprsunset-state"
     ACTIVE_FILE="$HOME/.cache/hyprsunset-active-temp"
     PID_FILE="$HOME/.cache/hyprsunset-transition.pid"
 
@@ -218,7 +218,7 @@ let
 
   # Left-click: toggle disabled ↔ auto
   gammastepToggleScript = pkgs.writeShellScript "gammastep-waybar-toggle" ''
-    STATE_FILE="$HOME/.cache/gammastep-state"
+    STATE_FILE="$HOME/.cache/hyprsunset-state"
     ACTIVE_FILE="$HOME/.cache/hyprsunset-active-temp"
     PID_FILE="$HOME/.cache/hyprsunset-transition.pid"
 
@@ -244,8 +244,8 @@ let
       pkill -x hyprsunset 2>/dev/null || true
       sleep 0.2
       if [ "$IS_DAY" = "1" ]; then
-        ${pkgs.hyprsunset}/bin/hyprsunset -t ${toString customConfig.homeManager.services.gammastep.dayTemp} &
-        echo "${toString customConfig.homeManager.services.gammastep.dayTemp}" > "$ACTIVE_FILE"
+        ${pkgs.hyprsunset}/bin/hyprsunset -t ${toString customConfig.homeManager.services.hyprsunset.dayTemp} &
+        echo "${toString customConfig.homeManager.services.hyprsunset.dayTemp}" > "$ACTIVE_FILE"
       else
         ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
         echo "''${TEMP}" > "$ACTIVE_FILE"
@@ -261,7 +261,7 @@ let
 
   # Right-click: toggle auto ↔ manual
   gammastepModeScript = pkgs.writeShellScript "gammastep-waybar-mode" ''
-    STATE_FILE="$HOME/.cache/gammastep-state"
+    STATE_FILE="$HOME/.cache/hyprsunset-state"
     ACTIVE_FILE="$HOME/.cache/hyprsunset-active-temp"
     PID_FILE="$HOME/.cache/hyprsunset-transition.pid"
 
@@ -299,8 +299,8 @@ let
       pkill -x hyprsunset 2>/dev/null || true
       sleep 0.2
       if [ "$IS_DAY" = "1" ]; then
-        ${pkgs.hyprsunset}/bin/hyprsunset -t ${toString customConfig.homeManager.services.gammastep.dayTemp} &
-        echo "${toString customConfig.homeManager.services.gammastep.dayTemp}" > "$ACTIVE_FILE"
+        ${pkgs.hyprsunset}/bin/hyprsunset -t ${toString customConfig.homeManager.services.hyprsunset.dayTemp} &
+        echo "${toString customConfig.homeManager.services.hyprsunset.dayTemp}" > "$ACTIVE_FILE"
       else
         ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
         echo "''${TEMP}" > "$ACTIVE_FILE"
@@ -327,7 +327,7 @@ in
   imports = [
     # Relative path from de-wm-components/waybar/ to scripts/
     ../../scripts/audio-switcher.nix    # Audio sink switcher script
-    ../../scripts/gammastep-control.nix # Gammastep control scripts
+    ../../scripts/hyprsunset-control.nix # Hyprsunset control scripts
   ];
 
   config = lib.mkIf isHyprlandHost {
@@ -357,7 +357,7 @@ in
               ++ lib.optionals hasVpnClient [ "custom/vpn" ]
               ++ lib.optionals hasBattery [ "battery" ]
               ++ lib.optionals hasWeather [ "custom/weather" ]
-              ++ lib.optionals hasGammastep [ "custom/gammastep" ]
+              ++ lib.optionals hasHyprsunset [ "custom/hyprsunset" ]
               ++ [
               "network"
               "custom/audio-sink"
@@ -411,7 +411,7 @@ in
             on-click = "${vpnToggleScript}";
           };
 
-          "custom/gammastep" = lib.mkIf hasGammastep {
+          "custom/hyprsunset" = lib.mkIf hasHyprsunset {
             exec = "${gammastepStatusScript}";
             return-type = "json";
             interval = 60;

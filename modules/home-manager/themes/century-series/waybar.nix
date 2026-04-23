@@ -108,7 +108,7 @@ in {
           };
 
           # Night light - Cockpit display thermal control
-          "custom/gammastep" = {
+          "custom/hyprsunset" = {
             format = mkForce "NL {}";  # Night Light
           };
 
@@ -380,7 +380,7 @@ in {
         }
 
         /* Night light - Display thermal control indicator */
-        #custom-gammastep {
+        #custom-hyprsunset {
           padding: 0 8px;
           margin: 2px;
           background-color: ${c.bg-tertiary};
@@ -391,21 +391,21 @@ in {
         }
 
         /* OFF - disabled, greyed out */
-        #custom-gammastep.inactive {
+        #custom-hyprsunset.inactive {
           color: ${c.text-tertiary};
           border-color: ${c.border-primary};
           opacity: 0.45;
         }
 
         /* DAY - daytime auto mode, 6500K neutral, blue instrument light */
-        #custom-gammastep.temp-day {
+        #custom-hyprsunset.temp-day {
           color: ${c.info-blue};
           border-color: ${c.info-blue};
           text-shadow: 0 0 6px ${c.info-blue}88;
         }
 
         /* MANUAL - manual override, dashed amber border = "override engaged" */
-        #custom-gammastep.manual {
+        #custom-hyprsunset.manual {
           color: ${c.accent-amber};
           border-color: ${c.accent-amber};
           border-style: dashed;
@@ -414,20 +414,20 @@ in {
         }
 
         /* 5501–6500K - near daylight, warm white */
-        #custom-gammastep.temp-cool {
+        #custom-hyprsunset.temp-cool {
           color: #ffe8a0;
           border-color: #ccba70;
         }
 
         /* 4501–5500K - amber-glow */
-        #custom-gammastep.temp-neutral {
+        #custom-hyprsunset.temp-neutral {
           color: ${c.caution-yellow};
           border-color: ${c.accent-amber-dim};
           text-shadow: 0 0 6px ${c.caution-yellow}88;
         }
 
         /* 3501–4500K - main amber */
-        #custom-gammastep.temp-amber {
+        #custom-hyprsunset.temp-amber {
           color: ${c.accent-amber};
           border-color: ${c.accent-amber-dim};
           text-shadow: 0 0 6px ${c.accent-amber}88;
@@ -435,7 +435,7 @@ in {
         }
 
         /* 2001–3500K - orange */
-        #custom-gammastep.temp-warm {
+        #custom-hyprsunset.temp-warm {
           color: ${c.warning-orange};
           border-color: ${c.warning-orange};
           text-shadow: 0 0 8px ${c.warning-orange}aa;
@@ -443,7 +443,7 @@ in {
         }
 
         /* 1000–2000K - red, very warm */
-        #custom-gammastep.temp-hot {
+        #custom-hyprsunset.temp-hot {
           color: ${c.warning-red};
           border-color: ${c.warning-red};
           text-shadow: 0 0 10px ${c.warning-red}cc;
