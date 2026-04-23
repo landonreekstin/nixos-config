@@ -37,6 +37,11 @@ let
       "windowrulev2 = workspace ${toString app.workspace} silent, class:^(${app.windowClass})$\n"
   ) hyprlandAutostart;
 
+  # Generate windowrulev2 lines for utility workspace apps
+  utilityWindowRules = lib.concatMapStrings (app:
+    "windowrulev2 = workspace special:ckb silent, class:^(${app.windowClass})$\n"
+  ) customConfig.desktop.hyprland.utilityApps;
+
   # Get the wayvnc target monitor description
   wayvncTargetMonitor =
     if customConfig.desktop.wayvnc.enable && customConfig.desktop.wayvnc.targetMonitor != null
@@ -89,7 +94,7 @@ in
 
       systemd.enable = false;
 
-      extraConfig = autostartWindowRules;
+      extraConfig = autostartWindowRules + utilityWindowRules;
 
       settings = {
         # Variables for tools and modifiers
@@ -118,6 +123,7 @@ in
             "set-wayvnc-output \"${wayvncTargetMonitor}\" > /tmp/set-wayvnc-output.log 2>&1"
           ])
           ++ (map mkExecOnce hyprlandAutostart)
+          ++ (map (app: app.command) customConfig.desktop.hyprland.utilityApps)
           ++ lib.optionals customConfig.homeManager.services.hyprsunset.enable [
             "hyprsunset-init"
           ]
@@ -257,6 +263,10 @@ in
           # Move window to next/previous workspace
           "$mainMod SHIFT, right, movetoworkspace, e+1"
           "$mainMod SHIFT, left, movetoworkspace, e-1"
+
+          # Special workspace toggle (hidden utility apps like ckb-next)
+          "$mainMod, grave, togglespecialworkspace, ckb"
+          "$mainMod SHIFT, grave, movetoworkspace, special:ckb"
 
           # System & Utility Bindings
           "$mainMod, slash, exec, hypr-keybinds"

@@ -12,6 +12,7 @@ let
   hasVpnClient = customConfig.services.wireguard.client.enable;
   hasWeather = customConfig.desktop.hyprland.weather.enable;
   hasHyprsunset = customConfig.homeManager.services.hyprsunset.enable;
+  hasCkbNext = customConfig.hardware.peripherals.ckb-next.enable;
   weatherLocation = customConfig.desktop.hyprland.weather.location;
   weatherUseFahrenheit = customConfig.desktop.hyprland.weather.useFahrenheit;
   sinkMappings = customConfig.desktop.hyprland.audioSinkMappings;
@@ -310,6 +311,16 @@ let
     pkill -RTMIN+12 waybar 2>/dev/null || true
   '';
 
+  specialWorkspaceScript = pkgs.writeShellScript "waybar-special-workspace" ''
+    WINDOWS=$(${pkgs.hyprland}/bin/hyprctl workspaces -j 2>/dev/null \
+      | ${pkgs.jq}/bin/jq '[.[] | select(.name == "special:ckb")] | .[0].windows // 0')
+    if [ "''${WINDOWS:-0}" -gt 0 ]; then
+      printf '{"text":"UTIL","class":"occupied","tooltip":"Special workspace: %s window(s) — SUPER+` to toggle"}' "$WINDOWS"
+    else
+      printf '{"text":"UTIL","class":"empty","tooltip":"Special workspace empty — SUPER+` to open"}'
+    fi
+  '';
+
   # Generate custom module configurations for launcher buttons
   generateLauncherModules = apps:
     lib.listToAttrs (lib.imap0 (idx: app: {
@@ -348,7 +359,7 @@ in
             modules-left = [
               "hyprland/workspaces"
               "hyprland/mode"
-            ];
+            ] ++ lib.optionals hasCkbNext [ "custom/special-workspace" ];
             modules-center = [
               "hyprland/window"
             ];
@@ -480,6 +491,13 @@ in
           "hyprland/mode" = {
             # Potentially no specific functional config needed if defaults are fine
             # The rice file can add styling or format if required
+          };
+
+          "custom/special-workspace" = lib.mkIf hasCkbNext {
+            exec = "${specialWorkspaceScript}";
+            return-type = "json";
+            interval = 2;
+            signal = 13;  # pkill -RTMIN+13 waybar forces an immediate refresh
           };
 
           "hyprland/workspaces" = {

@@ -73,14 +73,15 @@
           transform = "0";
         }
       ];
-      autostart = [
-        {
-          command = "ckb-next";
-          desktops = [ "kde" "hyprland" ];
-        }
-      ];
+      autostart = [];
 
       hyprland = {
+        utilityApps = [
+          {
+            command = "ckb-next";
+            windowClass = "ckb-next";
+          }
+        ];
         # Audio sink → icon mappings for the waybar audio indicator.
         # Match is a substring of the sink description shown in pavucontrol.
         # Run: pactl list sinks | grep Description  to find exact strings.

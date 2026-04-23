@@ -117,6 +117,12 @@ in {
             format = mkForce "PWR";  # Aviation style label
             tooltip-format = mkForce "ENG PWR MENU";  # Aviation terminology
           };
+
+          # Special workspace indicator - Utility bay access light
+          "custom/special-workspace" = {
+            format = mkForce "{}";  # Text comes from script ("UTIL")
+            on-click = "hyprctl dispatch togglespecialworkspace ckb";
+          };
         };
       } // lib.optionalAttrs launcherEnabled {
         # Launcher bar - Cockpit control panel styling
@@ -273,6 +279,34 @@ in {
           background-color: ${c.bg-secondary};
           color: ${c.accent-green};
           border-color: ${c.accent-green};
+        }
+
+        /* Special workspace indicator - Utility bay access light */
+        #custom-special-workspace {
+          padding: 0 10px;
+          margin: 2px 0 2px 4px;
+          background-color: ${c.bg-tertiary};
+          border: 1px solid ${c.border-primary};
+          color: ${c.text-tertiary};
+          font-weight: bold;
+          letter-spacing: 1px;
+          transition: all 0.3s ease;
+          opacity: 0.4;
+        }
+
+        #custom-special-workspace.occupied {
+          color: ${c.accent-radar};
+          border-color: ${c.accent-radar};
+          opacity: 1.0;
+          box-shadow: 0 0 8px ${c.accent-radar}66;
+          text-shadow: 0 0 6px ${c.accent-radar}cc;
+        }
+
+        #custom-special-workspace:hover {
+          background-color: ${c.bg-secondary};
+          border-color: ${c.accent-green};
+          color: ${c.accent-green};
+          opacity: 1.0;
         }
 
         /* Audio sink indicator - device type states */

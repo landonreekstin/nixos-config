@@ -454,6 +454,27 @@ in
             '';
           };
         };
+        utilityApps = mkOption {
+          type = types.listOf (types.submodule {
+            options = {
+              command = mkOption {
+                type = types.str;
+                description = "Command to launch the app.";
+                example = "ckb-next";
+              };
+              windowClass = mkOption {
+                type = types.str;
+                description = "Hyprland window class for the window rule (use hyprctl clients to find).";
+                example = "ckb-next";
+              };
+            };
+          });
+          default = [];
+          description = ''
+            Applications to autostart silently into the special utility workspace (special:ckb).
+            A windowrulev2 sends each app there on launch; SUPER+` toggles the workspace.
+          '';
+        };
         weather = {
           enable = mkOption {
             type = types.bool;
