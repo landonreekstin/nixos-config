@@ -13,7 +13,7 @@ let
   # Script to set ckb-next lighting via the daemon's command pipe.
   # Waits for the ckb-next GUI process to appear and load its saved profile,
   # then overrides with the declarative color. Falls through after 30s if the
-  # GUI is not running (e.g. headless or manually closed).
+  # GUI is not running.
   ckbLightingScript = pkgs.writeShellScript "ckb-next-set-lighting" ''
     # Wait for the ckb-next GUI to start (max 30s, 300ms polling).
     # NixOS wraps binaries so the process comm is ".ckb-next-wrapp", not "ckb-next".
