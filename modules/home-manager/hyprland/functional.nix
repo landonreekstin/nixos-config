@@ -126,6 +126,8 @@ in
             "dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP"
             # Launch waybar directly - it handles array configs natively
             "sleep 1 && ${pkgs.waybar}/bin/waybar > /tmp/waybar-start.log 2>&1 &"
+            # Re-apply persisted monitor on/off state (runs after waybar so it can restart cleanly)
+            "sleep 2 && restore-monitors"
             "${pkgs.hyprpaper}/bin/hyprpaper &"
             "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1 &"
           ]
