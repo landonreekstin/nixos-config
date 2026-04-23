@@ -46,8 +46,14 @@ let
       echo "ckb-next-set-lighting: no device cmd pipe found" >&2
       exit 1
     fi
-    echo "rgb ''${COLORS[$IDX]}" > "$CMD_PIPE"
-    echo "brightness $BRIGHT"    > "$CMD_PIPE"
+    # Scale each RGB channel by brightness (avoids relying on the `brightness`
+    # CMD pipe command which is unreliable after an `rgb` command).
+    COLOR="''${COLORS[$IDX]}"
+    R=$(( 0x''${COLOR:0:2} * BRIGHT / 100 ))
+    G=$(( 0x''${COLOR:2:2} * BRIGHT / 100 ))
+    B=$(( 0x''${COLOR:4:2} * BRIGHT / 100 ))
+    SCALED=$(printf "%02x%02x%02x" "$R" "$G" "$B")
+    echo "rgb $SCALED" > "$CMD_PIPE"
   '';
 
 in

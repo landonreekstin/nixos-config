@@ -7,6 +7,10 @@
 # These 4 colors are theme constants — not customConfig options.
 # Index: 0=RADAR green, 1=AMBER orange, 2=RED deep, 3=MIG turquoise
 # Must match the same array in modules/nixos/hardware/peripherals.nix boot script.
+#
+# Brightness is applied by scaling each RGB channel directly (R * BRIGHT/100).
+# The ckb-next CMD pipe `brightness N` command is unreliable after `rgb RRGGBB`;
+# scaling the color value itself ensures accurate dimming on all keyboard models.
 
 {
   # Output JSON for the waybar custom/ckb-color module.
@@ -38,11 +42,14 @@
     [[ "$BRIGHT" =~ ^[0-9]+$ ]] && [ "$BRIGHT" -le 100 ] || BRIGHT=80
     IDX=$(( (IDX + 1) % 4 ))
     echo "''${IDX}:''${BRIGHT}" > "$STATE_FILE"
+    # Scale each RGB channel by brightness to get the dimmed color
+    COLOR="''${COLORS[$IDX]}"
+    R=$(( 0x''${COLOR:0:2} * BRIGHT / 100 ))
+    G=$(( 0x''${COLOR:2:2} * BRIGHT / 100 ))
+    B=$(( 0x''${COLOR:4:2} * BRIGHT / 100 ))
+    SCALED=$(printf "%02x%02x%02x" "$R" "$G" "$B")
     CMD_PIPE=$(ls /dev/input/ckb*/cmd 2>/dev/null | grep -v '/ckb0/' | head -1)
-    if [ -n "$CMD_PIPE" ]; then
-      echo "rgb ''${COLORS[$IDX]}" > "$CMD_PIPE"
-      echo "brightness $BRIGHT"    > "$CMD_PIPE"
-    fi
+    [ -n "$CMD_PIPE" ] && echo "rgb $SCALED" > "$CMD_PIPE"
     pkill -RTMIN+14 waybar 2>/dev/null || true
   '';
 
@@ -66,11 +73,14 @@
       [ "$BRIGHT" -lt 0 ] && BRIGHT=0
     fi
     echo "''${IDX}:''${BRIGHT}" > "$STATE_FILE"
+    # Scale each RGB channel by brightness to get the dimmed color
+    COLOR="''${COLORS[$IDX]}"
+    R=$(( 0x''${COLOR:0:2} * BRIGHT / 100 ))
+    G=$(( 0x''${COLOR:2:2} * BRIGHT / 100 ))
+    B=$(( 0x''${COLOR:4:2} * BRIGHT / 100 ))
+    SCALED=$(printf "%02x%02x%02x" "$R" "$G" "$B")
     CMD_PIPE=$(ls /dev/input/ckb*/cmd 2>/dev/null | grep -v '/ckb0/' | head -1)
-    if [ -n "$CMD_PIPE" ]; then
-      echo "rgb ''${COLORS[$IDX]}" > "$CMD_PIPE"
-      echo "brightness $BRIGHT"    > "$CMD_PIPE"
-    fi
+    [ -n "$CMD_PIPE" ] && echo "rgb $SCALED" > "$CMD_PIPE"
     pkill -RTMIN+14 waybar 2>/dev/null || true
   '';
 }

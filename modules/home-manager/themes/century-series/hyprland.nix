@@ -348,9 +348,12 @@ in {
           "SUPER, F10, exec, ~/.local/bin/century-bars-toggle"
         ] ++ lib.optionals hasCkbNext [
           # Keyboard color cycle (RADAR → AMBER → RED → MIG → RADAR)
-          "SUPER, K, exec, ${ckbScripts.colorCycleScript}"
-          # Dim keyboard brightness by 10% (scroll up on KBD widget to brighten)
-          "SUPER SHIFT, K, exec, ${ckbScripts.brightnessScript} down"
+          # CTRL avoids conflict with SUPER+K (swapwindow up) in functional.nix
+          "SUPER CTRL, K, exec, ${ckbScripts.colorCycleScript}"
+          # Keyboard brightness: dim / brighten by 10%
+          # CTRL+J/L avoids conflict with SUPER+SHIFT+K/J (resizeactive) in functional.nix
+          "SUPER CTRL, J, exec, ${ckbScripts.brightnessScript} down"
+          "SUPER CTRL, L, exec, ${ckbScripts.brightnessScript} up"
         ];
       };
 
