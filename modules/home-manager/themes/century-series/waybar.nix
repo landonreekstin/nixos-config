@@ -8,6 +8,8 @@ let
   colorsModule = import ./colors.nix { };
   c = colorsModule.centuryColors;
 
+  ckbScripts = import ./ckb-scripts.nix { inherit pkgs; };
+
   # Check if home-manager, Hyprland, and the Century Series theme are enabled
   centurySeriesThemeCondition = lib.elem "hyprland" customConfig.desktop.environments
     && customConfig.homeManager.themes.hyprland == "century-series";
@@ -122,6 +124,15 @@ in {
           "custom/special-workspace" = {
             format = mkForce "{}";  # Text comes from script ("UTIL")
             on-click = "hyprctl dispatch togglespecialworkspace ckb";
+          };
+
+          # Keyboard color selector - Cockpit lighting mode switch
+          "custom/ckb-color" = {
+            format = mkForce "KBD {}";
+            on-click = "${ckbScripts.colorCycleScript}";
+            on-scroll-up = "${ckbScripts.brightnessScript} up";
+            on-scroll-down = "${ckbScripts.brightnessScript} down";
+            smooth-scrolling-threshold = 1;
           };
         };
       } // lib.optionalAttrs launcherEnabled {
@@ -306,6 +317,56 @@ in {
           background-color: ${c.bg-secondary};
           border-color: ${c.accent-green};
           color: ${c.accent-green};
+          opacity: 1.0;
+        }
+
+        /* Keyboard color selector - Cockpit lighting mode switch */
+        #custom-ckb-color {
+          padding: 0 10px;
+          margin: 2px 0 2px 0;
+          background-color: ${c.bg-tertiary};
+          border: 1px solid ${c.border-primary};
+          color: ${c.text-tertiary};
+          font-weight: bold;
+          letter-spacing: 1px;
+          transition: color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+          opacity: 0.6;
+        }
+
+        #custom-ckb-color.radar {
+          color: #39ff14;
+          border-color: #39ff14;
+          opacity: 1.0;
+          box-shadow: 0 0 8px #39ff1466;
+          text-shadow: 0 0 6px #39ff14cc;
+        }
+
+        #custom-ckb-color.amber {
+          color: #ff7a1a;
+          border-color: #ff7a1a;
+          opacity: 1.0;
+          box-shadow: 0 0 8px #ff7a1a66;
+          text-shadow: 0 0 6px #ff7a1acc;
+        }
+
+        #custom-ckb-color.red {
+          color: #cc0000;
+          border-color: #cc0000;
+          opacity: 1.0;
+          box-shadow: 0 0 8px #cc000066;
+          text-shadow: 0 0 6px #cc0000cc;
+        }
+
+        #custom-ckb-color.mig {
+          color: #00c8b4;
+          border-color: #00c8b4;
+          opacity: 1.0;
+          box-shadow: 0 0 8px #00c8b466;
+          text-shadow: 0 0 6px #00c8b4cc;
+        }
+
+        #custom-ckb-color:hover {
+          background-color: ${c.bg-secondary};
           opacity: 1.0;
         }
 

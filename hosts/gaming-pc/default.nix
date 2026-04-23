@@ -176,8 +176,7 @@
         enable = true; # Enable peripheral configurations
         ckb-next = {
           enable = true;
-          color = "39ff14"; # Radar green (century-series accent-radar)
-          brightness = 100;
+          # Color/brightness managed at runtime via ~/.cache/ckb-color-state
         };
       };
       monitors = [

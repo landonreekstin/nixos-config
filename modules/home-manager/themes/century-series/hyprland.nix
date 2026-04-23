@@ -112,6 +112,9 @@ let
   centurySeriesThemeCondition = lib.elem "hyprland" customConfig.desktop.environments
     && customConfig.homeManager.themes.hyprland == "century-series";
 
+  hasCkbNext = customConfig.hardware.peripherals.ckb-next.enable;
+  ckbScripts = import ./ckb-scripts.nix { inherit pkgs; };
+
   barrelShaderPath = "${config.home.homeDirectory}/.config/hypr/shaders/crt-barrel.glsl";
 
   # GLSL header shared by both shaders
@@ -343,6 +346,11 @@ in {
           "SUPER CTRL, G, exec, ~/.local/bin/century-crt-toggle"
           # Toggle top/bottom bars — also applies barrel distortion if CRT is on
           "SUPER, F10, exec, ~/.local/bin/century-bars-toggle"
+        ] ++ lib.optionals hasCkbNext [
+          # Keyboard color cycle (RADAR → AMBER → RED → MIG → RADAR)
+          "SUPER, K, exec, ${ckbScripts.colorCycleScript}"
+          # Dim keyboard brightness by 10% (scroll up on KBD widget to brighten)
+          "SUPER SHIFT, K, exec, ${ckbScripts.brightnessScript} down"
         ];
       };
 

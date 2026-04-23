@@ -12,8 +12,12 @@ let
 
   # Script to set ckb-next lighting via the daemon's command pipe.
   # Waits for the ckb-next GUI process to appear and load its saved profile,
-  # then overrides with the declarative color. Falls through after 30s if the
-  # GUI is not running.
+  # then applies the color saved in ~/.cache/ckb-color-state. Falls through
+  # after 30s if the GUI is not running. Defaults to index 0 (radar green)
+  # at 80% brightness if no state file exists.
+  #
+  # Color palette must stay in sync with century-series/ckb-scripts.nix:
+  #   0=39ff14 (RADAR), 1=ff7a1a (AMBER), 2=cc0000 (RED), 3=00c8b4 (MIG)
   ckbLightingScript = pkgs.writeShellScript "ckb-next-set-lighting" ''
     # Wait for the ckb-next GUI to start (max 30s, 300ms polling).
     # NixOS wraps binaries so the process comm is ".ckb-next-wrapp", not "ckb-next".
@@ -28,13 +32,22 @@ let
     # The process appears quickly but profile restoration takes a few seconds.
     sleep 6
 
+    COLORS=("39ff14" "ff7a1a" "cc0000" "00c8b4")
+    STATE_FILE="$HOME/.cache/ckb-color-state"
+    [ ! -f "$STATE_FILE" ] && echo "0:80" > "$STATE_FILE"
+    STATE=$(cat "$STATE_FILE")
+    IDX="''${STATE%%:*}"
+    BRIGHT="''${STATE##*:}"
+    [[ "$IDX" =~ ^[0-3]$ ]]         || IDX=0
+    [[ "$BRIGHT" =~ ^[0-9]+$ ]] && [ "$BRIGHT" -le 100 ] || BRIGHT=80
+
     CMD_PIPE=$(ls /dev/input/ckb*/cmd 2>/dev/null | grep -v '/ckb0/' | head -1)
     if [ -z "$CMD_PIPE" ]; then
       echo "ckb-next-set-lighting: no device cmd pipe found" >&2
       exit 1
     fi
-    echo "rgb ${cfg.ckb-next.color}" > "$CMD_PIPE"
-    echo "brightness ${toString cfg.ckb-next.brightness}" > "$CMD_PIPE"
+    echo "rgb ''${COLORS[$IDX]}" > "$CMD_PIPE"
+    echo "brightness $BRIGHT"    > "$CMD_PIPE"
   '';
 
 in

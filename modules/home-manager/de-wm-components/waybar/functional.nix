@@ -13,6 +13,7 @@ let
   hasWeather = customConfig.desktop.hyprland.weather.enable;
   hasHyprsunset = customConfig.homeManager.services.hyprsunset.enable;
   hasCkbNext = customConfig.hardware.peripherals.ckb-next.enable;
+  ckbScripts = import ../../themes/century-series/ckb-scripts.nix { inherit pkgs; };
   weatherLocation = customConfig.desktop.hyprland.weather.location;
   weatherUseFahrenheit = customConfig.desktop.hyprland.weather.useFahrenheit;
   sinkMappings = customConfig.desktop.hyprland.audioSinkMappings;
@@ -359,7 +360,7 @@ in
             modules-left = [
               "hyprland/workspaces"
               "hyprland/mode"
-            ] ++ lib.optionals hasCkbNext [ "custom/special-workspace" ];
+            ] ++ lib.optionals hasCkbNext [ "custom/special-workspace" "custom/ckb-color" ];
             modules-center = [
               "hyprland/window"
             ];
@@ -498,6 +499,13 @@ in
             return-type = "json";
             interval = 2;
             signal = 13;  # pkill -RTMIN+13 waybar forces an immediate refresh
+          };
+
+          "custom/ckb-color" = lib.mkIf hasCkbNext {
+            exec = "${ckbScripts.colorStatusScript}";
+            return-type = "json";
+            interval = 30;  # infrequent poll; cycle/brightness scripts signal on change
+            signal = 14;    # pkill -RTMIN+14 waybar forces an immediate refresh
           };
 
           "hyprland/workspaces" = {
