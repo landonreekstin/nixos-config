@@ -37,34 +37,83 @@
     };
     
     desktop = {
-      environments = [ "kde" ];
+      environments = [ "kde" "hyprland" ];
+      autostart = [];
+      idle = {
+        lockTimeout  = 900;   # 15 min (AC)
+        sleepTimeout = 1200;  # 20 min (AC)
+        battery = {
+          lockTimeout  = 600; # 10 min
+          sleepTimeout = 900; # 15 min
+        };
+      };
+      hyprland = {
+        launcher = {
+          enable = true;
+          pinnedApps = [
+            {
+              label = "TERM";
+              command = "${pkgs.kitty}/bin/kitty";
+              tooltip = "Terminal Emulator";
+            }
+            {
+              label = "NAV";
+              command = "${pkgs.chromium}/bin/chromium";
+              tooltip = "Web Browser";
+            }
+            {
+              label = "CODE";
+              command = "${pkgs.vscode}/bin/code";
+              tooltip = "IDE";
+            }
+            {
+              label = "AUDIO";
+              command = "flatpak run com.spotify.Client";
+              tooltip = "Music Player";
+            }
+            {
+              label = "COMM";
+              command = "flatpak run com.discordapp.Discord";
+              tooltip = "Communications";
+            }
+            {
+              label = "GAME";
+              command = "steam";
+              tooltip = "Gaming Platform";
+            }
+          ];
+        };
+      };
       displayManager = {
         enable = true;
-        type = "sddm";
-        sddm = {
-          theme = "sddm-astronaut";
-          customTheme = {
-            enable = true;
-            wallpaper = ../../assets/wallpapers/spooky-sddm.mp4;
-            blur = 2.0;
-            roundCorners = 20;
-            colors = {
-              formBackground = "#1e1e2e";
-              dimBackground = "#1e1e2e";
-              headerText = "#cdd6f4";
-              dateText = "#cdd6f4";
-              timeText = "#cdd6f4";
-              placeholderText = "#a6adc8";
-              loginButtonBackground = "#89b4fa";
-              loginButtonText = "#1e1e2e";
-              highlightBackground = "#89b4fa";
-              systemButtonsIcons = "#cdd6f4";
-            };
-          };
-          screensaver = {
-            enable = false;
-          };
+        type = "ly";
+        ly = {
+          theme = "century-series";
         };
+        # sddm = {
+        #   theme = "sddm-astronaut";
+        #   customTheme = {
+        #     enable = true;
+        #     wallpaper = ../../assets/wallpapers/spooky-sddm.mp4;
+        #     blur = 2.0;
+        #     roundCorners = 20;
+        #     colors = {
+        #       formBackground = "#1e1e2e";
+        #       dimBackground = "#1e1e2e";
+        #       headerText = "#cdd6f4";
+        #       dateText = "#cdd6f4";
+        #       timeText = "#cdd6f4";
+        #       placeholderText = "#a6adc8";
+        #       loginButtonBackground = "#89b4fa";
+        #       loginButtonText = "#1e1e2e";
+        #       highlightBackground = "#89b4fa";
+        #       systemButtonsIcons = "#cdd6f4";
+        #     };
+        #   };
+        #   screensaver = {
+        #     enable = false;
+        #   };
+        # };
       };
     };
 
@@ -82,6 +131,9 @@
         enable = true;
         asus.enable = true;
       };
+      display.backlight.enable = true;
+      kbdBacklight.enable = true;
+      battery.enable = true;
     };
 
     programs = {
@@ -93,6 +145,7 @@
       enable = true;
       themes = {
         kde = "bigsur";
+        hyprland = "century-series";
         plasmaOverride = false;
         wallpaper = ../../assets/wallpapers/big-sur.jpg;
         pinnedApps = [
@@ -122,6 +175,7 @@
         vscode
         chromium
         firefox
+        claude-code
       ];
       flatpak = {
         enable = true;
