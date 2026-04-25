@@ -136,6 +136,7 @@ in
             "sleep 2 && restore-monitors"
             "${pkgs.hyprpaper}/bin/hyprpaper &"
             "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1 &"
+            "${pkgs.networkmanagerapplet}/bin/nm-applet &"
           ]
         );
 

@@ -456,6 +456,7 @@ in
             format-disconnected = "Disconnected"; # Simple status
             tooltip-format = "{ifname} via {gwaddr}"; # Functional tooltip
             on-click = "${pkgs.networkmanager_dmenu}/bin/networkmanager_dmenu"; # Functional action
+            on-click-right = "${pkgs.networkmanagerapplet}/bin/nm-connection-editor";
           };
 
           "custom/audio-sink" = {
@@ -534,8 +535,9 @@ in
 
     home.packages = with pkgs; [
       # Dependencies for functional aspects of Waybar modules
-      networkmanager_dmenu # For network module on-click
-      pavucontrol          # For pulseaudio module on-click-right
+      networkmanager_dmenu  # For network module on-click
+      networkmanagerapplet  # For network module on-click-right (nm-connection-editor)
+      pavucontrol           # For pulseaudio module on-click-right
       brightnessctl        # For backlight and kbd-brightness modules
       curl                 # For weather module HTTP requests
       jq                   # For weather module JSON parsing
