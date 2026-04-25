@@ -42,10 +42,10 @@ in
 
     initExtra = ''
       ccnc() {
-        cd /home/lando/nixos-config && sudo claude -c
+        cd "$HOME/nixos-config" && sudo claude -c
       }
       ccn() {
-        cd /home/lando/nixos-config && sudo claude
+        cd "$HOME/nixos-config" && sudo claude
       }
     '';
 
