@@ -107,6 +107,11 @@ EOF
       };
     };
 
+    # Unlock gnome-keyring on ly login so NetworkManager's secret agent has a
+    # keyring to store/retrieve WiFi passwords — works for both KDE and Hyprland.
+    services.gnome.gnome-keyring.enable = lib.mkIf (cfg.type == "ly") true;
+    security.pam.services.ly.enableGnomeKeyring = lib.mkIf (cfg.type == "ly") true;
+
     # == Greetd + ReGreet Configuration ==
     services.greetd = lib.mkIf (cfg.type == "greetd") {
       enable = true;
