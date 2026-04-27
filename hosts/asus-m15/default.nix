@@ -137,7 +137,7 @@
     };
 
     programs = {
-      partydeck.enable = false;
+      partydeck.enable = true;
       flatpak.enable = true;
     };
 
@@ -192,6 +192,7 @@
 
     profiles = {
       gaming.enable = true;
+      development.gbdk.enable = true;
     };
 
     services = {
