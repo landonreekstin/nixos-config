@@ -65,6 +65,7 @@ in
       };
 
       configFile."kcminputrc"."LibinputPointer"."NaturalScroll" = customConfig.hardware.touchpad.naturalScroll;
+      configFile."kwalletrc"."Wallet"."Enabled" = false;
     };
   };
 }
