@@ -466,8 +466,8 @@ in
             signal = 11;  # pkill -RTMIN+11 waybar forces an immediate refresh
             on-click = "switch-audio-sink";
             on-click-right = "${pkgs.pavucontrol}/bin/pavucontrol";
-            on-scroll-up = "${pkgs.pulseaudio}/bin/pactl set-sink-volume @DEFAULT_SINK@ +5% && pkill -RTMIN+11 waybar";
-            on-scroll-down = "${pkgs.pulseaudio}/bin/pactl set-sink-volume @DEFAULT_SINK@ -5% && pkill -RTMIN+11 waybar";
+            on-scroll-up = "${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ && pkill -RTMIN+11 waybar";
+            on-scroll-down = "${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- && pkill -RTMIN+11 waybar";
           };
 
           tray = {
