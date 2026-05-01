@@ -134,6 +134,8 @@ in
             "sleep 1 && ${pkgs.waybar}/bin/waybar > /tmp/waybar-start.log 2>&1 &"
             # Re-apply persisted monitor on/off state (runs after waybar so it can restart cleanly)
             "sleep 2 && restore-monitors"
+            # Force waybar audio widget refresh after PipeWire finishes initializing
+            "sleep 5 && pkill -RTMIN+11 waybar"
             "${pkgs.hyprpaper}/bin/hyprpaper &"
             "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1 &"
             "${pkgs.networkmanagerapplet}/bin/nm-applet &"
@@ -282,9 +284,14 @@ in
           ", XF86AudioPlay, exec, ${pkgs.playerctl}/bin/playerctl --player=spotify play-pause"
           ", XF86AudioNext, exec, ${pkgs.playerctl}/bin/playerctl --player=spotify next"
           ", XF86AudioPrev, exec, ${pkgs.playerctl}/bin/playerctl --player=spotify previous"
-          ", XF86AudioMute, exec, ${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
-          ", XF86AudioLowerVolume, exec, ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
-          ", XF86AudioRaiseVolume, exec, ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"
+          ", XF86AudioMute, exec, ${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle && sleep 0.1 && pkill -RTMIN+11 waybar"
+          ", XF86AudioLowerVolume, exec, ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- && sleep 0.1 && pkill -RTMIN+11 waybar"
+          ", XF86AudioRaiseVolume, exec, ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ && sleep 0.1 && pkill -RTMIN+11 waybar"
+
+          # Audio sink cycling — uses bind (not binde) to prevent rapid-fire concurrent calls
+          "$mainMod, XF86AudioRaiseVolume, exec, cycle-audio-sink next"
+          "$mainMod, XF86AudioLowerVolume, exec, cycle-audio-sink prev"
+          "$ctrlMod $mainMod, A, exec, cycle-audio-sink next"
 
         ] ++ (lib.imap1 (i: mon:
           let
@@ -298,19 +305,6 @@ in
           in
           "$ctrlMod $mainMod, ${toString i}, exec, toggle-monitor \"${monId}\" \"${configStr}\""
         ) customConfig.desktop.monitors);
-
-        # Audio sink cycling.
-        # SUPER+VolumeUp/Down: fires once per SUPER press (XF86 media keys can't
-        # repeat while a modifier is held — Hyprland limitation).
-        # SUPER+, / SUPER+. and CTRL+SUPER+A: regular keys, work with binde repeat
-        # so you can hold SUPER and keep pressing to cycle through sinks.
-        binde = [
-          "$mainMod, XF86AudioRaiseVolume, exec, cycle-audio-sink next"
-          "$mainMod, XF86AudioLowerVolume, exec, cycle-audio-sink prev"
-          "$mainMod, comma,  exec, cycle-audio-sink prev"
-          "$mainMod, period, exec, cycle-audio-sink next"
-          "$ctrlMod $mainMod, A, exec, cycle-audio-sink next"
-        ];
 
         # Mouse bindings
         bindm = [
