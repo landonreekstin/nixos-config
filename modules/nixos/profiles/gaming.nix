@@ -24,11 +24,9 @@ in
   # == Configuration ==
   config = lib.mkIf config.customConfig.profiles.gaming.enable {
 
-    environment.systemPackages = with pkgs.unstable; [
+    environment.systemPackages = (with pkgs.unstable; [
       # Launchers / Compatibility Layers
       steam # Check prerequisites (32-bit libs, vulkan drivers - nvidia module should handle these)
-      lutris
-      heroic
       dolphin-emu
       wineWow64Packages.stable # Wine (stable branch, includes 32-bit/WoW64)
       winetricks
@@ -51,7 +49,11 @@ in
 
       # Screen Recorder
       gpu-screen-recorder-gtk
-    ];
+    ]) ++ (with pkgs; [
+      # Stable fallbacks (unstable versions have broken deps)
+      lutris
+      heroic
+    ]);
 
     programs.gpu-screen-recorder.enable = true;
 

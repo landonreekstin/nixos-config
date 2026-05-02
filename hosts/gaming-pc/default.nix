@@ -125,7 +125,7 @@
             }
             {
               label = "COMM";
-              command = "${pkgs.discord-canary}/bin/discord-canary";
+              command = "${pkgs.vesktop}/bin/vesktop";
               tooltip = "Communications";
             }
             {
@@ -229,7 +229,6 @@
         samba
       ];
       unstable-override = [
-        "discord-canary"
         "obs-studio"
         "vscode"
         "librewolf"
@@ -246,7 +245,7 @@
         librewolf
         brave
         ungoogled-chromium
-        discord-canary
+        vesktop
         qbittorrent
         obs-studio
         kdePackages.konversation

@@ -126,7 +126,6 @@
       nixos = with pkgs; [
       ];
       unstable-override = [
-        "discord-canary"
         "obs-studio"
         "vscode"
         #"librewolf"

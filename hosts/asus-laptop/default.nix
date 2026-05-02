@@ -76,7 +76,7 @@
             }
             {
               label = "COMM";
-              command = "${pkgs.discord-canary}/bin/discord-canary";
+              command = "${pkgs.vesktop}/bin/vesktop";
               tooltip = "Communications";
             }
             {
@@ -133,7 +133,6 @@
         kitty
       ];
       unstable-override = [ 
-        "discord-canary"  
         "vscode"
         "librewolf"
         "brave"
@@ -145,7 +144,7 @@
         vscode
         librewolf
         brave
-        discord-canary
+        vesktop
         claude-code
         signal-desktop
         (callPackage ../../pkgs/worldmonitor { })
