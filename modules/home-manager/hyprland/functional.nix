@@ -19,6 +19,16 @@ let
     in
     "${identifierString}, ${monitor.resolution}, ${monitor.position}, ${monitor.scale}${transformString}";
 
+  # A 0.1-second silent WAV (48kHz stereo 16-bit) built at eval time.
+  # Played at login to initialize WirePlumber's mixer node for HDMI pro-audio sinks.
+  # Without an audio stream, wpctl get-volume returns hardware level (1.00) instead of
+  # the WirePlumber software volume, causing the waybar audio widget to show 100%.
+  initSilenceWav = pkgs.runCommand "init-silence.wav" {
+    buildInputs = [ pkgs.sox ];
+  } ''
+    ${pkgs.sox}/bin/sox -n -r 48000 -c 2 -b 16 $out trim 0 0.1
+  '';
+
   # Filter autostart entries for Hyprland and build exec-once commands
   hyprlandAutostart = lib.filter (app:
     app.desktops == [] || lib.elem "hyprland" app.desktops
@@ -134,8 +144,10 @@ in
             "sleep 1 && ${pkgs.waybar}/bin/waybar > /tmp/waybar-start.log 2>&1 &"
             # Re-apply persisted monitor on/off state (runs after waybar so it can restart cleanly)
             "sleep 2 && restore-monitors"
-            # Force waybar audio widget refresh after PipeWire finishes initializing
-            "sleep 5 && pkill -RTMIN+11 waybar"
+            # Initialize WirePlumber mixer by playing silent audio, then refresh waybar.
+            # Without this, wpctl get-volume returns 1.00 on HDMI pro-audio sinks until
+            # real audio plays, causing the volume widget to display 100% at boot.
+            "sleep 3 && ${pkgs.pulseaudio}/bin/paplay --volume=0 ${initSilenceWav} && pkill -RTMIN+11 waybar"
             "${pkgs.hyprpaper}/bin/hyprpaper &"
             "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1 &"
             "${pkgs.networkmanagerapplet}/bin/nm-applet &"

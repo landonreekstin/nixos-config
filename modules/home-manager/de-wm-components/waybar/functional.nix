@@ -74,17 +74,63 @@ let
   '';
 
   audioStatusScript = pkgs.writeShellScript "waybar-audio-status" ''
-    SINK=$(${pkgs.pulseaudio}/bin/pactl get-default-sink 2>/dev/null)
+    # Single-shot polling script (interval=2 + signal=11 for immediate scroll refresh).
+    #
+    # HDMI pro-audio sinks report hardware level (1.00 = 100%) when SUSPENDED because
+    # WirePlumber hasn't initialized the mixer node yet. We detect this state, read the
+    # stored volume from WirePlumber's routes file, and re-apply it via wpctl set-volume.
+    # This one-time initialization means wpctl get-volume tracks correctly from then on,
+    # so scroll events (which send SIGRTMIN+11 to refresh immediately) work without pavu.
 
-    # wpctl correctly reads WirePlumber's software volume.
-    # pactl get-sink-volume is unusable for HDMI sinks — it always reports 100%
-    # (ALSA hardware level), ignoring the actual PipeWire software volume.
+    SINK=$(${pkgs.pulseaudio}/bin/pactl get-default-sink 2>/dev/null)
     WPVOL=$(${pkgs.wireplumber}/bin/wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null)
     VOLUME=$(echo "$WPVOL" | ${pkgs.gawk}/bin/awk '{printf "%d", $2 * 100}')
     VOLUME="''${VOLUME:-0}"
     if echo "$WPVOL" | grep -q "MUTED"; then MUTED=1; else MUTED=0; fi
 
-    # Look up description for the current sink
+    # HDMI sink uninitialized: read stored volume from WirePlumber routes file and re-apply.
+    # The re-apply initializes wpctl so scroll updates work immediately via signal refresh.
+    if [ "$VOLUME" -ge 99 ] && [ "$MUTED" -eq 0 ]; then
+      SINK_STATE=$(${pkgs.pulseaudio}/bin/pactl list sinks short | \
+        ${pkgs.gawk}/bin/awk -F'\t' -v s="$SINK" '$2==s{print $NF}')
+      if [ "$SINK_STATE" = "SUSPENDED" ]; then
+        ALSA_DEV=$(echo "$SINK" | grep -oE 'pro-output-[0-9]+' | grep -oE '[0-9]+$')
+        if [ -n "$ALSA_DEV" ]; then
+          DEVICE_ID=$(${pkgs.wireplumber}/bin/wpctl inspect @DEFAULT_AUDIO_SINK@ 2>/dev/null | \
+            ${pkgs.gawk}/bin/awk '/ device\.id =/{gsub(/[^0-9]/,""); print; exit}')
+          if [ -n "$DEVICE_ID" ]; then
+            ROUTE_NAME=$(${pkgs.pipewire}/bin/pw-cli enum-params "$DEVICE_ID" \
+              "Spa:Enum:ParamId:EnumRoute" 2>/dev/null | \
+              ${pkgs.gawk}/bin/awk -v dev="$ALSA_DEV" '
+                /Prop: key/ { in_devices = 0 }
+                /Route:devices/ { in_devices = 1 }
+                /String "hdmi-output-/ {
+                  match($0, /hdmi-output-[0-9]+/)
+                  current_route = substr($0, RSTART, RLENGTH)
+                }
+                in_devices && /^\s+Int [0-9]/ {
+                  if ($NF == dev) found = current_route
+                }
+                END { print found }
+              ')
+            if [ -n "$ROUTE_NAME" ]; then
+              CARD=$(echo "$SINK" | sed 's/^alsa_output\./alsa_card./; s/\.[^.]*$//')
+              ROUTES_FILE="$HOME/.local/state/wireplumber/default-routes"
+              STORED_VOL=$(grep -F "''${CARD}:output:''${ROUTE_NAME}=" "$ROUTES_FILE" 2>/dev/null | \
+                sed 's/.*"channelVolumes":\[//' | cut -d',' -f1 | \
+                ${pkgs.gawk}/bin/awk '{printf "%d", $1 * 100}')
+              if [ -n "$STORED_VOL" ] && [ "$STORED_VOL" -gt 0 ] && [ "$STORED_VOL" -lt 99 ]; then
+                # Re-apply stored volume to initialize WirePlumber's mixer node.
+                # After this, wpctl get-volume correctly tracks changes.
+                ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ "''${STORED_VOL}%"
+                VOLUME="$STORED_VOL"
+              fi
+            fi
+          fi
+        fi
+      fi
+    fi
+
     DESC=$(${pkgs.pulseaudio}/bin/pactl list sinks | ${pkgs.gawk}/bin/awk -v sink="$SINK" '
       /^\s*Name:/ { found = ($2 == sink) }
       /^\s*Description:/ && found {
@@ -93,17 +139,15 @@ let
       }
     ')
 
-    # Default: volume-based fallback icon
     if   [ "$VOLUME" -eq 0 ]; then ICON="󰸈"; CLASS="muted"
     elif [ "$VOLUME" -le 33 ]; then ICON="󰕿"; CLASS="default"
     elif [ "$VOLUME" -le 66 ]; then ICON="󰖀"; CLASS="default"
     else ICON="󰕾"; CLASS="default"
     fi
 
-    # Override with configured pattern mappings
     case "$DESC" in
       ${audioMappingCases}
-      *) ;;  # keep defaults
+      *) ;;
     esac
 
     if [ "$MUTED" -gt 0 ]; then
@@ -470,8 +514,8 @@ in
             signal = 11;  # pkill -RTMIN+11 waybar forces an immediate refresh
             on-click = "switch-audio-sink";
             on-click-right = "${pkgs.pavucontrol}/bin/pavucontrol";
-            on-scroll-up = "${pkgs.pulseaudio}/bin/pactl set-sink-volume @DEFAULT_SINK@ +5% && pkill -RTMIN+11 waybar";
-            on-scroll-down = "${pkgs.pulseaudio}/bin/pactl set-sink-volume @DEFAULT_SINK@ -5% && pkill -RTMIN+11 waybar";
+            on-scroll-up = "${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ --limit 1.0 && pkill -RTMIN+11 waybar";
+            on-scroll-down = "${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- && pkill -RTMIN+11 waybar";
           };
 
           tray = {
