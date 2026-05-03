@@ -624,6 +624,11 @@ in
             default = "none";
             description = "The Ly theme to apply. 'none' uses Ly defaults. Available themes: 'doom', 'matrix', 'century-series'.";
           };
+          animationFile = mkOption {
+            type = types.nullOr types.path;
+            default = null;
+            description = "Override the .dur animation file used by the century-series theme. Null uses the default 320x90 file (suited for 2560x1440). Set to a host-specific file for different resolutions.";
+          };
         };
       };
     };

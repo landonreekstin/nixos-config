@@ -69,6 +69,7 @@
         enable = true; # false will go to TTY but not autolaunch a DE
         type = "ly";
         ly.theme = "century-series";
+        ly.animationFile = ../../assets/ly/f15-animation-240x67.dur; # 1080p: 240x67 chars
       };
     };
 
@@ -182,6 +183,31 @@
   };
 
   # === Additional nixos configuration for this host ===
+
+  # Same NVIDIA + Linux 7.0 fbcon fixes as gaming-pc, adapted for native 1080p.
+  # nvidia-drm.fbdev=1: expose NVIDIA as fbdev so fbcon can use it.
+  # initcall_blacklist: prevent simpledrm from claiming fb0 at EFI GOP res first.
+  # fbcon=font:VGA8x16: Linux 7.0 DPI auto-scaling would select a 16x32 font;
+  #   forcing 8x16 gives the correct 240x67 terminal at 1920x1080.
+  boot.kernelParams = [
+    "nvidia-drm.fbdev=1"
+    "initcall_blacklist=simpledrm_platform_driver_init"
+    "fbcon=font:VGA8x16"
+  ];
+
+  # fbcon defers console take-over until ~4s after Ly starts. Pre-set the tty1
+  # window size so Ly reads 240x67 at startup instead of the default 80x25.
+  # No fbset needed — Plymouth resets to 1920x1080 which is already correct.
+  systemd.services.fbset-native-res = {
+    description = "Pre-set TTY size for Ly before fbcon takes over";
+    wantedBy = [ "display-manager.service" ];
+    before    = [ "display-manager.service" ];
+    after     = [ "plymouth-quit.service" ];
+    serviceConfig = {
+      Type      = "oneshot";
+      ExecStart = "${pkgs.coreutils}/bin/stty -F /dev/tty1 rows 67 cols 240";
+    };
+  };
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {

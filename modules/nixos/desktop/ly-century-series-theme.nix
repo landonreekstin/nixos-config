@@ -6,20 +6,23 @@
 let
   dmCfg = config.customConfig.desktop.displayManager;
   enabled = dmCfg.enable && dmCfg.type == "ly" && dmCfg.ly.theme == "century-series";
+  animationSrc = if dmCfg.ly.animationFile != null
+                 then dmCfg.ly.animationFile
+                 else ../../../assets/ly/f18-animation.dur;
 in
 {
   config = lib.mkIf enabled {
 
-    # Deploy the pre-generated .dur animation file to /etc/ly/
-    environment.etc."ly/f18-animation.dur" = {
-      source = ../../../assets/ly/f18-animation.dur;
+    # Deploy the .dur animation file to /etc/ly/
+    environment.etc."ly/century-series-animation.dur" = {
+      source = animationSrc;
       mode   = "0444";
     };
 
     services.displayManager.ly.settings = {
-      # Custom F-18 ASCII animation
+      # Custom ASCII animation
       animation          = "dur_file";
-      dur_file_path      = "/etc/ly/f18-animation.dur";
+      dur_file_path      = "/etc/ly/century-series-animation.dur";
       dur_offset_alignment = "center";
       dur_x_offset       = 0;
       dur_y_offset       = 0;
