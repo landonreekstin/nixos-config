@@ -568,6 +568,7 @@ in
         # Launcher bar configuration (conditional)
         (lib.mkIf launcherEnabled {
           launcherBar = {
+            name = "launcherBar"; # Required so CSS class window#waybar.launcherBar matches
             layer = "bottom";
             position = "bottom";
             height = 48; # Base height for launcher

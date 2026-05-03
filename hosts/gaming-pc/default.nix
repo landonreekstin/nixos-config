@@ -301,11 +301,15 @@
   # initcall_blacklist: prevent simpledrm from loading. Without this, simpledrm
   # claims fb0 at the EFI GOP resolution (1920x1080) before NVIDIA loads, and
   # fbcon inherits that mode — leaving the TTY at 240x67 even though NVIDIA
-  # later takes over fb0. Blocking simpledrm makes NVIDIA the first framebuffer,
-  # initialised at the native 2560x1440 → 320x90 TTY for Ly.
+  # later takes over fb0. Blocking simpledrm makes NVIDIA the first framebuffer.
+  # fbcon=font:VGA8x16: Linux 7.0 added DPI-aware font auto-scaling; at 2560x1440
+  # it selects a 16x32 font (160x45 chars) instead of 8x16 (320x90 chars).
+  # Setting the font via kernel param bypasses the DPI scaling entirely.
+  # setfont via userspace (KDFONTOP ioctl) does not work with NVIDIA DRM in 7.0.
   boot.kernelParams = [
     "nvidia-drm.fbdev=1"
     "initcall_blacklist=simpledrm_platform_driver_init"
+    "fbcon=font:VGA8x16"
   ];
 
   # Plymouth sets the fbdev visible geometry to 1920x1080 (EFI GOP resolution)
@@ -314,15 +318,22 @@
   # resolution after Plymouth quits, before Ly starts, so fbcon recalculates
   # to 320x90 and the F-18 animation fills the screen.
   systemd.services.fbset-native-res = {
-    description = "Reset framebuffer to native 2560x1440 before Ly";
-    # Ly runs as display-manager.service in NixOS; ly.service is just an alias
-    # so wantedBy=ly.service doesn't create a working dependency.
+    description = "Reset framebuffer geometry and TTY size before Ly";
     wantedBy = [ "display-manager.service" ];
     before    = [ "display-manager.service" ];
     after     = [ "plymouth-quit.service" ];
     serviceConfig = {
-      Type       = "oneshot";
-      ExecStart  = "${pkgs.fbset}/bin/fbset -g 2560 1440 2560 1440 32";
+      Type      = "oneshot";
+      # 1. Restore framebuffer visible geometry (Plymouth resets it to 1920x1080)
+      # 2. Pre-set tty1 window size to 320x90 via TIOCSWINSZ.
+      #    fbcon defers console take-over until ~4s after Ly starts, so Ly reads
+      #    the default VT size (80x25) and shows only a corner of the animation.
+      #    Setting it here with stty ensures Ly sees 320x90 at startup.
+      #    (stty uses TIOCSWINSZ, not KDFONTOP — works fine with NVIDIA DRM)
+      ExecStart = [
+        "${pkgs.fbset}/bin/fbset -g 2560 1440 2560 1440 32"
+        "${pkgs.coreutils}/bin/stty -F /dev/tty1 rows 90 cols 320"
+      ];
     };
   };
 

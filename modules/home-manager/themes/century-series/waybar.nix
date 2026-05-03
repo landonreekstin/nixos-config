@@ -560,11 +560,17 @@ in {
 
         /* ===== LAUNCHER BAR - COCKPIT CONTROL PANEL ===== */
 
-        /* Launcher bar background - Control panel surface */
+        /* Launcher bar window - transparent so only buttons are visible */
         window#waybar.launcherBar {
+          background: transparent;
+          border: none;
+          box-shadow: none;
+        }
+
+        /* Launcher bar content - sized to buttons, centered */
+        .launcherBar .modules-center {
           background-color: ${c.bg-secondary};
           border-top: 3px solid ${c.border-primary};
-          border-bottom: none;
           box-shadow: 0 -2px 10px ${c.bg-primary}cc;
         }
 
