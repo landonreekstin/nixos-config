@@ -324,16 +324,21 @@
     after     = [ "plymouth-quit.service" ];
     serviceConfig = {
       Type      = "oneshot";
-      # 1. Restore framebuffer visible geometry (Plymouth resets it to 1920x1080)
-      # 2. Pre-set tty1 window size to 320x90 via TIOCSWINSZ.
-      #    fbcon defers console take-over until ~4s after Ly starts, so Ly reads
-      #    the default VT size (80x25) and shows only a corner of the animation.
-      #    Setting it here with stty ensures Ly sees 320x90 at startup.
-      #    (stty uses TIOCSWINSZ, not KDFONTOP — works fine with NVIDIA DRM)
-      ExecStart = [
-        "${pkgs.fbset}/bin/fbset -g 2560 1440 2560 1440 32"
-        "${pkgs.coreutils}/bin/stty -F /dev/tty1 rows 90 cols 320"
-      ];
+      # Run as a single script so stty always executes even if fbset fails.
+      # NVIDIA fbdev (/dev/fb0) may not be ready immediately after Plymouth quits,
+      # so we wait up to 2s for it before running fbset. stty (TIOCSWINSZ) does
+      # not require /dev/fb0 and always runs regardless of fbset's result.
+      ExecStart = pkgs.writeShellScript "fbset-native-res" ''
+        # Wait up to 2s for NVIDIA fbdev to create /dev/fb0
+        for i in $(seq 10); do
+          [ -e /dev/fb0 ] && break
+          sleep 0.2
+        done
+        # Restore framebuffer visible geometry (Plymouth resets it to 1920x1080)
+        ${pkgs.fbset}/bin/fbset -g 2560 1440 2560 1440 32 || true
+        # Pre-set tty1 window size so Ly sees 320x90 instead of the default 80x25
+        ${pkgs.coreutils}/bin/stty -F /dev/tty1 rows 90 cols 320
+      '';
     };
   };
 
