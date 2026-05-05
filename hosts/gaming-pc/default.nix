@@ -75,6 +75,10 @@
       ];
       autostart = [];
 
+      idle = {
+        lockTimeout = 1500; # 25 minutes
+      };
+
       hyprland = {
         utilityApps = [
           {

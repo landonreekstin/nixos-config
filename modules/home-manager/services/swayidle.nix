@@ -9,18 +9,24 @@ let
   # subsequent timeouts (e.g. dpms off) or resume commands while lock is active.
   swaylockBin = "${config.programs.swaylock.package}/bin/swaylock";
   playerctlBin = "${pkgs.playerctl}/bin/playerctl";
+  pactlBin = "${pkgs.pulseaudio}/bin/pactl";
+  grepBin = "${pkgs.gnugrep}/bin/grep";
+  pidofBin = "${pkgs.procps}/bin/pidof";
   # Script that skips locking if any MPRIS player is active (Spotify, browser media,
-  # Jellyfin in Librewolf, etc.) or if a microphone stream is open (Discord calls).
+  # Jellyfin in Librewolf, etc.), if audio is actively playing, or if a mic is open.
+  # All binaries use full nix store paths — swayidle runs with a minimal PATH (bash only).
   lockIfIdle = pkgs.writeShellScript "lock-if-idle" ''
     # Skip if any MPRIS player is currently playing (Spotify, browser media sessions)
-    ${playerctlBin} -a status 2>/dev/null | grep -q Playing && exit 0
+    ${playerctlBin} -a status 2>/dev/null | ${grepBin} -q Playing && exit 0
+    # Skip if any sink-input is actively running (playing audio, not just paused/corked)
+    ${pactlBin} list sink-inputs 2>&1 | ${grepBin} -q "State: RUNNING" && exit 0
     # Skip if any app has an active microphone input (Discord/video calls)
-    ${pkgs.pulseaudio}/bin/pactl list short source-outputs 2>/dev/null | grep -q . && exit 0
+    ${pactlBin} list short source-outputs 2>/dev/null | ${grepBin} -q . && exit 0
     # Lock if not already locked
-    pidof swaylock || ${swaylockBin} &
+    ${pidofBin} swaylock || ${swaylockBin} &
   '';
   # Unconditional lock (before-sleep, explicit lock events)
-  lockNow = "pidof swaylock || ${swaylockBin} &";
+  lockNow = "${pidofBin} swaylock || ${swaylockBin} &";
 in
 {
   # On Hyprland with systemd.enable=false, WAYLAND_DISPLAY isn't in the systemd environment
