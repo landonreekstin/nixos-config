@@ -4,6 +4,14 @@
 let
   sinkMappings = customConfig.desktop.hyprland.audioSinkMappings;
 
+  # 0.1s silent WAV — played after sink switches to initialize WirePlumber's mixer node.
+  # Without this, wpctl get-volume returns 1.00 on the new sink until real audio plays.
+  initSilenceWav = pkgs.runCommand "init-silence.wav" {
+    buildInputs = [ pkgs.sox ];
+  } ''
+    ${pkgs.sox}/bin/sox -n -r 48000 -c 2 -b 16 $out trim 0 0.1
+  '';
+
   # Generate a shell function body that maps a description string to icon+label+class.
   # Used in both the switcher and cycle scripts.
   # Expects DESC variable to be set; sets ICON, LABEL, CLASS.
@@ -71,6 +79,9 @@ let
       ${pkgs.pulseaudio}/bin/pactl list short sink-inputs | ${pkgs.gawk}/bin/awk '{print $1}' | while read -r INPUT_ID; do
         ${pkgs.pulseaudio}/bin/pactl move-sink-input "$INPUT_ID" "$CHOSEN_SINK"
       done
+      # Initialize WirePlumber's mixer node for the new sink so wpctl get-volume works
+      # immediately (without this, the widget shows 100% until real audio plays through it)
+      ${pkgs.pulseaudio}/bin/paplay --volume=0 ${initSilenceWav} 2>/dev/null
       # Signal waybar to refresh the audio widget
       pkill -RTMIN+11 waybar 2>/dev/null || true
     fi
@@ -123,6 +134,9 @@ let
       ${pkgs.pulseaudio}/bin/pactl list short sink-inputs | ${pkgs.gawk}/bin/awk '{print $1}' | while read -r INPUT_ID; do
         ${pkgs.pulseaudio}/bin/pactl move-sink-input "$INPUT_ID" "$NEXT_SINK"
       done
+      # Initialize WirePlumber's mixer node for the new sink so wpctl get-volume works
+      # immediately (without this, the widget shows 100% until real audio plays through it)
+      ${pkgs.pulseaudio}/bin/paplay --volume=0 ${initSilenceWav} 2>/dev/null
       # Signal waybar to refresh the audio widget
       pkill -RTMIN+11 waybar 2>/dev/null || true
     fi
