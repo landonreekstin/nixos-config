@@ -419,7 +419,6 @@ in
               ++ lib.optionals hasWeather [ "custom/weather" ]
               ++ lib.optionals hasHyprsunset [ "custom/hyprsunset" ]
               ++ [
-              "network"
               "custom/audio-sink"
               "cpu"
               "memory"
@@ -495,16 +494,6 @@ in
             format-full = lib.mkDefault "FULL";
             tooltip = true;
             tooltip-format = "{timeTo} — {capacity}% ({power:.1f}W)";
-          };
-
-          network = {
-            # Functional formats without icons; rice can override with icons
-            format-wifi = "{essid} ({signalStrength}%)";
-            format-ethernet = "{ifname}: {ipaddr}/{cidr}";
-            format-disconnected = "Disconnected"; # Simple status
-            tooltip-format = "{ifname} via {gwaddr}"; # Functional tooltip
-            on-click = "${pkgs.networkmanager_dmenu}/bin/networkmanager_dmenu"; # Functional action
-            on-click-right = "${pkgs.networkmanagerapplet}/bin/nm-connection-editor";
           };
 
           "custom/audio-sink" = {
@@ -584,8 +573,7 @@ in
 
     home.packages = with pkgs; [
       # Dependencies for functional aspects of Waybar modules
-      networkmanager_dmenu  # For network module on-click
-      networkmanagerapplet  # For network module on-click-right (nm-connection-editor)
+      networkmanagerapplet  # For nm-applet system tray (exec-once in hyprland)
       pavucontrol           # For pulseaudio module on-click-right
       brightnessctl        # For backlight and kbd-brightness modules
       curl                 # For weather module HTTP requests

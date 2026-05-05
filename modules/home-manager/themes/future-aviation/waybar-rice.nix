@@ -17,8 +17,6 @@ in
     home.packages = with pkgs; [
       font-awesome # Provides 'Font Awesome 6 Free', 'Font Awesome 6 Brands'
       nerd-fonts.jetbrains-mono    # Provides 'JetBrainsMono Nerd Font' and many others
-      (pkgs.networkmanagerapplet or null) # For tray network icon, if you use it. Or remove if not.
-                                      # The 'or null' is a fallback if the package name isn't exact on your system.
     ];
 
     programs.waybar = {
@@ -63,13 +61,6 @@ in
           format = " {}%"; # Themed format with icon
         };
 
-        network = {
-          # Overriding functional formats to include theme icons
-          format-wifi = " {essid} ({signalStrength}%)";
-          format-ethernet = " {ifname}: {ipaddr}/{cidr}";
-          format-disconnected = "⚠ Disconnected"; # Themed disconnected state
-          # on-click and tooltip-format are inherited
-        };
 
         "pulseaudio#sink_switcher" = {
           # Overriding functional formats to include theme icons and specific styling
@@ -149,8 +140,7 @@ in
         #cpu,
         #memory,
         #tray,
-        #pulseaudio,
-        #network {
+        #pulseaudio {
             padding: 0 10px; /* Horizontal padding */
             margin: 0 4px;   /* Horizontal margin between modules */
             color: ${palette.base_offwhite}; /* Default text color for these modules */
@@ -166,10 +156,6 @@ in
         /* Module-specific states */
         #pulseaudio.muted, #pulseaudio button.muted { /* Ensure button state also styled if applicable */
             color: ${palette.accent_amber}; /* Or use accent_red_neg for muted */
-        }
-
-        #network.disconnected {
-            color: ${palette.accent_red_neg};
         }
 
         /* Add further detailed styling for other modules or states as needed */

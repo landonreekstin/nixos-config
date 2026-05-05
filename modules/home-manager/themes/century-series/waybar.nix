@@ -74,13 +74,6 @@ in {
             format = "TMP {temperatureC}°C";  # EGT style
           };
 
-          network = {
-            format-wifi = mkForce "LINK {signalStrength}%";
-            format-ethernet = mkForce "LINK UP";
-            format-disconnected = mkForce "LINK DOWN";
-            tooltip-format = mkForce "NET: {ifname} via {gwaddr}";
-          };
-
           backlight = mkIf hasScreenBacklight {
             format = mkForce "SCR {percent}%";
             tooltip-format = "Screen brightness: {percent}%";
@@ -199,7 +192,7 @@ in {
         }
 
         /* Module base styling - Instrument readouts */
-        #cpu, #memory, #temperature, #network, #battery, #custom-audio-sink,
+        #cpu, #memory, #temperature, #battery, #custom-audio-sink,
         #backlight, #custom-kbd-brightness, #custom-vpn {
           padding: 0 8px;
           margin: 2px;
@@ -619,17 +612,5 @@ in {
       '';
     };
 
-    # networkmanager_dmenu config - use rofi (with Century Series styling) instead of dmenu
-    xdg.configFile."networkmanager-dmenu/config.ini".text = ''
-      [dmenu]
-      dmenu_command = rofi -dmenu
-      rofi_highlight = True
-      list_saved = True
-      wifi_chars = ▂▄▆█
-
-      [editor]
-      terminal = kitty
-      gui_if_available = True
-    '';
   };
 }
