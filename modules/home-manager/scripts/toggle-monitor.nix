@@ -52,8 +52,8 @@ let
       # Monitor is disabled — restore it and clear from state
       ${pkgs.hyprland}/bin/hyprctl keyword monitor "$MON_CONFIG"
       if [ -f "$STATE_FILE" ]; then
-        ${pkgs.gnugrep}/bin/grep -vxF "$MON_ID" "$STATE_FILE" > "$STATE_FILE.tmp" \
-          && mv "$STATE_FILE.tmp" "$STATE_FILE"
+        ${pkgs.gnugrep}/bin/grep -vxF "$MON_ID" "$STATE_FILE" > "$STATE_FILE.tmp"; \
+          mv "$STATE_FILE.tmp" "$STATE_FILE"
       fi
     fi
 
