@@ -36,7 +36,7 @@ in
 
     shellAliases = {
       c = "clear";
-      rb = "sudo reboot";
+      rb = "rebuild && reboot";
       ipr = "sudo input-remapper-gtk";
     };
 
