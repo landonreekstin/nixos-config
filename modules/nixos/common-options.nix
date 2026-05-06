@@ -629,6 +629,26 @@ in
             default = null;
             description = "Override the .dur animation file used by the century-series theme. Null uses the default 320x90 file (suited for 2560x1440). Set to a host-specific file for different resolutions.";
           };
+          ttyRows = mkOption {
+            type = types.nullOr types.ints.positive;
+            default = null;
+            description = "TTY row count to pass to stty before Ly starts. When set (together with ttyCols), enables NVIDIA fbdev kernel params and a pre-start systemd service that sizes tty1 correctly so Ly and its animation fill the screen.";
+          };
+          ttyCols = mkOption {
+            type = types.nullOr types.ints.positive;
+            default = null;
+            description = "TTY column count to pass to stty before Ly starts.";
+          };
+          nativeFbResolution = mkOption {
+            type = types.nullOr (types.submodule {
+              options = {
+                width  = mkOption { type = types.ints.positive; description = "Native framebuffer width in pixels."; };
+                height = mkOption { type = types.ints.positive; description = "Native framebuffer height in pixels."; };
+              };
+            });
+            default = null;
+            description = "When set, fbset resets the framebuffer to this resolution before stty. Only needed when Plymouth leaves the framebuffer at a different resolution than native (e.g. 2560x1440 displays where EFI GOP uses 1920x1080).";
+          };
         };
       };
     };

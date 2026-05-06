@@ -90,6 +90,12 @@
       displayManager = {
         enable = true;
         type = "ly";
+        ly = {
+          theme = "century-series";
+          animationFile = ../../assets/ly/f15-animation-240x67.dur; # 1080p: 240x67 chars
+          ttyRows = 67;
+          ttyCols = 240;
+        };
         sddm = {
           theme = "sddm-astronaut";
           embeddedTheme = "pixel_sakura";

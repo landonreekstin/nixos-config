@@ -112,6 +112,45 @@ EOF
     services.gnome.gnome-keyring.enable = lib.mkIf (cfg.type == "ly") true;
     security.pam.services.ly.enableGnomeKeyring = lib.mkIf (cfg.type == "ly") true;
 
+    # NVIDIA fbdev kernel params + TTY size pre-set service for Ly.
+    # nvidia-drm.fbdev=1: expose NVIDIA as fbdev so fbcon can use it.
+    # initcall_blacklist: prevent simpledrm from claiming fb0 at EFI GOP res first.
+    # fbcon=font:VGA8x16: Linux 7.0 DPI auto-scaling selects a 16x32 font otherwise,
+    #   halving the effective terminal dimensions. 8x16 gives the correct char count.
+    boot.kernelParams = lib.mkIf (cfg.type == "ly" && cfg.ly.ttyRows != null) [
+      "nvidia-drm.fbdev=1"
+      "initcall_blacklist=simpledrm_platform_driver_init"
+      "fbcon=font:VGA8x16"
+    ];
+
+    # Pre-set tty1 dimensions before Ly starts so the login screen and animation
+    # fill the screen. fbcon defers console take-over until ~4s after Ly starts,
+    # so without this Ly reads 80x25 at startup.
+    systemd.services.ly-tty-size = lib.mkIf (cfg.type == "ly" && cfg.ly.ttyRows != null) {
+      description = "Pre-set TTY size for Ly before display manager starts";
+      wantedBy = [ "display-manager.service" ];
+      before    = [ "display-manager.service" ];
+      after     = [ "plymouth-quit.service" ];
+      serviceConfig = {
+        Type      = "oneshot";
+        ExecStart = pkgs.writeShellScript "ly-tty-size" (
+          (lib.optionalString (cfg.ly.nativeFbResolution != null) ''
+            # Wait up to 2s for NVIDIA fbdev to create /dev/fb0
+            for i in $(seq 10); do
+              [ -e /dev/fb0 ] && break
+              sleep 0.2
+            done
+            # Restore framebuffer visible geometry (Plymouth resets it to EFI GOP res)
+            ${pkgs.fbset}/bin/fbset -g ${toString cfg.ly.nativeFbResolution.width} ${toString cfg.ly.nativeFbResolution.height} ${toString cfg.ly.nativeFbResolution.width} ${toString cfg.ly.nativeFbResolution.height} 32 || true
+          '')
+          + ''
+            # Pre-set tty1 window size so Ly sees correct dimensions at startup
+            ${pkgs.coreutils}/bin/stty -F /dev/tty1 rows ${toString cfg.ly.ttyRows} cols ${toString cfg.ly.ttyCols}
+          ''
+        );
+      };
+    };
+
     # == Greetd + ReGreet Configuration ==
     services.greetd = lib.mkIf (cfg.type == "greetd") {
       enable = true;

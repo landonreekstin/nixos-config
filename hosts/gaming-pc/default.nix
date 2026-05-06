@@ -143,7 +143,12 @@
       displayManager = {
         enable = true; # false will go to TTY but not autolaunch a DE
         type = "ly";
-        ly.theme = "century-series"; # F-18 ASCII animation + amber cockpit UI
+        ly = {
+          theme = "century-series"; # F-18 ASCII animation + amber cockpit UI
+          ttyRows = 90;
+          ttyCols = 320;
+          nativeFbResolution = { width = 2560; height = 1440; };
+        };
         # sddm config preserved below for easy rollback:
         # type = "sddm";
         # sddm = {
@@ -300,51 +305,6 @@
 
   # === Additional nixos configuration for this host ===
   programs.zoom-us.enable = true;
-
-  # nvidia-drm.fbdev=1: expose NVIDIA as an fbdev so fbcon can use it.
-  # initcall_blacklist: prevent simpledrm from loading. Without this, simpledrm
-  # claims fb0 at the EFI GOP resolution (1920x1080) before NVIDIA loads, and
-  # fbcon inherits that mode — leaving the TTY at 240x67 even though NVIDIA
-  # later takes over fb0. Blocking simpledrm makes NVIDIA the first framebuffer.
-  # fbcon=font:VGA8x16: Linux 7.0 added DPI-aware font auto-scaling; at 2560x1440
-  # it selects a 16x32 font (160x45 chars) instead of 8x16 (320x90 chars).
-  # Setting the font via kernel param bypasses the DPI scaling entirely.
-  # setfont via userspace (KDFONTOP ioctl) does not work with NVIDIA DRM in 7.0.
-  boot.kernelParams = [
-    "nvidia-drm.fbdev=1"
-    "initcall_blacklist=simpledrm_platform_driver_init"
-    "fbcon=font:VGA8x16"
-  ];
-
-  # Plymouth sets the fbdev visible geometry to 1920x1080 (EFI GOP resolution)
-  # for its splash screen. This persists after Plymouth exits, leaving fbcon
-  # at 240x67 even though the virtual buffer is 2560x1440. Reset to native
-  # resolution after Plymouth quits, before Ly starts, so fbcon recalculates
-  # to 320x90 and the F-18 animation fills the screen.
-  systemd.services.fbset-native-res = {
-    description = "Reset framebuffer geometry and TTY size before Ly";
-    wantedBy = [ "display-manager.service" ];
-    before    = [ "display-manager.service" ];
-    after     = [ "plymouth-quit.service" ];
-    serviceConfig = {
-      Type      = "oneshot";
-      # Run as a single script so stty always executes even if fbset fails.
-      # NVIDIA fbdev (/dev/fb0) may not be ready immediately after Plymouth quits,
-      # so we wait up to 2s for it before running fbset. stty (TIOCSWINSZ) does
-      # not require /dev/fb0 and always runs regardless of fbset's result.
-      ExecStart = pkgs.writeShellScript "fbset-native-res" ''
-        # Wait up to 2s for NVIDIA fbdev to create /dev/fb0
-        for i in $(seq 10); do
-          [ -e /dev/fb0 ] && break
-          sleep 0.2
-        done
-        # Restore framebuffer visible geometry (Plymouth resets it to 1920x1080)
-        ${pkgs.fbset}/bin/fbset -g 2560 1440 2560 1440 32 || true
-        # Pre-set tty1 window size so Ly sees 320x90 instead of the default 80x25
-        ${pkgs.coreutils}/bin/stty -F /dev/tty1 rows 90 cols 320
-      '';
-    };
-  };
 
   # Enable the Samba client-side name resolution daemon (nmbd).
   # This allows the PC to discover other Samba hosts (like optiplex-nas)
