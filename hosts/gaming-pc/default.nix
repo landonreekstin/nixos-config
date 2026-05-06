@@ -245,6 +245,7 @@
         "ungoogled-chromium"
         #"claude-code"
         "gurk-rs"
+        "vlc"
       ];
       homeManager = with pkgs; [
         jamesdsp
@@ -263,6 +264,7 @@
         (callPackage ../../pkgs/worldmonitor { })
         zoom-us
         gurk-rs
+        vlc
       ];
       flatpak = {
         enable = true;
@@ -315,6 +317,19 @@
   networking.extraHosts = ''
     192.168.1.76  optiplex-nas
   '';
+  # Blacklist the Realtek RTW8852CE wireless driver.
+  # The rtw89_8852ce firmware crashes periodically (SER errors), causing a brief
+  # PCIe bus stall that makes the wired NIC (r8169/enp8s0) temporarily unreachable too.
+  # Gaming-pc is a desktop with wired Ethernet — Wi-Fi is not needed.
+  boot.blacklistedKernelModules = [ "rtw89_8852ce" "rtw89_8852c" "rtw89pci" "rtw89core" ];
+
+  # Enable TCP MTU probing / blackhole detection.
+  # WireGuard tunnel MTU (~1420) is smaller than standard Ethernet (1500). If a packet
+  # is too large to traverse the tunnel, the intermediate router sends back ICMP
+  # "fragmentation needed". With probing enabled, the kernel detects when these are
+  # dropped (blackhole) and adaptively reduces MSS, preventing SSH/TCP stalls.
+  boot.kernel.sysctl."net.ipv4.tcp_mtu_probing" = 1;
+
   # Routes through OpenBSD firewall for accessing server subnet and public IP hairpin NAT
   # Uses NetworkManager dispatcher to add routes when enp8s0 comes up
   networking.networkmanager.dispatcherScripts = [
