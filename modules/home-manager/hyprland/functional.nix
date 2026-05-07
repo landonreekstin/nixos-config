@@ -246,14 +246,18 @@ in
           # Window Management
           "$mainMod, Q, killactive,"
           "$mainMod $ctrlMod, F, togglefloating,"
-          "$mainMod, left, movefocus, l"
-          "$mainMod, right, movefocus, r"
-          "$mainMod, up, movefocus, u"
-          "$mainMod, down, movefocus, d"
-          "$mainMod, H, swapwindow, l"
-          "$mainMod, J, swapwindow, d"
-          "$mainMod, K, swapwindow, u"
-          "$mainMod, L, swapwindow, r"
+          "$mainMod, left, swapwindow, l"
+          "$mainMod, right, swapwindow, r"
+          "$mainMod, up, swapwindow, u"
+          "$mainMod, down, swapwindow, d"
+          "$mainMod, H, movefocus, l"
+          "$mainMod, J, movefocus, d"
+          "$mainMod, K, movefocus, u"
+          "$mainMod, L, movefocus, r"
+          "r:CONTROL, left, movefocus, l"
+          "r:CONTROL, right, movefocus, r"
+          "r:CONTROL, up, movefocus, u"
+          "r:CONTROL, down, movefocus, d"
           "$mainMod, F11, fullscreen,"
           "$mainMod, bracketleft, exec, hyprctl keyword general:layout dwindle"
           "$mainMod, bracketright, exec, hyprctl keyword general:layout master"
@@ -271,13 +275,19 @@ in
         ) ++ [
           "$mainMod, 0, workspace, 10"
           "$mainMod SHIFT, 0, movetoworkspace, 10"
-          # Workspace navigation
-          "$ctrlMod $mainMod, right, workspace, e+1"
-          "$ctrlMod $mainMod, left, workspace, e-1"
-          
-          # Move window to next/previous workspace
-          "$mainMod SHIFT, right, movetoworkspace, e+1"
-          "$mainMod SHIFT, left, movetoworkspace, e-1"
+          # Focus adjacent monitor
+          "$ctrlMod $mainMod, right, focusmonitor, +1"
+          "$ctrlMod $mainMod, left, focusmonitor, -1"
+          # Workspace navigation (active monitor only)
+          "$ctrlMod $mainMod, up, workspace, m+1"
+          "$ctrlMod $mainMod, down, workspace, m-1"
+
+          # Move window to adjacent monitor
+          "$mainMod SHIFT, right, movewindow, mon:+1"
+          "$mainMod SHIFT, left, movewindow, mon:-1"
+          # Move window to new empty workspace on same monitor / prev workspace on same monitor
+          "$mainMod SHIFT, up, movetoworkspace, emptym"
+          "$mainMod SHIFT, down, movetoworkspace, m-1"
 
           # Special workspace toggle (hidden utility apps like ckb-next)
           "$mainMod, grave, togglespecialworkspace, ckb"

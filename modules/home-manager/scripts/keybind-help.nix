@@ -27,11 +27,9 @@ Ctrl+Shift+Esc      Task Manager
 
 WINDOWS
 Super+Q             Close Window
-Super+H             Focus Left
-Super+J             Focus Down
-Super+K             Focus Up
-Super+L             Focus Right
-Super+Arrow         Swap Window
+Super+H/J/K/L       Focus Left/Down/Up/Right
+RCtrl+Arrow         Focus Left/Down/Up/Right
+Super+Arrow         Swap Window in Workspace
 Super+Shift+H       Resize Left
 Super+Shift+J       Resize Down
 Super+Shift+K       Resize Up
@@ -42,10 +40,13 @@ Super+F11           Fullscreen
 WORKSPACES
 Super+1-9           Workspace 1-9
 Super+Shift+1-9     Move Window to WS
-Super+Ctrl+Arrow    Prev/Next WS
-Super+Shift+Arrow   Move Win Prev/Next
+Super+Ctrl+Up/Down  Prev/Next WS (this monitor)
+Super+Shift+Up      Move Win to New WS (this monitor)
+Super+Shift+Down    Move Win to Prev WS (this monitor)
 
-DISPLAYS
+MONITORS
+Super+Ctrl+Left/Right  Focus Prev/Next Monitor
+Super+Shift+Left/Right Move Win to Prev/Next Monitor
 Ctrl+Super+1        Toggle Display 1
 Ctrl+Super+2        Toggle Display 2
 Ctrl+Super+3        Toggle Display 3
