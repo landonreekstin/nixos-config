@@ -322,6 +322,11 @@
   # PCIe bus stall that makes the wired NIC (r8169/enp8s0) temporarily unreachable too.
   # Gaming-pc is a desktop with wired Ethernet — Wi-Fi is not needed.
   boot.blacklistedKernelModules = [ "rtw89_8852ce" "rtw89_8852c" "rtw89pci" "rtw89core" ];
+  environment.systemPackages = [
+    (pkgs.writeShellScriptBin "wifi-enable" ''
+      exec sudo modprobe rtw89_8852ce
+    '')
+  ];
 
   # Enable TCP MTU probing / blackhole detection.
   # WireGuard tunnel MTU (~1420) is smaller than standard Ethernet (1500). If a packet
