@@ -76,7 +76,7 @@ in
   imports = [
     # Import scripts
     ../scripts/set-wayvnc-output.nix
-    ../scripts/keybind-help.nix
+    ../scripts/hyprland-keys.nix
     ../scripts/toggle-monitor.nix
   ];
 
@@ -294,7 +294,7 @@ in
           "$mainMod SHIFT, grave, movetoworkspace, special:ckb"
 
           # System & Utility Bindings
-          "$mainMod, slash, exec, hypr-keybinds"
+          "$mainMod, slash, exec, hyprland-keys"
           "$mainMod, ESCAPE, exec, swaylock"
           "$mainMod, BackSpace, exec, wlogout"
           "$mainMod, V, exec, ${pkgs.cliphist}/bin/cliphist list | ${pkgs.rofi}/bin/rofi -dmenu -p 'CLIPBOARD' | ${pkgs.cliphist}/bin/cliphist decode | ${pkgs.wl-clipboard}/bin/wl-copy"
@@ -334,10 +334,17 @@ in
           "$mainMod, mouse:273, resizewindow"
         ];
 
-        # Window rules (example, uncomment and populate as needed)
-        # windowrulev2 = [
-        #   "float,class:^(kitty)$,title:^(kitty)$"
-        # ];
+        # Window rules
+        windowrulev2 = [
+          # hyprland-keys overlay: float, cover full screen, stay on top
+          "float,        class:^(land.lando.hyprland-keys)$"
+          "center,       class:^(land.lando.hyprland-keys)$"
+          "size 1440 820,class:^(land.lando.hyprland-keys)$"
+          "pin,          class:^(land.lando.hyprland-keys)$"
+          "noborder,     class:^(land.lando.hyprland-keys)$"
+          "noshadow,     class:^(land.lando.hyprland-keys)$"
+          "stayfocused,  class:^(land.lando.hyprland-keys)$"
+        ];
       }; # End of wayland.windowManager.hyprland.settings
     }; # End of wayland.windowManager.hyprland
 
