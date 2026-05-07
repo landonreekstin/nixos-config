@@ -8,7 +8,12 @@ let
     version = "0.1.0";
     format = "pyproject";
 
-    src = /home/lando/hyprland-keys;
+    src = pkgs.fetchFromGitHub {
+      owner = "landonreekstin";
+      repo  = "hyprland-keys";
+      rev   = "0339724412f00d07ac4b1c309b8809c6adeec5f0";
+      hash  = "sha256-Q7qGfiRLMMkS2dN0Tq2UvuhhMo7rdfet8oS1DWIgH30=";
+    };
 
     nativeBuildInputs = [
       pkgs.wrapGAppsHook4
