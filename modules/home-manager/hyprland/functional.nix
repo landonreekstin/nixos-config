@@ -52,6 +52,16 @@ let
     "windowrulev2 = workspace special:ckb silent, class:^(${app.windowClass})$\n"
   ) customConfig.desktop.hyprland.utilityApps;
 
+  # Empty submap activated while hyprland-keys is open.
+  # Prevents all Hyprland keybinds from firing so the user can explore
+  # binds safely. The app activates/deactivates it via hyprctl IPC.
+  # Emergency fallback bind: Escape resets + kills a stale process.
+  hyprlandKeysSubmap = ''
+    submap = hyprland-keys
+    bind = , escape, exec, hyprctl dispatch submap reset && pkill -f hyprland-keys
+    submap = reset
+  '';
+
   # Get the wayvnc target monitor description
   wayvncTargetMonitor =
     if customConfig.desktop.wayvnc.enable && customConfig.desktop.wayvnc.targetMonitor != null
@@ -104,7 +114,7 @@ in
 
       systemd.enable = false;
 
-      extraConfig = autostartWindowRules + utilityWindowRules;
+      extraConfig = autostartWindowRules + utilityWindowRules + hyprlandKeysSubmap;
 
       settings = {
         # Variables for tools and modifiers
