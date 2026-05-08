@@ -29,6 +29,8 @@ let
     ${pkgs.sox}/bin/sox -n -r 48000 -c 2 -b 16 $out trim 0 0.1
   '';
 
+  launcherEnabled = customConfig.desktop.hyprland.launcher.enable;
+
   # Filter autostart entries for Hyprland and build exec-once commands
   hyprlandAutostart = lib.filter (app:
     app.desktops == [] || lib.elem "hyprland" app.desktops
@@ -150,8 +152,8 @@ in
           ++ [
             # Import Wayland session vars into systemd/dbus so user services can use them
             "dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP"
-            # Launch waybar directly - it handles array configs natively
-            "sleep 1 && ${pkgs.waybar}/bin/waybar > /tmp/waybar-start.log 2>&1 &"
+            # Launch waybar via wrapper — splits main/launcher into separate processes
+            "sleep 1 && $HOME/.local/bin/waybar-start > /tmp/waybar-start.log 2>&1"
             # Re-apply persisted monitor on/off state (runs after waybar so it can restart cleanly)
             "sleep 2 && restore-monitors"
             # Initialize WirePlumber mixer by playing silent audio, then refresh waybar.
@@ -336,7 +338,11 @@ in
             configStr = generateMonitorConfig mon;
           in
           "$ctrlMod $mainMod, ${toString i}, exec, toggle-monitor \"${monId}\" \"${configStr}\""
-        ) customConfig.desktop.monitors);
+        ) customConfig.desktop.monitors)
+        ++ lib.optionals launcherEnabled [
+          # Toggle bottom launchbar on/off, state persists across reboots
+          "$ctrlMod $mainMod, B, exec, $HOME/.local/bin/toggle-launchbar"
+        ];
 
         # Mouse bindings
         bindm = [
@@ -373,29 +379,76 @@ in
     home.file.".local/bin/waybar-start" = {
       text = ''
         #!/usr/bin/env bash
-        # Convert home-manager's array config to object format for waybar
+        # Launch waybar, splitting launcherBar into a separate process so it can be
+        # toggled independently with toggle-launchbar (SUPER+CTRL+B).
 
         CONFIG_SOURCE="$HOME/.config/waybar/config"
-        CONFIG_TEMP="/tmp/waybar-config.json"
+        STYLE="$HOME/.config/waybar/style.css"
+        MAIN_CONFIG="/tmp/waybar-main-config.json"
+        LAUNCHER_CONFIG="/tmp/waybar-launcher-config.json"
+        STATE_FILE="$HOME/.local/state/hypr/launchbar-hidden"
 
-        # Check if config is an array
-        if ${pkgs.jq}/bin/jq -e 'type == "array"' "$CONFIG_SOURCE" > /dev/null 2>&1; then
-          # Get array length
-          ARRAY_LENGTH=$(${pkgs.jq}/bin/jq 'length' "$CONFIG_SOURCE")
+        if ${pkgs.jq}/bin/jq -e 'type == "object" and has("launcherBar")' "$CONFIG_SOURCE" > /dev/null 2>&1; then
+          # Object format — extract each bar as a flat config (not wrapped in a named key;
+          # waybar only uses multi-bar format when given 2+ top-level keys)
+          ${pkgs.jq}/bin/jq '.mainBar' "$CONFIG_SOURCE" > "$MAIN_CONFIG"
+          ${pkgs.jq}/bin/jq '.launcherBar' "$CONFIG_SOURCE" > "$LAUNCHER_CONFIG"
 
-          if [ "$ARRAY_LENGTH" -gt 1 ]; then
-            # Multiple bars - convert to named object format
-            # Assuming first element is launcherBar, second is mainBar
-            ${pkgs.jq}/bin/jq '{launcherBar: .[0], mainBar: .[1]}' "$CONFIG_SOURCE" > "$CONFIG_TEMP"
-          else
-            # Single bar - extract first element
-            ${pkgs.jq}/bin/jq '.[0]' "$CONFIG_SOURCE" > "$CONFIG_TEMP"
+          # Start launcher bar only if not hidden
+          if [ ! -f "$STATE_FILE" ]; then
+            ${pkgs.waybar}/bin/waybar --config "$LAUNCHER_CONFIG" --style "$STYLE" &
           fi
 
-          exec ${pkgs.waybar}/bin/waybar --config "$CONFIG_TEMP" "$@"
+          # Start main bar (exec replaces this shell — keeps process alive for logging)
+          exec ${pkgs.waybar}/bin/waybar --config "$MAIN_CONFIG" --style "$STYLE"
+
+        elif ${pkgs.jq}/bin/jq -e 'type == "array"' "$CONFIG_SOURCE" > /dev/null 2>&1; then
+          # Array format (home-manager default) — extract each element as a flat config
+          ARRAY_LENGTH=$(${pkgs.jq}/bin/jq 'length' "$CONFIG_SOURCE")
+          if [ "$ARRAY_LENGTH" -gt 1 ]; then
+            # .[0] = launcherBar, .[1] = mainBar (order from HM config generation)
+            ${pkgs.jq}/bin/jq '.[0]' "$CONFIG_SOURCE" > "$LAUNCHER_CONFIG"
+            ${pkgs.jq}/bin/jq '.[1]' "$CONFIG_SOURCE" > "$MAIN_CONFIG"
+            if [ ! -f "$STATE_FILE" ]; then
+              ${pkgs.waybar}/bin/waybar --config "$LAUNCHER_CONFIG" --style "$STYLE" &
+            fi
+            exec ${pkgs.waybar}/bin/waybar --config "$MAIN_CONFIG" --style "$STYLE"
+          else
+            ${pkgs.jq}/bin/jq '.[0]' "$CONFIG_SOURCE" > "$MAIN_CONFIG"
+            exec ${pkgs.waybar}/bin/waybar --config "$MAIN_CONFIG" --style "$STYLE"
+          fi
+
         else
-          # Use config as-is
+          # Single bar object — use as-is
           exec ${pkgs.waybar}/bin/waybar "$@"
+        fi
+      '';
+      executable = true;
+    };
+
+    home.file.".local/bin/toggle-launchbar" = {
+      text = ''
+        #!/usr/bin/env bash
+        # Toggle the bottom launchbar on/off, persisting state across reboots.
+        # State: ~/.local/state/hypr/launchbar-hidden — presence means hidden.
+
+        STATE_FILE="$HOME/.local/state/hypr/launchbar-hidden"
+        LAUNCHER_CONFIG="/tmp/waybar-launcher-config.json"
+        STYLE="$HOME/.config/waybar/style.css"
+
+        mkdir -p "$(dirname "$STATE_FILE")"
+
+        if [ -f "$STATE_FILE" ]; then
+          # Currently hidden — show it
+          rm "$STATE_FILE"
+          ${pkgs.waybar}/bin/waybar --config "$LAUNCHER_CONFIG" --style "$STYLE" &
+          disown
+          ${pkgs.libnotify}/bin/notify-send -t 1500 -i desktop "Launchbar" "Panel ONLINE"
+        else
+          # Currently visible — hide it
+          touch "$STATE_FILE"
+          pkill -f "waybar --config $LAUNCHER_CONFIG"
+          ${pkgs.libnotify}/bin/notify-send -t 1500 -i desktop "Launchbar" "Panel OFFLINE"
         fi
       '';
       executable = true;
