@@ -246,6 +246,7 @@
         #"claude-code"
         "gurk-rs"
         "vlc"
+        "signal-desktop"
       ];
       homeManager = with pkgs; [
         jamesdsp
@@ -265,6 +266,7 @@
         zoom-us
         gurk-rs
         vlc
+        signal-desktop
       ];
       flatpak = {
         enable = true;
