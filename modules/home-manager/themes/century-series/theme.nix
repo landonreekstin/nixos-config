@@ -23,6 +23,8 @@ in {
     ./swaylock.nix
     ./btop.nix
     ./yazi.nix
+    ./zathura.nix
+    ./imv.nix
     ./wlogout.nix
     ./bash.nix
   ];

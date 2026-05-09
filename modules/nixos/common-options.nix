@@ -408,6 +408,18 @@ in
             description = "Command to launch alternative gaming platform (Super+Shift+G).";
             example = "\${pkgs.heroic}/bin/heroic";
           };
+          terminal = mkOption {
+            type = types.str;
+            default = "${pkgs.kitty}/bin/kitty";
+            description = "Command for the \$terminal Hyprland variable (Super+Return and other terminal binds).";
+            example = "\${pkgs.alacritty}/bin/alacritty";
+          };
+          fileManager = mkOption {
+            type = types.str;
+            default = "${pkgs.cosmic-files}/bin/cosmic-files";
+            description = "Command for the \$fileManager Hyprland variable (Super+Alt+F).";
+            example = "\${pkgs.nemo}/bin/nemo";
+          };
         };
         launcher = {
           enable = mkOption {
@@ -868,14 +880,107 @@ in
       };
     };
 
-    apps = { # Specific application configurations or preferences
-      defaultBrowser = mkOption {
-        type = types.nullOr types.str; # Store package name as string, e.g., "firefox"
-        default = "firefox";
-        description = "The package name of the default web browser (e.g., 'firefox', 'librewolf').";
+    apps = {
+      # Desktop file names for XDG MIME default application associations.
+      # These are used in xdg.mimeApps.defaultApplications (e.g. "librewolf.desktop").
+      # Separate from customConfig.desktop.hyprland.applications.* which hold launch commands for keybinds.
+      defaults = {
+        browser = mkOption {
+          type = types.str;
+          default = "librewolf.desktop";
+          description = ''
+            Desktop file name for the default web browser.
+            Used for text/html, x-scheme-handler/http, x-scheme-handler/https, etc.
+          '';
+          example = "firefox.desktop";
+        };
+        terminal = mkOption {
+          type = types.str;
+          default = "kitty.desktop";
+          description = "Desktop file name for the default terminal emulator.";
+          example = "alacritty.desktop";
+        };
+        fileManager = mkOption {
+          type = types.str;
+          default = "yazi-kitty.desktop";
+          description = ''
+            Desktop file name for the default file manager (inode/directory).
+            "yazi-kitty.desktop" is a custom TUI wrapper entry created by the xdg module.
+            Override with e.g. "org.cosmic.files.desktop" for a GUI file manager.
+          '';
+          example = "org.kde.dolphin.desktop";
+        };
+        textEditor = mkOption {
+          type = types.str;
+          default = "nvim-kitty.desktop";
+          description = ''
+            Desktop file name for the default plain-text editor (text/plain, etc.).
+            "nvim-kitty.desktop" is a custom TUI wrapper entry that launches neovim in kitty.
+            Override with e.g. "org.kde.kate.desktop" for a GUI editor.
+          '';
+          example = "org.kde.kate.desktop";
+        };
+        codeEditor = mkOption {
+          type = types.str;
+          default = "code.desktop";
+          description = "Desktop file name for the default code/IDE editor (source files, JSON, YAML, etc.).";
+          example = "nvim-kitty.desktop";
+        };
+        imageViewer = mkOption {
+          type = types.str;
+          default = "imv.desktop";
+          description = ''
+            Desktop file name for the default image viewer.
+            imv is a lightweight, keyboard-driven Wayland image viewer.
+          '';
+          example = "org.gnome.eog.desktop";
+        };
+        videoPlayer = mkOption {
+          type = types.str;
+          default = "mpv.desktop";
+          description = "Desktop file name for the default video player.";
+          example = "vlc.desktop";
+        };
+        audioPlayer = mkOption {
+          type = types.str;
+          default = "mpv.desktop";
+          description = "Desktop file name for the default audio player.";
+          example = "vlc.desktop";
+        };
+        pdfReader = mkOption {
+          type = types.str;
+          default = "org.pwmt.zathura.desktop";
+          description = ''
+            Desktop file name for the default PDF reader.
+            zathura is a keyboard-driven, vim-like document viewer.
+          '';
+          example = "okular.desktop";
+        };
+        archiveManager = mkOption {
+          type = types.str;
+          default = "org.gnome.FileRoller.desktop";
+          description = ''
+            Desktop file name for the default archive manager.
+            KDE hosts may prefer "ark.desktop".
+          '';
+          example = "ark.desktop";
+        };
+        emailClient = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = ''
+            Desktop file name for the default email client.
+            null means no mailto MIME association is registered.
+          '';
+          example = "thunderbird.desktop";
+        };
+        torrentClient = mkOption {
+          type = types.str;
+          default = "org.qbittorrent.qBittorrent.desktop";
+          description = "Desktop file name for the default torrent client (x-scheme-handler/magnet, application/x-bittorrent).";
+          example = "transmission-gtk.desktop";
+        };
       };
-      # You could add more app-specific toggles or settings here, e.g.:
-      # terminalEmulator = mkOption { type = types.enum ["kitty" "alacritty" "foot"]; default = "kitty"; };
     };
 
     # -------------------------------------------------------------------------- #

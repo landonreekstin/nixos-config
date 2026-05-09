@@ -77,9 +77,7 @@
       flatpak.enable = true;
     };
 
-    apps = {
-      defaultBrowser = "firefox";
-    };
+    apps.defaults.browser = "firefox.desktop";
 
     profiles = {
       gaming.enable = false;

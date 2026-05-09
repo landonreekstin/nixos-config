@@ -123,8 +123,8 @@ in
         "$mainMod" = "SUPER";
         "$altMod" = "ALT";
         "$ctrlMod" = "CONTROL";
-        "$terminal" = "${pkgs.kitty}/bin/kitty"; # Ensure kitty is in home.packages or systemPackages
-        "$fileManager" = "${pkgs.cosmic-files}/bin/cosmic-files"; # Ensure cosmic-files is available
+        "$terminal" = lib.mkDefault customConfig.desktop.hyprland.applications.terminal;
+        "$fileManager" = lib.mkDefault customConfig.desktop.hyprland.applications.fileManager;
         "$menu" = "${pkgs.rofi}/bin/rofi -show drun";
 
         # Monitor configuration from customConfig
@@ -493,6 +493,13 @@ in
       wl-clipboard # For cliphist/rofi integration
       playerctl
       pulseaudio # For pactl
+
+      # TUI default application packages (for XDG MIME defaults in xdg.nix)
+      neovim      # text editor — nvim-kitty.desktop wrapper
+      mpv         # video and audio player
+      imv         # keyboard-driven image viewer
+      zathura     # vim-like PDF reader
+      file-roller # archive manager
 
     # Only add plain librewolf if the homeManager.librewolf module is not managing it;
     # that module installs its own patched derivation and having both causes a policies.json conflict.

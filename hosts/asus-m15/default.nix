@@ -189,9 +189,7 @@
       };
     };
 
-    apps = {
-      defaultBrowser = "chromium"; # Placeholder, no effect yet
-    };
+    apps.defaults.browser = "chromium.desktop";
 
     profiles = {
       gaming.enable = true;

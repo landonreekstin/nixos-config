@@ -170,9 +170,7 @@
       };
     };
 
-    apps = {
-      defaultBrowser = "chromium";
-    };
+    apps.defaults.browser = "chromium.desktop";
 
     profiles = {
       gaming.enable = true;

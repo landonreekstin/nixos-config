@@ -274,10 +274,6 @@
       };
     };
 
-    apps = {
-      defaultBrowser = "librewolf";
-    };
-
     profiles = {
       gaming.enable = true;
       development = {

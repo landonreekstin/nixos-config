@@ -136,9 +136,7 @@
       ];
     };
 
-    apps = {
-      defaultBrowser = "none";
-    };
+
 
     profiles = {
       gaming.enable = false;
