@@ -15,6 +15,7 @@ keys:
   - &asus-m15 age1PLACEHOLDER_asus-m15
   - &atl-mini-pc age1PLACEHOLDER_atl-mini-pc
   - &optiplex-nas age1zngsf2yrpft0uhcs3wrac3raqw2ykwna066z5wvecamaczr77yzsfe8k6n
+  - &t620 age1PLACEHOLDER_t620
 
 creation_rules:
   # Host-specific secrets: readable by that host + admin
@@ -49,6 +50,10 @@ creation_rules:
   - path_regex: secrets/optiplex-nas\.yaml$
     key_groups:
       - age: [*optiplex-nas, *lando]
+
+  - path_regex: secrets/t620\.yaml$
+    key_groups:
+      - age: [*t620, *lando]
 
   # Common secrets readable by all hosts + admin
   - path_regex: secrets/common\.yaml$
