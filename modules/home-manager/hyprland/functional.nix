@@ -166,12 +166,22 @@ in
           ]
         );
 
+        # XWayland fractional scaling fix — render at native pixels, not logical resolution.
+        # Without this, XWayland apps (Steam, games) render at the scaled logical size
+        # and get upscaled by Hyprland, causing blurry UI and wrong game resolutions.
+        xwayland = {
+          force_zero_scaling = true;
+        };
+
         # Environment variables
         env = [
           "XCURSOR_SIZE,24"
           "QT_QPA_PLATFORMTHEME,qt6ct"
           "LIBVA_DRIVER_NAME,nvidia"
           "__GLX_VENDOR_LIBRARY_NAME,nvidia"
+          # Tell GTK/Steam to not apply their own scaling on top of XWayland's native pixels
+          "GDK_SCALE,1"
+          "STEAM_FORCE_DESKTOPUI_SCALING,1"
         ];
 
         # Input settings
@@ -360,6 +370,12 @@ in
           "noborder,     class:^(land.lando.hyprland-keys)$"
           "noshadow,     class:^(land.lando.hyprland-keys)$"
           "stayfocused,  class:^(land.lando.hyprland-keys)$"
+
+          # Steam games: force real fullscreen and enable immediate (raw) input.
+          # "immediate" bypasses Hyprland's input processing for lower latency and
+          # fixes mouse capture issues in XWayland games.
+          "fullscreen,   class:^(steam_app_.*)$"
+          "immediate,    class:^(steam_app_.*)$"
         ];
       }; # End of wayland.windowManager.hyprland.settings
     }; # End of wayland.windowManager.hyprland
