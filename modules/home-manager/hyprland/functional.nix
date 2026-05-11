@@ -29,6 +29,26 @@ let
     ${pkgs.sox}/bin/sox -n -r 48000 -c 2 -b 16 $out trim 0 0.1
   '';
 
+  # Script to move the active window to a new workspace on the same monitor.
+  # When Hyprland creates a new workspace via movetoworkspace, it may assign it
+  # to the TV (which has no workspaces) rather than the current monitor.
+  # Fix: move silently, then only relocate to the correct monitor if it drifted.
+  moveToNewWsOnMonitor = pkgs.writeShellScriptBin "move-to-new-ws-on-monitor" ''
+    monitor=$(${pkgs.hyprland}/bin/hyprctl -j activeworkspace | ${pkgs.jq}/bin/jq -r '.monitor')
+    last_ws=$(${pkgs.hyprland}/bin/hyprctl -j workspaces | ${pkgs.jq}/bin/jq -r \
+      --arg mon "$monitor" \
+      '[.[] | select(.monitor == $mon) | .id] | sort | last // 0')
+    next_ws=$((last_ws + 1))
+    ${pkgs.hyprland}/bin/hyprctl dispatch movetoworkspacesilent "$next_ws"
+    actual_monitor=$(${pkgs.hyprland}/bin/hyprctl -j workspaces | ${pkgs.jq}/bin/jq -r \
+      --argjson ws "$next_ws" \
+      '.[] | select(.id == $ws) | .monitor')
+    if [ "$actual_monitor" != "$monitor" ]; then
+      ${pkgs.hyprland}/bin/hyprctl dispatch moveworkspacetomonitor "$next_ws" "$monitor"
+    fi
+    ${pkgs.hyprland}/bin/hyprctl dispatch workspace "$next_ws"
+  '';
+
   launcherEnabled = customConfig.desktop.hyprland.launcher.enable;
 
   # Filter autostart entries for Hyprland and build exec-once commands
@@ -307,8 +327,8 @@ in
           # Move window to adjacent monitor
           "$mainMod SHIFT, right, movewindow, mon:+1"
           "$mainMod SHIFT, left, movewindow, mon:-1"
-          # Move window to new empty workspace on same monitor / prev workspace on same monitor
-          "$mainMod SHIFT, up, movetoworkspace, emptymm"
+          # Move window to new workspace on same monitor / prev workspace on same monitor
+          "$mainMod SHIFT, up, exec, ${moveToNewWsOnMonitor}/bin/move-to-new-ws-on-monitor"
           "$mainMod SHIFT, down, movetoworkspace, m-1"
 
           # Special workspace toggle (hidden utility apps like ckb-next)
@@ -474,6 +494,7 @@ in
     # Home Manager Packages for Functional Elements
     # -------------------------------------------------------------------------- #
     home.packages = with pkgs; [
+      moveToNewWsOnMonitor
       # Terminals, Launchers, File Managers (if not specified elsewhere and used in binds)
       kitty
       cosmic-files # if you decide to use this
