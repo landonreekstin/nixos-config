@@ -72,6 +72,26 @@ let
     }
   '';
 
+  cppPropertiesJson = ''
+    {
+      "configurations": [
+        {
+          "name": "NixOS",
+          "includePath": [
+            "''${workspaceFolder}/**",
+            "''${default}"
+          ],
+          "defines": [],
+          "compilerPath": "/run/current-system/sw/bin/g++",
+          "cStandard": "c17",
+          "cppStandard": "c++17",
+          "intelliSenseMode": "linux-gcc-x64"
+        }
+      ],
+      "version": 4
+    }
+  '';
+
   writeIfChanged = path: content: ''
     content=${lib.escapeShellArg content}
     if [ ! -f "${path}" ] || [ "$(cat "${path}")" != "$content" ]; then
@@ -89,6 +109,7 @@ in
       ${writeIfChanged "${dir}/Makefile" makefileContent}
       ${writeIfChanged "${dir}/.vscode/tasks.json" tasksJson}
       ${writeIfChanged "${dir}/.vscode/launch.json" launchJson}
+      ${writeIfChanged "${dir}/.vscode/c_cpp_properties.json" cppPropertiesJson}
     '';
   };
 }
