@@ -1,5 +1,5 @@
 # ~/nixos-config/modules/home-manager/development/cpp-practice.nix
-{ lib, config, customConfig, ... }:
+{ lib, config, pkgs, customConfig, ... }:
 
 let
   cfg = customConfig.profiles.development.cpp-practice;
@@ -90,5 +90,11 @@ in
       ${writeIfChanged "${dir}/.vscode/tasks.json" tasksJson}
       ${writeIfChanged "${dir}/.vscode/launch.json" launchJson}
     '';
+
+    # direnv extension: makes VSCode inherit the devShell environment so
+    # tasks (make) and the debugger (gdb) can find tools without hardcoded paths.
+    programs.vscode.profiles.default.extensions = with pkgs.vscode-extensions; [
+      mkhl.direnv
+    ];
   };
 }
