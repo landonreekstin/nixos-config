@@ -38,7 +38,7 @@ let
         {
           "label": "Build Active File",
           "type": "shell",
-          "command": "make",
+          "command": "direnv exec ''${workspaceFolder} make",
           "args": ["FILE=''${fileBasenameNoExtension}"],
           "group": { "kind": "build", "isDefault": true },
           "presentation": { "reveal": "always", "panel": "shared", "clear": true },
@@ -62,7 +62,7 @@ let
           "cwd": "''${workspaceFolder}",
           "externalConsole": false,
           "MIMode": "gdb",
-          "miDebuggerPath": "gdb",
+          "miDebuggerPath": "''${workspaceFolder}/.vscode/gdb-wrapper.sh",
           "preLaunchTask": "Build Active File",
           "setupCommands": [
             { "text": "-enable-pretty-printing", "ignoreFailures": true }
@@ -70,6 +70,11 @@ let
         }
       ]
     }
+  '';
+
+  gdbWrapperScript = ''
+    #!/bin/bash
+    exec direnv exec "$(dirname "$0")/.." gdb "$@"
   '';
 
   writeIfChanged = path: content: ''
@@ -89,6 +94,8 @@ in
       ${writeIfChanged "${dir}/Makefile" makefileContent}
       ${writeIfChanged "${dir}/.vscode/tasks.json" tasksJson}
       ${writeIfChanged "${dir}/.vscode/launch.json" launchJson}
+      ${writeIfChanged "${dir}/.vscode/gdb-wrapper.sh" gdbWrapperScript}
+      chmod +x "${dir}/.vscode/gdb-wrapper.sh"
     '';
 
     # direnv extension: makes VSCode inherit the devShell environment so
