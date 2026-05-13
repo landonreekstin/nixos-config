@@ -49,7 +49,7 @@ in
           "version": 4
         }
         CPPEOF
-        code .
+        env -u KITTY_WINDOW_ID code .
       '';
     };
   };
