@@ -1,5 +1,5 @@
 # ~/nixos-config/modules/home-manager/development/cpp-practice.nix
-{ lib, config, pkgs, customConfig, ... }:
+{ lib, config, customConfig, ... }:
 
 let
   cfg = customConfig.profiles.development.cpp-practice;
@@ -38,8 +38,8 @@ let
         {
           "label": "Build Active File",
           "type": "shell",
-          "command": "direnv exec ''${workspaceFolder} make",
-          "args": ["FILE=''${fileBasenameNoExtension}"],
+          "command": "make",
+          "args": ["FILE=''${relativeFileDirname}/''${fileBasenameNoExtension}"],
           "group": { "kind": "build", "isDefault": true },
           "presentation": { "reveal": "always", "panel": "shared", "clear": true },
           "problemMatcher": "$gcc"
@@ -56,13 +56,13 @@ let
           "name": "Build and Debug Active File",
           "type": "cppdbg",
           "request": "launch",
-          "program": "''${workspaceFolder}/''${fileBasenameNoExtension}",
+          "program": "''${workspaceFolder}/''${relativeFileDirname}/''${fileBasenameNoExtension}",
           "args": [],
           "stopAtEntry": false,
           "cwd": "''${workspaceFolder}",
           "externalConsole": false,
           "MIMode": "gdb",
-          "miDebuggerPath": "''${workspaceFolder}/.vscode/gdb-wrapper.sh",
+          "miDebuggerPath": "gdb",
           "preLaunchTask": "Build Active File",
           "setupCommands": [
             { "text": "-enable-pretty-printing", "ignoreFailures": true }
@@ -70,11 +70,6 @@ let
         }
       ]
     }
-  '';
-
-  gdbWrapperScript = ''
-    #!/bin/bash
-    exec direnv exec "$(dirname "$0")/.." gdb "$@"
   '';
 
   writeIfChanged = path: content: ''
@@ -94,14 +89,6 @@ in
       ${writeIfChanged "${dir}/Makefile" makefileContent}
       ${writeIfChanged "${dir}/.vscode/tasks.json" tasksJson}
       ${writeIfChanged "${dir}/.vscode/launch.json" launchJson}
-      ${writeIfChanged "${dir}/.vscode/gdb-wrapper.sh" gdbWrapperScript}
-      chmod +x "${dir}/.vscode/gdb-wrapper.sh"
     '';
-
-    # direnv extension: makes VSCode inherit the devShell environment so
-    # tasks (make) and the debugger (gdb) can find tools without hardcoded paths.
-    programs.vscode.profiles.default.extensions = with pkgs.vscode-extensions; [
-      mkhl.direnv
-    ];
   };
 }
