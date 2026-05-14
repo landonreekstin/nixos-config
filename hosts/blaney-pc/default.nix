@@ -102,7 +102,7 @@
         plasmaOverride = true;
         kde = "windows7-alt";
         hyprland = "century-series";
-        wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
+        wallpaper = ../../assets/wallpapers/legorebridge.jpg;
         pinnedApps = [
           "applications:org.kde.konsole.desktop"
           "applications:systemsettings.desktop"
