@@ -60,13 +60,6 @@ in
         # When inside kitty, a theme may activate starship — skip manual PS1
         [ -n "$KITTY_WINDOW_ID" ] && return
 
-        # When VSCode launched this devShell, use a plain prompt —
-        # the \[...\] readline markers render as literal text in VSCode's terminal
-        if [ -n "$VSCODE_DEVSHELL" ]; then
-          PS1='\u@\h:\w\$ '
-          return
-        fi
-
         if [ -n "$DEV_ENV_NAME" ]; then
           case "$DEV_ENV_NAME" in
             kernel-dev)

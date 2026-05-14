@@ -72,15 +72,6 @@ let
     }
   '';
 
-  vscodeSettingsJson = ''
-    {
-      "terminal.integrated.shellIntegration.enabled": false,
-      "terminal.integrated.env.linux": {
-        "VSCODE_DEVSHELL": "1"
-      }
-    }
-  '';
-
   writeIfChanged = path: content: ''
     content=${lib.escapeShellArg content}
     if [ ! -f "${path}" ] || [ "$(cat "${path}")" != "$content" ]; then
@@ -98,7 +89,6 @@ in
       ${writeIfChanged "${dir}/Makefile" makefileContent}
       ${writeIfChanged "${dir}/.vscode/tasks.json" tasksJson}
       ${writeIfChanged "${dir}/.vscode/launch.json" launchJson}
-      ${writeIfChanged "${dir}/.vscode/settings.json" vscodeSettingsJson}
     '';
   };
 }
