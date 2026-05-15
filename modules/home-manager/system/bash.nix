@@ -47,6 +47,9 @@ in
       ccn() {
         cd "$HOME/nixos-config" && sudo claude
       }
+      ccnr() {
+        cd "$HOME/nixos-config" && sudo claude -r
+      }
     '';
 
     bashrcExtra = ''
