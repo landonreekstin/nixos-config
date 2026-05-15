@@ -21,5 +21,9 @@ in
         }
       ];
     };
+
+    systemd.services."wg-quick-${cfg.interfaceName}" = mkIf (!cfg.autoStart) {
+      wantedBy = mkForce [];
+    };
   };
 }

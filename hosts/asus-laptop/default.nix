@@ -181,6 +181,7 @@
       vscodeServer.enable = true;
       wireguard.client = {
         enable = true;
+        autoStart = false;
         address = "10.10.0.3/32";
         dns = [ "1.1.1.1" ];
         privateKeyFile = config.sops.secrets.wireguard-private-key.path;

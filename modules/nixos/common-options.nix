@@ -1309,6 +1309,12 @@ in
             description = "Enable the WireGuard client configuration.";
           };
 
+          autoStart = mkOption {
+            type = types.bool;
+            default = true;
+            description = "Whether to automatically start the WireGuard client on boot.";
+          };
+
           interfaceName = mkOption {
             type = types.str;
             default = "wg0";
