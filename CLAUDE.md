@@ -311,39 +311,46 @@ Note: Do NOT use `sudo chown -R $USER:users ~/nixos-config` — when running as 
 
 When running on the `blaney-pc` host, apply these additional guidelines:
 
-**User Context**: This machine is used by a user who is new to NixOS and this configuration system. They are interested in experimenting and learning through hands-on exploration.
+**User Context**: insideabush has no Linux or Nix technical knowledge. He is not able to make technical or architectural decisions.
+- If he asks to learn something, explain it simply and concisely — go deeper only if he probes
+- Otherwise: fix the issue or implement the feature — keep communication brief, clear, and directive
+- He CAN and SHOULD make UX/visual decisions: colors, layout, what something looks like, what a feature does from a user perspective
 
-**Communication Style**:
-- Provide clear explanations of what changes will do before making them
-- Use plain language when describing technical concepts
-- Offer context about why certain approaches are recommended
-- Be patient with questions that may seem basic
+**Decision Authority**:
+- **Claude decides autonomously**: module structure, NixOS options, which files to edit, how to architect changes, naming conventions — anything technical. Use repo precedent and best judgement; do not ask insideabush about these.
+- **insideabush decides**: visual appearance, user-facing behavior, feature scope and direction
+- **Bug fixes** → act immediately with minimal explanation; only ask insideabush if the problem is genuinely ambiguous
+- **Feature requests** → ask what he wants it to look/feel like to establish UX direction, then execute independently
 
-**Verification and Clarification**:
-- Ask clarifying questions when requests are ambiguous or could be interpreted multiple ways
-- Verify understanding of the user's intent before making significant changes
-- If the user describes a problem or system state that seems inconsistent, gently ask for more details rather than assuming
-- Double-check terminology - the user may use imprecise terms, so confirm what they mean
+**Autonomy — Do Everything Possible**:
+- Run `rebuild`, copy files, run commands — anything within Claude's capability that doesn't require physical user action
+- **Never ask insideabush to run a command Claude can run itself**
+- Do not ask for confirmation on technical choices; make them and briefly note what was done
+- Always `chown` and `rebuild` as part of your workflow; don't hand these off to insideabush
 
-**Git and Version Control**:
-- **Do not make git commits unless explicitly instructed** - the user may want to review changes first or have the repository owner handle commits
-- Explain what files were changed so the user can communicate this to others if needed
+**Communication**:
+- For features: ask about UX direction, then execute silently
+- For bugs: diagnose and fix; give insideabush clear "does this look right?" checkpoints
+- Give next steps as plain, one-sentence instructions (e.g. "Tell me if the wallpaper changed after it rebuilds")
+- Never use technical jargon without immediately explaining it in plain terms
 
-**Decision Making**:
-- For architectural or significant design decisions, explain the options and trade-offs rather than making unilateral choices
-- Prefer conservative, well-tested approaches over experimental ones
-- When in doubt, suggest the user consult with the repository owner for complex changes
-
-**Safety**:
-- Always use `nixos-rebuild test` first for significant changes, allowing the user to verify before switching permanently
-- Clearly warn about any changes that could affect system stability or boot
-- Keep changes focused and minimal to reduce the chance of issues
+**Branch Naming Convention (STRICT)**:
+- All branches for insideabush's work MUST use the prefix `blaney/`
+  - Examples: `blaney/feat-party-mode`, `blaney/fix-wifi-issue`
+- This prefix distinguishes insideabush's branches from lando's branches — do not deviate from it
+- When continuing prior work, reuse the existing `blaney/` branch if still relevant; check `git branch -a` first
 
 **Git Workflow (STRICT)**:
-- **Always create a feature branch** for any changes — never commit directly to `main`
-- **Always open a PR** via `gh pr create` after pushing the branch
-- **Never merge a PR** from this host or when the git user is `insideabush` — merging must be done by the repository owner (`landonreekstin`) on another machine
-- This applies regardless of how trivial the change seems
+- **NEVER push or commit directly to `main`** — always use a `blaney/` branch
+- **NEVER merge into any branch that does not start with `blaney/`** — this includes `main` and all branches created by lando or his Claude sessions
+- insideabush's Claude sessions CAN: create new `blaney/` branches, push to those branches, merge other existing branches INTO a `blaney/` branch
+- insideabush's Claude sessions CANNOT: push to `main`, push to any non-`blaney/` branch, merge a `blaney/` branch into a non-`blaney/` branch
+- When insideabush confirms a feature is working and acceptable: open a PR from the `blaney/` branch to `main` via `gh pr create`
+- **Never merge the PR** — lando (`landonreekstin`) merges all PRs from blaney-pc
+
+**Safety**:
+- Always use `nixos-rebuild test` before `rebuild` for significant changes, so insideabush can verify before permanently switching
+- Keep changes focused and minimal
 
 ## Task Workflow (TASKS.md)
 
