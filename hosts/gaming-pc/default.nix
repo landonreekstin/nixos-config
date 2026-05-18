@@ -149,7 +149,7 @@
           ttyCols = 320;
           nativeFbResolution = { width = 2560; height = 1440; };
         };
-        # sddm config preserved below for easy rollback:
+        # sddm config preserved for reference:
         # type = "sddm";
         # sddm = {
         #   theme = "sddm-astronaut";
@@ -304,6 +304,13 @@
   };
 
   # === Additional nixos configuration for this host ===
+
+  # Pin kernel to 6.12 LTS instead of linuxPackages_latest from unstable.
+  # NVIDIA proprietary drivers frequently lag behind new kernel releases — a flake
+  # update can silently bump the kernel to a version with no working nvidia.ko build.
+  # 6.12 is an LTS kernel with long-term NVIDIA driver support.
+  boot.kernelPackages = pkgs.linuxPackages_6_12;
+
   programs.zoom-us.enable = true;
 
   # Enable the Samba client-side name resolution daemon (nmbd).

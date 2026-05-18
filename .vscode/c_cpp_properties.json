@@ -1,0 +1,14 @@
+{
+  "configurations": [
+    {
+      "name": "NixOS",
+      "includePath": ["${workspaceFolder}/**", "/nix/store/fciancx17msgrnv3rcfp4n2dkh3smawk-gnumake-4.4.1/include","/nix/store/08qsc0a12aqflsf5nk0fd2819hqpfqgv-gdb-16.3/include","/nix/store/7h9sxhfdbkqz63iw31n0jfdg4rxpbdgl-compiler-rt-libc-21.1.7-dev/include","/nix/store/06409a3d2d3b1113zdk9rm5a3ns4rizz-gcc-14.3.0/include/c++/14.3.0/","/nix/store/06409a3d2d3b1113zdk9rm5a3ns4rizz-gcc-14.3.0/include/c++/14.3.0//x86_64-unknown-linux-gnu","/nix/store/06409a3d2d3b1113zdk9rm5a3ns4rizz-gcc-14.3.0/include/c++/14.3.0//backward","/nix/store/06409a3d2d3b1113zdk9rm5a3ns4rizz-gcc-14.3.0/lib/gcc/x86_64-unknown-linux-gnu/14.3.0/include","/nix/store/06409a3d2d3b1113zdk9rm5a3ns4rizz-gcc-14.3.0/include","/nix/store/06409a3d2d3b1113zdk9rm5a3ns4rizz-gcc-14.3.0/lib/gcc/x86_64-unknown-linux-gnu/14.3.0/include-fixed","/nix/store/903kx9pwhyzswmx1caf7rc8idram9vdq-glibc-2.40-218-dev/include"],
+      "defines": [],
+      "compilerPath": "/nix/store/kilyfvfmh9x9rlaj47ph1916lbc1pnsr-gcc-wrapper-14.3.0/bin/g++",
+      "cStandard": "c17",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "linux-gcc-x64"
+    }
+  ],
+  "version": 4
+}
