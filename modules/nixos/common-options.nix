@@ -541,6 +541,18 @@ in
           ];
         };
       };
+      kde = {
+        terminalApp = mkOption {
+          type = types.str;
+          default = "org.kde.konsole";
+          description = ''
+            Desktop file ID of the terminal emulator to bind to Meta+Return in KDE.
+            Use the application ID without the .desktop extension
+            (e.g. "org.kde.konsole", "com.raggesilver.BlackBox").
+          '';
+          example = "com.raggesilver.BlackBox";
+        };
+      };
       displayManager = {
         enable = mkOption {
           type = types.bool;

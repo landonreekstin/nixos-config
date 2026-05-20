@@ -84,9 +84,7 @@ in {
     }];
     
     shortcuts.kwin = {
-      "MinimizeAll" = "Meta+D";
-      "Peek at Desktop" = [];
-      "Walk Through Windows Alternative" = "Meta+Tab";
+      "Peek at Desktop" = [];  # Disable Peek at Desktop — Aero theme uses MinimizeAll (Meta+D) instead
     };
     configFile = {
       "kwinrc"."TabBox" = {
