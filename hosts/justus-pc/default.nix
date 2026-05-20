@@ -102,6 +102,8 @@
 
 
 
+    apps.defaultSet = "kde";
+
     profiles = {
       gaming.enable = true;
     };

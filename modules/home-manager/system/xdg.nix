@@ -3,7 +3,7 @@
 
 let
   isDesktop = customConfig.desktop.enable;
-  d = customConfig.apps.defaults;
+  d = customConfig.apps.defaults.${customConfig.apps.defaultSet};
 in
 {
   # Configure XDG user directories (Desktop, Documents, etc.)

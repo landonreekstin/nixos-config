@@ -77,7 +77,10 @@
       flatpak.enable = true;
     };
 
-    apps.defaults.browser = "firefox.desktop";
+    apps = {
+      defaultSet = "kde";
+      defaults.kde.browser = "firefox.desktop";
+    };
 
     profiles = {
       gaming.enable = false;

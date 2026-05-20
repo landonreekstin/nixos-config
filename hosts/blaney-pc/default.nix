@@ -170,7 +170,10 @@
       };
     };
 
-    apps.defaults.browser = "chromium.desktop";
+    apps = {
+      defaultSet = "kde";
+      defaults.kde.browser = "chromium.desktop";
+    };
 
     profiles = {
       gaming.enable = true;
