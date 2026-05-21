@@ -31,7 +31,7 @@
     };
 
     bootloader = {
-      configurationLimit = 2;  # 1GB boot partition (after reinstall) - holds 2 generations comfortably
+      configurationLimit = 10;  # 2GB boot partition (after reinstall) - holds up to 10 generations
       plymouth = {
         enable = true;
         theme = "hexagon_hud";  # HUD-style boot splash matching Century Series
