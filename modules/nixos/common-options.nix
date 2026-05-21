@@ -1575,6 +1575,14 @@ in
           description = "Path to environment file with JELLYSEERR_API_KEY, RADARR_API_KEY, SONARR_API_KEY.";
         };
       };
+
+      nixCache = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable nix-serve to host a local Nix binary cache on port 5000.";
+        };
+      };
     };
 
     # -------------------------------------------------------------------------- #
