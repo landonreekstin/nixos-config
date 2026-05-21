@@ -178,6 +178,8 @@
       mullvad.enable = true;
       jellyseerr.enable = true;
       flaresolverr.enable = true;
+      nixCache.enable = true;
+
       mediaLinker = {
         enable = true;
         mediaUsers = [

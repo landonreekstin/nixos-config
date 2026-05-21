@@ -236,6 +236,36 @@
         kdePackages.kio-extras
         cifs-utils
         samba
+
+        # Build all host configs and push their store paths to the NAS binary cache.
+        # Run after a big nixpkgs update to warm the cache for all machines.
+        # Usage: cache-push-all
+        (writeShellScriptBin "cache-push-all" ''
+          set -euo pipefail
+          NAS="ssh://lando@192.168.1.76"
+          FLAKE="/home/lando/nixos-config"
+          HOSTS="gaming-pc optiplex blaney-pc justus-pc asus-laptop asus-m15 atl-mini-pc optiplex-nas"
+
+          for host in $HOSTS; do
+            echo "==> [$host] evaluating..."
+            drv=$(NIXPKGS_ALLOW_UNFREE=1 nix eval --impure --raw \
+              "$FLAKE#nixosConfigurations.$host.config.system.build.toplevel" 2>/dev/null) || {
+              echo "    SKIP: eval failed for $host"
+              continue
+            }
+            echo "==> [$host] building $drv"
+            nix build "$drv" --no-link || {
+              echo "    SKIP: build failed for $host"
+              continue
+            }
+            echo "==> [$host] pushing to NAS cache..."
+            nix copy --to "$NAS" "$drv"
+            echo "==> [$host] done"
+          done
+
+          echo ""
+          echo "cache-push-all complete."
+        '')
       ];
       unstable-override = [
         "obs-studio"
