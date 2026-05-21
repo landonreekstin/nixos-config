@@ -30,7 +30,7 @@
     };
 
     bootloader = {
-      configurationLimit = 2;  # 512MB boot partition - keep only 2 generations
+      configurationLimit = 1;  # 512MB boot partition - only 1 generation fits (initrd ~217MB)
       plymouth = {
         enable = true;
         theme = "hexagon_hud";  # HUD-style boot splash matching Century Series
