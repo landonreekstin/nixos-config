@@ -243,6 +243,11 @@
 
   };
 
+  # Disable sops secrets file validation during reinstall (secrets/optiplex.yaml
+  # is absent until post-install pushes the newly-encrypted file after reinstall).
+  # Remove this once the reinstall is complete and the secrets file exists again.
+  sops.validateSopsFiles = false;
+
   # Rotate console framebuffer for vertical native display (Ly login manager)
   # rotate:3 = 270° clockwise (90° counter-clockwise) to match physical orientation
   boot.kernelParams = [ "fbcon=rotate:3" ];
