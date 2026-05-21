@@ -74,6 +74,7 @@ in
           "Kill Window"                        = "Meta+Q";
           "Window Fullscreen"                  = "Meta+F11";
           "MinimizeAll"                        = "Meta+D";
+          "Show Desktop"                       = [];  # Clear default Meta+D peek — MinimizeAll owns Meta+D
 
           # Focus — vim-style + arrow-style (multi-binding via list)
           "Switch Window Left"                 = [ "Meta+H" "Ctrl+Left" ];
@@ -81,15 +82,25 @@ in
           "Switch Window Up"                   = [ "Meta+K" "Ctrl+Up" ];
           "Switch Window Right"                = [ "Meta+L" "Ctrl+Right" ];
 
-          # Monitor navigation (matches Ctrl+Super+Left/Right / Super+Shift+Left/Right)
+          # Monitor focus (matches Ctrl+Super+Left/Right in Hyprland)
+          # Clear conflicting KDE defaults (Switch One Desktop to Left/Right) that share these keys
           "Switch to Next Screen"              = "Meta+Ctrl+Right";
           "Switch to Previous Screen"          = "Meta+Ctrl+Left";
-          "Move Window to Next Screen"         = "Meta+Shift+Right";
-          "Move Window to Previous Screen"     = "Meta+Shift+Left";
+          "Switch One Desktop to the Right"    = [];
+          "Switch One Desktop to the Left"     = [];
 
-          # Workspace navigation (matches Ctrl+Super+Up/Down)
-          "Switch to Next Virtual Desktop"     = "Meta+Ctrl+Up";
-          "Switch to Previous Virtual Desktop" = "Meta+Ctrl+Down";
+          # Move window to adjacent monitor (matches Super+Shift+Left/Right)
+          # KDE action ID is "Window to Next/Previous Screen"
+          "Window to Next Screen"              = "Meta+Shift+Right";
+          "Window to Previous Screen"          = "Meta+Shift+Left";
+          # Clear stale aliases for the above from earlier builds
+          "Move Window to Next Screen"         = [];
+          "Move Window to Previous Screen"     = [];
+
+          # Workspace navigation (Meta+Ctrl+Up/Down) — KDE default "Switch One Desktop Up/Down" already owns these
+          # Clear stale alternate action names so no conflict occurs
+          "Switch to Next Virtual Desktop"     = [];
+          "Switch to Previous Virtual Desktop" = [];
 
           # Window task switcher (Alt+Tab style)
           "Walk Through Windows Alternative"   = "Meta+Tab";

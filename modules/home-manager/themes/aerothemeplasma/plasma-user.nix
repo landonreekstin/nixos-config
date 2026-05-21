@@ -83,9 +83,6 @@ in {
       ];
     }];
     
-    shortcuts.kwin = {
-      "Peek at Desktop" = [];  # Disable Peek at Desktop — Aero theme uses MinimizeAll (Meta+D) instead
-    };
     configFile = {
       "kwinrc"."TabBox" = {
         "LayoutName" = "thumbnail_seven";
