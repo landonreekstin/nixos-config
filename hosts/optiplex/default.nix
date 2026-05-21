@@ -5,7 +5,8 @@
   imports = [
     # Hardware-specific configuration for this host
     ./hardware-configuration.nix
-    
+    # Declarative disk partitioning layout (used by install-new-host.sh)
+    ./disko-config.nix
     # Top level nixos modules import. All other nixos modules and option definitions are nested.
     ../../modules/nixos/default.nix
   ];
@@ -30,7 +31,7 @@
     };
 
     bootloader = {
-      configurationLimit = 1;  # 512MB boot partition - only 1 generation fits (initrd ~217MB)
+      configurationLimit = 2;  # 1GB boot partition (after reinstall) - holds 2 generations comfortably
       plymouth = {
         enable = true;
         theme = "hexagon_hud";  # HUD-style boot splash matching Century Series

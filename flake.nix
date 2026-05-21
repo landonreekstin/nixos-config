@@ -93,6 +93,8 @@
           inputs.home-manager.nixosModules.default
           # NUR — required for firefox-addons (librewolf extensions)
           inputs.nur.modules.nixos.default
+          # Disko — declarative disk partitioning
+          inputs.disko.nixosModules.default
           # Set system architecture
           { nixpkgs.hostPlatform = "x86_64-linux"; }
         ];
