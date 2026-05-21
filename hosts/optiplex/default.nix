@@ -5,7 +5,8 @@
   imports = [
     # Hardware-specific configuration for this host
     ./hardware-configuration.nix
-    
+    # Declarative disk partitioning layout (used by install-new-host.sh)
+    ./disko-config.nix
     # Top level nixos modules import. All other nixos modules and option definitions are nested.
     ../../modules/nixos/default.nix
   ];
@@ -30,7 +31,7 @@
     };
 
     bootloader = {
-      configurationLimit = 2;  # 512MB boot partition - keep only 2 generations
+      configurationLimit = 10;  # 2GB boot partition (after reinstall) - holds up to 10 generations
       plymouth = {
         enable = true;
         theme = "hexagon_hud";  # HUD-style boot splash matching Century Series
@@ -241,6 +242,11 @@
     };
 
   };
+
+  # Disable sops secrets file validation during reinstall (secrets/optiplex.yaml
+  # is absent until post-install pushes the newly-encrypted file after reinstall).
+  # Remove this once the reinstall is complete and the secrets file exists again.
+  sops.validateSopsFiles = false;
 
   # Rotate console framebuffer for vertical native display (Ly login manager)
   # rotate:3 = 270° clockwise (90° counter-clockwise) to match physical orientation
