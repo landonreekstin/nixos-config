@@ -133,11 +133,28 @@ in
         "org.kde.spectacle" = {
           "RectangularRegionScreenshot" = "Meta+Shift+S";
         };
+      };
 
-        # Terminal launch (matches Super+Return — configurable per host via customConfig.desktop.kde.terminalApp)
-        "${kdeCfg.terminalApp}" = {
-          "_launch" = "Meta+Return";
-        };
+      # Meta+Return → terminal: re-register with kglobalacceld via D-Bus at each session start.
+      # kglobalacceld (Plasma 6) resets [services] entries on logout because they require
+      # runtime app registration. A startup script runs at every KDE login and restores it.
+      # Qt key code: Meta+Return = Qt::MetaModifier(268435456) | Qt::Key_Return(16777220) = 285212676
+      startup.startupScript."register-terminal-shortcut" = {
+        text = ''
+          sleep 2
+          dbus-send --session \
+            --dest=org.kde.kglobalaccel /kglobalaccel \
+            org.kde.KGlobalAccel.doRegister \
+            array:string:"${kdeCfg.terminalApp}.desktop","main","_launch","Launch Terminal" \
+            2>/dev/null || true
+          dbus-send --session \
+            --dest=org.kde.kglobalaccel /kglobalaccel \
+            org.kde.KGlobalAccel.setForeignShortcut \
+            array:string:"${kdeCfg.terminalApp}.desktop","main","_launch","Launch Terminal" \
+            array:int32:285212676 \
+            2>/dev/null || true
+        '';
+        runAlways = true;
       };
     };
   };
