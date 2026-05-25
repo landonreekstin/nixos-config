@@ -83,11 +83,6 @@ in {
       ];
     }];
     
-    shortcuts.kwin = {
-      "MinimizeAll" = "Meta+D";
-      "Peek at Desktop" = [];
-      "Walk Through Windows Alternative" = "Meta+Tab";
-    };
     configFile = {
       "kwinrc"."TabBox" = {
         "LayoutName" = "thumbnail_seven";
