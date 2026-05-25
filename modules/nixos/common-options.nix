@@ -901,7 +901,53 @@ in
           };
         };
       };
-      # You could add other profiles like 'development', 'server', 'htpc' here later
+      htpc = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable HTPC/living room console mode. Boots into Steam Big Picture (gamescope session) with controller-first input, CEC TV remote support, and virtual keyboard.";
+        };
+        autoLogin = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Auto-login directly into the gamescope Steam session on boot, bypassing the greeter.";
+          };
+        };
+        cec = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable HDMI-CEC support. Installs libcec so Steam Big Picture can receive TV remote input. Also enables the CEC TV power-on service if powerOnTv is true.";
+          };
+          powerOnTv = mkOption {
+            type = types.bool;
+            default = true;
+            description = "Send a CEC power-on command to the TV when the HTPC session starts.";
+          };
+          hdmiPort = mkOption {
+            type = types.int;
+            default = 1;
+            description = "HDMI port number (1-4) this device is connected to on the TV/AV receiver, used for CEC addressing.";
+            example = 2;
+          };
+        };
+        controllerWake = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable wakeup from suspend via USB game controller. Also requires BIOS USB wake support / ErP mode to be disabled.";
+          };
+        };
+        virtualKeyboard = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Install wvkbd on-screen keyboard for controller/remote text input without a physical keyboard.";
+          };
+        };
+      };
+      # You could add other profiles like 'development', 'server' here later
     };
 
     # -------------------------------------------------------------------------- #
