@@ -83,10 +83,8 @@ let
       echo $BASHPID > "$PID_FILE"
       for i in $(seq 1 $STEPS); do
         STEP=$(( A + (T - A) * i / STEPS ))
-        OLD_PIDS=$(pgrep -x hyprsunset 2>/dev/null || true)
+        pkill -9 -x hyprsunset 2>/dev/null || true
         ${pkgs.hyprsunset}/bin/hyprsunset -t "$STEP" &
-        sleep 0.05
-        [ -n "$OLD_PIDS" ] && echo "$OLD_PIDS" | xargs kill 2>/dev/null || true
         echo "$STEP" > "$ACTIVE_FILE"
         pkill -RTMIN+12 waybar 2>/dev/null || true
         [ "$i" -lt "$STEPS" ] && sleep "$INTERVAL"
@@ -131,10 +129,8 @@ let
       APPLY="''${TEMP}"
     fi
 
-    OLD_PIDS=$(pgrep -x hyprsunset 2>/dev/null || true)
+    pkill -9 -x hyprsunset 2>/dev/null || true
     ${pkgs.hyprsunset}/bin/hyprsunset -t "$APPLY" &
-    sleep 0.05
-    [ -n "$OLD_PIDS" ] && echo "$OLD_PIDS" | xargs kill 2>/dev/null || true
     echo "$APPLY" > "$ACTIVE_FILE"
     pkill -RTMIN+12 waybar 2>/dev/null || true
   '';
