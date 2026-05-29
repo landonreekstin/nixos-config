@@ -3,6 +3,7 @@
 { ... }: # No specific args needed here usually, they are passed to the individual modules
 {
   imports = [
+    ./nas-client.nix
     ./samba.nix
     ./jellyfin.nix
     ./media-setup.nix

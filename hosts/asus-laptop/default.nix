@@ -176,6 +176,8 @@
       development.kernel.enable = false;
     };
 
+    homelab.nasClient.enable = true;
+
     services = {
       ssh.enable = true;
       vscodeServer.enable = true;
