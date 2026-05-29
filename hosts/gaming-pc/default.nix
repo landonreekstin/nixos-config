@@ -331,6 +331,8 @@
       vscodeServer.enable = true;
     };
 
+    homelab.nasClient.enable = true;
+
   };
 
   # === Additional nixos configuration for this host ===

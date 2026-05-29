@@ -9,11 +9,15 @@ in
     # cifs-utils provides the mount.cifs helper required for CIFS fileSystems
     environment.systemPackages = [ pkgs.cifs-utils ];
 
+    sops.secrets.smb-credentials = {
+      sopsFile = ../../../secrets/common.yaml;
+    };
+
     fileSystems.${cfg.mountPoint} = {
       device = "//192.168.1.76/storage";
       fsType = "cifs";
       options = [
-        "credentials=${cfg.credentialsFile}"
+        "credentials=${config.sops.secrets.smb-credentials.path}"
         "uid=1000"
         "gid=100"
         "iocharset=utf8"

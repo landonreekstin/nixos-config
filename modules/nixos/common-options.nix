@@ -1460,7 +1460,8 @@ in
           description = ''
             Mount the homelab NAS (optiplex-nas, 192.168.1.76) storage share via
             CIFS. Works on LAN and over WireGuard full-tunnel VPN.
-            Requires a credentials file on the host (create manually, chmod 600):
+            Credentials are managed via SOPS: add a `smb-credentials` key to
+            secrets/common.yaml with the content:
               username=<samba-user>
               password=<samba-password>
           '';
@@ -1469,11 +1470,6 @@ in
           type = types.str;
           default = "/mnt/nas";
           description = "Local path where the NAS storage share will be mounted.";
-        };
-        credentialsFile = mkOption {
-          type = types.str;
-          default = "/etc/smb-credentials";
-          description = "Path to the Samba credentials file (username= / password= lines).";
         };
       };
       mediaSetup = {

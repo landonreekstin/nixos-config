@@ -50,16 +50,13 @@ creation_rules:
     key_groups:
       - age: [*optiplex-nas, *lando]
 
-  # Common secrets readable by all hosts + admin
+  # Common secrets readable by hosts with real age keys + admin
+  # Add placeholder hosts here once their keys are filled in, then run:
+  #   sops updatekeys secrets/common.yaml
   - path_regex: secrets/common\.yaml$
     key_groups:
       - age:
           - *lando
           - *asus-laptop
           - *gaming-pc
-          - *optiplex
-          - *blaney-pc
-          - *justus-pc
-          - *asus-m15
-          - *atl-mini-pc
           - *optiplex-nas
