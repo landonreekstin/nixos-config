@@ -51,7 +51,7 @@
     };
 
     hardware = {
-      unstable = true;
+      unstable = false; # Older hardware — use stable 6.12 LTS kernel + stable NVIDIA
       nvidia = {
         enable = true;
       };

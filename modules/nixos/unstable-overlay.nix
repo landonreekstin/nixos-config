@@ -48,9 +48,10 @@ in
 
     # This block is only active when the unstable hardware flag is true.
     (lib.mkIf cfg.hardware.unstable {
-      # mkDefault so individual hosts can pin to a specific kernel (e.g. LTS) without mkForce.
-      # NVIDIA drivers frequently lag behind linuxPackages_latest — pin the kernel in the host
-      # config when a new kernel breaks the NVIDIA build.
+      # mkDefault so individual hosts can pin to a specific kernel without mkForce.
+      # Only hosts with hardware.unstable = true reach this block; they get linuxPackages_latest
+      # from nixpkgs-unstable (see kernel overlay above). Older-hardware hosts should set
+      # hardware.unstable = false to stay on the stable channel's LTS kernel instead.
       boot.kernelPackages = lib.mkDefault pkgs.linuxPackages_latest;
       hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.${cfg.hardware.nvidia.package};
     })

@@ -138,7 +138,7 @@
     };
 
     hardware = {
-      unstable = true;
+      unstable = false; # Older hardware (GTX 1050) — use stable 6.12 LTS kernel + stable NVIDIA
       nvidia = {
         enable = true; # Set to true if Optiplex has an NVIDIA GPU needing proprietary drivers
         package = "stable"; # GTX 1050 requires 580.xx legacy driver (not supported in 590.xx+)
