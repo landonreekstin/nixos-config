@@ -12,6 +12,8 @@ let
   hasVpnClient = customConfig.services.wireguard.client.enable;
   hasWeather = customConfig.desktop.hyprland.weather.enable;
   hasHyprsunset = customConfig.homeManager.services.hyprsunset.enable;
+  hyprsunsetDayStart   = toString customConfig.homeManager.services.hyprsunset.dayStartHour;
+  hyprsunsetNightStart = toString customConfig.homeManager.services.hyprsunset.nightStartHour;
   hasCkbNext = customConfig.hardware.peripherals.ckb-next.enable;
   ckbScripts = import ../../themes/century-series/ckb-scripts.nix { inherit pkgs; };
   weatherLocation = customConfig.desktop.hyprland.weather.location;
@@ -189,7 +191,7 @@ let
     [ "$MODE" = "enabled" ] && MODE="auto"
 
     HOUR=$(date +%-H)
-    if [ "$HOUR" -ge 7 ] && [ "$HOUR" -lt 20 ]; then IS_DAY=1; else IS_DAY=0; fi
+    if [ "$HOUR" -ge ${hyprsunsetDayStart} ] && [ "$HOUR" -lt ${hyprsunsetNightStart} ]; then IS_DAY=1; else IS_DAY=0; fi
 
     temp_class() {
       T=$1
@@ -214,9 +216,10 @@ let
       CLASS="temp-day"
       TOOLTIP="Auto day (6500K active) — night preset: ''${TEMP}K — scroll to adjust — right-click for manual override"
     else
-      TEXT="''${TEMP}K"
-      CLASS="$(temp_class ''${TEMP})"
-      TOOLTIP="Auto night: ''${TEMP}K — scroll to adjust — click to disable — right-click for manual"
+      ACTIVE=$(cat "$HOME/.cache/hyprsunset-active-temp" 2>/dev/null || echo "''${TEMP}")
+      TEXT="''${ACTIVE}K"
+      CLASS="$(temp_class ''${ACTIVE})"
+      TOOLTIP="Auto night: ''${ACTIVE}K — preset: ''${TEMP}K — scroll to adjust — click to disable — right-click for manual"
     fi
 
     printf '{"text":"%s","class":"%s","tooltip":"%s"}' "$TEXT" "$CLASS" "$TOOLTIP"
@@ -252,14 +255,15 @@ let
     fi
 
     HOUR=$(date +%-H)
-    if [ "$HOUR" -ge 7 ] && [ "$HOUR" -lt 20 ]; then IS_DAY=1; else IS_DAY=0; fi
+    if [ "$HOUR" -ge ${hyprsunsetDayStart} ] && [ "$HOUR" -lt ${hyprsunsetNightStart} ]; then IS_DAY=1; else IS_DAY=0; fi
 
     # Apply immediately in manual mode, or in auto mode during nighttime.
     # In auto daytime, just save the preset — display stays at dayTemp.
     if [ "$MODE" = "manual" ] || { [ "$MODE" = "auto" ] && [ "$IS_DAY" = "0" ]; }; then
-      pkill -x hyprsunset 2>/dev/null || true
-      sleep 0.2
+      OLD_PIDS=$(pgrep -x hyprsunset 2>/dev/null || true)
       ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
+      sleep 0.05
+      [ -n "$OLD_PIDS" ] && echo "$OLD_PIDS" | xargs kill 2>/dev/null || true
       echo "''${TEMP}" > "$ACTIVE_FILE"
     fi
 
@@ -286,13 +290,12 @@ let
     fi
 
     HOUR=$(date +%-H)
-    if [ "$HOUR" -ge 7 ] && [ "$HOUR" -lt 20 ]; then IS_DAY=1; else IS_DAY=0; fi
+    if [ "$HOUR" -ge ${hyprsunsetDayStart} ] && [ "$HOUR" -lt ${hyprsunsetNightStart} ]; then IS_DAY=1; else IS_DAY=0; fi
 
     if [ "$MODE" = "disabled" ]; then
       # Enable in auto mode, apply correct time-of-day temp immediately
       echo "''${TEMP}:auto" > "$STATE_FILE"
-      pkill -x hyprsunset 2>/dev/null || true
-      sleep 0.2
+      OLD_PIDS=$(pgrep -x hyprsunset 2>/dev/null || true)
       if [ "$IS_DAY" = "1" ]; then
         ${pkgs.hyprsunset}/bin/hyprsunset -t ${toString customConfig.homeManager.services.hyprsunset.dayTemp} &
         echo "${toString customConfig.homeManager.services.hyprsunset.dayTemp}" > "$ACTIVE_FILE"
@@ -300,6 +303,8 @@ let
         ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
         echo "''${TEMP}" > "$ACTIVE_FILE"
       fi
+      sleep 0.05
+      [ -n "$OLD_PIDS" ] && echo "$OLD_PIDS" | xargs kill 2>/dev/null || true
     else
       # Disable — kill hyprsunset, Hyprland resets CTM to identity
       echo "''${TEMP}:disabled" > "$STATE_FILE"
@@ -331,23 +336,23 @@ let
     fi
 
     HOUR=$(date +%-H)
-    if [ "$HOUR" -ge 7 ] && [ "$HOUR" -lt 20 ]; then IS_DAY=1; else IS_DAY=0; fi
+    if [ "$HOUR" -ge ${hyprsunsetDayStart} ] && [ "$HOUR" -lt ${hyprsunsetNightStart} ]; then IS_DAY=1; else IS_DAY=0; fi
 
     if [ "$MODE" = "auto" ]; then
       # Switch to manual — if daytime, snap to night preset so night light turns on NOW
       echo "''${TEMP}:manual" > "$STATE_FILE"
       if [ "$IS_DAY" = "1" ]; then
-        pkill -x hyprsunset 2>/dev/null || true
-        sleep 0.2
+        OLD_PIDS=$(pgrep -x hyprsunset 2>/dev/null || true)
         ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
         echo "''${TEMP}" > "$ACTIVE_FILE"
+        sleep 0.05
+        [ -n "$OLD_PIDS" ] && echo "$OLD_PIDS" | xargs kill 2>/dev/null || true
       fi
       # If nighttime: already at TEMP, no change needed
     else
       # Switch to auto — snap to correct time-of-day temp immediately
       echo "''${TEMP}:auto" > "$STATE_FILE"
-      pkill -x hyprsunset 2>/dev/null || true
-      sleep 0.2
+      OLD_PIDS=$(pgrep -x hyprsunset 2>/dev/null || true)
       if [ "$IS_DAY" = "1" ]; then
         ${pkgs.hyprsunset}/bin/hyprsunset -t ${toString customConfig.homeManager.services.hyprsunset.dayTemp} &
         echo "${toString customConfig.homeManager.services.hyprsunset.dayTemp}" > "$ACTIVE_FILE"
@@ -355,6 +360,8 @@ let
         ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
         echo "''${TEMP}" > "$ACTIVE_FILE"
       fi
+      sleep 0.05
+      [ -n "$OLD_PIDS" ] && echo "$OLD_PIDS" | xargs kill 2>/dev/null || true
     fi
 
     pkill -RTMIN+12 waybar 2>/dev/null || true
