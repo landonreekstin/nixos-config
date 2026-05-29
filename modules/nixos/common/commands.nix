@@ -172,6 +172,15 @@ in
 
       sudo nixos-rebuild switch --flake "$FLAKE_PATH" --impure --max-jobs auto --cores 0
       echo "Rebuild complete."
+
+      # Push new system closure to NAS binary cache if reachable (skips on the NAS itself)
+      NAS_IP="192.168.1.76"
+      if [ "${hostName}" != "optiplex-nas" ] && ping -c 1 -W 2 "$NAS_IP" > /dev/null 2>&1; then
+        echo "NAS reachable — pushing build to cache in background..."
+        nix copy --to "ssh://lando@$NAS_IP" $(nix path-info --recursive /run/current-system) &
+        disown
+        echo "Cache push running in background (PID: $!)."
+      fi
     '')
 
     (writeShellScriptBin "rebuild-test" ''
