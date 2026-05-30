@@ -202,6 +202,10 @@ in
           # Tell GTK/Steam to not apply their own scaling on top of XWayland's native pixels
           "GDK_SCALE,1"
           "STEAM_FORCE_DESKTOPUI_SCALING,1"
+          # NixOS sets this to force xdg-open through the portal, but the portal
+          # shows an app-chooser dialog even when mimeapps.list has a clear default.
+          # Unsetting it restores the direct mimeapps.list lookup which works correctly.
+          "NIXOS_XDG_OPEN_USE_PORTAL,"
         ];
 
         # Input settings

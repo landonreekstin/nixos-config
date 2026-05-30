@@ -196,6 +196,10 @@
       ];
     };
 
+    apps = {
+      defaultSet = "kde";
+    };
+
     programs = {
       partydeck.enable = true;
       firefox = {
