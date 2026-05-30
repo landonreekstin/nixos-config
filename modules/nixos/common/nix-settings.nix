@@ -20,6 +20,9 @@
       "optiplex-nas-cache:ZNikP70uFzhvVzu3v1AjprY9SYxGELhmCAzC6PFznAQ="
     ];
     auto-optimise-store = true;
+    # Reduce connection timeout so an unreachable NAS cache (e.g. off LAN) is
+    # skipped quickly rather than blocking for the default 5 seconds.
+    connect-timeout = 3;
   };
 
   nixpkgs.config.allowUnfree = true;
