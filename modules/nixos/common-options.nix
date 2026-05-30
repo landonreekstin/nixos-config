@@ -1027,7 +1027,7 @@ in
           };
           pdfReader = mkOption {
             type = types.str;
-            default = "okular.desktop";
+            default = "okularApplication_pdf.desktop";
             description = "Default PDF reader for KDE hosts.";
           };
           archiveManager = mkOption {

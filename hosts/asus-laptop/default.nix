@@ -122,6 +122,10 @@
       battery.enable = true;
     };
 
+    apps = {
+      defaultSet = "kde";
+    };
+
     programs = {
       partydeck.enable = false;
     };

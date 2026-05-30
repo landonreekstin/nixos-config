@@ -3,6 +3,7 @@
 
 let
   isDesktop = customConfig.desktop.enable;
+  isHyprland = builtins.elem "hyprland" customConfig.desktop.environments;
   d = customConfig.apps.defaults.${customConfig.apps.defaultSet};
 in
 {
@@ -17,8 +18,12 @@ in
   # Fixes KDE screen share
   xdg.portal.extraPortals = osConfig.xdg.portal.extraPortals;
 
-  # Configure XDG Portals
-  xdg.portal.config.common.default = "*";
+  # Configure XDG Portals.
+  # Hyprland sessions: use hyprland portal first, fall back to gtk.
+  # The gtk portal's OpenURI respects mimeapps.list and launches directly.
+  # Using "*" on Hyprland lets the KDE portal win for OpenURI, which always
+  # shows its app-chooser dialog instead of using the registered default.
+  xdg.portal.config.common.default = if isHyprland then [ "hyprland" "gtk" ] else [ "*" ];
 
   # -------------------------------------------------------------------------- #
   # Custom desktop entries for TUI wrapper applications
