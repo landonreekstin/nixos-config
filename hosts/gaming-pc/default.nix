@@ -32,6 +32,7 @@
 
     bootloader = {
       quietBoot = false;
+      configurationLimit = 3; # Boot partition is ~1GB; NVIDIA early-KMS initrds are large
       plymouth = {
         enable = true;
         theme = "circuit";
@@ -43,14 +44,14 @@
       monitors = [
         {
           name = "main";
-          identifier = "DP-4";
+          identifier = "DP-1";
           resolution = "2560x1440@180";
           position = "0x0";
           scale = "1.0667";
         }
         {
           name = "left";
-          identifier = "DP-6";
+          identifier = "DP-3";
           resolution = "preferred";
           position = "-1080x-410";
           scale = "1";
@@ -58,7 +59,7 @@
         }
         {
           name = "right";
-          identifier = "DP-5";
+          identifier = "DP-2";
           resolution = "preferred";
           position = "2400x-390";
           scale = "1";
@@ -66,7 +67,7 @@
         }
         {
           name = "tv";
-          identifier = "HDMI-A-2";
+          identifier = "HDMI-A-1";
           resolution = "preferred";
           position = "0x-1080";
           scale = "1";
@@ -80,6 +81,13 @@
       };
 
       hyprland = {
+        # Pin Hyprland to the NVIDIA card (card0).
+        # Early KMS loads NVIDIA first (card0), AMD iGPU second (card1); without this,
+        # Hyprland may enumerate both and render on the wrong device.
+        # Note: AQ_DRM_DEVICES is colon-separated, so avoid by-path names with colons.
+        # With NVIDIA in the initrd, card0 = NVIDIA is stable across reboots.
+        drmDevice = "/dev/dri/card0";
+
         utilityApps = [
           {
             command = "ckb-next";
@@ -179,7 +187,7 @@
     hardware = {
       unstable = true;
       nvidia = {
-        enable = true; # Set to true if Optiplex has an NVIDIA GPU needing proprietary drivers
+        enable = true;
       };
       peripherals = {
         enable = true; # Enable peripheral configurations
@@ -189,10 +197,10 @@
         };
       };
       monitors = [
-        { name = "DP-4";     rotation = "Normal";    scale = 1.15; } # Main: LG 2560x1440 @ 180Hz
-        { name = "HDMI-A-2"; rotation = "Rotated90"; }               # Left: Dell 1080p portrait
-        { name = "DP-5";     rotation = "Rotated90"; }               # Right: Samsung 1080p portrait
-        { name = "DP-6";     rotation = "Normal"; }                  # Above: Hisense TV 1080p
+        { name = "DP-1";     rotation = "Normal";    scale = 1.15; } # Main: LG 2560x1440 @ 180Hz
+        { name = "HDMI-A-1"; rotation = "Rotated90"; }               # Left: Dell 1080p portrait
+        { name = "DP-2";     rotation = "Rotated90"; }               # Right: Samsung 1080p portrait
+        { name = "DP-3";     rotation = "Normal"; }                  # Above: Hisense TV 1080p
       ];
     };
 
@@ -336,6 +344,15 @@
   };
 
   # === Additional nixos configuration for this host ===
+
+  # RTX 4070 Ti Super (Ada Lovelace): open kernel modules recommended for Turing+ with driver 560+.
+  # The shared nvidia.nix sets open=false as a safe default; override it here for this host.
+  hardware.nvidia.open = lib.mkForce true;
+
+  # Load NVIDIA modules in the initrd for early KMS so Plymouth can render during boot.
+  # Without this, Plymouth starts before NVIDIA loads and finds no framebuffer (simpledrm
+  # is blacklisted), resulting in a black screen instead of the splash animation.
+  boot.initrd.kernelModules = [ "nvidia" "nvidia_modeset" "nvidia_uvm" "nvidia_drm" ];
 
   programs.zoom-us.enable = true;
 
