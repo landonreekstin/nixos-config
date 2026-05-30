@@ -466,6 +466,18 @@ in
             '';
           };
         };
+        drmDevice = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = ''
+            Explicit DRM device path for Hyprland (AQ_DRM_DEVICES). Set this on hosts with
+            multiple GPUs (e.g. NVIDIA + AMD iGPU) to pin Hyprland to the correct card.
+            Use the stable by-path link: /dev/dri/by-path/pci-<BBBB:DD:FF.f>-card.
+            Find your GPU PCI address with: ls -la /dev/dri/by-path/
+          '';
+          example = "/dev/dri/by-path/pci-0000:01:00.0-card";
+        };
+
         utilityApps = mkOption {
           type = types.listOf (types.submodule {
             options = {
