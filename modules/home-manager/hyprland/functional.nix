@@ -202,7 +202,8 @@ in
           # Tell GTK/Steam to not apply their own scaling on top of XWayland's native pixels
           "GDK_SCALE,1"
           "STEAM_FORCE_DESKTOPUI_SCALING,1"
-        ];
+        ] ++ lib.optional (customConfig.desktop.hyprland.drmDevice != null)
+            "AQ_DRM_DEVICES,${customConfig.desktop.hyprland.drmDevice}";
 
         # Input settings
         input = {
