@@ -206,7 +206,8 @@ in
           # shows an app-chooser dialog even when mimeapps.list has a clear default.
           # Unsetting it restores the direct mimeapps.list lookup which works correctly.
           "NIXOS_XDG_OPEN_USE_PORTAL,"
-        ];
+        ] ++ lib.optional (customConfig.desktop.hyprland.drmDevice != null)
+            "AQ_DRM_DEVICES,${customConfig.desktop.hyprland.drmDevice}";
 
         # Input settings
         input = {
