@@ -12,9 +12,10 @@ let
     ${pkgs.sox}/bin/sox -n -r 48000 -c 2 -b 16 $out trim 0 0.1
   '';
 
-  # Generate a shell function body that maps a description string to icon+label+class.
+  # Generate a shell case body that maps a "name|description" string to icon+label+class.
   # Used in both the switcher and cycle scripts.
-  # Expects DESC variable to be set; sets ICON, LABEL, CLASS.
+  # Expects NAME and DESC variables to be set; sets ICON, LABEL, CLASS.
+  # Match patterns can target either the sink name (e.g. "pro-output-3") or description text.
   mappingCasesShell = lib.concatMapStrings (m: ''
     *"${m.match}"*)
       ICON="${m.icon}"; LABEL="${lib.optionalString (m.label != "") "${m.label}  "}"; CLASS="${m.class}" ;;
@@ -43,7 +44,7 @@ let
     DISPLAY_LINES=""
     while IFS='|' read -r NAME DESC; do
       ICON="󰕾"; LABEL=""; CLASS="default"
-      case "$DESC" in
+      case "$NAME|$DESC" in
         ${mappingCasesShell}
         *) ICON="󰕾"; LABEL=""; CLASS="default" ;;
       esac
@@ -62,7 +63,7 @@ let
     CHOSEN_SINK=""
     while IFS='|' read -r NAME DESC; do
       ICON="󰕾"; LABEL=""; CLASS="default"
-      case "$DESC" in
+      case "$NAME|$DESC" in
         ${mappingCasesShell}
         *) ICON="󰕾"; LABEL=""; CLASS="default" ;;
       esac

@@ -22,7 +22,8 @@ let
 
   vpnInterface = customConfig.services.wireguard.client.interfaceName;
 
-  # Shell case statements for sink description → icon/class, Nix-interpolated at build time
+  # Shell case statements for sink name|description → icon/class, Nix-interpolated at build time
+  # Match patterns can target the sink name (e.g. "pro-output-3") or description text.
   audioMappingCases = lib.concatMapStrings (m: ''
     *"${m.match}"*)
       ICON="${m.icon}"; CLASS="${m.class}" ;;
@@ -147,7 +148,7 @@ let
     else ICON="󰕾"; CLASS="default"
     fi
 
-    case "$DESC" in
+    case "$SINK|$DESC" in
       ${audioMappingCases}
       *) ;;
     esac

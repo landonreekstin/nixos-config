@@ -95,18 +95,19 @@
           }
         ];
         # Audio sink → icon mappings for the waybar audio indicator.
-        # Match is a substring of the sink description shown in pavucontrol.
-        # Run: pactl list sinks | grep Description  to find exact strings.
-        # These may need updating if sink descriptions change with display connections.
+        # Match is checked against the sink name (pactl list sinks short | awk '{print $2}').
+        # Use "pro-output-N" to match the sink name — more reliable than description substrings
+        # since descriptions like "Pro" are ambiguous across multiple HDMI/DP outputs.
+        # If sinks renumber after a kernel upgrade, check: pactl list sinks | grep -E "Name:|Description:"
         audioSinkMappings = [
           {
-            match = "Pro 7";    # DP audio → main monitor → speakers on 3.5mm out
+            match = "pro-output-3";    # DP-1 audio → main 1440p monitor → speakers on 3.5mm out
             icon = "󰓃";
             class = "speakers";
             label = "SPKR";
           }
           {
-            match = "Pro 8";    # HDMI audio → right portrait monitor → headphones on 3.5mm out
+            match = "pro-output-8";    # DP-2 audio → right portrait monitor → headphones on 3.5mm out
             icon = "󰋋";
             class = "headphones";
             label = "HDPH";
@@ -417,6 +418,19 @@
         terminal = false;
         categories = [ "Audio" "Music" "Player" "AudioVideo" ];
         mimeType = [ "x-scheme-handler/spotify" ];
+      };
+      systemd.user.services.audio-spkr-balance = {
+        Unit = {
+          Description = "Set speaker balance compensation on SPKR output (pro-output-3)";
+          After = [ "pipewire-pulse.service" ];
+        };
+        Service = {
+          Type = "oneshot";
+          ExecStart = "${pkgs.pulseaudio}/bin/pactl set-sink-channel-volumes alsa_output.pci-0000_01_00.1.pro-output-3 80% 100%";
+          Restart = "on-failure";
+          RestartSec = "2";
+        };
+        Install.WantedBy = [ "default.target" ];
       };
     };
   };
