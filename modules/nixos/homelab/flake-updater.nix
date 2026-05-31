@@ -5,7 +5,12 @@ let
   cfg = config.customConfig.homelab.flakeUpdater;
   gitEmail = config.customConfig.user.email;
 
-  hostsStr = lib.strings.concatStringsSep " " cfg.allHosts;
+  # Beta host is built first; PR opens immediately after so the soak starts ASAP.
+  # Remaining hosts are built after with a per-host timeout.
+  betaHost = cfg.betaHost;
+  remainingHostsStr = lib.strings.concatStringsSep " "
+    (lib.filter (h: h != betaHost) cfg.allHosts);
+  buildTimeoutSec = toString (cfg.buildTimeoutMinutes * 60);
 
   updaterScript = pkgs.writeShellScript "flake-updater" ''
     set -euo pipefail
@@ -17,7 +22,9 @@ let
     REPO="${cfg.repoOwner}/${cfg.repoName}"
     BLOCK_LABEL="${cfg.blockLabel}"
     AUTO_MERGE_DAYS=${toString cfg.autoMergeDays}
-    HOSTS=(${hostsStr})
+    BETA_HOST="${betaHost}"
+    REMAINING_HOSTS=(${remainingHostsStr})
+    BUILD_TIMEOUT=${buildTimeoutSec}
 
     export GH_TOKEN=$(cat "${cfg.githubTokenFile}")
     export GIT_SSH_COMMAND="ssh -i /home/${cfg.gitUser}/.ssh/id_ed25519 -o StrictHostKeyChecking=accept-new -o BatchMode=yes"
@@ -25,10 +32,76 @@ let
     cd "${cfg.repoDir}"
 
     # ---------------------------------------------------------------
-    # Path A: Branch already exists → auto-merge check
+    # build_host <name>: builds with timeout; sets BUILD_STATUS[name]
+    # ---------------------------------------------------------------
+    declare -A BUILD_STATUS
+
+    build_host() {
+      local host="$1"
+      log "Building ''${host}..."
+      local logfile="/tmp/flake-updater-build-''${host}.log"
+      if timeout "''${BUILD_TIMEOUT}" \
+          nix build ".#nixosConfigurations.''${host}.config.system.build.toplevel" \
+          --no-link --max-jobs auto --cores 0 \
+          > "''${logfile}" 2>&1; then
+        BUILD_STATUS["''${host}"]="PASS"
+        log "✓ ''${host}: PASS"
+      else
+        local ec=$?
+        if [ "''${ec}" -eq 124 ]; then
+          BUILD_STATUS["''${host}"]="TIMEOUT"
+          log "⏱ ''${host}: TIMEOUT (exceeded ${toString cfg.buildTimeoutMinutes}min)"
+        else
+          BUILD_STATUS["''${host}"]="FAIL"
+          log "✗ ''${host}: FAIL"
+          tail -5 "''${logfile}" | sed 's/^/    /' >&2
+        fi
+      fi
+    }
+
+    # ---------------------------------------------------------------
+    # pr_body: generate markdown table from BUILD_STATUS
+    # ---------------------------------------------------------------
+    pr_body() {
+      local all_hosts=("''${BETA_HOST}" "''${REMAINING_HOSTS[@]}")
+      local rows=""
+      for host in "''${all_hosts[@]}"; do
+        local status="''${BUILD_STATUS["''${host}"]:-⏳ pending}"
+        case "''${status}" in
+          PASS)    rows="''${rows}"$'\n'"| ''${host} | ✓ PASS |" ;;
+          FAIL)    rows="''${rows}"$'\n'"| ''${host} | ✗ FAIL |" ;;
+          TIMEOUT) rows="''${rows}"$'\n'"| ''${host} | ⏱ TIMEOUT |" ;;
+          *)       rows="''${rows}"$'\n'"| ''${host} | ⏳ pending |" ;;
+        esac
+      done
+
+      cat <<BODY
+## Weekly Flake Update — ''${WEEK}
+
+### Build Results
+
+| Host | Status |
+|------|--------|''${rows}
+
+### Beta Rollout
+
+**''${BETA_HOST}** tracks this branch immediately as the beta host and will receive the update on its next \`sync\`. All other hosts remain on \`main\` until this PR merges.
+
+### Auto-merge
+
+This PR auto-merges in **''${AUTO_MERGE_DAYS} days** unless the \`''${BLOCK_LABEL}\` label is applied.
+
+**To block:** add the \`''${BLOCK_LABEL}\` label to this PR.
+**To unblock:** push a fix to the branch, then remove the label.
+**To roll back on ''${BETA_HOST}:** \`git checkout main && rebuild\`
+BODY
+    }
+
+    # ---------------------------------------------------------------
+    # Path A: Branch already on remote → auto-merge check
     # ---------------------------------------------------------------
     if git ls-remote --exit-code origin "refs/heads/''${BRANCH}" > /dev/null 2>&1; then
-      log "Branch ''${BRANCH} already exists — running auto-merge check"
+      log "Branch ''${BRANCH} already on remote — running auto-merge check"
 
       PR_NUM=$(${pkgs.gh}/bin/gh pr list \
         --repo "''${REPO}" \
@@ -67,14 +140,15 @@ let
     fi
 
     # ---------------------------------------------------------------
-    # Path B: New week → update flake, build all hosts, open PR
+    # Path B: New week → update flake, build, open PR, build rest
     # ---------------------------------------------------------------
     log "Starting weekly flake update for ''${BRANCH}"
 
     git fetch origin
 
+    # Use -B to reset branch if it exists locally from a previous failed run
     git -c user.name="${cfg.gitUser}" -c user.email="${gitEmail}" \
-      checkout -b "''${BRANCH}" origin/main
+      checkout -B "''${BRANCH}" origin/main
 
     log "Running nix flake update..."
     nix flake update
@@ -85,60 +159,12 @@ let
     git -c user.name="${cfg.gitUser}" -c user.email="${gitEmail}" \
       commit -m "chore(flake): weekly update ''${WEEK}"
 
-    # ---------------------------------------------------------------
-    # Build each host sequentially; collect pass/fail status
-    # ---------------------------------------------------------------
-    declare -A BUILD_STATUS
-    for host in "''${HOSTS[@]}"; do
-      log "Building ''${host}..."
-      if NIXPKGS_ALLOW_UNFREE=1 nix build \
-          ".#nixosConfigurations.''${host}.config.system.build.toplevel" \
-          --no-link \
-          --max-jobs auto --cores 0 \
-          > /tmp/flake-updater-build-''${host}.log 2>&1; then
-        BUILD_STATUS["''${host}"]="PASS"
-        log "✓ ''${host}: PASS"
-      else
-        BUILD_STATUS["''${host}"]="FAIL"
-        log "✗ ''${host}: FAIL"
-        tail -5 /tmp/flake-updater-build-''${host}.log | sed 's/^/    /' >&2
-      fi
-    done
+    # Step 1: Build beta host first
+    build_host "''${BETA_HOST}"
 
+    # Step 2: Push branch and open PR immediately so beta soak starts
     git push origin "''${BRANCH}"
 
-    # ---------------------------------------------------------------
-    # Generate PR body with build table
-    # ---------------------------------------------------------------
-    TABLE_ROWS=""
-    for host in "''${HOSTS[@]}"; do
-      if [ "''${BUILD_STATUS["''${host}"]}" = "PASS" ]; then
-        TABLE_ROWS="''${TABLE_ROWS}"$'\n'"| ''${host} | ✓ PASS |"
-      else
-        TABLE_ROWS="''${TABLE_ROWS}"$'\n'"| ''${host} | ✗ FAIL |"
-      fi
-    done
-
-    PR_BODY="## Weekly Flake Update — ''${WEEK}
-
-### Build Results
-
-| Host | Status |
-|------|--------|''${TABLE_ROWS}
-
-### Beta Rollout
-
-**gaming-pc** tracks this branch immediately as the beta host and will receive the update on its next \`sync\`. All other hosts remain on \`main\` until this PR merges.
-
-### Auto-merge
-
-This PR auto-merges in **''${AUTO_MERGE_DAYS} days** unless the \`''${BLOCK_LABEL}\` label is applied.
-
-**To block:** add the \`''${BLOCK_LABEL}\` label to this PR.
-**To unblock:** push a fix to the branch, then remove the label.
-**To roll back on gaming-pc:** \`git checkout main && rebuild\`"
-
-    # Ensure the flake-update label exists (no-op if already present)
     ${pkgs.gh}/bin/gh label create "flake-update" \
       --repo "''${REPO}" \
       --color "0075ca" \
@@ -147,11 +173,29 @@ This PR auto-merges in **''${AUTO_MERGE_DAYS} days** unless the \`''${BLOCK_LABE
     ${pkgs.gh}/bin/gh pr create \
       --repo "''${REPO}" \
       --title "chore(flake): weekly update ''${WEEK}" \
-      --body "''${PR_BODY}" \
+      --body "$(pr_body)" \
       --label "flake-update" \
       --base main
 
-    log "Weekly update complete — PR opened for ''${BRANCH}"
+    PR_NUM=$(${pkgs.gh}/bin/gh pr list \
+      --repo "''${REPO}" \
+      --head "''${BRANCH}" \
+      --state open \
+      --json number -q '.[0].number')
+
+    log "PR #''${PR_NUM} opened — building remaining hosts"
+
+    # Step 3: Build remaining hosts with per-host timeout
+    for host in "''${REMAINING_HOSTS[@]}"; do
+      build_host "''${host}"
+    done
+
+    # Step 4: Update PR body with final results
+    ${pkgs.gh}/bin/gh pr edit "''${PR_NUM}" \
+      --repo "''${REPO}" \
+      --body "$(pr_body)"
+
+    log "Weekly update complete — PR #''${PR_NUM} updated with full build results"
   '';
 
 in
@@ -189,7 +233,7 @@ in
         User = cfg.gitUser;
         Group = "users";
         ExecStart = updaterScript;
-        TimeoutStartSec = "4h";
+        TimeoutStartSec = "8h";
         StandardOutput = "journal";
         StandardError = "journal";
         SyslogIdentifier = "flake-updater";

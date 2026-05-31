@@ -1657,6 +1657,16 @@ in
           default = 7;
           description = "Number of days after PR creation before auto-merging (if not blocked).";
         };
+        betaHost = mkOption {
+          type = types.str;
+          default = "gaming-pc";
+          description = "Host built first; PR is opened immediately after it completes so the beta soak starts ASAP.";
+        };
+        buildTimeoutMinutes = mkOption {
+          type = types.int;
+          default = 45;
+          description = "Per-host build timeout in minutes. Hosts exceeding this are marked TIMEOUT in the PR table.";
+        };
         githubTokenFile = mkOption {
           type = types.path;
           default = "/run/secrets/github-token";
