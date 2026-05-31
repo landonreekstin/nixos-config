@@ -137,6 +137,24 @@ in
       echo "Fetching latest changes from remote repository..."
       git fetch
 
+      ${lib.optionalString cfg.system.betaTesterHost ''
+        # Beta host: track latest open update/* branch if one exists
+        BETA_BRANCH=$(git branch -r --list 'origin/update/*' \
+          | sort -V | tail -1 | sed 's|.*origin/||' | tr -d ' ')
+        if [ -n "$BETA_BRANCH" ]; then
+          CURRENT=$(git branch --show-current)
+          if [ "$CURRENT" != "$BETA_BRANCH" ]; then
+            echo "--- Beta host: switching to $BETA_BRANCH ---"
+            git checkout -B "$BETA_BRANCH" "origin/$BETA_BRANCH"
+          else
+            git pull origin "$BETA_BRANCH" --rebase
+          fi
+          echo "Sync complete (beta branch: $BETA_BRANCH)."
+          exit 0
+        fi
+        echo "--- No update branch found, falling back to main ---"
+      ''}
+
       echo "Attempting to pull latest changes..."
       # Try a simple pull first
       if ! git pull; then

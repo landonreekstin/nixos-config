@@ -233,6 +233,41 @@ tweak(gaming-pc): enable ckb-next
 docs(claude): add blaney-pc guidelines
 ```
 
+## Automated Weekly Flake Updates (CI/CD Pipeline)
+
+Flake updates are automated via a systemd service on `optiplex-nas` that runs every Monday at 03:00.
+
+### How it works
+
+1. NAS creates branch `update/YYYY-WNN`, runs `nix flake update`, builds all 8 hosts, opens a GitHub PR
+2. **gaming-pc** (`betaTesterHost = true`) automatically tracks the latest `update/*` branch on the next `sync` — it receives the update one week before everyone else
+3. After **7 days**, the NAS auto-merges the PR if no `update-blocked` label is present
+4. All other hosts pick up the update on their next `sync` after the merge
+
+### Blocking a bad update
+
+If a flake update causes a runtime issue (e.g., broken NVIDIA driver, broken audio) that passes eval but breaks the live system:
+
+1. Go to the open `chore(flake): weekly update YYYY-WNN` PR on GitHub
+2. Add the **`update-blocked`** label
+3. The NAS will NOT auto-merge while this label is present
+4. To roll back gaming-pc immediately: `git checkout main && rebuild`
+5. When you have a fix, push it to the `update/*` branch, remove the label — the next Monday run will auto-merge
+
+### Manual trigger
+
+To manually run the updater on optiplex-nas:
+```bash
+sudo systemctl start flake-updater
+journalctl -u flake-updater -f
+```
+
+### Beta host behavior
+
+On gaming-pc, running `sync` when a `update/*` branch exists on remote will automatically switch to it. When no update branch exists (post-merge), `sync` falls back to main. This is transparent — no user action needed.
+
+---
+
 ### Git Workflow
 
 **CRITICAL: Always test before committing.** If the current machine can test the change, it MUST be rebuilt and verified before any commit is made. Never commit untested configuration changes — not even "obviously correct" ones.

@@ -14,5 +14,6 @@
     ./flaresolverr.nix
     ./media-linker.nix
     ./nix-cache.nix
+    ./flake-updater.nix
   ];
 }

@@ -180,6 +180,8 @@
       flaresolverr.enable = true;
       nixCache.enable = true;
 
+      flakeUpdater.enable = true;
+
       mediaLinker = {
         enable = true;
         mediaUsers = [

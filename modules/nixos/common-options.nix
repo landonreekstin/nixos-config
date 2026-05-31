@@ -123,6 +123,11 @@ in
         default = "en_US.UTF-8";
         description = "The system's primary locale.";
       };
+      betaTesterHost = mkOption {
+        type = types.bool;
+        default = false;
+        description = "When true, the sync command follows the latest open update/* branch instead of main.";
+      };
     };
 
     networking = {
@@ -1612,6 +1617,50 @@ in
           type = types.bool;
           default = false;
           description = "Enable nix-serve to host a local Nix binary cache on port 5000.";
+        };
+      };
+
+      flakeUpdater = {
+        enable = mkEnableOption "weekly automated flake update orchestrator";
+        repoDir = mkOption {
+          type = types.str;
+          default = "/home/lando/nixos-config";
+          description = "Absolute path to the nixos-config git repository on this machine.";
+        };
+        repoOwner = mkOption {
+          type = types.str;
+          default = "landonreekstin";
+          description = "GitHub repository owner (user or org).";
+        };
+        repoName = mkOption {
+          type = types.str;
+          default = "nixos-config";
+          description = "GitHub repository name.";
+        };
+        gitUser = mkOption {
+          type = types.str;
+          default = "lando";
+          description = "Local unix user to run git operations as (must have SSH access to GitHub).";
+        };
+        allHosts = mkOption {
+          type = types.listOf types.str;
+          default = [ "gaming-pc" "optiplex" "blaney-pc" "justus-pc" "asus-laptop" "asus-m15" "atl-mini-pc" "optiplex-nas" ];
+          description = "All host names to build and include in the PR build matrix.";
+        };
+        blockLabel = mkOption {
+          type = types.str;
+          default = "update-blocked";
+          description = "GitHub PR label that prevents auto-merge.";
+        };
+        autoMergeDays = mkOption {
+          type = types.int;
+          default = 7;
+          description = "Number of days after PR creation before auto-merging (if not blocked).";
+        };
+        githubTokenFile = mkOption {
+          type = types.path;
+          default = "/run/secrets/github-token";
+          description = "Path to file containing a GitHub fine-grained PAT with contents:write and pull_requests:write.";
         };
       };
     };

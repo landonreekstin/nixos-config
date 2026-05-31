@@ -28,6 +28,7 @@
       stateVersion = "24.11"; # DO NOT CHANGE
       timeZone = "America/Chicago";
       locale = "en_US.UTF-8";
+      betaTesterHost = true;
     };
 
     bootloader = {
@@ -186,7 +187,7 @@
     };
 
     hardware = {
-      unstable = true;
+      unstable = false;
       nvidia = {
         enable = true;
       };
