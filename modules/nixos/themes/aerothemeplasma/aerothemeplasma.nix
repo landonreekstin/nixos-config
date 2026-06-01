@@ -13,7 +13,7 @@
   themeRepo = pkgs.fetchgit {
     url = "https://gitgud.io/wackyideas/AeroThemePlasma.git";
     rev = "6.3.4";
-    sha256 = "sha256-PGWpLKXanZ+miN9dE0+SThTAGutFdHMMRmCNcD5myx8=";
+    sha256 = "sha256-OPzL/Fc/irNYlSzYBkl/AIvJBydcpD8LCka+FTpV4FQ=";
   };
 
   aerothemeplasma-git = themeRepo;
