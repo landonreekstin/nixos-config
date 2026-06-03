@@ -14,6 +14,7 @@ let
   hasHyprsunset = customConfig.homeManager.services.hyprsunset.enable;
   hyprsunsetDayStart   = toString customConfig.homeManager.services.hyprsunset.dayStartHour;
   hyprsunsetNightStart = toString customConfig.homeManager.services.hyprsunset.nightStartHour;
+  hyprsunsetDayTemp    = toString customConfig.homeManager.services.hyprsunset.dayTemp;
   hasCkbNext = customConfig.hardware.peripherals.ckb-next.enable;
   ckbScripts = import ../../themes/century-series/ckb-scripts.nix { inherit pkgs; };
   weatherLocation = customConfig.desktop.hyprland.weather.location;
@@ -231,6 +232,27 @@ let
     ACTIVE_FILE="$HOME/.cache/hyprsunset-active-temp"
     PID_FILE="$HOME/.cache/hyprsunset-transition.pid"
 
+    apply_temp() {
+      local T="$1"
+      if [ "$T" -ge ${hyprsunsetDayTemp} ]; then
+        hyprctl keyword decoration:screen_shader "" 2>/dev/null || true; return
+      fi
+      local F="$HOME/.cache/hyprsunset-shader.glsl"
+      read -r R G B <<< "$(${pkgs.gawk}/bin/awk -v t="$T" 'BEGIN {
+        t/=100; r=1; g=1; b=1
+        if (t<=66) {
+          g=(99.4708025861*log(t)-161.1195681661)/255; if(g<0)g=0; if(g>1)g=1
+          b=t>19?(138.5177312231*log(t-10)-305.0447927307)/255:0; if(b<0)b=0; if(b>1)b=1
+        } else {
+          r=(329.698727446*(t-60)^-0.1332047592)/255; if(r<0)r=0; if(r>1)r=1
+          g=(288.1221695283*(t-60)^-0.0755148492)/255; if(g<0)g=0; if(g>1)g=1; b=1
+        }
+        printf "%.6f %.6f %.6f\n",r,g,b
+      }')"
+      printf 'precision mediump float;\nvarying vec2 v_texcoord;\nuniform sampler2D tex;\nvoid main(){\n  vec4 c=texture2D(tex,v_texcoord);\n  c.r*=%s; c.g*=%s; c.b*=%s;\n  gl_FragColor=c;\n}\n' "$R" "$G" "$B" > "$F"
+      hyprctl keyword decoration:screen_shader "$F" 2>/dev/null || true
+    }
+
     [ ! -f "$STATE_FILE" ] && echo "2500:auto" > "$STATE_FILE"
 
     STATE=$(cat "$STATE_FILE")
@@ -261,8 +283,7 @@ let
     # Apply immediately in manual mode, or in auto mode during nighttime.
     # In auto daytime, just save the preset — display stays at dayTemp.
     if [ "$MODE" = "manual" ] || { [ "$MODE" = "auto" ] && [ "$IS_DAY" = "0" ]; }; then
-      pkill -9 -x hyprsunset 2>/dev/null || true
-      ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
+      apply_temp "''${TEMP}"
       echo "''${TEMP}" > "$ACTIVE_FILE"
     fi
 
@@ -274,6 +295,27 @@ let
     STATE_FILE="$HOME/.cache/hyprsunset-state"
     ACTIVE_FILE="$HOME/.cache/hyprsunset-active-temp"
     PID_FILE="$HOME/.cache/hyprsunset-transition.pid"
+
+    apply_temp() {
+      local T="$1"
+      if [ "$T" -ge ${hyprsunsetDayTemp} ]; then
+        hyprctl keyword decoration:screen_shader "" 2>/dev/null || true; return
+      fi
+      local F="$HOME/.cache/hyprsunset-shader.glsl"
+      read -r R G B <<< "$(${pkgs.gawk}/bin/awk -v t="$T" 'BEGIN {
+        t/=100; r=1; g=1; b=1
+        if (t<=66) {
+          g=(99.4708025861*log(t)-161.1195681661)/255; if(g<0)g=0; if(g>1)g=1
+          b=t>19?(138.5177312231*log(t-10)-305.0447927307)/255:0; if(b<0)b=0; if(b>1)b=1
+        } else {
+          r=(329.698727446*(t-60)^-0.1332047592)/255; if(r<0)r=0; if(r>1)r=1
+          g=(288.1221695283*(t-60)^-0.0755148492)/255; if(g<0)g=0; if(g>1)g=1; b=1
+        }
+        printf "%.6f %.6f %.6f\n",r,g,b
+      }')"
+      printf 'precision mediump float;\nvarying vec2 v_texcoord;\nuniform sampler2D tex;\nvoid main(){\n  vec4 c=texture2D(tex,v_texcoord);\n  c.r*=%s; c.g*=%s; c.b*=%s;\n  gl_FragColor=c;\n}\n' "$R" "$G" "$B" > "$F"
+      hyprctl keyword decoration:screen_shader "$F" 2>/dev/null || true
+    }
 
     [ ! -f "$STATE_FILE" ] && echo "2500:auto" > "$STATE_FILE"
 
@@ -294,18 +336,17 @@ let
     if [ "$MODE" = "disabled" ]; then
       # Enable in auto mode, apply correct time-of-day temp immediately
       echo "''${TEMP}:auto" > "$STATE_FILE"
-      pkill -9 -x hyprsunset 2>/dev/null || true
       if [ "$IS_DAY" = "1" ]; then
-        ${pkgs.hyprsunset}/bin/hyprsunset -t ${toString customConfig.homeManager.services.hyprsunset.dayTemp} &
-        echo "${toString customConfig.homeManager.services.hyprsunset.dayTemp}" > "$ACTIVE_FILE"
+        apply_temp ${hyprsunsetDayTemp}
+        echo "${hyprsunsetDayTemp}" > "$ACTIVE_FILE"
       else
-        ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
+        apply_temp "''${TEMP}"
         echo "''${TEMP}" > "$ACTIVE_FILE"
       fi
     else
-      # Disable — kill hyprsunset, Hyprland resets CTM to identity
+      # Disable — clear shader, display returns to neutral
       echo "''${TEMP}:disabled" > "$STATE_FILE"
-      pkill -x hyprsunset 2>/dev/null || true
+      hyprctl keyword decoration:screen_shader "" 2>/dev/null || true
     fi
 
     pkill -RTMIN+12 waybar 2>/dev/null || true
@@ -316,6 +357,27 @@ let
     STATE_FILE="$HOME/.cache/hyprsunset-state"
     ACTIVE_FILE="$HOME/.cache/hyprsunset-active-temp"
     PID_FILE="$HOME/.cache/hyprsunset-transition.pid"
+
+    apply_temp() {
+      local T="$1"
+      if [ "$T" -ge ${hyprsunsetDayTemp} ]; then
+        hyprctl keyword decoration:screen_shader "" 2>/dev/null || true; return
+      fi
+      local F="$HOME/.cache/hyprsunset-shader.glsl"
+      read -r R G B <<< "$(${pkgs.gawk}/bin/awk -v t="$T" 'BEGIN {
+        t/=100; r=1; g=1; b=1
+        if (t<=66) {
+          g=(99.4708025861*log(t)-161.1195681661)/255; if(g<0)g=0; if(g>1)g=1
+          b=t>19?(138.5177312231*log(t-10)-305.0447927307)/255:0; if(b<0)b=0; if(b>1)b=1
+        } else {
+          r=(329.698727446*(t-60)^-0.1332047592)/255; if(r<0)r=0; if(r>1)r=1
+          g=(288.1221695283*(t-60)^-0.0755148492)/255; if(g<0)g=0; if(g>1)g=1; b=1
+        }
+        printf "%.6f %.6f %.6f\n",r,g,b
+      }')"
+      printf 'precision mediump float;\nvarying vec2 v_texcoord;\nuniform sampler2D tex;\nvoid main(){\n  vec4 c=texture2D(tex,v_texcoord);\n  c.r*=%s; c.g*=%s; c.b*=%s;\n  gl_FragColor=c;\n}\n' "$R" "$G" "$B" > "$F"
+      hyprctl keyword decoration:screen_shader "$F" 2>/dev/null || true
+    }
 
     [ ! -f "$STATE_FILE" ] && echo "2500:auto" > "$STATE_FILE"
 
@@ -339,20 +401,18 @@ let
       # Switch to manual — if daytime, snap to night preset so night light turns on NOW
       echo "''${TEMP}:manual" > "$STATE_FILE"
       if [ "$IS_DAY" = "1" ]; then
-        pkill -9 -x hyprsunset 2>/dev/null || true
-        ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
+        apply_temp "''${TEMP}"
         echo "''${TEMP}" > "$ACTIVE_FILE"
       fi
       # If nighttime: already at TEMP, no change needed
     else
       # Switch to auto — snap to correct time-of-day temp immediately
       echo "''${TEMP}:auto" > "$STATE_FILE"
-      pkill -9 -x hyprsunset 2>/dev/null || true
       if [ "$IS_DAY" = "1" ]; then
-        ${pkgs.hyprsunset}/bin/hyprsunset -t ${toString customConfig.homeManager.services.hyprsunset.dayTemp} &
-        echo "${toString customConfig.homeManager.services.hyprsunset.dayTemp}" > "$ACTIVE_FILE"
+        apply_temp ${hyprsunsetDayTemp}
+        echo "${hyprsunsetDayTemp}" > "$ACTIVE_FILE"
       else
-        ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
+        apply_temp "''${TEMP}"
         echo "''${TEMP}" > "$ACTIVE_FILE"
       fi
     fi

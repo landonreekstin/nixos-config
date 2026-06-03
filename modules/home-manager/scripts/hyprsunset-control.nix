@@ -32,6 +32,27 @@ let
     ACTIVE_FILE="$HOME/.cache/hyprsunset-active-temp"
     PID_FILE="$HOME/.cache/hyprsunset-transition.pid"
 
+    apply_temp() {
+      local T="$1"
+      if [ "$T" -ge ${dayTemp} ]; then
+        hyprctl keyword decoration:screen_shader "" 2>/dev/null || true; return
+      fi
+      local F="$HOME/.cache/hyprsunset-shader.glsl"
+      read -r R G B <<< "$(${pkgs.gawk}/bin/awk -v t="$T" 'BEGIN {
+        t/=100; r=1; g=1; b=1
+        if (t<=66) {
+          g=(99.4708025861*log(t)-161.1195681661)/255; if(g<0)g=0; if(g>1)g=1
+          b=t>19?(138.5177312231*log(t-10)-305.0447927307)/255:0; if(b<0)b=0; if(b>1)b=1
+        } else {
+          r=(329.698727446*(t-60)^-0.1332047592)/255; if(r<0)r=0; if(r>1)r=1
+          g=(288.1221695283*(t-60)^-0.0755148492)/255; if(g<0)g=0; if(g>1)g=1; b=1
+        }
+        printf "%.6f %.6f %.6f\n",r,g,b
+      }')"
+      printf 'precision mediump float;\nvarying vec2 v_texcoord;\nuniform sampler2D tex;\nvoid main(){\n  vec4 c=texture2D(tex,v_texcoord);\n  c.r*=%s; c.g*=%s; c.b*=%s;\n  gl_FragColor=c;\n}\n' "$R" "$G" "$B" > "$F"
+      hyprctl keyword decoration:screen_shader "$F" 2>/dev/null || true
+    }
+
     # Migrate state file from old gammastep location
     OLD_STATE="$HOME/.cache/gammastep-state"
     if [ -f "$OLD_STATE" ] && [ ! -f "$STATE_FILE" ]; then
@@ -74,6 +95,9 @@ let
       rm -f "$PID_FILE"
     fi
 
+    # Kill any lingering hyprsunset from the old approach
+    pkill -9 -x hyprsunset 2>/dev/null || true
+
     STEPS=30
     INTERVAL=$(( ${transitionSecs} / STEPS ))
     A=$ACTIVE
@@ -83,8 +107,7 @@ let
       echo $BASHPID > "$PID_FILE"
       for i in $(seq 1 $STEPS); do
         STEP=$(( A + (T - A) * i / STEPS ))
-        pkill -9 -x hyprsunset 2>/dev/null || true
-        ${pkgs.hyprsunset}/bin/hyprsunset -t "$STEP" &
+        apply_temp "$STEP"
         echo "$STEP" > "$ACTIVE_FILE"
         pkill -RTMIN+12 waybar 2>/dev/null || true
         [ "$i" -lt "$STEPS" ] && sleep "$INTERVAL"
@@ -100,6 +123,27 @@ let
   hyprsunsetInitScript = pkgs.writeShellScriptBin "hyprsunset-init" ''
     STATE_FILE="$HOME/.cache/hyprsunset-state"
     ACTIVE_FILE="$HOME/.cache/hyprsunset-active-temp"
+
+    apply_temp() {
+      local T="$1"
+      if [ "$T" -ge ${dayTemp} ]; then
+        hyprctl keyword decoration:screen_shader "" 2>/dev/null || true; return
+      fi
+      local F="$HOME/.cache/hyprsunset-shader.glsl"
+      read -r R G B <<< "$(${pkgs.gawk}/bin/awk -v t="$T" 'BEGIN {
+        t/=100; r=1; g=1; b=1
+        if (t<=66) {
+          g=(99.4708025861*log(t)-161.1195681661)/255; if(g<0)g=0; if(g>1)g=1
+          b=t>19?(138.5177312231*log(t-10)-305.0447927307)/255:0; if(b<0)b=0; if(b>1)b=1
+        } else {
+          r=(329.698727446*(t-60)^-0.1332047592)/255; if(r<0)r=0; if(r>1)r=1
+          g=(288.1221695283*(t-60)^-0.0755148492)/255; if(g<0)g=0; if(g>1)g=1; b=1
+        }
+        printf "%.6f %.6f %.6f\n",r,g,b
+      }')"
+      printf 'precision mediump float;\nvarying vec2 v_texcoord;\nuniform sampler2D tex;\nvoid main(){\n  vec4 c=texture2D(tex,v_texcoord);\n  c.r*=%s; c.g*=%s; c.b*=%s;\n  gl_FragColor=c;\n}\n' "$R" "$G" "$B" > "$F"
+      hyprctl keyword decoration:screen_shader "$F" 2>/dev/null || true
+    }
 
     # Migrate state file from old gammastep location
     OLD_STATE="$HOME/.cache/gammastep-state"
@@ -119,7 +163,13 @@ let
       echo "''${TEMP}:auto" > "$STATE_FILE"
     fi
 
-    [ "$MODE" = "disabled" ] && exit 0
+    # Kill any lingering hyprsunset from the old approach
+    pkill -9 -x hyprsunset 2>/dev/null || true
+
+    if [ "$MODE" = "disabled" ]; then
+      hyprctl keyword decoration:screen_shader "" 2>/dev/null || true
+      exit 0
+    fi
 
     # Determine what to apply immediately
     HOUR=$(date +%-H)
@@ -129,8 +179,7 @@ let
       APPLY="''${TEMP}"
     fi
 
-    pkill -9 -x hyprsunset 2>/dev/null || true
-    ${pkgs.hyprsunset}/bin/hyprsunset -t "$APPLY" &
+    apply_temp "$APPLY"
     echo "$APPLY" > "$ACTIVE_FILE"
     pkill -RTMIN+12 waybar 2>/dev/null || true
   '';
