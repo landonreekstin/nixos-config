@@ -266,6 +266,35 @@ journalctl -u flake-updater -f
 
 On gaming-pc, running `sync` when a `update/*` branch exists on remote will automatically switch to it. When no update branch exists (post-merge), `sync` falls back to main. This is transparent — no user action needed.
 
+### For Claude: how to handle common requests
+
+**"Approve the update" / "let it merge"** — do nothing. The NAS auto-merges after 7 days automatically. There is no action needed; manually merging via `gh pr merge` is wrong and bypasses the soak period.
+
+**"Block the update" / "don't merge this"**
+```bash
+# Find the open update PR
+gh pr list --repo landonreekstin/nixos-config --label flake-update
+# Add the block label (use the PR number from above)
+gh pr edit <PR_NUMBER> --repo landonreekstin/nixos-config --add-label "update-blocked"
+```
+
+**"Fix the update" / "push a fix to the update branch"**
+```bash
+# Find the current update branch
+git branch -r --list 'origin/update/*' | sort -V | tail -1
+# On gaming-pc, the branch is already checked out; on other machines, check it out:
+git checkout -B update/YYYY-WNN origin/update/YYYY-WNN
+# Make the fix, rebuild/verify, then:
+git push origin update/YYYY-WNN
+# After confirming the fix works, remove the block label if present:
+gh pr edit <PR_NUMBER> --repo landonreekstin/nixos-config --remove-label "update-blocked"
+```
+
+**"Roll back gaming-pc"** — gaming-pc is the only host that auto-tracks the update branch:
+```bash
+git checkout main && rebuild
+```
+
 ---
 
 ### Git Workflow
