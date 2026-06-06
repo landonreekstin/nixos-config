@@ -35,7 +35,7 @@ let
     apply_temp() {
       local T="$1"
       if [ "$T" -ge ${dayTemp} ]; then
-        hyprctl keyword decoration:screen_shader "" 2>/dev/null || true; return
+        ${pkgs.hyprland}/bin/hyprctl keyword decoration:screen_shader "" 2>/dev/null || true; return
       fi
       local F="$HOME/.cache/hyprsunset-shader.glsl"
       read -r R G B <<< "$(${pkgs.gawk}/bin/awk -v t="$T" 'BEGIN {
@@ -50,7 +50,7 @@ let
         printf "%.6f %.6f %.6f\n",r,g,b
       }')"
       printf 'precision mediump float;\nvarying vec2 v_texcoord;\nuniform sampler2D tex;\nvoid main(){\n  vec4 c=texture2D(tex,v_texcoord);\n  c.r*=%s; c.g*=%s; c.b*=%s;\n  gl_FragColor=c;\n}\n' "$R" "$G" "$B" > "$F"
-      hyprctl keyword decoration:screen_shader "$F" 2>/dev/null || true
+      ${pkgs.hyprland}/bin/hyprctl keyword decoration:screen_shader "$F" 2>/dev/null || true
     }
 
     # Migrate state file from old gammastep location
@@ -127,7 +127,7 @@ let
     apply_temp() {
       local T="$1"
       if [ "$T" -ge ${dayTemp} ]; then
-        hyprctl keyword decoration:screen_shader "" 2>/dev/null || true; return
+        ${pkgs.hyprland}/bin/hyprctl keyword decoration:screen_shader "" 2>/dev/null || true; return
       fi
       local F="$HOME/.cache/hyprsunset-shader.glsl"
       read -r R G B <<< "$(${pkgs.gawk}/bin/awk -v t="$T" 'BEGIN {
@@ -142,7 +142,7 @@ let
         printf "%.6f %.6f %.6f\n",r,g,b
       }')"
       printf 'precision mediump float;\nvarying vec2 v_texcoord;\nuniform sampler2D tex;\nvoid main(){\n  vec4 c=texture2D(tex,v_texcoord);\n  c.r*=%s; c.g*=%s; c.b*=%s;\n  gl_FragColor=c;\n}\n' "$R" "$G" "$B" > "$F"
-      hyprctl keyword decoration:screen_shader "$F" 2>/dev/null || true
+      ${pkgs.hyprland}/bin/hyprctl keyword decoration:screen_shader "$F" 2>/dev/null || true
     }
 
     # Migrate state file from old gammastep location
@@ -167,7 +167,7 @@ let
     pkill -9 -x hyprsunset 2>/dev/null || true
 
     if [ "$MODE" = "disabled" ]; then
-      hyprctl keyword decoration:screen_shader "" 2>/dev/null || true
+      ${pkgs.hyprland}/bin/hyprctl keyword decoration:screen_shader "" 2>/dev/null || true
       exit 0
     fi
 
