@@ -233,24 +233,7 @@ let
     PID_FILE="$HOME/.cache/hyprsunset-transition.pid"
 
     apply_temp() {
-      local T="$1"
-      if [ "$T" -ge ${hyprsunsetDayTemp} ]; then
-        ${pkgs.hyprland}/bin/hyprctl keyword decoration:screen_shader "" 2>/dev/null || true; return
-      fi
-      local F="$HOME/.cache/hyprsunset-shader.glsl"
-      read -r R G B <<< "$(${pkgs.gawk}/bin/awk -v t="$T" 'BEGIN {
-        t/=100; r=1; g=1; b=1
-        if (t<=66) {
-          g=(99.4708025861*log(t)-161.1195681661)/255; if(g<0)g=0; if(g>1)g=1
-          b=t>19?(138.5177312231*log(t-10)-305.0447927307)/255:0; if(b<0)b=0; if(b>1)b=1
-        } else {
-          r=(329.698727446*(t-60)^-0.1332047592)/255; if(r<0)r=0; if(r>1)r=1
-          g=(288.1221695283*(t-60)^-0.0755148492)/255; if(g<0)g=0; if(g>1)g=1; b=1
-        }
-        printf "%.6f %.6f %.6f\n",r,g,b
-      }')"
-      printf '#version 320 es\nprecision highp float;\nin vec2 v_texcoord;\nuniform sampler2D tex;\nout vec4 fragColor;\nvoid main(){\n  vec4 c=texture(tex,v_texcoord);\n  c.r*=%s; c.g*=%s; c.b*=%s;\n  fragColor=c;\n}\n' "$R" "$G" "$B" > "$F"
-      ${pkgs.hyprland}/bin/hyprctl keyword decoration:screen_shader "$F" 2>/dev/null || true
+      ${pkgs.hyprland}/bin/hyprctl hyprsunset temperature "$1" >/dev/null 2>&1 || true
     }
 
     [ ! -f "$STATE_FILE" ] && echo "2500:auto" > "$STATE_FILE"
@@ -297,24 +280,7 @@ let
     PID_FILE="$HOME/.cache/hyprsunset-transition.pid"
 
     apply_temp() {
-      local T="$1"
-      if [ "$T" -ge ${hyprsunsetDayTemp} ]; then
-        ${pkgs.hyprland}/bin/hyprctl keyword decoration:screen_shader "" 2>/dev/null || true; return
-      fi
-      local F="$HOME/.cache/hyprsunset-shader.glsl"
-      read -r R G B <<< "$(${pkgs.gawk}/bin/awk -v t="$T" 'BEGIN {
-        t/=100; r=1; g=1; b=1
-        if (t<=66) {
-          g=(99.4708025861*log(t)-161.1195681661)/255; if(g<0)g=0; if(g>1)g=1
-          b=t>19?(138.5177312231*log(t-10)-305.0447927307)/255:0; if(b<0)b=0; if(b>1)b=1
-        } else {
-          r=(329.698727446*(t-60)^-0.1332047592)/255; if(r<0)r=0; if(r>1)r=1
-          g=(288.1221695283*(t-60)^-0.0755148492)/255; if(g<0)g=0; if(g>1)g=1; b=1
-        }
-        printf "%.6f %.6f %.6f\n",r,g,b
-      }')"
-      printf '#version 320 es\nprecision highp float;\nin vec2 v_texcoord;\nuniform sampler2D tex;\nout vec4 fragColor;\nvoid main(){\n  vec4 c=texture(tex,v_texcoord);\n  c.r*=%s; c.g*=%s; c.b*=%s;\n  fragColor=c;\n}\n' "$R" "$G" "$B" > "$F"
-      ${pkgs.hyprland}/bin/hyprctl keyword decoration:screen_shader "$F" 2>/dev/null || true
+      ${pkgs.hyprland}/bin/hyprctl hyprsunset temperature "$1" >/dev/null 2>&1 || true
     }
 
     [ ! -f "$STATE_FILE" ] && echo "2500:auto" > "$STATE_FILE"
@@ -344,9 +310,9 @@ let
         echo "''${TEMP}" > "$ACTIVE_FILE"
       fi
     else
-      # Disable — clear shader, display returns to neutral
+      # Disable — return to day/neutral temperature
       echo "''${TEMP}:disabled" > "$STATE_FILE"
-      ${pkgs.hyprland}/bin/hyprctl keyword decoration:screen_shader "" 2>/dev/null || true
+      ${pkgs.hyprland}/bin/hyprctl hyprsunset temperature ${hyprsunsetDayTemp} >/dev/null 2>&1 || true
     fi
 
     pkill -RTMIN+12 waybar 2>/dev/null || true
@@ -359,24 +325,7 @@ let
     PID_FILE="$HOME/.cache/hyprsunset-transition.pid"
 
     apply_temp() {
-      local T="$1"
-      if [ "$T" -ge ${hyprsunsetDayTemp} ]; then
-        ${pkgs.hyprland}/bin/hyprctl keyword decoration:screen_shader "" 2>/dev/null || true; return
-      fi
-      local F="$HOME/.cache/hyprsunset-shader.glsl"
-      read -r R G B <<< "$(${pkgs.gawk}/bin/awk -v t="$T" 'BEGIN {
-        t/=100; r=1; g=1; b=1
-        if (t<=66) {
-          g=(99.4708025861*log(t)-161.1195681661)/255; if(g<0)g=0; if(g>1)g=1
-          b=t>19?(138.5177312231*log(t-10)-305.0447927307)/255:0; if(b<0)b=0; if(b>1)b=1
-        } else {
-          r=(329.698727446*(t-60)^-0.1332047592)/255; if(r<0)r=0; if(r>1)r=1
-          g=(288.1221695283*(t-60)^-0.0755148492)/255; if(g<0)g=0; if(g>1)g=1; b=1
-        }
-        printf "%.6f %.6f %.6f\n",r,g,b
-      }')"
-      printf '#version 320 es\nprecision highp float;\nin vec2 v_texcoord;\nuniform sampler2D tex;\nout vec4 fragColor;\nvoid main(){\n  vec4 c=texture(tex,v_texcoord);\n  c.r*=%s; c.g*=%s; c.b*=%s;\n  fragColor=c;\n}\n' "$R" "$G" "$B" > "$F"
-      ${pkgs.hyprland}/bin/hyprctl keyword decoration:screen_shader "$F" 2>/dev/null || true
+      ${pkgs.hyprland}/bin/hyprctl hyprsunset temperature "$1" >/dev/null 2>&1 || true
     }
 
     [ ! -f "$STATE_FILE" ] && echo "2500:auto" > "$STATE_FILE"
