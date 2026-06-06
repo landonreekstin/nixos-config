@@ -249,7 +249,7 @@ let
         }
         printf "%.6f %.6f %.6f\n",r,g,b
       }')"
-      printf 'precision mediump float;\nvarying vec2 v_texcoord;\nuniform sampler2D tex;\nvoid main(){\n  vec4 c=texture2D(tex,v_texcoord);\n  c.r*=%s; c.g*=%s; c.b*=%s;\n  gl_FragColor=c;\n}\n' "$R" "$G" "$B" > "$F"
+      printf '#version 320 es\nprecision highp float;\nin vec2 v_texcoord;\nuniform sampler2D tex;\nout vec4 fragColor;\nvoid main(){\n  vec4 c=texture(tex,v_texcoord);\n  c.r*=%s; c.g*=%s; c.b*=%s;\n  fragColor=c;\n}\n' "$R" "$G" "$B" > "$F"
       ${pkgs.hyprland}/bin/hyprctl keyword decoration:screen_shader "$F" 2>/dev/null || true
     }
 
@@ -313,7 +313,7 @@ let
         }
         printf "%.6f %.6f %.6f\n",r,g,b
       }')"
-      printf 'precision mediump float;\nvarying vec2 v_texcoord;\nuniform sampler2D tex;\nvoid main(){\n  vec4 c=texture2D(tex,v_texcoord);\n  c.r*=%s; c.g*=%s; c.b*=%s;\n  gl_FragColor=c;\n}\n' "$R" "$G" "$B" > "$F"
+      printf '#version 320 es\nprecision highp float;\nin vec2 v_texcoord;\nuniform sampler2D tex;\nout vec4 fragColor;\nvoid main(){\n  vec4 c=texture(tex,v_texcoord);\n  c.r*=%s; c.g*=%s; c.b*=%s;\n  fragColor=c;\n}\n' "$R" "$G" "$B" > "$F"
       ${pkgs.hyprland}/bin/hyprctl keyword decoration:screen_shader "$F" 2>/dev/null || true
     }
 
@@ -375,7 +375,7 @@ let
         }
         printf "%.6f %.6f %.6f\n",r,g,b
       }')"
-      printf 'precision mediump float;\nvarying vec2 v_texcoord;\nuniform sampler2D tex;\nvoid main(){\n  vec4 c=texture2D(tex,v_texcoord);\n  c.r*=%s; c.g*=%s; c.b*=%s;\n  gl_FragColor=c;\n}\n' "$R" "$G" "$B" > "$F"
+      printf '#version 320 es\nprecision highp float;\nin vec2 v_texcoord;\nuniform sampler2D tex;\nout vec4 fragColor;\nvoid main(){\n  vec4 c=texture(tex,v_texcoord);\n  c.r*=%s; c.g*=%s; c.b*=%s;\n  fragColor=c;\n}\n' "$R" "$G" "$B" > "$F"
       ${pkgs.hyprland}/bin/hyprctl keyword decoration:screen_shader "$F" 2>/dev/null || true
     }
 
