@@ -24,6 +24,8 @@ in
   # == Configuration ==
   config = lib.mkIf config.customConfig.profiles.gaming.enable {
 
+    nixpkgs.config.permittedInsecurePackages = [ "electron-39.8.10" ];
+
     environment.systemPackages = (with pkgs.unstable; [
       # Launchers / Compatibility Layers
       steam # Check prerequisites (32-bit libs, vulkan drivers - nvidia module should handle these)

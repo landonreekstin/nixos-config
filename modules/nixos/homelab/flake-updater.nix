@@ -98,29 +98,25 @@ BODY
     }
 
     # ---------------------------------------------------------------
-    # Path A: Branch already on remote → auto-merge check
+    # Step 1: Auto-merge any eligible open flake-update PRs
+    # Runs every invocation — fixes the old "Path A" bug where only
+    # the current week's branch was checked, causing PRs to pile up.
     # ---------------------------------------------------------------
-    if git ls-remote --exit-code origin "refs/heads/''${BRANCH}" > /dev/null 2>&1; then
-      log "Branch ''${BRANCH} already on remote — running auto-merge check"
+    OPEN_PRS=$(${pkgs.gh}/bin/gh pr list \
+      --repo "''${REPO}" \
+      --label "flake-update" \
+      --state open \
+      --json number \
+      --jq '.[].number' 2>/dev/null || true)
 
-      PR_NUM=$(${pkgs.gh}/bin/gh pr list \
-        --repo "''${REPO}" \
-        --head "''${BRANCH}" \
-        --state open \
-        --json number -q '.[0].number // empty')
-
-      if [ -z "''${PR_NUM}" ]; then
-        log "No open PR for ''${BRANCH} — may already be merged or closed"
-        exit 0
-      fi
-
+    for PR_NUM in ''${OPEN_PRS}; do
       LABELS=$(${pkgs.gh}/bin/gh pr view "''${PR_NUM}" \
         --repo "''${REPO}" \
         --json labels -q '[.labels[].name] | join(",")')
 
       if echo "''${LABELS}" | grep -qF "''${BLOCK_LABEL}"; then
         log "PR #''${PR_NUM} has block label '${cfg.blockLabel}' — skipping auto-merge"
-        exit 0
+        continue
       fi
 
       CREATED=$(${pkgs.gh}/bin/gh pr view "''${PR_NUM}" \
@@ -132,15 +128,22 @@ BODY
       if [ "''${AGE}" -ge "''${AUTO_MERGE_DAYS}" ]; then
         log "Auto-merging PR #''${PR_NUM}"
         ${pkgs.gh}/bin/gh pr merge "''${PR_NUM}" --repo "''${REPO}" --merge --delete-branch
-        log "Auto-merge complete"
+        log "PR #''${PR_NUM} merged"
       else
-        log "Not old enough yet (''${AGE}/''${AUTO_MERGE_DAYS} days) — nothing to do"
+        log "Not old enough yet (''${AGE}/''${AUTO_MERGE_DAYS} days) — skipping"
       fi
+    done
+
+    # ---------------------------------------------------------------
+    # Step 2: If this week's branch already exists, nothing left to do
+    # ---------------------------------------------------------------
+    if git ls-remote --exit-code origin "refs/heads/''${BRANCH}" > /dev/null 2>&1; then
+      log "Branch ''${BRANCH} already on remote — no new update needed"
       exit 0
     fi
 
     # ---------------------------------------------------------------
-    # Path B: New week → update flake, build, open PR, build rest
+    # Step 3: New week → update flake, build, open PR, build rest
     # ---------------------------------------------------------------
     log "Starting weekly flake update for ''${BRANCH}"
 
@@ -194,6 +197,20 @@ BODY
     ${pkgs.gh}/bin/gh pr edit "''${PR_NUM}" \
       --repo "''${REPO}" \
       --body "$(pr_body)"
+
+    # Step 5: Auto-block if any host FAILED (not just timed out)
+    HAS_FAILURE=0
+    for host in "''${BETA_HOST}" "''${REMAINING_HOSTS[@]}"; do
+      if [ "''${BUILD_STATUS["''${host}"]:-}" = "FAIL" ]; then
+        HAS_FAILURE=1
+        break
+      fi
+    done
+    if [ "''${HAS_FAILURE}" -eq 1 ]; then
+      log "Build failures detected — adding ''${BLOCK_LABEL} to PR #''${PR_NUM}"
+      ${pkgs.gh}/bin/gh pr edit "''${PR_NUM}" --repo "''${REPO}" --add-label "''${BLOCK_LABEL}"
+      log "PR #''${PR_NUM} blocked; fix the failures and remove the label to allow auto-merge"
+    fi
 
     log "Weekly update complete — PR #''${PR_NUM} updated with full build results"
   '';
