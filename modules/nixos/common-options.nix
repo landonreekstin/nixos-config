@@ -211,6 +211,15 @@ in
         example = [ "kde" "hyprland" ];
         description = "A list of desktop environments or window managers to make available on the system.";
       };
+      kde = {
+        kwallet = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable KWallet for credential storage. Required for plasma-nm to persist WiFi passwords across sessions. Pairs with SDDM PAM auto-unlock so no wallet password prompt appears at login.";
+          };
+        };
+      };
       monitors = mkOption {
         type = with types; listOf (submodule {
           options = {
