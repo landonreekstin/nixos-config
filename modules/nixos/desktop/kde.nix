@@ -4,6 +4,9 @@
 {
   config = lib.mkIf (lib.elem "kde" config.customConfig.desktop.environments) {
 
+    security.pam.services.sddm.kwallet.enable =
+      config.customConfig.desktop.kde.kwallet.enable;
+
     services.desktopManager.plasma6.enable = true;
 
     xdg.portal = {

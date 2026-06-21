@@ -195,9 +195,11 @@ in
       NAS_IP="192.168.1.76"
       if [ "${hostName}" != "optiplex-nas" ] && ping -c 1 -W 2 "$NAS_IP" > /dev/null 2>&1; then
         echo "NAS reachable — pushing build to cache in background..."
-        nix copy --to "ssh://lando@$NAS_IP" $(nix path-info --recursive /run/current-system) &
-        disown
-        echo "Cache push running in background (PID: $!)."
+        LOG=/tmp/nix-cache-push.log
+        setsid nix copy --to "ssh://lando@$NAS_IP" \
+          $(nix path-info --recursive /run/current-system) \
+          > "$LOG" 2>&1 &
+        echo "Cache push running in background (PID: $!). Follow with: tail -f $LOG"
       fi
     '')
 

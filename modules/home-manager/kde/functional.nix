@@ -65,7 +65,8 @@ in
       };
 
       configFile."kcminputrc"."LibinputPointer"."NaturalScroll" = customConfig.hardware.touchpad.naturalScroll;
-      configFile."kwalletrc"."Wallet"."Enabled" = false;
+      configFile."kwalletrc"."Wallet"."Enabled" =
+        lib.mkIf (!customConfig.desktop.kde.kwallet.enable) false;
     };
   };
 }
