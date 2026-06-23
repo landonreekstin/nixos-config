@@ -26,6 +26,11 @@
   };
 
   nixpkgs.config.allowUnfree = true;
+  nixpkgs.config.permittedInsecurePackages = [
+    "electron-39.8.10"            # used by aerotheme-plasma on optiplex
+    "librewolf-151.0.2-1"         # marked insecure upstream; remove when fixed
+    "librewolf-unwrapped-151.0.2-1"
+  ];
 
   # Garbage collection
   nix.gc = {
