@@ -1300,6 +1300,15 @@ in
           description = "Enable battery status widget in Waybar. Enable for laptops with a battery.";
         };
       };
+      bluetooth = {
+        waybar = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Show Bluetooth status widget in Waybar. Enable for hosts that use Bluetooth devices.";
+          };
+        };
+      };
       touchpad = {
         naturalScroll = mkOption {
           type = types.bool;
