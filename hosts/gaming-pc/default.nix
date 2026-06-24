@@ -198,6 +198,9 @@
           # Color/brightness managed at runtime via ~/.cache/ckb-color-state
         };
       };
+      bluetooth = {
+        waybar.enable = true;
+      };
       monitors = [
         { name = "DP-1";     rotation = "Normal";    scale = 1.15; } # Main: LG 2560x1440 @ 180Hz
         { name = "HDMI-A-1"; rotation = "Rotated90"; }               # Left: Dell 1080p portrait
