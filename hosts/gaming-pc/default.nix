@@ -244,6 +244,7 @@
 
     packages = {
       nixos = with pkgs; [
+        uv
         kitty
         pavucontrol
         mullvad-vpn
