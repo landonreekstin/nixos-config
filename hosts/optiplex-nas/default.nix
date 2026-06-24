@@ -138,6 +138,8 @@
 
 
 
+    programs.claudeCode.enable = true;
+
     profiles = {
       gaming.enable = false;
       development.fpga-ice40.enable = false;

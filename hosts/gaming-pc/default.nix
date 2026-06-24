@@ -244,7 +244,6 @@
 
     packages = {
       nixos = with pkgs; [
-        uv
         kitty
         pavucontrol
         mullvad-vpn
@@ -321,6 +320,8 @@
         packages = [];
       };
     };
+
+    programs.claudeCode.enable = true;
 
     profiles = {
       gaming.enable = true;

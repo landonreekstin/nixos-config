@@ -5,5 +5,6 @@
   imports = [
     ./flatpak.nix
     ./partydeck.nix
+    ./claude-code.nix
   ];
 }
