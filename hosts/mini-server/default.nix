@@ -34,6 +34,7 @@
       name = "lando";
       email = "landonreekstin@gmail.com";
       shell.bash.color = "cyan";
+      sopsPassword = true;
     };
 
     system = {

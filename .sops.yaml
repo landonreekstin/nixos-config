@@ -15,7 +15,6 @@ keys:
   - &asus-m15 age1PLACEHOLDER_asus-m15
   - &atl-mini-pc age1PLACEHOLDER_atl-mini-pc
   - &optiplex-nas age1zngsf2yrpft0uhcs3wrac3raqw2ykwna066z5wvecamaczr77yzsfe8k6n
-  # TODO: fill in after first boot: ssh mini-server "cat /etc/ssh/ssh_host_ed25519_key.pub | ssh-to-age"
   - &mini-server age1PLACEHOLDER_mini-server
 
 creation_rules:
@@ -52,10 +51,9 @@ creation_rules:
     key_groups:
       - age: [*optiplex-nas, *lando]
 
-  # mini-server key added after first boot
   - path_regex: secrets/mini-server\.yaml$
     key_groups:
-      - age: [*gaming-pc, *lando]
+      - age: [*mini-server, *lando]
 
   # Common secrets readable by hosts with real age keys + admin
   # Add placeholder hosts here once their keys are filled in, then run:
