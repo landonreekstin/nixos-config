@@ -1838,8 +1838,8 @@ in
         enable = mkEnableOption "game server and vaultwarden backups to NAS via restic (daily at 4am)";
         repository = mkOption {
           type = types.str;
-          default = "sftp:nas-backup:/backups/mini-server";
-          description = "Restic repository URI. Supports sftp:, rest:, and rclone: backends.";
+          default = "/mnt/nas/backups/mini-server";
+          description = "Restic repository path or URI. Defaults to the NAS CIFS mount.";
         };
         passwordFile = mkOption {
           type = types.path;

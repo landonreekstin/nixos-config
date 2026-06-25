@@ -10,10 +10,17 @@ in
       sopsFile = ../../../secrets/mini-server.yaml;
     };
 
-    services.restic.backups.game-servers = {
+    services.restic.backups.mini-server = {
       paths = [
         "/var/lib/game-servers"
         "/var/lib/vaultwarden"
+        "/var/lib/hass"
+      ];
+      exclude = [
+        "/var/lib/hass/deps"
+        "/var/lib/hass/tts"
+        "*.log"
+        "*.log.*"
       ];
       repository = cfg.repository;
       passwordFile = config.sops.secrets."restic-password".path;
@@ -26,6 +33,12 @@ in
         "--keep-weekly 4"
         "--keep-monthly 3"
       ];
+    };
+
+    # Ensure network is up before restic runs (CIFS automount triggers on first access)
+    systemd.services."restic-backups-mini-server" = {
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
     };
   };
 }
