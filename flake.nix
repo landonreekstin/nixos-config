@@ -183,6 +183,18 @@
           { nixpkgs.hostPlatform = "x86_64-linux"; }
         ];
       };
+
+      # Configuration for the Mini Server (BeeLink AZW Mini S)
+      mini-server = nixpkgs.lib.nixosSystem {
+        specialArgs = specialArgs;
+        modules = [
+          ./hosts/mini-server/default.nix
+          inputs.home-manager.nixosModules.default
+          inputs.disko.nixosModules.default
+          # Set system architecture
+          { nixpkgs.hostPlatform = "x86_64-linux"; }
+        ];
+      };
     };
 
     # Custom packages not in nixpkgs
