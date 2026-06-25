@@ -1,12 +1,11 @@
 # ~/nixos-config/hosts/mini-server/disko-config.nix
-# PLACEHOLDER — verify /dev/nvme0n1 with `lsblk` on actual hardware before running disko.
 { ... }:
 {
   disko.devices = {
     disk = {
-      nvme = {
+      main = {
         type = "disk";
-        device = "/dev/nvme0n1";
+        device = "/dev/sda";
         content = {
           type = "gpt";
           partitions = {
