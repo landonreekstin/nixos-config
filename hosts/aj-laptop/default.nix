@@ -23,6 +23,7 @@
     user = {
       name = "aj";
       email = "";
+      sopsPassword = true;
     };
 
     bootloader = {
