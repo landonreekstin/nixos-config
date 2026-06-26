@@ -9,6 +9,10 @@ in
     # wyoming-satellite's systemd service only puts alsa-utils in PATH by default;
     # extend it with sox for the resampling pipe commands.
     systemd.services.wyoming-satellite.path = [ pkgs.sox ];
+    # PrivateUsers=true (set by the nixpkgs module) creates a user namespace where
+    # SupplementaryGroups=audio doesn't map to the real host audio GID, blocking
+    # ALSA device access. Disable it so the audio group grants real /dev/snd access.
+    systemd.services.wyoming-satellite.serviceConfig.PrivateUsers = lib.mkForce false;
 
     users.users.wyoming-satellite = {
       isSystemUser = true;
