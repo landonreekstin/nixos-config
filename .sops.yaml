@@ -15,7 +15,7 @@ keys:
   - &asus-m15 age1PLACEHOLDER_asus-m15
   - &atl-mini-pc age1PLACEHOLDER_atl-mini-pc
   - &optiplex-nas age1zngsf2yrpft0uhcs3wrac3raqw2ykwna066z5wvecamaczr77yzsfe8k6n
-  - &mini-server age1PLACEHOLDER_mini-server
+  - &mini-server age1x3zk4djdjyqz4gem4s877s9vcg9pq9266383vdqpthmtuvhqgu4qsufc5z
 
 creation_rules:
   # Host-specific secrets: readable by that host + admin

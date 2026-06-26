@@ -37,6 +37,7 @@ fi
 _MISSING=()
 command -v sops        &>/dev/null || _MISSING+=(nixpkgs#sops)
 command -v ssh-to-age  &>/dev/null || _MISSING+=(nixpkgs#ssh-to-age)
+command -v openssl     &>/dev/null || _MISSING+=(nixpkgs#openssl)
 if [[ ${#_MISSING[@]} -gt 0 && -z "${_TOOLS_LOADED:-}" ]]; then
     echo "Loading missing tools: ${_MISSING[*]}"
     export _TOOLS_LOADED=1
@@ -87,9 +88,18 @@ if grep -q "$PLACEHOLDER" "$CONFIG_ROOT/.sops.yaml"; then
 elif grep -q "$HOST_AGE_KEY" "$CONFIG_ROOT/.sops.yaml"; then
     echo "ℹ️  Age key already present (re-deploy or key unchanged)."
 else
-    echo "❌ .sops.yaml has neither placeholder ('$PLACEHOLDER') nor the current key."
-    echo "   Update .sops.yaml manually and re-run."
-    exit 1
+    # A previous partial run wrote a different key. Reset to placeholder so this
+    # run can write its own key coherently (SSH key and age key stay in sync).
+    STALE_KEY=$(grep -oP "(?<=&${HOST_NAME} )age1\S+" "$CONFIG_ROOT/.sops.yaml" || true)
+    if [[ -n "$STALE_KEY" ]]; then
+        echo "ℹ️  Stale age key from a previous partial run detected — resetting."
+        sed -i "s|${STALE_KEY}|${HOST_AGE_KEY}|" "$CONFIG_ROOT/.sops.yaml"
+        echo "✅ Replaced stale key with current age key."
+    else
+        echo "❌ .sops.yaml has neither placeholder ('$PLACEHOLDER') nor a recognized key."
+        echo "   Check .sops.yaml manually and re-run."
+        exit 1
+    fi
 fi
 
 # --- Step 3: Read host password configuration ---
@@ -145,17 +155,38 @@ if [[ "$SOPS_PASSWORD_ENABLED" == "true" ]]; then
 
     echo ""
     if [[ -f "$SECRETS_FILE" ]]; then
-        # Existing secrets file: rotate to include the new host key, then set passwords.
+        # Existing secrets file: decrypt → add/update password fields → re-encrypt.
+        # SOPS_AGE_KEY_FILE points to the admin age private key (lando is always a recipient).
+        # After re-encrypting, the creation rule (real host key now in .sops.yaml) takes effect,
+        # so output is encrypted for [host, lando] — gaming-pc drops out if it was a temp recipient.
         echo "--- Updating existing secrets file ---"
-        SOPS_AGE_KEY_FILE="$ADMIN_AGE_KEY_FILE" \
-            sops updatekeys -y "$SECRETS_FILE"
-        SOPS_AGE_KEY_FILE="$ADMIN_AGE_KEY_FILE" \
-            sops --set '["user-password-hash"] "'"$PASSWORD_HASH"'"' "$SECRETS_FILE"
-        if [[ "$SUDO_PASSWORD_ENABLED" == "true" ]]; then
-            SOPS_AGE_KEY_FILE="$ADMIN_AGE_KEY_FILE" \
-                sops --set '["root-password-hash"] "'"$ROOT_HASH"'"' "$SECRETS_FILE"
+        PLAINTEXT=$(mktemp --suffix=.yaml)
+        trap 'rm -rf "$EXTRA_FILES" "$PLAINTEXT"' EXIT
+
+        SOPS_AGE_KEY_FILE="$ADMIN_AGE_KEY_FILE" sops decrypt "$SECRETS_FILE" > "$PLAINTEXT"
+
+        # Add or update user-password-hash
+        if grep -q "^user-password-hash:" "$PLAINTEXT"; then
+            sed -i "s|^user-password-hash:.*|user-password-hash: \"$PASSWORD_HASH\"|" "$PLAINTEXT"
+        else
+            printf 'user-password-hash: "%s"\n' "$PASSWORD_HASH" >> "$PLAINTEXT"
         fi
-        echo "✅ Secrets file updated (re-encrypted for $HOST_NAME)."
+
+        if [[ "$SUDO_PASSWORD_ENABLED" == "true" ]]; then
+            if grep -q "^root-password-hash:" "$PLAINTEXT"; then
+                sed -i "s|^root-password-hash:.*|root-password-hash: \"$ROOT_HASH\"|" "$PLAINTEXT"
+            else
+                printf 'root-password-hash: "%s"\n' "$ROOT_HASH" >> "$PLAINTEXT"
+            fi
+        fi
+
+        # Re-encrypt in-place using .sops.yaml creation rules.
+        # The creation rule now has the real host age key, so the output is
+        # encrypted for [host, lando] — no private key needed for encrypt.
+        cp "$PLAINTEXT" "$SECRETS_FILE"
+        sops encrypt -i "$SECRETS_FILE"
+        rm -f "$PLAINTEXT"
+        echo "✅ Secrets file re-encrypted for [$HOST_NAME, lando]."
     else
         # New secrets file: create and encrypt using .sops.yaml creation rules.
         # Encrypts to public keys only — admin private key not required.
@@ -188,8 +219,7 @@ nix run --extra-experimental-features "nix-command flakes" \
     github:nix-community/nixos-anywhere -- \
     --flake "$CONFIG_ROOT#$HOST_NAME" \
     --extra-files "$EXTRA_FILES" \
-    --generate-hardware-config "nixos-generate-config --no-filesystems" \
-    --hardware-config-path "$HW_CONFIG_PATH" \
+    --generate-hardware-config nixos-generate-config "$HW_CONFIG_PATH" \
     -p "$SSH_PORT" \
     root@"$TARGET_IP"
 
