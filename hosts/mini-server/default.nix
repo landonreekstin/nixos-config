@@ -87,7 +87,7 @@
     };
 
     packages = {
-      nixos = with pkgs; [ wget git vim htop claude-code ];
+      nixos = with pkgs; [ wget git vim htop claude-code restic ];
       homeManager = [];
     };
 
