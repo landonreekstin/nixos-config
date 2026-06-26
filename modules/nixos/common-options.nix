@@ -1743,6 +1743,11 @@ in
             default = null;
             description = "Path to WAV played when TTS finishes. Null uses wyoming-satellite's built-in sound.";
           };
+          wakeWord = mkOption {
+            type = types.str;
+            default = "hey_jarvis";
+            description = "openWakeWord model name passed to wyoming-satellite (e.g. hey_jarvis, ok_nabu).";
+          };
         };
         whisper = {
           model = mkOption {
