@@ -17,6 +17,7 @@ in
         "cync"
         "wyoming"
         "radio_browser"
+        "google_translate"
       ];
       config = {
         homeassistant = {

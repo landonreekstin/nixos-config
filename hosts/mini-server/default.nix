@@ -22,6 +22,20 @@
   services.xrdp.defaultWindowManager = "gnome-session";
   services.xrdp.openFirewall = true;
 
+  # Prevent GNOME/logind from suspending or hibernating — this is a server.
+  systemd.sleep.extraConfig = ''
+    AllowSuspend=no
+    AllowHibernation=no
+    AllowHybridSleep=no
+    AllowSuspendThenHibernate=no
+  '';
+  services.logind.settings.Login = {
+    IdleAction = "ignore";
+    HandleSuspendKey = "ignore";
+    HandleHibernateKey = "ignore";
+    HandleLidSwitch = "ignore";
+  };
+
   # State dirs for game-control watchdog idle timers and game server volumes
   systemd.tmpfiles.rules = [
     "d /var/lib/game-control 0755 root root - -"
