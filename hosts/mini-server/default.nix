@@ -105,6 +105,8 @@
         satellite.micDevice = "hw:1,0";
         # VERIFY: run `aplay -l` after install — HDA Intel PCH may shift
         satellite.sndDevice = "hw:0,0";
+        satellite.awakeWav = "${../../modules/nixos/homelab/wyoming-sounds/awake.wav}";
+        satellite.doneWav = "${../../modules/nixos/homelab/wyoming-sounds/done.wav}";
         whisper.model = "tiny-int8";
         whisper.language = "en";
         piper.voice = "en_US-lessac-medium";
