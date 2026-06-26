@@ -7,7 +7,7 @@ in
 {
   config = lib.mkIf cfg.enable {
     # wyoming-satellite's systemd service only puts alsa-utils in PATH by default;
-    # extend it with sox for the resampling pipe commands.
+    # extend it with sox for the TTS sound output conversion pipe.
     systemd.services.wyoming-satellite.path = [ pkgs.sox ];
     # The nixpkgs module sets PrivateUsers=true and PrivateDevices=true + DevicePolicy=closed,
     # which (a) breaks GID mapping for SupplementaryGroups=audio and (b) hides /dev/snd/*
@@ -28,12 +28,10 @@ in
       enable = true;
       user = "wyoming-satellite";
       name = cfg.satellite.name;
-      # USB mic (hw:1,0): record at 44100 Hz, resample to 16000 Hz via sox
-      # VERIFY device index with `arecord -l` after install — USB enumeration can shift
-      # Wrapped in /bin/sh -c because wyoming-satellite uses subprocess_exec (no shell),
-      # so the pipe would otherwise be passed as a literal argument to arecord.
-      # Use full path: systemd service PATH doesn't include a plain 'sh' lookup.
-      microphone.command = "/bin/sh -c 'arecord -D ${cfg.satellite.micDevice} -r 44100 -c 1 -f S32_LE -t raw | sox -t raw -r 44100 -c 1 -e signed-integer -b 32 - -t raw -r 16000 -c 1 -e signed-integer -b 16 -'";
+      # USB mic via plughw (ALSA plug layer handles any rate/format conversion).
+      # Record at 16000 Hz directly — the TKGOU mic natively supports this rate.
+      # No pipe needed, so no /bin/sh -c wrapper required.
+      microphone.command = "arecord -D ${cfg.satellite.micDevice} -r 16000 -c 1 -f S16_LE -t raw";
       # HDA Intel PCH (hw:0,0): convert mono 22050 Hz to stereo 48000 Hz via sox
       # VERIFY device index with `aplay -l` after install
       sound.command = "/bin/sh -c 'sox -t raw -r 22050 -c 1 -e signed-integer -b 16 - -t raw -r 48000 -c 2 -e signed-integer -b 16 - | aplay -D ${cfg.satellite.sndDevice} -r 48000 -c 2 -f S16_LE -t raw'";
@@ -41,7 +39,7 @@ in
       sounds.done = cfg.satellite.doneWav;
       extraArgs = [
         "--wake-uri" "tcp://127.0.0.1:10400"
-        "--wake-word-name" "ok_nabu"
+        "--wake-word-name" cfg.satellite.wakeWord
       ];
     };
 
