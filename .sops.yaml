@@ -65,3 +65,4 @@ creation_rules:
           - *asus-laptop
           - *gaming-pc
           - *optiplex-nas
+          - *mini-server
