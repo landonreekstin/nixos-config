@@ -31,8 +31,6 @@ in
       extraArgs = [
         "--wake-uri" "tcp://127.0.0.1:10400"
         "--wake-word-name" "ok_nabu"
-        "--stt-uri" "tcp://127.0.0.1:10300"
-        "--tts-uri" "tcp://127.0.0.1:10200"
       ];
     };
 

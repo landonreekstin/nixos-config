@@ -48,8 +48,7 @@
       networkmanager.enable = false;
       staticIP = {
         enable = true;
-        # VERIFY: run `ip link` after install to confirm the interface name
-        interface = "enp2s0";
+        interface = "enp1s0";
         address = "192.168.100.103";
         gateway = "192.168.100.1";
       };
@@ -101,9 +100,7 @@
       wyoming = {
         enable = true;
         satellite.name = "mini-server";
-        # VERIFY: run `arecord -l` after install — USB mic enumeration can shift
         satellite.micDevice = "hw:1,0";
-        # VERIFY: run `aplay -l` after install — HDA Intel PCH may shift
         satellite.sndDevice = "hw:0,0";
         satellite.awakeWav = "${../../modules/nixos/homelab/wyoming-sounds/awake.wav}";
         satellite.doneWav = "${../../modules/nixos/homelab/wyoming-sounds/done.wav}";
