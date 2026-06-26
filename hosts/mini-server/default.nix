@@ -118,8 +118,8 @@
       wyoming = {
         enable = true;
         satellite.name = "mini-server";
-        satellite.micDevice = "hw:1,0";
-        satellite.sndDevice = "hw:0,0";
+        satellite.micDevice = "hw:0,0";
+        satellite.sndDevice = "hw:1,0";
         satellite.awakeWav = "${../../modules/nixos/homelab/wyoming-sounds/awake.wav}";
         satellite.doneWav = "${../../modules/nixos/homelab/wyoming-sounds/done.wav}";
         whisper.model = "tiny-int8";
