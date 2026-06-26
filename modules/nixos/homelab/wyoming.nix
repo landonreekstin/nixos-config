@@ -61,5 +61,23 @@ in
       uri = "tcp://127.0.0.1:10400";
       # preloadModels removed in wyoming-openwakeword 2.0; wake word selected by satellite
     };
+
+    # home-assistant starts before Wyoming services are fully ready by default,
+    # causing its wyoming config entries to fail. Ordering it after the Wyoming
+    # units ensures clean connections on every boot.
+    systemd.services.home-assistant = {
+      wants = [
+        "wyoming-satellite.service"
+        "wyoming-openwakeword.service"
+        "wyoming-faster-whisper-home.service"
+        "wyoming-piper-home.service"
+      ];
+      after = [
+        "wyoming-satellite.service"
+        "wyoming-openwakeword.service"
+        "wyoming-faster-whisper-home.service"
+        "wyoming-piper-home.service"
+      ];
+    };
   };
 }
