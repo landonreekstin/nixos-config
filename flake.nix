@@ -76,7 +76,7 @@
       referenceHostConfig = self.nixosConfigurations."gaming-pc".config;
 
       # Define specialArgs once to pass to all hosts
-      specialArgs = { inherit inputs; };
+      specialArgs = { inherit inputs unstablePkgs; };
     in
   {
     # Define NixOS configurations for each host
@@ -85,7 +85,7 @@
       # Configuration for the Optiplex host
       optiplex = nixpkgs.lib.nixosSystem {
         # Pass flake inputs down to the modules if needed (good practice)
-        specialArgs = { inherit inputs; };
+        specialArgs = specialArgs;
         modules = [
           # Host-specific entrypoint
           ./hosts/optiplex/default.nix

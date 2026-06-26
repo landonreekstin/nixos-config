@@ -95,7 +95,11 @@
 
       vaultwarden.enable = true;
 
-      homeAssistant.enable = true;
+      homeAssistant = {
+        enable = true;
+        # nixpkgs 25.11 ships HA 2025.11.x; backup requires >= 2026.2.1 — use unstable
+        package = unstablePkgs.home-assistant;
+      };
 
       wyoming = {
         enable = true;

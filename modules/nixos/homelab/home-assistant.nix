@@ -8,6 +8,7 @@ in
   config = lib.mkIf cfg.enable {
     services.home-assistant = {
       enable = true;
+      package = lib.mkIf (cfg.package != null) cfg.package;
       openFirewall = true;
       extraComponents = [
         "default_config"

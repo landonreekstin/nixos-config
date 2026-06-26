@@ -1708,6 +1708,11 @@ in
           default = 8123;
           description = "Port for Home Assistant to listen on.";
         };
+        package = mkOption {
+          type = types.nullOr types.package;
+          default = null;
+          description = "Override the Home Assistant package (e.g. to pin a newer version for backup restore compatibility).";
+        };
       };
 
       wyoming = {
