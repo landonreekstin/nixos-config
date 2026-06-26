@@ -262,8 +262,13 @@ let
     # Apply immediately in manual mode, or in auto mode during nighttime.
     # In auto daytime, just save the preset — display stays at dayTemp.
     if [ "$MODE" = "manual" ] || { [ "$MODE" = "auto" ] && [ "$IS_DAY" = "0" ]; }; then
-      pkill -9 -x hyprsunset 2>/dev/null || true
-      ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
+      SOCK="''${XDG_RUNTIME_DIR}/hypr/''${HYPRLAND_INSTANCE_SIGNATURE}/.hyprsunset.sock"
+      if [ -S "$SOCK" ]; then
+        echo "temperature ''${TEMP}" | ${pkgs.socat}/bin/socat - UNIX-CONNECT:"$SOCK" 2>/dev/null || true
+      else
+        pkill -9 -x hyprsunset 2>/dev/null || true
+        ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
+      fi
       echo "''${TEMP}" > "$ACTIVE_FILE"
     fi
 
@@ -336,25 +341,40 @@ let
     HOUR=$(date +%-H)
     if [ "$HOUR" -ge ${hyprsunsetDayStart} ] && [ "$HOUR" -lt ${hyprsunsetNightStart} ]; then IS_DAY=1; else IS_DAY=0; fi
 
+    SOCK="''${XDG_RUNTIME_DIR}/hypr/''${HYPRLAND_INSTANCE_SIGNATURE}/.hyprsunset.sock"
     if [ "$MODE" = "auto" ]; then
       # Switch to manual — if daytime, snap to night preset so night light turns on NOW
       echo "''${TEMP}:manual" > "$STATE_FILE"
       if [ "$IS_DAY" = "1" ]; then
-        pkill -9 -x hyprsunset 2>/dev/null || true
-        ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
+        if [ -S "$SOCK" ]; then
+          echo "temperature ''${TEMP}" | ${pkgs.socat}/bin/socat - UNIX-CONNECT:"$SOCK" 2>/dev/null || true
+        else
+          pkill -9 -x hyprsunset 2>/dev/null || true
+          ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
+        fi
         echo "''${TEMP}" > "$ACTIVE_FILE"
       fi
       # If nighttime: already at TEMP, no change needed
     else
       # Switch to auto — snap to correct time-of-day temp immediately
       echo "''${TEMP}:auto" > "$STATE_FILE"
-      pkill -9 -x hyprsunset 2>/dev/null || true
-      if [ "$IS_DAY" = "1" ]; then
-        ${pkgs.hyprsunset}/bin/hyprsunset -t ${toString customConfig.homeManager.services.hyprsunset.dayTemp} &
-        echo "${toString customConfig.homeManager.services.hyprsunset.dayTemp}" > "$ACTIVE_FILE"
+      if [ -S "$SOCK" ]; then
+        if [ "$IS_DAY" = "1" ]; then
+          echo "temperature ${toString customConfig.homeManager.services.hyprsunset.dayTemp}" | ${pkgs.socat}/bin/socat - UNIX-CONNECT:"$SOCK" 2>/dev/null || true
+          echo "${toString customConfig.homeManager.services.hyprsunset.dayTemp}" > "$ACTIVE_FILE"
+        else
+          echo "temperature ''${TEMP}" | ${pkgs.socat}/bin/socat - UNIX-CONNECT:"$SOCK" 2>/dev/null || true
+          echo "''${TEMP}" > "$ACTIVE_FILE"
+        fi
       else
-        ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
-        echo "''${TEMP}" > "$ACTIVE_FILE"
+        pkill -9 -x hyprsunset 2>/dev/null || true
+        if [ "$IS_DAY" = "1" ]; then
+          ${pkgs.hyprsunset}/bin/hyprsunset -t ${toString customConfig.homeManager.services.hyprsunset.dayTemp} &
+          echo "${toString customConfig.homeManager.services.hyprsunset.dayTemp}" > "$ACTIVE_FILE"
+        else
+          ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
+          echo "''${TEMP}" > "$ACTIVE_FILE"
+        fi
       fi
     fi
 
