@@ -26,6 +26,10 @@ in
     ]
     ++ lib.optionals cfg.astroneer.enable [
       "d ${cfg.dataDir}/astroneer 0755 root root - -"
+      # Pre-create Saved/ so the explicit bind mount overrides the image's VOLUME declaration
+      "d ${cfg.dataDir}/astroneer/Astro 0755 root root - -"
+      "d ${cfg.dataDir}/astroneer/Astro/Saved 0755 root root - -"
+      "d ${cfg.dataDir}/astroneer/Astro/Saved/SaveGames 0755 root root - -"
     ]
     ++ lib.optionals cfg.minecraftSurvival.enable [
       "d ${cfg.dataDir}/minecraft-survival 0755 root root - -"
@@ -48,6 +52,9 @@ in
           ];
           volumes = [
             "${cfg.dataDir}/astroneer:/astrotux/AstroneerServer"
+            # Explicit bind mount overrides the image's VOLUME declaration so saves
+            # and config go to our host directory instead of an anonymous Docker volume.
+            "${cfg.dataDir}/astroneer/Astro/Saved:/astrotux/AstroneerServer/Astro/Saved"
           ];
         };
       })
