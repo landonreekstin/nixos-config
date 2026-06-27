@@ -47,7 +47,7 @@
     user = {
       name = "lando";
       email = "landonreekstin@gmail.com";
-      shell.bash.color = "cyan";
+      shell.bash.color = "yellow";
       sopsPassword = true;
     };
 
