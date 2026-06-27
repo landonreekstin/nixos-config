@@ -25,7 +25,7 @@ in
       "d ${cfg.dataDir} 0755 root root - -"
     ]
     ++ lib.optionals cfg.astroneer.enable [
-      "d ${cfg.dataDir}/astroneer/Astro/Saved 0755 root root - -"
+      "d ${cfg.dataDir}/astroneer 0755 root root - -"
     ]
     ++ lib.optionals cfg.minecraftSurvival.enable [
       "d ${cfg.dataDir}/minecraft-survival 0755 root root - -"
@@ -47,7 +47,7 @@ in
             "${toString cfg.astroneer.queryPort}:${toString cfg.astroneer.queryPort}/udp"
           ];
           volumes = [
-            "${cfg.dataDir}/astroneer/Astro/Saved:/astrotux/AstroneerServer/Astro/Saved"
+            "${cfg.dataDir}/astroneer:/astrotux/AstroneerServer"
           ];
         };
       })
