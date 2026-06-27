@@ -200,7 +200,8 @@ in
         echo "Pushing $PATH_COUNT store paths to ssh://lando@$NAS_IP..."
         set +e
         # shellcheck disable=SC2086 - word splitting is intentional for path list
-        nix copy --to "ssh://lando@$NAS_IP" $STORE_PATHS
+        NIX_SSHOPTS="-i /home/lando/.ssh/id_ed25519 -o StrictHostKeyChecking=accept-new" \
+          nix copy --to "ssh://lando@$NAS_IP" $STORE_PATHS
         PUSH_EXIT=$?
         set -e
         if [ "$PUSH_EXIT" -eq 0 ]; then
