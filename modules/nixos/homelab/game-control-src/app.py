@@ -14,6 +14,8 @@ templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
 TOKEN = os.environ["GAME_CONTROL_TOKEN"]
 STATE_DIR = Path("/var/lib/game-control")
+ASTRONEER_INI = Path("/var/lib/game-servers/astroneer/Astro/Saved/Config/WindowsServer/AstroServerSettings.ini")
+ASTRONEER_SAVES_DIR = Path("/var/lib/game-servers/astroneer/Astro/Saved/SaveGames")
 
 SERVERS = {
     "astroneer": {
@@ -45,6 +47,27 @@ SERVERS = {
         "ports": "19132/udp, 19133/udp",
     },
 }
+
+
+def get_active_save() -> str:
+    try:
+        for line in ASTRONEER_INI.read_text().splitlines():
+            if line.startswith("ActiveSaveFileDescriptiveName="):
+                return line.split("=", 1)[1].strip()
+    except OSError:
+        pass
+    return ""
+
+
+def list_saves() -> list[str]:
+    names: set[str] = set()
+    try:
+        for f in ASTRONEER_SAVES_DIR.iterdir():
+            if f.suffix == ".savegame" and "$" in f.stem:
+                names.add(f.stem.split("$")[0])
+    except OSError:
+        pass
+    return sorted(names)
 
 
 def verify_token(token: str = Query(...)):
@@ -90,7 +113,11 @@ def build_server_states(token: str) -> dict:
     for name, srv in SERVERS.items():
         status = container_status(srv["container"])
         players = player_count(srv) if status == "running" else None
-        states[name] = {**srv, "status": status, "players": players}
+        state = {**srv, "status": status, "players": players, "active_save": None, "available_saves": []}
+        if name == "astroneer":
+            state["active_save"] = get_active_save()
+            state["available_saves"] = list_saves()
+        states[name] = state
     return states
 
 
@@ -128,6 +155,24 @@ def stop_server(name: str, token: str = Query(...)):
     if container_status(srv["container"]) != "running":
         return RedirectResponse(f"/?token={token}", status_code=303)
     _safe_stop(srv, name)
+    return RedirectResponse(f"/?token={token}", status_code=303)
+
+
+@app.get("/api/servers/astroneer/switch-save")
+def switch_save(token: str = Query(...), save: str = Query(...)):
+    verify_token(token)
+    if save not in list_saves():
+        raise HTTPException(status_code=400, detail="Unknown save")
+    if container_status("astroneer-server") == "running":
+        raise HTTPException(status_code=409, detail="Stop the server before switching saves")
+    text = ASTRONEER_INI.read_text()
+    text = re.sub(
+        r"^ActiveSaveFileDescriptiveName=.*$",
+        f"ActiveSaveFileDescriptiveName={save}",
+        text,
+        flags=re.MULTILINE,
+    )
+    ASTRONEER_INI.write_text(text)
     return RedirectResponse(f"/?token={token}", status_code=303)
 
 
