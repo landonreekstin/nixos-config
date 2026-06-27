@@ -58,7 +58,11 @@ def container_status(container: str) -> str:
         ["docker", "inspect", "--format", "{{.State.Status}}", container],
         capture_output=True, text=True, timeout=5,
     )
-    return result.stdout.strip() if result.returncode == 0 else "stopped"
+    if result.returncode != 0:
+        return "stopped"
+    status = result.stdout.strip()
+    # Normalize docker states (exited, created, paused) to "stopped" for display
+    return "running" if status == "running" else "stopped"
 
 
 def player_count(server: dict) -> int | None:
@@ -107,7 +111,9 @@ def start_server(name: str, token: str = Query(...)):
     srv = SERVERS[name]
     if container_status(srv["container"]) == "running":
         return RedirectResponse(f"/?token={token}", status_code=303)
-    subprocess.run(["docker", "start", srv["container"]], timeout=60, check=True)
+    # Use the NixOS-managed systemd service so it handles image pull + container
+    # creation on first start (docker start fails if container was never created).
+    subprocess.run(["systemctl", "start", f"docker-{srv['container']}"], timeout=120, check=True)
     ts_file = STATE_DIR / f"{name}.last_active"
     ts_file.write_text(str(int(__import__("time").time())))
     return RedirectResponse(f"/?token={token}", status_code=303)
@@ -133,6 +139,6 @@ def _safe_stop(srv: dict, name: str):
                 timeout=15,
             )
         import time; time.sleep(8)
-    subprocess.run(["docker", "stop", srv["container"]], timeout=60)
+    subprocess.run(["systemctl", "stop", f"docker-{srv['container']}"], timeout=60)
     ts_file = STATE_DIR / f"{name}.last_active"
     ts_file.unlink(missing_ok=True)

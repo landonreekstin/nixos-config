@@ -125,7 +125,7 @@ in
       after = [ "network.target" "docker.service" ];
       wants = [ "docker.service" ];
       wantedBy = [ "multi-user.target" ];
-      path = [ pkgs.docker_29 ];
+      path = [ pkgs.docker_29 pkgs.systemd ];
       environment.PYTHONPATH = "${appSrc}";
       serviceConfig = {
         Type = "simple";
