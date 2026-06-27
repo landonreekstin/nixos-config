@@ -69,10 +69,10 @@ Game Boy development: GBDK 2020 (v4.2.0), mGBA emulator, GDB for ROM debugging.
 
 ### GitHub Actions — Multi-Host Eval
 
-Every push to `main` or `update/*` and every PR triggers a full evaluation of all 8 host configurations:
+Every push to `main` or `update/*` and every PR triggers a full evaluation of all 9 host configurations:
 
 ```yaml
-hosts=(gaming-pc optiplex blaney-pc justus-pc asus-laptop asus-m15 atl-mini-pc optiplex-nas)
+hosts=(gaming-pc optiplex blaney-pc justus-pc asus-laptop asus-m15 atl-mini-pc optiplex-nas mini-server)
 for host in "${hosts[@]}"; do
   nix eval --impure ".#nixosConfigurations.${host}.config.system.build.toplevel.drvPath"
 done
@@ -85,7 +85,7 @@ This catches type errors, missing imports, and broken module references across t
 A systemd service on `optiplex-nas` runs every Monday at 03:00 and implements the full update pipeline without human intervention:
 
 1. Creates branch `update/YYYY-WNN`, runs `nix flake update`
-2. Builds all 8 hosts with per-host timeout tracking; results are posted as a Markdown table in the PR body
+2. Builds all 9 hosts with per-host timeout tracking; results are posted as a Markdown table in the PR body
 3. Opens a GitHub PR via `gh pr create` with label `flake-update`
 4. `gaming-pc` (`betaTesterHost = true`) auto-tracks the `update/*` branch on next `sync` — receives the update one week early
 5. After 7 days, the NAS auto-merges if the `update-blocked` label is absent; all other hosts pick it up on their next `sync`
@@ -163,6 +163,8 @@ Three packages in [`pkgs/`](pkgs/), each built from source as a proper Nix deriv
 | `atl-mini-pc` | Atlanta mini PC |
 | `blaney-pc` | Friend's machine — learning NixOS |
 | `justus-pc` | Friend's machine |
+| `mini-server` | BeeLink AZW mini PC — GNOME + game server (Astroneer) |
+| `aj-laptop` | AJ's laptop *(config pending merge)* |
 
 Each host is a `nixosSystem` call in `flake.nix` pulling in its `hosts/<hostname>/default.nix`, home-manager, NUR, disko, sops-nix, and `nixos-hardware` as appropriate.
 
