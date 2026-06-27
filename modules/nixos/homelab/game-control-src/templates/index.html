@@ -51,6 +51,8 @@
     }
     .running  { background: #1a3a2a; color: #4ecb71; border: 1px solid #2a6a40; }
     .stopped  { background: #2a2a2a; color: #888;    border: 1px solid #3a3a3a; }
+    .starting { background: #2a1a00; color: #f5a623; border: 1px solid #7a5010; animation: pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
     .meta {
       font-size: 0.8rem;
       color: #777;
@@ -122,7 +124,7 @@
       <button class="btn-stop" type="submit">Stop</button>
     </form>
     {% else %}
-    <form method="POST" action="/api/servers/{{ name }}/start?token={{ token }}">
+    <form method="POST" action="/api/servers/{{ name }}/start?token={{ token }}" data-action="start">
       <button class="btn-start" type="submit">Start</button>
     </form>
     {% if srv.available_saves | length > 1 %}
@@ -141,5 +143,37 @@
   {% endfor %}
 
   <div class="footer">auto-refreshes every 30s &bull; connect via VPN only</div>
+
+  <script>
+    document.querySelectorAll('form[data-action="start"]').forEach(function(form) {
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        var card = form.closest('.card');
+        var badge = card.querySelector('.badge');
+        var btn = form.querySelector('button');
+
+        var meta = document.querySelector('meta[http-equiv="refresh"]');
+        if (meta) meta.remove();
+
+        badge.className = 'badge starting';
+        badge.textContent = 'starting…';
+        btn.textContent = 'Starting…';
+        btn.disabled = true;
+
+        fetch(form.action, { method: 'POST' })
+          .then(function(response) {
+            if (!response.ok) throw new Error('failed');
+            location.reload();
+          })
+          .catch(function() {
+            badge.className = 'badge stopped';
+            badge.textContent = 'stopped';
+            btn.textContent = 'Start';
+            btn.disabled = false;
+          });
+      });
+    });
+  </script>
 </body>
 </html>
