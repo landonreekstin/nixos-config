@@ -17,6 +17,7 @@ keys:
   # TODO: fill in after install — run: cat /etc/ssh/ssh_host_ed25519_key.pub | ssh-to-age
   - &aj-laptop age1PLACEHOLDER_aj-laptop
   - &optiplex-nas age1zngsf2yrpft0uhcs3wrac3raqw2ykwna066z5wvecamaczr77yzsfe8k6n
+  - &mini-server age1x3zk4djdjyqz4gem4s877s9vcg9pq9266383vdqpthmtuvhqgu4qsufc5z
 
 creation_rules:
   # Host-specific secrets: readable by that host + admin
@@ -56,6 +57,10 @@ creation_rules:
     key_groups:
       - age: [*optiplex-nas, *lando]
 
+  - path_regex: secrets/mini-server\.yaml$
+    key_groups:
+      - age: [*mini-server, *lando]
+
   # Common secrets readable by hosts with real age keys + admin
   # Add placeholder hosts here once their keys are filled in, then run:
   #   sops updatekeys secrets/common.yaml
@@ -66,3 +71,4 @@ creation_rules:
           - *asus-laptop
           - *gaming-pc
           - *optiplex-nas
+          - *mini-server

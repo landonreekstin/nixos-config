@@ -76,7 +76,7 @@
       referenceHostConfig = self.nixosConfigurations."gaming-pc".config;
 
       # Define specialArgs once to pass to all hosts
-      specialArgs = { inherit inputs; };
+      specialArgs = { inherit inputs unstablePkgs; };
     in
   {
     # Define NixOS configurations for each host
@@ -85,7 +85,7 @@
       # Configuration for the Optiplex host
       optiplex = nixpkgs.lib.nixosSystem {
         # Pass flake inputs down to the modules if needed (good practice)
-        specialArgs = { inherit inputs; };
+        specialArgs = specialArgs;
         modules = [
           # Host-specific entrypoint
           ./hosts/optiplex/default.nix
@@ -192,6 +192,74 @@
           inputs.disko.nixosModules.default
           # Set system architecture
           { nixpkgs.hostPlatform = "x86_64-linux"; }
+        ];
+      };
+
+      # Configuration for the Mini Server (BeeLink AZW Mini S)
+      mini-server = nixpkgs.lib.nixosSystem {
+        specialArgs = specialArgs;
+        modules = [
+          ./hosts/mini-server/default.nix
+          inputs.home-manager.nixosModules.default
+          inputs.disko.nixosModules.default
+          # Set system architecture
+          { nixpkgs.hostPlatform = "x86_64-linux"; }
+        ];
+      };
+
+      # Bootable installer ISO — flash to USB for zero-touch install target setup.
+      # SSH is pre-configured with lando's key so nixos-anywhere can connect immediately.
+      # Build: nix build .#nixosConfigurations.installer.config.system.build.isoImage
+      # Flash: sudo dd if=$(readlink -f result)/iso/*.iso of=/dev/sdX bs=4M status=progress conv=fsync
+      installer = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        modules = [
+          "${nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-minimal.nix"
+          {
+            services.openssh = {
+              enable = true;
+              settings.PermitRootLogin = "yes";
+            };
+            users.users.root = {
+              openssh.authorizedKeys.keyFiles = [ ./keys/lando.pub ];
+              # Fallback password for console access (not for SSH)
+              initialPassword = "nixos";
+            };
+            networking = {
+              useDHCP = lib.mkDefault true;
+              hostName = "nixos-installer";
+            };
+            documentation.enable = false;
+
+            # On-target bootstrap helper for installs without LAN access to gaming-pc.
+            # Usage: sudo nixos-install-local <hostname> <username>
+            environment.systemPackages = [
+              (nixpkgs.legacyPackages.x86_64-linux.writeShellScriptBin "nixos-install-local" ''
+                set -euo pipefail
+                HOSTNAME="''${1:?Usage: nixos-install-local <hostname> <username>}"
+                USERNAME="''${2:?Usage: nixos-install-local <hostname> <username>}"
+                REPO="https://github.com/landonreekstin/nixos-config.git"
+                echo "Cloning nixos-config from GitHub..."
+                git clone "$REPO" /tmp/nixos-config
+                cd /tmp/nixos-config
+                sudo ./scripts/install-new-host.sh "$HOSTNAME" "$USERNAME"
+              '')
+            ];
+
+            environment.etc."issue.nixos-installer".text = ''
+
+              ╔══════════════════════════════════════════════════════╗
+              ║           NixOS Installer — landonreekstin           ║
+              ╠══════════════════════════════════════════════════════╣
+              ║  OPTION A — Admin machine on same LAN (gaming-pc):   ║
+              ║    ./scripts/deploy-host.sh <hostname> <ip>          ║
+              ║                                                       ║
+              ║  OPTION B — No LAN / off-site install:               ║
+              ║    sudo nixos-install-local <hostname> <username>     ║
+              ╚══════════════════════════════════════════════════════╝
+
+            '';
+          }
         ];
       };
     };

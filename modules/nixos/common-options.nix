@@ -1662,7 +1662,7 @@ in
         };
         allHosts = mkOption {
           type = types.listOf types.str;
-          default = [ "gaming-pc" "optiplex" "blaney-pc" "justus-pc" "asus-laptop" "asus-m15" "atl-mini-pc" "optiplex-nas" ];
+          default = [ "gaming-pc" "optiplex" "blaney-pc" "justus-pc" "asus-laptop" "asus-m15" "atl-mini-pc" "optiplex-nas" "mini-server" ];
           description = "All host names to build and include in the PR build matrix.";
         };
         blockLabel = mkOption {
@@ -1691,6 +1691,173 @@ in
           description = "Path to file containing a GitHub fine-grained PAT with contents:write and pull_requests:write.";
         };
       };
+
+      vaultwarden = {
+        enable = mkEnableOption "Vaultwarden password manager server";
+        port = mkOption {
+          type = types.port;
+          default = 8222;
+          description = "Port for Vaultwarden to listen on.";
+        };
+      };
+
+      homeAssistant = {
+        enable = mkEnableOption "Home Assistant Core smart home server";
+        port = mkOption {
+          type = types.port;
+          default = 8123;
+          description = "Port for Home Assistant to listen on.";
+        };
+        package = mkOption {
+          type = types.nullOr types.package;
+          default = null;
+          description = "Override the Home Assistant package (e.g. to pin a newer version for backup restore compatibility).";
+        };
+      };
+
+      wyoming = {
+        enable = mkEnableOption "Wyoming voice pipeline (Whisper + Piper + openWakeWord + satellite)";
+        satellite = {
+          name = mkOption {
+            type = types.str;
+            default = "home";
+            description = "Friendly name for the Wyoming satellite shown in Home Assistant.";
+          };
+          micDevice = mkOption {
+            type = types.str;
+            default = "hw:1,0";
+            description = "ALSA device string for the microphone. Verify with `arecord -l` after install.";
+          };
+          sndDevice = mkOption {
+            type = types.str;
+            default = "hw:0,0";
+            description = "ALSA device string for speaker output. Verify with `aplay -l` after install.";
+          };
+          awakeWav = mkOption {
+            type = types.nullOr types.path;
+            default = null;
+            description = "Path to WAV played when the wake word fires. Null uses wyoming-satellite's built-in sound.";
+          };
+          doneWav = mkOption {
+            type = types.nullOr types.path;
+            default = null;
+            description = "Path to WAV played when TTS finishes. Null uses wyoming-satellite's built-in sound.";
+          };
+          wakeWord = mkOption {
+            type = types.str;
+            default = "hey_jarvis";
+            description = "openWakeWord model name passed to wyoming-satellite (e.g. hey_jarvis, ok_nabu).";
+          };
+        };
+        whisper = {
+          model = mkOption {
+            type = types.str;
+            default = "tiny-int8";
+            description = "Whisper model variant (tiny, base, small, medium; append -int8 for quantized).";
+          };
+          language = mkOption {
+            type = types.str;
+            default = "en";
+            description = "Language code for Whisper STT.";
+          };
+        };
+        piper = {
+          voice = mkOption {
+            type = types.str;
+            default = "en_US-lessac-medium";
+            description = "Piper TTS voice identifier (e.g. en_US-lessac-medium).";
+          };
+        };
+      };
+
+      gameServers = {
+        dataDir = mkOption {
+          type = types.str;
+          default = "/var/lib/game-servers";
+          description = "Parent directory for all game server OCI container volume mounts.";
+        };
+        astroneer = {
+          enable = mkEnableOption "Astroneer dedicated server (OCI container, autoStart = false)";
+          port = mkOption {
+            type = types.port;
+            default = 7777;
+            description = "Astroneer game port (UDP).";
+          };
+          queryPort = mkOption {
+            type = types.port;
+            default = 27777;
+            description = "Astroneer server query port (UDP).";
+          };
+        };
+        minecraftSurvival = {
+          enable = mkEnableOption "Minecraft Survival server (Paper, OCI container, autoStart = false)";
+          port = mkOption {
+            type = types.port;
+            default = 25565;
+            description = "Minecraft Java edition TCP port.";
+          };
+        };
+        minecraftMinigames = {
+          enable = mkEnableOption "Minecraft Minigames server (Paper, OCI container, autoStart = false)";
+          port = mkOption {
+            type = types.port;
+            default = 25566;
+            description = "Minecraft Java edition TCP port.";
+          };
+        };
+        minecraftBedrock = {
+          enable = mkEnableOption "Minecraft Bedrock server (OCI container, autoStart = false)";
+          port = mkOption {
+            type = types.port;
+            default = 19132;
+            description = "Minecraft Bedrock IPv4 UDP port.";
+          };
+          portV6 = mkOption {
+            type = types.port;
+            default = 19133;
+            description = "Minecraft Bedrock IPv6 UDP port.";
+          };
+        };
+      };
+
+      gameControl = {
+        enable = mkEnableOption "Game Control dashboard (FastAPI + uvicorn)";
+        port = mkOption {
+          type = types.port;
+          default = 8080;
+          description = "Port for the Game Control web dashboard.";
+        };
+        tokenFile = mkOption {
+          type = types.path;
+          default = "/run/secrets/game-control-token";
+          description = "Path to file containing the GAME_CONTROL_TOKEN secret.";
+        };
+        stateDir = mkOption {
+          type = types.str;
+          default = "/var/lib/game-control";
+          description = "Directory for watchdog idle-timer state files (*.last_active).";
+        };
+        idleThresholdSecs = mkOption {
+          type = types.int;
+          default = 3600;
+          description = "Seconds of zero players before the watchdog shuts down a server (default: 60 min).";
+        };
+      };
+
+      gameBackup = {
+        enable = mkEnableOption "game server and vaultwarden backups to NAS via restic (daily at 4am)";
+        repository = mkOption {
+          type = types.str;
+          default = "/mnt/nas/backups/mini-server";
+          description = "Restic repository path or URI. Defaults to the NAS CIFS mount.";
+        };
+        passwordFile = mkOption {
+          type = types.path;
+          default = "/run/secrets/restic-password";
+          description = "Path to file containing the restic repository password.";
+        };
+      };
+
     };
 
     # -------------------------------------------------------------------------- #
