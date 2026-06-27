@@ -1662,7 +1662,7 @@ in
         };
         allHosts = mkOption {
           type = types.listOf types.str;
-          default = [ "gaming-pc" "optiplex" "blaney-pc" "justus-pc" "asus-laptop" "asus-m15" "atl-mini-pc" "optiplex-nas" "mini-server" ];
+          default = [ "gaming-pc" "optiplex" "blaney-pc" "justus-pc" "asus-laptop" "asus-m15" "atl-mini-pc" "optiplex-nas" "mini-server" "aj-laptop" ];
           description = "All host names to build and include in the PR build matrix.";
         };
         blockLabel = mkOption {
