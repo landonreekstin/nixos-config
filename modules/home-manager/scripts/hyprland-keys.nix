@@ -11,8 +11,8 @@ let
     src = pkgs.fetchFromGitHub {
       owner = "landonreekstin";
       repo  = "hyprland-keys";
-      rev   = "855687db1c374a71a98bda58818b156fb3afc30b";
-      hash  = "sha256-gbv+yDSnC3Vwiy9JQMbTBKAB+Sa2o0swz8KA48kiZ9Y=";
+      rev   = "502e006108510630928c880a829929dc34f723ef";
+      hash  = "sha256-lWbvR235t/qSgR902EpXvVjKS7WA2F6hGB9Q77DEN6s=";
     };
 
     nativeBuildInputs = [
