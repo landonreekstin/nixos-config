@@ -122,7 +122,7 @@
         satellite.sndDevice = "hw:1,0";
         satellite.awakeWav = "${../../modules/nixos/homelab/wyoming-sounds/awake.wav}";
         satellite.doneWav = "${../../modules/nixos/homelab/wyoming-sounds/done.wav}";
-        whisper.model = "tiny-int8";
+        whisper.model = "small-int8";
         whisper.language = "en";
         piper.voice = "en_US-lessac-medium";
       };
