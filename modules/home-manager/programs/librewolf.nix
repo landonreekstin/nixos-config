@@ -30,6 +30,9 @@ let
     "ui.systemUsesDarkTheme"                               = 1;
     # Enable userChrome.css
     "toolkit.legacyUserProfileCustomizations.stylesheets"  = true;
+    # Use system DNS resolver — required for .lan homelab domains
+    # (DoH bypasses the local Unbound resolver and fails to resolve .lan)
+    "network.trr.mode"                                     = 5;
     # Downloads
     "browser.download.dir"                                 = "${userHome}/Downloads";
     "browser.download.folderList"                          = 2;
