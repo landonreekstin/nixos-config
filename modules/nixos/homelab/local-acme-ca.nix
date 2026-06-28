@@ -4,9 +4,17 @@
 let
   cfg = config.customConfig.homelab;
   caDir = "/var/lib/step-ca";
+  # systemd DynamicUser+StateDirectory locks caDir to mode 700 (step-ca owner only).
+  # Copy the root cert here so nginx can read it without privilege.
+  publicCaDir = "/var/lib/homelab-ca";
 in
 {
   config = lib.mkIf cfg.localCA.enable {
+
+    # World-readable directory for the root cert served over HTTP.
+    systemd.tmpfiles.rules = [
+      "d ${publicCaDir} 0755 root root - -"
+    ];
 
     # Bootstrap the CA on first activation if not already initialized.
     # Runs as root; chown transfers ownership to the step-ca system user so
@@ -14,7 +22,13 @@ in
     system.activationScripts.homelab-ca-bootstrap = {
       deps = [ "users" ];
       text = ''
+        mkdir -p "${publicCaDir}"
+        chmod 755 "${publicCaDir}"
+
         if [ -f "${caDir}/certs/root_ca.crt" ]; then
+          # Always refresh the public copy in case it was wiped.
+          cp "${caDir}/certs/root_ca.crt" "${publicCaDir}/root_ca.crt"
+          chmod 644 "${publicCaDir}/root_ca.crt"
           exit 0
         fi
 
@@ -47,6 +61,9 @@ in
         chmod 755 "${caDir}/certs"
         chmod 644 "${caDir}/certs/"*
         chown -R step-ca:step-ca "${caDir}"
+
+        cp "${caDir}/certs/root_ca.crt" "${publicCaDir}/root_ca.crt"
+        chmod 644 "${publicCaDir}/root_ca.crt"
 
         echo "Homelab CA initialized. Root cert: ${caDir}/certs/root_ca.crt"
       '';
@@ -107,9 +124,10 @@ in
     # Serve root cert over plain HTTP so any device can trust it without HTTPS.
     # Download from http://mini.lan/ca.crt and install as a trusted CA.
     services.nginx = lib.mkIf cfg.reverseProxy.enable {
-      # Exact match avoids gixy alias_traversal false positive
+      # Exact match avoids gixy alias_traversal false positive.
+      # Alias points to publicCaDir (world-readable) — caDir is mode 700 (step-ca only).
       virtualHosts."mini.lan".locations."= /ca.crt" = {
-        alias = "${caDir}/certs/root_ca.crt";
+        alias = "${publicCaDir}/root_ca.crt";
         extraConfig = ''
           add_header Content-Type application/x-x509-ca-cert;
           add_header Content-Disposition 'attachment; filename="homelab-ca.crt"';
