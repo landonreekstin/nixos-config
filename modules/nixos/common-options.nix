@@ -192,6 +192,14 @@ in
           description = "Which upstream DNS resolver to use. cloudflare = 1.1.1.1 (DoH), quad9 = filtered DoH, mullvad = privacy-focused DoH.";
         };
       };
+      localDns = {
+        server = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = "IP of a local DNS server (e.g. optiplex-nas at 192.168.1.76) to use as the system resolver instead of upstream or dnscrypt-proxy. When set, dnscrypt-proxy is skipped and this IP is written to resolv.conf.";
+          example = "192.168.1.76";
+        };
+      };
     };
 
     # -------------------------------------------------------------------------- #
@@ -1457,6 +1465,22 @@ in
     #                           HOMELAB CONFIGURATION                            #
     # -------------------------------------------------------------------------- #
     homelab = {
+      dns = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable Unbound DNS server with a local .lan zone for homelab service names. Intended for optiplex-nas only.";
+        };
+      };
+
+      reverseProxy = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable Nginx reverse proxy for homelab web services (routes .lan hostnames to local ports).";
+        };
+      };
+
       samba = {
         enable = mkOption { 
           type = types.bool; 

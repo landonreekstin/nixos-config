@@ -67,6 +67,7 @@
         gateway = "192.168.100.1";
       };
       firewall.enable = false;
+      localDns.server = "192.168.1.76";
     };
 
     # Headless from customConfig perspective; GNOME is configured via raw NixOS options above
@@ -137,6 +138,8 @@
       gameControl.enable = true;
 
       gameBackup.enable = true;
+
+      reverseProxy.enable = true;
     };
   };
 

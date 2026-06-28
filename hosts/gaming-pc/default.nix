@@ -343,6 +343,7 @@
         enable = true;
         resolver = "cloudflare";
       };
+      localDns.server = "192.168.1.76";
     };
 
     services = {

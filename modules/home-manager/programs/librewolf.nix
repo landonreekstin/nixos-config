@@ -68,10 +68,10 @@ let
   bookmarkList = [
     { name = "YouTube";    url = "https://www.youtube.com"; }
     { name = "TV"; bookmarks = [
-        { name = "Netflix";  url = "https://www.netflix.com"; }
-        { name = "Jellyfin"; url = "http://192.168.1.76:8096"; }
-        { name = "Requests"; url = "http://192.168.1.76:5055"; }
-        { name = "Torrent";  url = "http://192.168.1.76:9091"; }
+        { name = "Netflix";    url = "https://www.netflix.com"; }
+        { name = "Jellyfin";   url = "http://jellyfin.lan"; }
+        { name = "Requests";   url = "http://jellyseerr.lan"; }
+        { name = "Torrent";    url = "http://transmission.lan"; }
       ]; }
     { name = "Sports"; bookmarks = [
         { name = "StreamEast"; url = "https://the.streameast.xyz/"; }
@@ -95,7 +95,7 @@ let
       ]; }
     { name = "Prime";      url = "https://www.amazon.com/amazonprime"; }
     { name = "LinkedIn";   url = "https://www.linkedin.com/feed/"; }
-    { name = "HomeAssist"; url = "http://192.168.100.103:8123/home/overview"; }
+    { name = "HomeAssist"; url = "http://homeassistant.lan/home/overview"; }
     { name = "Claude";     url = "https://claude.ai/new"; }
   ];
 
