@@ -18,6 +18,7 @@ in
         ROCKET_PORT = cfg.port;
         ROCKET_ADDRESS = "0.0.0.0";
         SIGNUPS_ALLOWED = false;
+        DOMAIN = "https://vaultwarden.lan";
       };
     };
 

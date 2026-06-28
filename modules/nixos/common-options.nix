@@ -1473,6 +1473,15 @@ in
         };
       };
 
+      localCA = {
+        enable = mkEnableOption "local step-ca ACME certificate authority for .lan services";
+        port = mkOption {
+          type = types.port;
+          default = 9000;
+          description = "Port for the step-ca ACME server to listen on (localhost only).";
+        };
+      };
+
       reverseProxy = {
         enable = mkOption {
           type = types.bool;

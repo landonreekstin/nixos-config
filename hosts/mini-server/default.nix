@@ -139,6 +139,8 @@
 
       gameBackup.enable = true;
 
+      localCA.enable = true;
+
       reverseProxy.enable = true;
     };
   };
