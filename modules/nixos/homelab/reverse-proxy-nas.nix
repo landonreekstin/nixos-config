@@ -23,7 +23,7 @@ in
         (lib.mkIf cfg.arr.radarr.enable   { "radarr.lan"       = mkProxy 7878; })
         (lib.mkIf cfg.arr.sonarr.enable   { "sonarr.lan"       = mkProxy 8989; })
         (lib.mkIf cfg.arr.bazarr.enable   { "bazarr.lan"       = mkProxy 6767; })
-        (lib.mkIf cfg.arr.prowlarr.enable { "prowlarr.lan"     = mkProxy 8080; })
+        (lib.mkIf cfg.arr.prowlarr.enable { "prowlarr.lan"     = mkProxy 9696; })
         (lib.mkIf cfg.nixCache.enable     { "nix-cache.lan"    = mkProxy 5000; })
       ];
     };
