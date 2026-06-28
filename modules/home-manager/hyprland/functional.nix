@@ -344,6 +344,7 @@ in
           # Special workspace toggle (hidden utility apps like ckb-next)
           "$mainMod, grave, togglespecialworkspace, ckb"
           "$mainMod SHIFT, grave, movetoworkspace, special:ckb"
+          "$mainMod $altMod, UP, movetoworkspace, special:ckb"
 
           # System & Utility Bindings
           "$mainMod, slash, exec, hyprland-keys"

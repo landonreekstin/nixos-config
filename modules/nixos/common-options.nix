@@ -430,7 +430,7 @@ in
           };
           fileManager = mkOption {
             type = types.str;
-            default = "${pkgs.cosmic-files}/bin/cosmic-files";
+            default = "${pkgs.kdePackages.dolphin}/bin/dolphin";
             description = "Command for the \$fileManager Hyprland variable (Super+Alt+F).";
             example = "\${pkgs.nemo}/bin/nemo";
           };
