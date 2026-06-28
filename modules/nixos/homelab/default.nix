@@ -21,5 +21,8 @@
     ./game-servers.nix
     ./game-control.nix
     ./game-backup.nix
+    ./dns.nix
+    ./reverse-proxy-nas.nix
+    ./reverse-proxy-mini.nix
   ];
 }

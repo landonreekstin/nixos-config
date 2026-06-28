@@ -182,6 +182,9 @@
       flaresolverr.enable = true;
       nixCache.enable = true;
 
+      dns.enable = true;
+      reverseProxy.enable = true;
+
       flakeUpdater.enable = true;
 
       mediaLinker = {
