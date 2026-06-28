@@ -18,6 +18,7 @@ in
         "wyoming"
         "radio_browser"
         "google_translate"
+        "google_generative_ai_conversation"
       ];
       config = {
         homeassistant = {
