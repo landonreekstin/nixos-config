@@ -33,6 +33,9 @@ let
     # Use system DNS resolver — required for .lan homelab domains
     # (DoH bypasses the local Unbound resolver and fails to resolve .lan)
     "network.trr.mode"                                     = 5;
+    # Disable HTTPS-only mode — homelab services run on plain HTTP
+    "dom.security.https_only_mode"                         = false;
+    "dom.security.https_only_mode_ever_enabled"            = false;
     # Downloads
     "browser.download.dir"                                 = "${userHome}/Downloads";
     "browser.download.folderList"                          = 2;
@@ -126,6 +129,9 @@ in
         enable = true;
 
         profiles.${userName} = {
+          # Target the existing profile directory rather than creating a new one named after the user
+          path = "rbb3lgdy.default";
+
           extensions = { packages = extensions; };
 
           userChrome = userChromeCSS;
