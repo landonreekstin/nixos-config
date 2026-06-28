@@ -357,6 +357,9 @@
 
   # === Additional nixos configuration for this host ===
 
+  # Trust the homelab root CA so .lan services with local ACME certs work without browser warnings.
+  security.pki.certificateFiles = [ ../../modules/nixos/homelab/ca/root_ca.crt ];
+
   # RTX 4070 Ti Super (Ada Lovelace): open kernel modules recommended for Turing+ with driver 560+.
   # The shared nvidia.nix sets open=false as a safe default; override it here for this host.
   hardware.nvidia.open = lib.mkForce true;
