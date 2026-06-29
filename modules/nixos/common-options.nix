@@ -1459,6 +1459,32 @@ in
           };
         };
       };
+
+      autoUpdate = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable weekly automated git sync + nixos-rebuild on this host.";
+        };
+        day = mkOption {
+          type = types.enum [ "Mon" "Tue" "Wed" "Thu" "Fri" "Sat" "Sun" ];
+          default = "Mon";
+          description = "Day of the week to run (systemd OnCalendar weekday).";
+          example = "Sun";
+        };
+        time = mkOption {
+          type = types.str;
+          default = "03:00";
+          description = "Time of day in HH:MM 24-hour format.";
+          example = "04:30";
+        };
+        randomizedDelaySec = mkOption {
+          type = types.str;
+          default = "30min";
+          description = "Max random delay to stagger multiple hosts.";
+          example = "1h";
+        };
+      };
     };
 
     # -------------------------------------------------------------------------- #

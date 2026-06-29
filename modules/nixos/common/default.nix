@@ -13,6 +13,7 @@
     ./networking.nix
     ./audio.nix
     ./commands.nix
+    ./auto-update.nix
     ./home-manager.nix
   ];
 }
