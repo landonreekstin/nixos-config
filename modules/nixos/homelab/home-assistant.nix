@@ -27,6 +27,7 @@ in
           time_zone = "America/Chicago";
         };
         http.server_port = cfg.port;
+        automation = "!include automations.yaml";
       };
     };
   };

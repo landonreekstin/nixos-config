@@ -314,6 +314,7 @@
         gurk-rs
         vlc
         signal-desktop
+        keepassxc
       ];
       flatpak = {
         enable = true;
