@@ -391,8 +391,8 @@
       [ -f "$src/misc/icons/Windows 7 Aero.tar.gz" ] && tar -xzf "$src/misc/icons/Windows 7 Aero.tar.gz" -C $out/share/icons
       [ -f "$src/misc/sounds/sounds.tar.gz" ] && tar -xzf "$src/misc/sounds/sounds.tar.gz" -C $out/share/sounds
 
-      # Validate and cache the icon theme
-      gtk-update-icon-cache $out/share/icons/Windows\ 7\ Aero
+      # Validate and cache the icon theme (--ignore-theme-index: theme has no index.theme)
+      gtk-update-icon-cache --ignore-theme-index $out/share/icons/Windows\ 7\ Aero
     '';
     meta = {
       description = "Windows 7 theme for KDE Plasma";
