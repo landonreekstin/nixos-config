@@ -237,6 +237,7 @@
     homeManager = {
       enable = true;
       services.updateNotification.enable = true;
+      services.passwordManager.enable = true;
       themes = {
         hyprland = "century-series";
       };
