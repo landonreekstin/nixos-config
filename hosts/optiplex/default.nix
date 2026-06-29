@@ -243,6 +243,8 @@
       vscodeServer.enable = true;
     };
 
+    homelab.localCA.trustCA = true;
+
   };
 
   # Disable sops secrets file validation during reinstall (secrets/optiplex.yaml

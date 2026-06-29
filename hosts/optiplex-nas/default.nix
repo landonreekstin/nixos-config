@@ -186,6 +186,7 @@
       reverseProxy.enable = true;
 
       flakeUpdater.enable = true;
+      localCA.trustCA = true;
 
       mediaLinker = {
         enable = true;

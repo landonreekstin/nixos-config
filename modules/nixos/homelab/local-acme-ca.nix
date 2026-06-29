@@ -7,9 +7,16 @@ let
   # systemd DynamicUser+StateDirectory locks caDir to mode 700 (step-ca owner only).
   # Copy the root cert here so nginx can read it without privilege.
   publicCaDir = "/var/lib/homelab-ca";
+  rootCACert = ./ca/root_ca.crt;
 in
 {
-  config = lib.mkIf cfg.localCA.enable {
+  config = lib.mkMerge [
+
+  (lib.mkIf cfg.localCA.trustCA {
+    security.pki.certificateFiles = [ rootCACert ];
+  })
+
+  (lib.mkIf cfg.localCA.enable {
 
     # World-readable directory for the root cert served over HTTP.
     systemd.tmpfiles.rules = [
@@ -135,5 +142,7 @@ in
         '';
       };
     };
-  };
+  })
+
+  ]; # end mkMerge
 }

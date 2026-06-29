@@ -140,6 +140,7 @@
       gameBackup.enable = true;
 
       localCA.enable = true;
+      localCA.trustCA = true;
 
       reverseProxy.enable = true;
     };
