@@ -146,6 +146,13 @@
     };
   };
 
+  # Version-control HA config files alongside this host config.
+  # The NixOS HA module manages configuration.yaml the same way.
+  environment.etc."home-assistant/automations.yaml".source = ./home-assistant/automations.yaml;
+  systemd.services.home-assistant.preStart = lib.mkAfter ''
+    ln -sf /etc/home-assistant/automations.yaml /var/lib/hass/automations.yaml
+  '';
+
   home-manager = lib.mkIf config.customConfig.homeManager.enable {
     extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
     users.${config.customConfig.user.name} = {};

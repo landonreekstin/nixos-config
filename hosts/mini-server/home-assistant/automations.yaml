@@ -1,0 +1,216 @@
+# Home Assistant Lighting Automations
+#
+# Lights: light.right_desk_lamp, light.standing_lamp (Kasa, color_temp + hs)
+#         light.nightstand_lamp (Cync, color_temp + rgb)
+#
+# Schedule:
+#   Morning (Tue/Wed/Thu): On 100% warm white at 6:14 AM, off at 7:15 AM
+#   Evening (every day): On 100% warm white 1hr before sunset
+#   Mon/Tue/Wed: Shift warm white -> amber -> orange -> deep red by 9 PM, dim to 25% by 10 PM
+#   Thu/Fri/Sat/Sun: Shift warm white -> orange by 9 PM, no dimming
+
+# ==================== MORNING LIGHTS (Tue/Wed/Thu) ====================
+
+- id: morning_lights_on
+  alias: "Morning Lights On"
+  description: "Turn on all lights 100% warm white at 6:14 AM on Tue/Wed/Thu"
+  triggers:
+    - trigger: time
+      at: "06:14:00"
+  conditions:
+    - condition: time
+      weekday:
+        - tue
+        - wed
+        - thu
+  actions:
+    - service: light.turn_on
+      target:
+        entity_id:
+          - light.right_desk_lamp
+          - light.standing_lamp
+          - light.nightstand_lamp
+      data:
+        color_temp_kelvin: 2700
+        brightness_pct: 100
+
+- id: morning_lights_off
+  alias: "Morning Lights Off"
+  description: "Turn off all lights at 7:15 AM on Tue/Wed/Thu"
+  triggers:
+    - trigger: time
+      at: "07:15:00"
+  conditions:
+    - condition: time
+      weekday:
+        - tue
+        - wed
+        - thu
+  actions:
+    - service: light.turn_off
+      target:
+        entity_id:
+          - light.right_desk_lamp
+          - light.standing_lamp
+          - light.nightstand_lamp
+
+# ==================== EVENING LIGHTS ON (Every Day) ====================
+
+- id: evening_lights_on
+  alias: "Evening Lights On"
+  description: "Turn on all lights 100% warm white 1 hour before sunset"
+  triggers:
+    - trigger: sun
+      event: sunset
+      offset: "-01:00:00"
+  actions:
+    - service: light.turn_on
+      target:
+        entity_id:
+          - light.right_desk_lamp
+          - light.standing_lamp
+          - light.nightstand_lamp
+      data:
+        color_temp_kelvin: 2700
+        brightness_pct: 100
+
+# ==================== EVENING COLOR SHIFT Mon/Tue/Wed ====================
+# Gradual shift: warm white (hs 40,40) -> amber -> orange -> deep red (hs 0,100)
+# Starts 5 min after evening lights on, arrives at deep red by 9:00 PM
+
+- id: evening_color_shift_mon_wed
+  alias: "Evening Color Shift (Mon-Wed)"
+  description: "Gradually shift from warm white to deep red by 9 PM"
+  triggers:
+    - trigger: sun
+      event: sunset
+      offset: "-00:55:00"
+  conditions:
+    - condition: time
+      weekday:
+        - mon
+        - tue
+        - wed
+  mode: restart
+  actions:
+    - variables:
+        end_seconds: "{{ 21 * 3600 }}"
+        now_seconds: "{{ now().hour * 3600 + now().minute * 60 + now().second }}"
+        total_seconds: "{{ [(end_seconds - now_seconds) | int, 300] | max }}"
+        step_seconds: 300
+        total_steps: "{{ (total_seconds / step_seconds) | int }}"
+    - repeat:
+        count: "{{ total_steps }}"
+        sequence:
+          - variables:
+              progress: "{{ repeat.index / total_steps}}"
+              # Hue: 40 (warm/amber) -> 0 (deep red)
+              hue: "{{ (40 * (1 - progress)) | round(1) }}"
+              # Saturation: 40 (soft) -> 100 (vivid)
+              sat: "{{ (40 + 60 * progress) | round(1)}}"
+          - service: light.turn_on
+            target:
+              entity_id:
+                - light.right_desk_lamp
+                - light.standing_lamp
+                - light.nightstand_lamp
+            data:
+              hs_color:
+                - "{{ hue }}"
+                - "{{ sat }}"
+              brightness_pct: 100
+              transition: 5
+          - delay:
+              seconds: "{{ step_seconds }}"
+
+# ==================== EVENING DIMMING Mon/Tue/Wed ====================
+# Keep deep red, gradually dim from 100% to 25% between 9:00 PM and 10:00 PM
+
+- id: evening_dim_mon_wed
+  alias: "Evening Dim (Mon-Wed)"
+  description: "Gradually dim lights from 100% to 25% between 9-10 PM"
+  triggers:
+    - trigger: time
+      at: "21:00:00"
+  conditions:
+    - condition: time
+      weekday:
+        - mon
+        - tue
+        - wed
+  mode: restart
+  actions:
+    - variables:
+        total_steps: 12
+        step_seconds: 300
+    - repeat:
+        count: "{{ total_steps }}"
+        sequence:
+          - variables:
+              progress: "{{ repeat.index / total_steps}}"
+              brightness: "{{ (100 - 75 * progress) | round(0) | int }}"
+          - service: light.turn_on
+            target:
+              entity_id:
+                - light.right_desk_lamp
+                - light.standing_lamp
+                - light.nightstand_lamp
+            data:
+              hs_color:
+                - 0
+                - 100
+              brightness_pct: "{{ brightness }}"
+              transition: 5
+          - delay:
+              seconds: "{{ step_seconds }}"
+
+# ==================== EVENING COLOR SHIFT Thu/Fri/Sat/Sun ====================
+# Gradual shift: warm white (hs 40,40) -> orange (hs 25,100)
+# Starts 5 min after evening lights on, arrives at orange by 9:00 PM
+# No dimming after
+
+- id: evening_color_shift_thu_sun
+  alias: "Evening Color Shift (Thu-Sun)"
+  description: "Gradually shift from warm white to orange by 9 PM"
+  triggers:
+    - trigger: sun
+      event: sunset
+      offset: "-00:55:00"
+  conditions:
+    - condition: time
+      weekday:
+        - thu
+        - fri
+        - sat
+        - sun
+  mode: restart
+  actions:
+    - variables:
+        end_seconds: "{{ 21 * 3600 }}"
+        now_seconds: "{{ now().hour * 3600 + now().minute * 60 + now().second }}"
+        total_seconds: "{{ [(end_seconds - now_seconds) | int, 300] | max }}"
+        step_seconds: 300
+        total_steps: "{{ (total_seconds / step_seconds) | int }}"
+    - repeat:
+        count: "{{ total_steps }}"
+        sequence:
+          - variables:
+              progress: "{{ repeat.index / total_steps}}"
+              # Hue: 40 (warm/amber) -> 25 (orange)
+              hue: "{{ (40 - 15 * progress) | round(1)}}"
+              # Saturation: 40 (soft) -> 100 (vivid)
+              sat: "{{ (40 + 60 * progress) | round(1)}}"
+          - service: light.turn_on
+            target:
+              entity_id:
+                - light.right_desk_lamp
+                - light.standing_lamp
+                - light.nightstand_lamp
+            data:
+              hs_color:
+                - "{{ hue }}"
+                - "{{ sat }}"
+              brightness_pct: 100
+              transition: 5
+          - delay:
+              seconds: "{{ step_seconds }}"
