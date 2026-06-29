@@ -40,15 +40,17 @@ in
     ])
     # mkForce so this wins over the static IP entry if both are enabled
     (lib.mkIf cfg.encryptedDns.enable (lib.mkForce [ "127.0.0.1" ]))
+    # localDns.server wins over everything (mkOverride 40 > mkForce's 50)
+    (lib.mkIf (cfg.localDns.server != null) (lib.mkOverride 40 [ cfg.localDns.server ]))
   ];
 
   networking.firewall.enable = cfg.firewall.enable;
 
   # Encrypted DNS: dnscrypt-proxy on 127.0.0.1:53.
-  # The NixOS module already grants CAP_NET_BIND_SERVICE so port 53 binding works.
+  # Skipped when localDns.server is set — the remote Unbound server handles upstream DoH instead.
   # NM dns=none stops it from overwriting /etc/resolv.conf with DHCP-provided DNS.
   # networking.nameservers writes 127.0.0.1 to resolv.conf via NixOS activation.
-  services.dnscrypt-proxy = lib.mkIf cfg.encryptedDns.enable {
+  services.dnscrypt-proxy = lib.mkIf (cfg.encryptedDns.enable && cfg.localDns.server == null) {
     enable = true;
     settings = {
       server_names = resolverServers.${cfg.encryptedDns.resolver};
@@ -59,5 +61,6 @@ in
     };
   };
 
-  networking.networkmanager.dns = lib.mkIf cfg.encryptedDns.enable (lib.mkForce "none");
+  # Keep resolv.conf under our control when using either local encrypted DNS or a custom DNS server
+  networking.networkmanager.dns = lib.mkIf (cfg.encryptedDns.enable || cfg.localDns.server != null) (lib.mkForce "none");
 }

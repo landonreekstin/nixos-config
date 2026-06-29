@@ -194,12 +194,21 @@ in
       # Push new system closure to NAS binary cache if reachable (skips on the NAS itself)
       NAS_IP="192.168.1.76"
       if [ "${hostName}" != "optiplex-nas" ] && ping -c 1 -W 2 "$NAS_IP" > /dev/null 2>&1; then
-        echo "NAS reachable — pushing build to cache in background..."
-        LOG=/tmp/nix-cache-push.log
-        setsid nix copy --to "ssh://lando@$NAS_IP" \
-          $(nix path-info --recursive /run/current-system) \
-          > "$LOG" 2>&1 &
-        echo "Cache push running in background (PID: $!). Follow with: tail -f $LOG"
+        echo "--- Pushing build to NAS binary cache ---"
+        STORE_PATHS=$(nix path-info --recursive /run/current-system)
+        PATH_COUNT=$(echo "$STORE_PATHS" | wc -l | tr -d ' ')
+        echo "Pushing $PATH_COUNT store paths to ssh://lando@$NAS_IP..."
+        set +e
+        # shellcheck disable=SC2086 - word splitting is intentional for path list
+        NIX_SSHOPTS="-i /home/lando/.ssh/id_ed25519 -o StrictHostKeyChecking=accept-new" \
+          nix copy --to "ssh://lando@$NAS_IP" $STORE_PATHS
+        PUSH_EXIT=$?
+        set -e
+        if [ "$PUSH_EXIT" -eq 0 ]; then
+          echo "✓ Cache push complete."
+        else
+          echo "✗ Cache push failed (exit $PUSH_EXIT) — rebuild was still successful."
+        fi
       fi
     '')
 

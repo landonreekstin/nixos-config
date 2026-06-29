@@ -35,17 +35,17 @@ let
   # Fix: move silently, then only relocate to the correct monitor if it drifted.
   moveToNewWsOnMonitor = pkgs.writeShellScriptBin "move-to-new-ws-on-monitor" ''
     monitor=$(${pkgs.hyprland}/bin/hyprctl -j activeworkspace | ${pkgs.jq}/bin/jq -r '.monitor')
-    last_ws=$(${pkgs.hyprland}/bin/hyprctl -j workspaces | ${pkgs.jq}/bin/jq -r \
+    workspaces_json=$(${pkgs.hyprland}/bin/hyprctl -j workspaces)
+    last_ws=$(echo "$workspaces_json" | ${pkgs.jq}/bin/jq -r \
       --arg mon "$monitor" \
       '[.[] | select(.monitor == $mon) | .id] | sort | last // 0')
     next_ws=$((last_ws + 1))
+    # Skip any workspace IDs that already exist (on any monitor) to avoid
+    # dragging another monitor's workspace and its windows to this monitor.
+    while echo "$workspaces_json" | ${pkgs.jq}/bin/jq -e --argjson id "$next_ws" 'map(.id) | contains([$id])' > /dev/null 2>&1; do
+      next_ws=$((next_ws + 1))
+    done
     ${pkgs.hyprland}/bin/hyprctl dispatch movetoworkspacesilent "$next_ws"
-    actual_monitor=$(${pkgs.hyprland}/bin/hyprctl -j workspaces | ${pkgs.jq}/bin/jq -r \
-      --argjson ws "$next_ws" \
-      '.[] | select(.id == $ws) | .monitor')
-    if [ "$actual_monitor" != "$monitor" ]; then
-      ${pkgs.hyprland}/bin/hyprctl dispatch moveworkspacetomonitor "$next_ws" "$monitor"
-    fi
     ${pkgs.hyprland}/bin/hyprctl dispatch workspace "$next_ws"
   '';
 
@@ -280,9 +280,10 @@ in
           "$mainMod, M, exec, ${customConfig.desktop.hyprland.applications.music}"
           "$mainMod SHIFT, M, workspace, emptym"
           "$mainMod SHIFT, M, exec, ${customConfig.desktop.hyprland.applications.music}"
-          "$mainMod, D, exec, ${customConfig.desktop.hyprland.applications.chat}"
-          "$mainMod SHIFT, D, workspace, emptym"
-          "$mainMod SHIFT, D, exec, ${customConfig.desktop.hyprland.applications.chat}"
+          "$mainMod, C, exec, ${customConfig.desktop.hyprland.applications.chat}"
+          "$mainMod SHIFT, C, workspace, emptym"
+          "$mainMod SHIFT, C, exec, ${customConfig.desktop.hyprland.applications.chat}"
+          "$mainMod $altMod, C, exec, ${pkgs.signal-desktop}/bin/signal-desktop"
           "$mainMod, G, exec, ${customConfig.desktop.hyprland.applications.gaming}"
           "$mainMod SHIFT, G, workspace, emptym"
           "$mainMod SHIFT, G, exec, ${customConfig.desktop.hyprland.applications.gaming}"
@@ -301,6 +302,10 @@ in
           "$mainMod, J, movefocus, d"
           "$mainMod, K, movefocus, u"
           "$mainMod, L, movefocus, r"
+          "$mainMod, A, movefocus, l"
+          "$mainMod, S, movefocus, d"
+          "$mainMod, W, movefocus, u"
+          "$mainMod, D, movefocus, r"
           "r:CONTROL, left, movefocus, l"
           "r:CONTROL, right, movefocus, r"
           "r:CONTROL, up, movefocus, u"
@@ -339,6 +344,7 @@ in
           # Special workspace toggle (hidden utility apps like ckb-next)
           "$mainMod, grave, togglespecialworkspace, ckb"
           "$mainMod SHIFT, grave, movetoworkspace, special:ckb"
+          "$mainMod $altMod, UP, movetoworkspace, special:ckb"
 
           # System & Utility Bindings
           "$mainMod, slash, exec, hyprland-keys"

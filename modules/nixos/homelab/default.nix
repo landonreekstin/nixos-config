@@ -15,5 +15,15 @@
     ./media-linker.nix
     ./nix-cache.nix
     ./flake-updater.nix
+    ./local-acme-ca.nix
+    ./vaultwarden.nix
+    ./home-assistant.nix
+    ./wyoming.nix
+    ./game-servers.nix
+    ./game-control.nix
+    ./game-backup.nix
+    ./dns.nix
+    ./reverse-proxy-nas.nix
+    ./reverse-proxy-mini.nix
   ];
 }

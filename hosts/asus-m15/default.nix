@@ -194,6 +194,8 @@
       defaults.kde.browser = "chromium.desktop";
     };
 
+    programs.claudeCode.enable = true;
+
     profiles = {
       gaming.enable = true;
       development.gbdk.enable = true;

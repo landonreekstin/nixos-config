@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="30">
+  <title>Game Servers</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f0f1a;
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 1rem;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.4rem;
+      color: #a0a8ff;
+      margin-bottom: 1.2rem;
+      letter-spacing: 0.04em;
+    }
+    .card {
+      background: #1a1a2e;
+      border: 1px solid #2a2a45;
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+      margin-bottom: 0.9rem;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+    .server-name {
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+    .badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .running  { background: #1a3a2a; color: #4ecb71; border: 1px solid #2a6a40; }
+    .stopped  { background: #2a2a2a; color: #888;    border: 1px solid #3a3a3a; }
+    .starting { background: #2a1a00; color: #f5a623; border: 1px solid #7a5010; animation: pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+    .meta {
+      font-size: 0.8rem;
+      color: #777;
+      margin-bottom: 0.8rem;
+    }
+    .players { color: #a0c8ff; font-weight: 500; }
+    button {
+      width: 100%;
+      padding: 0.55rem;
+      border: none;
+      border-radius: 7px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    button:active { opacity: 0.75; }
+    .btn-start { background: #4ecb71; color: #0a1a10; }
+    .btn-stop  { background: #e94560; color: #fff; }
+    .save-row {
+      display: flex;
+      gap: 0.4rem;
+      margin-top: 0.5rem;
+    }
+    .save-select {
+      flex: 1;
+      background: #12122a;
+      color: #e0e0e0;
+      border: 1px solid #3a3a5a;
+      border-radius: 7px;
+      padding: 0.45rem 0.4rem;
+      font-size: 0.85rem;
+    }
+    .btn-switch {
+      background: #2a2a5a;
+      color: #a0a8ff;
+      width: auto;
+      padding: 0.45rem 0.9rem;
+      font-size: 0.85rem;
+    }
+    .footer {
+      text-align: center;
+      font-size: 0.68rem;
+      color: #444;
+      margin-top: 1.2rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Game Servers</h1>
+
+  {% for name, srv in servers.items() %}
+  <div class="card">
+    <div class="card-header">
+      <span class="server-name">{{ srv.label }}</span>
+      <span class="badge {{ srv.status }}">{{ srv.status }}</span>
+    </div>
+    <div class="meta">
+      {{ srv.ports }}
+      {% if srv.players is not none %}
+        &nbsp;&bull;&nbsp; <span class="players">{{ srv.players }} online</span>
+      {% endif %}
+      {% if srv.active_save %}
+        &nbsp;&bull;&nbsp; {{ srv.active_save }}
+      {% endif %}
+    </div>
+    {% if srv.status == "running" %}
+    <form method="POST" action="/api/servers/{{ name }}/stop?token={{ token }}">
+      <button class="btn-stop" type="submit">Stop</button>
+    </form>
+    {% else %}
+    <form method="POST" action="/api/servers/{{ name }}/start?token={{ token }}" data-action="start">
+      <button class="btn-start" type="submit">Start</button>
+    </form>
+    {% if srv.available_saves | length > 1 %}
+    <form method="GET" action="/api/servers/astroneer/switch-save" class="save-row">
+      <input type="hidden" name="token" value="{{ token }}">
+      <select name="save" class="save-select">
+        {% for s in srv.available_saves %}
+        <option value="{{ s }}" {% if s == srv.active_save %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn-switch">Switch</button>
+    </form>
+    {% endif %}
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <div class="footer">auto-refreshes every 30s &bull; connect via VPN only</div>
+
+  <script>
+    document.querySelectorAll('form[data-action="start"]').forEach(function(form) {
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        var card = form.closest('.card');
+        var badge = card.querySelector('.badge');
+        var btn = form.querySelector('button');
+
+        var meta = document.querySelector('meta[http-equiv="refresh"]');
+        if (meta) meta.remove();
+
+        badge.className = 'badge starting';
+        badge.textContent = 'starting…';
+        btn.textContent = 'Starting…';
+        btn.disabled = true;
+
+        fetch(form.action, { method: 'POST' })
+          .then(function(response) {
+            if (!response.ok) throw new Error('failed');
+            location.reload();
+          })
+          .catch(function() {
+            badge.className = 'badge stopped';
+            badge.textContent = 'stopped';
+            btn.textContent = 'Start';
+            btn.disabled = false;
+          });
+      });
+    });
+  </script>
+</body>
+</html>

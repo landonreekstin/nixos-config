@@ -32,6 +32,12 @@ let
     ACTIVE_FILE="$HOME/.cache/hyprsunset-active-temp"
     PID_FILE="$HOME/.cache/hyprsunset-transition.pid"
 
+    # Kill any stale transition subshells from previous runs or old store paths
+    SELF=$$
+    for _pid in $(pgrep -x hyprsunset-schedule 2>/dev/null); do
+      [ "$_pid" != "$SELF" ] && kill -9 "$_pid" 2>/dev/null || true
+    done
+
     # Migrate state file from old gammastep location
     OLD_STATE="$HOME/.cache/gammastep-state"
     if [ -f "$OLD_STATE" ] && [ ! -f "$STATE_FILE" ]; then
@@ -78,13 +84,27 @@ let
     INTERVAL=$(( ${transitionSecs} / STEPS ))
     A=$ACTIVE
     T=$TARGET
+    SOCK="''${XDG_RUNTIME_DIR}/hypr/''${HYPRLAND_INSTANCE_SIGNATURE}/.hyprsunset.sock"
 
     (
       echo $BASHPID > "$PID_FILE"
+
+      # Ensure hyprsunset is running and the socket exists before the loop
+      if ! [ -S "$SOCK" ]; then
+        pkill -9 -x hyprsunset 2>/dev/null || true
+        ${pkgs.hyprsunset}/bin/hyprsunset -t "$A" &
+        sleep 0.3
+      fi
+
       for i in $(seq 1 $STEPS); do
         STEP=$(( A + (T - A) * i / STEPS ))
-        pkill -9 -x hyprsunset 2>/dev/null || true
-        ${pkgs.hyprsunset}/bin/hyprsunset -t "$STEP" &
+        if [ -S "$SOCK" ]; then
+          echo "temperature $STEP" | ${pkgs.socat}/bin/socat - UNIX-CONNECT:"$SOCK" 2>/dev/null || true
+        else
+          pkill -9 -x hyprsunset 2>/dev/null || true
+          ${pkgs.hyprsunset}/bin/hyprsunset -t "$STEP" &
+          sleep 0.3
+        fi
         echo "$STEP" > "$ACTIVE_FILE"
         pkill -RTMIN+12 waybar 2>/dev/null || true
         [ "$i" -lt "$STEPS" ] && sleep "$INTERVAL"
@@ -140,6 +160,7 @@ in
   home.packages = lib.mkIf hasHyprsunset [
     hyprsunsetInitScript
     hyprsunsetScheduleScript
+    pkgs.socat
   ];
 
   systemd.user.services.hyprsunset-schedule = lib.mkIf hasHyprsunset {

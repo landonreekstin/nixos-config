@@ -25,6 +25,7 @@ in
           "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKwm8mWWENkk2O2h7qHodUCO1679W95JrpteQXOlaevw"
           "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPCWscID0zYKSLJZgAzA/pYBPJwnFJGIzXREnTSTVWDb"
           "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO3w/328KOSHk1qvL9c0ERfTyFrF7f00UwDySQFWZolK"
+          "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMuo/Kil4cW/OG+m3FDiUhas8Be5uGzXxTBd3G99zF1x lando@mini-server"
 
         ];
         shell = cfg.user.shell.bash.pkg;

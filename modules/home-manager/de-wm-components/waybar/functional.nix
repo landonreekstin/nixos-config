@@ -15,6 +15,7 @@ let
   hyprsunsetDayStart   = toString customConfig.homeManager.services.hyprsunset.dayStartHour;
   hyprsunsetNightStart = toString customConfig.homeManager.services.hyprsunset.nightStartHour;
   hasCkbNext = customConfig.hardware.peripherals.ckb-next.enable;
+  hasBluetoothWidget = customConfig.hardware.bluetooth.waybar.enable;
   ckbScripts = import ../../themes/century-series/ckb-scripts.nix { inherit pkgs; };
   weatherLocation = customConfig.desktop.hyprland.weather.location;
   weatherUseFahrenheit = customConfig.desktop.hyprland.weather.useFahrenheit;
@@ -261,8 +262,13 @@ let
     # Apply immediately in manual mode, or in auto mode during nighttime.
     # In auto daytime, just save the preset — display stays at dayTemp.
     if [ "$MODE" = "manual" ] || { [ "$MODE" = "auto" ] && [ "$IS_DAY" = "0" ]; }; then
-      pkill -9 -x hyprsunset 2>/dev/null || true
-      ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
+      SOCK="''${XDG_RUNTIME_DIR}/hypr/''${HYPRLAND_INSTANCE_SIGNATURE}/.hyprsunset.sock"
+      if [ -S "$SOCK" ]; then
+        echo "temperature ''${TEMP}" | ${pkgs.socat}/bin/socat - UNIX-CONNECT:"$SOCK" 2>/dev/null || true
+      else
+        pkill -9 -x hyprsunset 2>/dev/null || true
+        ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
+      fi
       echo "''${TEMP}" > "$ACTIVE_FILE"
     fi
 
@@ -335,25 +341,40 @@ let
     HOUR=$(date +%-H)
     if [ "$HOUR" -ge ${hyprsunsetDayStart} ] && [ "$HOUR" -lt ${hyprsunsetNightStart} ]; then IS_DAY=1; else IS_DAY=0; fi
 
+    SOCK="''${XDG_RUNTIME_DIR}/hypr/''${HYPRLAND_INSTANCE_SIGNATURE}/.hyprsunset.sock"
     if [ "$MODE" = "auto" ]; then
       # Switch to manual — if daytime, snap to night preset so night light turns on NOW
       echo "''${TEMP}:manual" > "$STATE_FILE"
       if [ "$IS_DAY" = "1" ]; then
-        pkill -9 -x hyprsunset 2>/dev/null || true
-        ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
+        if [ -S "$SOCK" ]; then
+          echo "temperature ''${TEMP}" | ${pkgs.socat}/bin/socat - UNIX-CONNECT:"$SOCK" 2>/dev/null || true
+        else
+          pkill -9 -x hyprsunset 2>/dev/null || true
+          ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
+        fi
         echo "''${TEMP}" > "$ACTIVE_FILE"
       fi
       # If nighttime: already at TEMP, no change needed
     else
       # Switch to auto — snap to correct time-of-day temp immediately
       echo "''${TEMP}:auto" > "$STATE_FILE"
-      pkill -9 -x hyprsunset 2>/dev/null || true
-      if [ "$IS_DAY" = "1" ]; then
-        ${pkgs.hyprsunset}/bin/hyprsunset -t ${toString customConfig.homeManager.services.hyprsunset.dayTemp} &
-        echo "${toString customConfig.homeManager.services.hyprsunset.dayTemp}" > "$ACTIVE_FILE"
+      if [ -S "$SOCK" ]; then
+        if [ "$IS_DAY" = "1" ]; then
+          echo "temperature ${toString customConfig.homeManager.services.hyprsunset.dayTemp}" | ${pkgs.socat}/bin/socat - UNIX-CONNECT:"$SOCK" 2>/dev/null || true
+          echo "${toString customConfig.homeManager.services.hyprsunset.dayTemp}" > "$ACTIVE_FILE"
+        else
+          echo "temperature ''${TEMP}" | ${pkgs.socat}/bin/socat - UNIX-CONNECT:"$SOCK" 2>/dev/null || true
+          echo "''${TEMP}" > "$ACTIVE_FILE"
+        fi
       else
-        ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
-        echo "''${TEMP}" > "$ACTIVE_FILE"
+        pkill -9 -x hyprsunset 2>/dev/null || true
+        if [ "$IS_DAY" = "1" ]; then
+          ${pkgs.hyprsunset}/bin/hyprsunset -t ${toString customConfig.homeManager.services.hyprsunset.dayTemp} &
+          echo "${toString customConfig.homeManager.services.hyprsunset.dayTemp}" > "$ACTIVE_FILE"
+        else
+          ${pkgs.hyprsunset}/bin/hyprsunset -t "''${TEMP}" &
+          echo "''${TEMP}" > "$ACTIVE_FILE"
+        fi
       fi
     fi
 
@@ -368,6 +389,47 @@ let
     else
       printf '{"text":"UTIL","class":"empty","tooltip":"Special workspace empty — SUPER+` to open"}'
     fi
+  '';
+
+  bluetoothStatusScript = pkgs.writeShellScript "waybar-bluetooth-status" ''
+    POWERED=$(${pkgs.bluez}/bin/bluetoothctl show 2>/dev/null | grep "Powered:" | awk '{print $2}')
+
+    if [ -z "$POWERED" ]; then
+      printf '{"text":"BT N/A","class":"unavailable","tooltip":"No Bluetooth adapter detected"}'
+      exit 0
+    fi
+
+    if [ "$POWERED" != "yes" ]; then
+      printf '{"text":"BT OFF","class":"off","tooltip":"Bluetooth off — right-click to enable"}'
+      exit 0
+    fi
+
+    CONNECTED=$(${pkgs.bluez}/bin/bluetoothctl devices Connected 2>/dev/null)
+    if [ -n "$CONNECTED" ]; then
+      FIRST=$(echo "$CONNECTED" | head -1 | cut -d' ' -f3-)
+      COUNT=$(echo "$CONNECTED" | wc -l)
+      SHORT=$(echo "$FIRST" | cut -c1-12)
+      if [ "$COUNT" -gt 1 ]; then
+        TOOLTIP="Connected: $FIRST (+$((COUNT-1)) more) — click to manage"
+        TEXT="BT ''${SHORT}+"
+      else
+        TOOLTIP="Connected: $FIRST — click to manage"
+        TEXT="BT ''${SHORT}"
+      fi
+      printf '{"text":"%s","class":"connected","tooltip":"%s"}' "$TEXT" "$TOOLTIP"
+    else
+      printf '{"text":"BT ON","class":"on","tooltip":"Bluetooth on — no devices connected — click to manage"}'
+    fi
+  '';
+
+  bluetoothToggleScript = pkgs.writeShellScript "waybar-bluetooth-toggle" ''
+    POWERED=$(${pkgs.bluez}/bin/bluetoothctl show 2>/dev/null | grep "Powered:" | awk '{print $2}')
+    if [ "$POWERED" = "yes" ]; then
+      ${pkgs.bluez}/bin/bluetoothctl power off
+    else
+      ${pkgs.bluez}/bin/bluetoothctl power on
+    fi
+    pkill -RTMIN+15 waybar
   '';
 
   # Generate custom module configurations for launcher buttons
@@ -415,6 +477,7 @@ in
             modules-right = lib.optionals hasScreenBacklight [ "backlight" ]
               ++ lib.optionals hasKbdBacklight [ "custom/kbd-brightness" ]
               ++ lib.optionals hasVpnClient [ "custom/vpn" ]
+              ++ lib.optionals hasBluetoothWidget [ "custom/bluetooth" ]
               ++ lib.optionals hasBattery [ "battery" ]
               ++ lib.optionals hasWeather [ "custom/weather" ]
               ++ lib.optionals hasHyprsunset [ "custom/hyprsunset" ]
@@ -546,6 +609,15 @@ in
             signal = 14;    # pkill -RTMIN+14 waybar forces an immediate refresh
           };
 
+          "custom/bluetooth" = lib.mkIf hasBluetoothWidget {
+            exec = "${bluetoothStatusScript}";
+            return-type = "json";
+            interval = 5;
+            signal = 15;  # pkill -RTMIN+15 waybar forces an immediate refresh
+            on-click = "${pkgs.blueman}/bin/blueman-manager";
+            on-click-right = "${bluetoothToggleScript}";
+          };
+
           "hyprland/workspaces" = {
             # Most settings like format-icons are pure rice.
             # persistent_workspaces could be functional if you always want a fixed number.
@@ -579,7 +651,7 @@ in
       curl                 # For weather module HTTP requests
       jq                   # For weather module JSON parsing
       # audio-switcher script dependencies should be handled by its own module if it has any non-pkgs ones
-    ];
+    ] ++ lib.optionals hasBluetoothWidget [ pkgs.blueman ];
 
     systemd.user.services.waybar = {
       # These options are added to the [Unit] section of the systemd service file.

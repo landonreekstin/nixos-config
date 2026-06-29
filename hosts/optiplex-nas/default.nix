@@ -78,7 +78,7 @@
       # This will be created during your installation.
       name = "lando"; # Or whatever user your script creates
       email = "landonreekstin@gmail.com";
-      shell.bash.color = "bright-green";
+      shell.bash.color = "bright-magenta";
     };
     
     system = {
@@ -138,6 +138,8 @@
 
 
 
+    programs.claudeCode.enable = true;
+
     profiles = {
       gaming.enable = false;
       development.fpga-ice40.enable = false;
@@ -180,7 +182,11 @@
       flaresolverr.enable = true;
       nixCache.enable = true;
 
+      dns.enable = true;
+      reverseProxy.enable = true;
+
       flakeUpdater.enable = true;
+      localCA.trustCA = true;
 
       mediaLinker = {
         enable = true;

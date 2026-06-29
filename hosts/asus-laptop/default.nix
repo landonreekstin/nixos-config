@@ -173,6 +173,8 @@
 
 
 
+    programs.claudeCode.enable = true;
+
     profiles = {
       gaming.enable = true;
       development.fpga-ice40.enable = true;
@@ -180,7 +182,10 @@
       development.kernel.enable = false;
     };
 
-    homelab.nasClient.enable = true;
+    homelab = {
+      nasClient.enable = true;
+      localCA.trustCA = true;
+    };
 
     services = {
       ssh.enable = true;
@@ -189,7 +194,7 @@
         enable = true;
         autoStart = false;
         address = "10.10.0.3/32";
-        dns = [ "1.1.1.1" ];
+        dns = [ "192.168.1.76" "1.1.1.1" ];
         privateKeyFile = config.sops.secrets.wireguard-private-key.path;
         peer = {
           publicKey = "Z1ZtZiXE59cBZvmjkvcWr5nlEtmHVJJ16P0pb4QtFiY=";

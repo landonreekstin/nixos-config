@@ -198,6 +198,9 @@
           # Color/brightness managed at runtime via ~/.cache/ckb-color-state
         };
       };
+      bluetooth = {
+        waybar.enable = true;
+      };
       monitors = [
         { name = "DP-1";     rotation = "Normal";    scale = 1.15; } # Main: LG 2560x1440 @ 180Hz
         { name = "HDMI-A-1"; rotation = "Rotated90"; }               # Left: Dell 1080p portrait
@@ -318,6 +321,8 @@
       };
     };
 
+    programs.claudeCode.enable = true;
+
     profiles = {
       gaming.enable = true;
       development = {
@@ -338,6 +343,7 @@
         enable = true;
         resolver = "cloudflare";
       };
+      localDns.server = "192.168.1.76";
     };
 
     services = {
@@ -345,7 +351,10 @@
       vscodeServer.enable = true;
     };
 
-    homelab.nasClient.enable = true;
+    homelab = {
+      nasClient.enable = true;
+      localCA.trustCA = true;
+    };
 
   };
 

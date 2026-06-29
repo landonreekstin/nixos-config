@@ -31,6 +31,9 @@ let
 
     cd "${cfg.repoDir}"
 
+    # Always return to main when the script exits so sync works correctly afterward
+    trap 'git checkout main 2>/dev/null || true' EXIT
+
     # ---------------------------------------------------------------
     # build_host <name>: builds with timeout; sets BUILD_STATUS[name]
     # ---------------------------------------------------------------

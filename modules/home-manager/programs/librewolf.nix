@@ -30,6 +30,12 @@ let
     "ui.systemUsesDarkTheme"                               = 1;
     # Enable userChrome.css
     "toolkit.legacyUserProfileCustomizations.stylesheets"  = true;
+    # Use system DNS resolver — required for .lan homelab domains
+    # (DoH bypasses the local Unbound resolver and fails to resolve .lan)
+    "network.trr.mode"                                     = 5;
+    # Disable HTTPS-only mode — homelab services run on plain HTTP
+    "dom.security.https_only_mode"                         = false;
+    "dom.security.https_only_mode_ever_enabled"            = false;
     # Downloads
     "browser.download.dir"                                 = "${userHome}/Downloads";
     "browser.download.folderList"                          = 2;
@@ -68,10 +74,10 @@ let
   bookmarkList = [
     { name = "YouTube";    url = "https://www.youtube.com"; }
     { name = "TV"; bookmarks = [
-        { name = "Netflix";  url = "https://www.netflix.com"; }
-        { name = "Jellyfin"; url = "http://192.168.1.76:8096"; }
-        { name = "Requests"; url = "http://192.168.1.76:5055"; }
-        { name = "Torrent";  url = "http://192.168.1.76:9091"; }
+        { name = "Netflix";    url = "https://www.netflix.com"; }
+        { name = "Jellyfin";   url = "http://jellyfin.lan"; }
+        { name = "Requests";   url = "http://jellyseerr.lan"; }
+        { name = "Torrent";    url = "http://transmission.lan"; }
       ]; }
     { name = "Sports"; bookmarks = [
         { name = "StreamEast"; url = "https://the.streameast.xyz/"; }
@@ -95,7 +101,7 @@ let
       ]; }
     { name = "Prime";      url = "https://www.amazon.com/amazonprime"; }
     { name = "LinkedIn";   url = "https://www.linkedin.com/feed/"; }
-    { name = "HomeAssist"; url = "http://192.168.100.103:8123/home/overview"; }
+    { name = "HomeAssist"; url = "http://homeassistant.lan/home/overview"; }
     { name = "Claude";     url = "https://claude.ai/new"; }
   ];
 
@@ -123,6 +129,9 @@ in
         enable = true;
 
         profiles.${userName} = {
+          # Target the existing profile directory rather than creating a new one named after the user
+          path = "rbb3lgdy.default";
+
           extensions = { packages = extensions; };
 
           userChrome = userChromeCSS;

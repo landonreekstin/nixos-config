@@ -193,7 +193,7 @@ in {
 
         /* Module base styling - Instrument readouts */
         #cpu, #memory, #temperature, #battery, #custom-audio-sink,
-        #backlight, #custom-kbd-brightness, #custom-vpn {
+        #backlight, #custom-kbd-brightness, #custom-vpn, #custom-bluetooth {
           padding: 0 8px;
           margin: 2px;
           background-color: ${c.bg-tertiary};
@@ -280,6 +280,38 @@ in {
         }
 
         #custom-vpn:hover {
+          background-color: ${c.bg-secondary};
+          color: ${c.accent-green};
+          border-color: ${c.accent-green};
+        }
+
+        /* Bluetooth — IFF / data-link status indicator */
+        #custom-bluetooth {
+          font-weight: bold;
+          letter-spacing: 1px;
+          border-color: ${c.border-primary};
+          color: ${c.text-secondary};
+          transition: all 0.3s ease;
+        }
+
+        #custom-bluetooth.off, #custom-bluetooth.unavailable {
+          color: ${c.text-tertiary};
+          border-color: ${c.border-primary};
+          opacity: 0.4;
+        }
+
+        #custom-bluetooth.on {
+          color: ${c.accent-green-dim};
+          border-color: ${c.accent-green-dim};
+        }
+
+        #custom-bluetooth.connected {
+          color: ${c.accent-green};
+          border-color: ${c.accent-green-dim};
+          box-shadow: 0 0 6px ${c.accent-green}44;
+        }
+
+        #custom-bluetooth:hover {
           background-color: ${c.bg-secondary};
           color: ${c.accent-green};
           border-color: ${c.accent-green};
