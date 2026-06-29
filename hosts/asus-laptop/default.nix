@@ -182,7 +182,10 @@
       development.kernel.enable = false;
     };
 
-    homelab.nasClient.enable = true;
+    homelab = {
+      nasClient.enable = true;
+      localCA.trustCA = true;
+    };
 
     services = {
       ssh.enable = true;

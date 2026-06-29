@@ -3,7 +3,10 @@
 
 let
   cfg = config.customConfig.homelab;
+  # When localCA is enabled, vhosts get HTTPS via ACME; otherwise plain HTTP.
   mkProxy = port: {
+    enableACME = cfg.localCA.enable;
+    forceSSL = cfg.localCA.enable;
     locations."/" = {
       proxyPass = "http://127.0.0.1:${toString port}";
       proxyWebsockets = true;
@@ -30,6 +33,6 @@ in
       trusted_proxies = [ "127.0.0.1" "::1" ];
     };
 
-    networking.firewall.allowedTCPPorts = [ 80 ];
+    networking.firewall.allowedTCPPorts = [ 80 ] ++ lib.optionals cfg.localCA.enable [ 443 ];
   };
 }

@@ -351,7 +351,10 @@
       vscodeServer.enable = true;
     };
 
-    homelab.nasClient.enable = true;
+    homelab = {
+      nasClient.enable = true;
+      localCA.trustCA = true;
+    };
 
   };
 
