@@ -237,7 +237,6 @@
     homeManager = {
       enable = true;
       services.updateNotification.enable = true;
-      librewolf.enable = true;
       themes = {
         hyprland = "century-series";
       };
