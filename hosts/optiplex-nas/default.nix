@@ -149,6 +149,10 @@
     services = {
       ssh.enable = true;
       vscodeServer.enable = true;
+      autoUpdate = {
+        enable = true;
+        day = "Tue";
+      };
     };
 
     homelab = {

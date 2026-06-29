@@ -103,6 +103,7 @@
     services = {
       ssh.enable = true;
       vscodeServer.enable = true;
+      autoUpdate.enable = true;
     };
 
     homelab = {
