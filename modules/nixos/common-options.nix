@@ -814,14 +814,6 @@ in
             description = "Whether to enable a once-per-login desktop notification when the nixos-config repo has upstream updates.";
           };
         };
-        passwordManager = {
-          enable = mkEnableOption "KeePassXC password manager with Syncthing database sync";
-          folderPath = mkOption {
-            type = types.str;
-            default = "/home/${config.customConfig.user.name}/KeePass";
-            description = "Path to the folder containing the KeePass database file to sync via Syncthing.";
-          };
-        };
       };
       themes = {
         kde = mkOption {

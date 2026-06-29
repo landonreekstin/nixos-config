@@ -237,7 +237,6 @@
     homeManager = {
       enable = true;
       services.updateNotification.enable = true;
-      services.passwordManager.enable = true;
       themes = {
         hyprland = "century-series";
       };
@@ -315,6 +314,7 @@
         gurk-rs
         vlc
         signal-desktop
+        keepassxc
       ];
       flatpak = {
         enable = true;
