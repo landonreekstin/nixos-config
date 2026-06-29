@@ -860,6 +860,11 @@ in
           default = false;
           description = "Whether to enable the declarative Librewolf browser profile preset.";
         };
+        profilePath = mkOption {
+          type = types.str;
+          default = "rbb3lgdy.default";
+          description = "LibreWolf profile directory name under ~/.librewolf/. Run 'ls ~/.librewolf/' to find the correct value.";
+        };
         overrideConfig = mkOption {
           type = types.bool;
           default = true;
