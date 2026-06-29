@@ -1484,6 +1484,26 @@ in
           description = "Max random delay to stagger multiple hosts.";
           example = "1h";
         };
+        persistent = mkOption {
+          type = types.bool;
+          default = true;
+          description = "Run the update after a missed schedule (e.g. on next boot). Set false on desktops to avoid a mid-session rebuild firing unexpectedly.";
+        };
+        skipIfActiveSession = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Skip the update if any user session is active. Recommended for desktop hosts.";
+        };
+        lowPriority = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Run nixos-rebuild with nice/ionice to reduce impact on foreground work. Recommended for desktop hosts.";
+        };
+        onlyOnAC = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Only run the update when on AC power (ConditionACPower). Recommended for laptops.";
+        };
       };
     };
 

@@ -22,6 +22,13 @@ let
       exit 1
     fi
 
+    ${lib.optionalString cfg.skipIfActiveSession ''
+    if [ -n "$(loginctl list-sessions --no-legend 2>/dev/null)" ]; then
+      log "Active user session detected — skipping update."
+      exit 0
+    fi
+    ''}
+
     HEAD_BEFORE=$(runuser -l "$GIT_USER" -c "git -C '$NIXOS_CONFIG_DIR' rev-parse HEAD")
     log "HEAD before pull: $HEAD_BEFORE"
 
@@ -43,7 +50,8 @@ let
     fi
 
     log "New commits pulled ($HEAD_BEFORE -> $HEAD_AFTER). Running nixos-rebuild switch..."
-    nixos-rebuild switch --flake "$NIXOS_CONFIG_DIR#$HOSTNAME" --impure --max-jobs auto --cores 0
+    ${lib.optionalString cfg.lowPriority "nice -n 19 ionice -c 3"} nixos-rebuild switch \
+      --flake "$NIXOS_CONFIG_DIR#$HOSTNAME" --impure --max-jobs auto --cores 0
     log "Rebuild complete."
   '';
 in
@@ -55,6 +63,9 @@ in
       wants = [ "network-online.target" ];
       path = with pkgs; [ git openssh nix coreutils util-linux ];
       environment.NIXPKGS_ALLOW_UNFREE = "1";
+      unitConfig = lib.optionalAttrs cfg.onlyOnAC {
+        ConditionACPower = true;
+      };
       serviceConfig = {
         Type = "oneshot";
         ExecStart = autoUpdateScript;
@@ -69,7 +80,7 @@ in
       timerConfig = {
         OnCalendar = "${cfg.day} *-*-* ${cfg.time}:00";
         RandomizedDelaySec = cfg.randomizedDelaySec;
-        Persistent = true;
+        Persistent = cfg.persistent;
       };
     };
   };
