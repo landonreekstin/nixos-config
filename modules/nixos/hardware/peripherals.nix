@@ -68,6 +68,31 @@ in
     };
 
     # === OpenRazer for Razer Device Support ===
+    # openrazer 3.10.3 doesn't build against kernel 6.12.79+ / 6.13+ because
+    # hid_report_raw_event gained a new `bufsize` parameter.
+    # Patch all driver .c files at build time: duplicate the sizeof() arg so
+    # the old 5-arg call becomes the required 6-arg call.
+    nixpkgs.overlays = lib.mkIf cfg.openrazer.enable [
+      (_: prev: {
+        linuxPackages = prev.linuxPackages.extend (_: lprev: {
+          openrazer = lprev.openrazer.overrideAttrs (old: {
+            postPatch = (old.postPatch or "") + ''
+              find driver/ -name "*.c" -exec sed -i -E \
+                's/(hid_report_raw_event\([^,]+, [^,]+, [^,]+, )(sizeof\([^)]+\))(, [^;]+;)/\1\2, \2\3/g' {} +
+            '';
+          });
+        });
+        linuxPackages_latest = prev.linuxPackages_latest.extend (_: lprev: {
+          openrazer = lprev.openrazer.overrideAttrs (old: {
+            postPatch = (old.postPatch or "") + ''
+              find driver/ -name "*.c" -exec sed -i -E \
+                's/(hid_report_raw_event\([^,]+, [^,]+, [^,]+, )(sizeof\([^)]+\))(, [^;]+;)/\1\2, \2\3/g' {} +
+            '';
+          });
+        });
+      })
+    ];
+
     hardware.openrazer = lib.mkIf cfg.openrazer.enable {
       enable = true;
       users = [ user ];
