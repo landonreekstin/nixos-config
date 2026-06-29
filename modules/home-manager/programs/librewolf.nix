@@ -116,6 +116,7 @@ in
         ublock-origin
         darkreader
         facebook-container
+        bitwarden
         # teleparty is not confirmed in NUR rycee addons.
         # To add manually once sha256 is known:
         # (pkgs.fetchFirefoxAddon {
@@ -130,7 +131,7 @@ in
 
         profiles.${userName} = {
           # Target the existing profile directory rather than creating a new one named after the user
-          path = "rbb3lgdy.default";
+          path = cfg.profilePath;
 
           extensions = { packages = extensions; };
 
