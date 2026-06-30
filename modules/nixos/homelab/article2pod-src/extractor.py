@@ -2,6 +2,7 @@
 import os
 import json
 import logging
+import re
 import urllib.request
 import urllib.error
 
@@ -57,6 +58,17 @@ def _fetch_via_flaresolverr(url: str) -> str:
         raise ExtractionError(f"FlareSolverr request failed: {e}") from e
 
 
+def _title_from_html(html: str) -> str | None:
+    m = re.search(r'<title[^>]*>(.*?)</title>', html, re.IGNORECASE | re.DOTALL)
+    if not m:
+        return None
+    t = re.sub(r'\s+', ' ', m.group(1)).strip()
+    for sep in (' | ', ' - ', ' – ', ' — ', ' · '):
+        if sep in t:
+            t = t.rsplit(sep, 1)[0].strip()
+    return t or None
+
+
 def _parse(html: str, url: str) -> dict:
     result = trafilatura.extract(
         html,
@@ -73,7 +85,7 @@ def _parse(html: str, url: str) -> dict:
     if len(text) < 100:
         raise ExtractionError(f"Extracted text too short ({len(text)} chars)")
     return {
-        "title": (data.get("title") or "Untitled").strip(),
+        "title": (data.get("title") or _title_from_html(html) or "Untitled").strip(),
         "author": (data.get("author") or "Unknown").strip(),
         "pub_date": data.get("date") or "",
         "text": text,
