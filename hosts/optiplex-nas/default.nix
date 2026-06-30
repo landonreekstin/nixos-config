@@ -192,6 +192,16 @@
       flakeUpdater.enable = true;
       localCA.trustCA = true;
 
+      article2pod = {
+        enable           = true;
+        podcastTitle     = "Lando's Reading Queue";
+        podcastAuthor    = "lando";
+        podcastDescription = "Articles converted to audio for listening on the road";
+        # TODO: after first `rebuild`, pin kokoroImage to digest:
+        #   docker inspect --format='{{index .RepoDigests 0}}' ghcr.io/remsky/kokoro-fastapi:v0.5.0-cpu
+        # then set: kokoroImage = "ghcr.io/remsky/kokoro-fastapi@sha256:<digest>";
+      };
+
       mediaLinker = {
         enable = true;
         mediaUsers = [

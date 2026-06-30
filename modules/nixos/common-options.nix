@@ -1943,6 +1943,103 @@ in
         };
       };
 
+      article2pod = {
+        enable = mkEnableOption "article2pod read-it-later podcast service";
+
+        port = mkOption {
+          type = types.port;
+          default = 8100;
+          description = "Port for the article2pod FastAPI service.";
+        };
+
+        kokoroPort = mkOption {
+          type = types.port;
+          default = 8880;
+          description = "Port for the Kokoro-FastAPI TTS container.";
+        };
+
+        storagePath = mkOption {
+          type = types.str;
+          default = "/mnt/storage/podcasts";
+          description = "Root directory for podcast audio files (on HDD storage).";
+        };
+
+        statePath = mkOption {
+          type = types.str;
+          default = "/var/lib/article2pod";
+          description = "Directory for SQLite DB and transient state.";
+        };
+
+        modelsPath = mkOption {
+          type = types.str;
+          default = "/mnt/cache/article2pod/models";
+          description = "Directory for Kokoro model weights (on NVMe cache).";
+        };
+
+        hostname = mkOption {
+          type = types.str;
+          default = "reader.lan";
+          description = "Hostname for the nginx virtual host and feed URLs.";
+        };
+
+        podcastTitle = mkOption {
+          type = types.str;
+          default = "Article Podcast";
+          description = "Title shown in podcast clients.";
+        };
+
+        podcastAuthor = mkOption {
+          type = types.str;
+          default = "lando";
+          description = "Author shown in podcast clients.";
+        };
+
+        podcastDescription = mkOption {
+          type = types.str;
+          default = "Articles converted to audio episodes";
+          description = "Feed description shown in podcast clients.";
+        };
+
+        flareSolverrUrl = mkOption {
+          type = types.str;
+          default = "http://localhost:8191";
+          description = "FlareSolverr endpoint for JS-challenge bypass.";
+        };
+
+        ttsBackend = mkOption {
+          type = types.enum [ "kokoro" "piper" ];
+          default = "kokoro";
+          description = "TTS backend: 'kokoro' (local container) or 'piper' (remote Wyoming endpoint).";
+        };
+
+        piperUrl = mkOption {
+          type = types.str;
+          default = "http://mini.lan:10200";
+          description = "Piper Wyoming HTTP endpoint (used only when ttsBackend = piper).";
+        };
+
+        kokoroVoice = mkOption {
+          type = types.str;
+          default = "af_heart";
+          description = "Kokoro voice identifier (see https://github.com/remsky/Kokoro-FastAPI for options).";
+        };
+
+        kokoroImage = mkOption {
+          type = types.str;
+          default = "ghcr.io/remsky/kokoro-fastapi:v0.5.0-cpu";
+          description = ''
+            Kokoro-FastAPI Docker image reference. Pin to a digest after first pull:
+              docker inspect --format='{{index .RepoDigests 0}}' ghcr.io/remsky/kokoro-fastapi:v0.5.0-cpu
+          '';
+        };
+
+        tokenFile = mkOption {
+          type = types.path;
+          default = "/run/secrets/article2pod-token";
+          description = "Path to file containing ARTICLE2POD_TOKEN env var (managed by sops-nix).";
+        };
+      };
+
     };
 
     # -------------------------------------------------------------------------- #

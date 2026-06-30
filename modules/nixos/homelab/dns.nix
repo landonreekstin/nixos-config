@@ -30,6 +30,7 @@ in
             ''"bazarr.lan. A 192.168.1.76"''
             ''"prowlarr.lan. A 192.168.1.76"''
             ''"nix-cache.lan. A 192.168.1.76"''
+            ''"reader.lan. A 192.168.1.76"''
             # mini-server
             ''"mini.lan. A 192.168.100.103"''
             ''"homeassistant.lan. A 192.168.100.103"''
