@@ -38,7 +38,10 @@ in
   config = lib.mkIf cfg.enable {
 
     # ── Secrets ──────────────────────────────────────────────────────────────
-    sops.secrets."article2pod-token" = {};   # uses defaultSopsFile = secrets/optiplex-nas.yaml
+    sops.secrets."article2pod-token" = {
+      mode  = "0440";
+      group = "users";
+    };
 
     # ── System user ──────────────────────────────────────────────────────────
     users.users.article2pod = {
