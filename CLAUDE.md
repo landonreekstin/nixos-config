@@ -381,6 +381,117 @@ Available via `customConfig.homelab`:
 - Samba file sharing
 - *arr stack (Radarr, Sonarr, Prowlarr, Bazarr)
 
+## OpenBSD Firewall (optiplex-fw)
+
+The only non-NixOS host in the homelab. Works perfectly and is not managed by NixOS — it just needs to be understood when NixOS service changes also require firewall/VPN changes (new port forward, new WireGuard peer, etc.).
+
+**Config files**: tracked in the private `github.com:landonreekstin/openbsd-dotfiles` repo, cloned at `~/openbsd-dotfiles/` on optiplex-fw. The live files on the box are always the source of truth.
+
+### Network Topology
+
+```
+Internet
+    │
+    ▼
+Spectrum Router (SAX2V1S)
+WAN: 68.184.198.204  /  LAN: 192.168.1.1
+    │
+    ├── 192.168.1.x  (Main LAN)
+    │   ├── gaming-pc       192.168.1.60
+    │   ├── optiplex-nas    192.168.1.76
+    │   └── optiplex-fw     192.168.1.189
+    │
+    ▼
+┌──────────────────────────────────────────┐
+│  OpenBSD Firewall (optiplex-fw)          │
+│  Hardware: Dell Optiplex 3040 MT         │
+│  OS: OpenBSD 7.9                         │
+│  ext_if re0: 192.168.1.189 (Main LAN)   │
+│  int_if em0: 192.168.100.1 (Server LAN) │
+└──────────────────────────────────────────┘
+    │
+    ├── 192.168.100.x  (Server LAN)
+    │   └── mini-server     192.168.100.103
+```
+
+### SSH Access
+
+```bash
+ssh lando@192.168.1.189   # direct
+ssh fw                     # via ~/.ssh/config alias on gaming-pc
+```
+
+### Key PF Commands
+
+```bash
+doas pfctl -f /etc/pf.conf   # reload rules after editing
+doas pfctl -sr                # show active rules
+doas pfctl -ss                # show state table
+doas pfctl -si                # statistics
+```
+
+### Adding a Port Forward
+
+1. **Router**: add forward in mySpectrum app → 192.168.1.189
+2. **optiplex-fw** `/etc/pf.conf`: add rdr-to rule, then `doas pfctl -f /etc/pf.conf`
+3. Commit change to openbsd-dotfiles repo
+
+### WireGuard VPN
+
+- **Listen port**: 51822 (UDP) — forwarded directly by the Spectrum router to 192.168.1.189
+- **VPN subnet**: 10.10.0.0/24 — server is 10.10.0.1
+- **Server public key**: `Z1ZtZiXE59cBZvmjkvcWr5nlEtmHVJJ16P0pb4QtFiY=`
+- **Server private key**: `/etc/wireguard/server_private.key` — NOT tracked in any repo
+- **Interface config**: `/etc/hostname.wg0`
+
+#### Peers
+
+| Name | VPN IP | Access | Notes |
+|------|--------|--------|-------|
+| Lando (gaming-pc) | 10.10.0.2 | Full | |
+| Lando (Android) | 10.10.0.3 | Full | full tunnel (0.0.0.0/0) |
+| Chris | 10.10.0.4 | Restricted | NAS only (192.168.1.76) |
+| Blaney | 10.10.0.5 | Restricted | NAS only |
+| Emily | 10.10.0.6 | Restricted | NAS only |
+| Russell | 10.10.0.7 | Restricted | NAS only |
+| Cmoore | 10.10.0.8 | Restricted | NAS only |
+| Alex | 10.10.0.9 | Full | |
+| Unknown | 10.10.0.10 | Restricted | identity not documented — check wg show on optiplex-fw |
+
+Restricted peers can reach: Jellyfin (8096), Jellyseerr (5055), Transmission (9091) on 192.168.1.76 and game-control dashboard (8080) on mini-server. All other traffic blocked via `<restricted_peers>` PF table.
+
+#### Adding a New Peer
+
+Run `~/openbsd-dotfiles/scripts/add-vpn-client.sh <name> [--jellyfin]` from optiplex-fw. The script:
+- Auto-detects next available VPN IP
+- Generates keypair, adds to live wg0 and hostname.wg0, updates pf.conf restricted_peers table
+- Optionally creates a Jellyfin user
+- Generates a QR code (if `qrencode` installed) and saves client config to `~/openbsd-dotfiles/wireguard-clients/`
+
+After running: commit the updated configs in openbsd-dotfiles, then add the new row to the Peers table above.
+
+#### WireGuard Management Commands
+
+```bash
+ssh fw
+doas wg show              # status and peer handshake times
+doas wg show wg0 dump     # detailed peer info
+```
+
+#### Hairpin NAT Limitation
+
+The Spectrum router does not support hairpin NAT. Gaming-pc works around this with a static route: `68.184.198.204/32 via 192.168.1.189` (configured in `hosts/gaming-pc/default.nix` via `networking.networkmanager.dispatcherScripts`). OpenBSD has matching rdr-to rules for this traffic.
+
+### Wake-on-LAN
+
+```bash
+ssh fw
+wake-gaming    # wakes gaming-pc (10:ff:e0:36:db:4b on 192.168.1.255)
+wake-optiplex  # wakes optiplex (e4:b9:7a:ed:67:8c on 192.168.100.255)
+```
+
+Aliases are in `~/.kshrc` on optiplex-fw. Requires `customConfig.networking.wakeOnLan` enabled in each NixOS host config.
+
 ## PRIMARY RULES: Making and Committing Changes
 
 **CRITICAL**: Follow this exact order — commit only comes AFTER verify:
