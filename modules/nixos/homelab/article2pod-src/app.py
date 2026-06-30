@@ -100,6 +100,24 @@ def get_feed(token: str):
     return Response(content=rss_bytes, media_type="application/rss+xml")
 
 
+@app.get("/")
+def root():
+    rows = db.get_all()
+    counts = {}
+    for r in rows:
+        counts[r["status"]] = counts.get(r["status"], 0) + 1
+    return {
+        "service": "article2pod",
+        "endpoints": {
+            "add":    "POST /add  {\"url\":\"...\"}  (Authorization: Bearer <token>)",
+            "feed":   f"GET  /rss/<token>",
+            "status": "GET  /status  (Authorization: Bearer <token>)",
+            "health": "GET  /health",
+        },
+        "queue": counts,
+    }
+
+
 @app.get("/health")
 def health():
     try:
