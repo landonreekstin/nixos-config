@@ -138,6 +138,22 @@ in
       };
     };
 
+    # ── CLI helper ───────────────────────────────────────────────────────────
+    environment.systemPackages = [
+      (pkgs.writeShellScriptBin "pod" ''
+        if [ -z "$1" ]; then
+          echo "Usage: pod <url>" >&2
+          exit 1
+        fi
+        TOKEN=$(grep -o '[0-9a-f]*$' ${cfg.tokenFile})
+        result=$(${pkgs.curl}/bin/curl -sf -X POST http://localhost:${toString cfg.port}/add \
+          -H "Authorization: Bearer $TOKEN" \
+          -H "Content-Type: application/json" \
+          -d "{\"url\": \"$1\"}")
+        echo "$result"
+      '')
+    ];
+
     # ── nginx: proxy API + static audio ──────────────────────────────────────
     services.nginx.virtualHosts."${cfg.hostname}" = {
       locations = {
