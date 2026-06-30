@@ -94,7 +94,8 @@ def run():
         log.info("Extracted: '%s' by %s (%d chars)", title, author, len(text))
 
         # Stage 2: TTS
-        audio_bytes = tts_client.synthesize(text)
+        voice = db.get_setting("voice", os.environ.get("KOKORO_VOICE", "af_heart"))
+        audio_bytes = tts_client.synthesize(text, voice=voice)
         log.info("Synthesized %d bytes of audio", len(audio_bytes))
 
         # Stage 3: Write MP3

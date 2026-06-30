@@ -46,6 +46,12 @@ def init_db():
                 error       TEXT
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS settings (
+                key   TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            )
+        """)
 
 
 def enqueue(url: str) -> dict | None:
@@ -105,6 +111,21 @@ def get_all() -> list[sqlite3.Row]:
         return conn.execute(
             "SELECT * FROM articles ORDER BY added_at DESC"
         ).fetchall()
+
+
+def get_setting(key: str, default: str = "") -> str:
+    with get_db() as conn:
+        row = conn.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
+        return row["value"] if row else default
+
+
+def set_setting(key: str, value: str) -> None:
+    with get_db() as conn:
+        conn.execute(
+            "INSERT INTO settings (key, value) VALUES (?, ?) "
+            "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (key, value),
+        )
 
 
 def get_done() -> list[sqlite3.Row]:

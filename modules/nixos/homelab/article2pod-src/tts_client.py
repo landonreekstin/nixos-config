@@ -46,11 +46,11 @@ def _split_chunks(text: str) -> list[str]:
     return chunks
 
 
-def _kokoro_synthesize(text: str) -> bytes:
+def _kokoro_synthesize(text: str, voice: str | None = None) -> bytes:
     payload = json.dumps({
         "model": "kokoro",
         "input": text,
-        "voice": KOKORO_VOICE,
+        "voice": voice or KOKORO_VOICE,
         "response_format": "mp3",
         "speed": 1.0,
     }).encode()
@@ -77,19 +77,20 @@ def _piper_synthesize(text: str) -> bytes:
         return resp.read()
 
 
-def synthesize(text: str) -> bytes:
+def synthesize(text: str, voice: str | None = None) -> bytes:
     """
     Convert text to MP3 bytes. Splits into chunks, synthesizes each, concatenates.
     Uses TTS_BACKEND env var to select backend (kokoro or piper).
     """
     chunks = _split_chunks(text)
-    log.info("Synthesizing %d chunk(s) via %s", len(chunks), TTS_BACKEND)
-
-    synthesize_fn = _kokoro_synthesize if TTS_BACKEND == "kokoro" else _piper_synthesize
+    log.info("Synthesizing %d chunk(s) via %s (voice=%s)", len(chunks), TTS_BACKEND, voice or KOKORO_VOICE)
 
     audio_parts: list[bytes] = []
     for i, chunk in enumerate(chunks):
         log.info("  chunk %d/%d (%d chars)", i + 1, len(chunks), len(chunk))
-        audio_parts.append(synthesize_fn(chunk))
+        if TTS_BACKEND == "kokoro":
+            audio_parts.append(_kokoro_synthesize(chunk, voice=voice))
+        else:
+            audio_parts.append(_piper_synthesize(chunk))
 
     return b"".join(audio_parts)
