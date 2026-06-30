@@ -118,6 +118,33 @@ def root():
     }
 
 
+@app.get("/submit")
+def submit_url(url: str, token: str):
+    if token != TOKEN:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    result = db.enqueue(url)
+    if result is None:
+        msg, color = "Already queued or processed.", "#e6a817"
+    else:
+        log.info("Enqueued via /submit: %s", url)
+        msg, color = "Queued! Check AntennaPod in ~20-30 min.", "#4caf50"
+    html = f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>article2pod</title>
+<style>
+  body {{ font-family: sans-serif; text-align: center; padding: 3em;
+         background: #111; color: #eee; }}
+  h2 {{ color: {color}; }}
+  p {{ color: #aaa; word-break: break-all; font-size: 0.9em; }}
+  small {{ color: #555; }}
+</style></head><body>
+<h2>{msg}</h2>
+<p>{url}</p>
+<small>This tab will close in 3 seconds.</small>
+<script>setTimeout(() => window.close(), 3000);</script>
+</body></html>"""
+    return Response(content=html, media_type="text/html")
+
+
 @app.get("/health")
 def health():
     try:
