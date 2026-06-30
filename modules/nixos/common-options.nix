@@ -1897,6 +1897,41 @@ in
         };
       };
 
+      privateBackup = {
+        enable = mkEnableOption "encrypted USB backup of /mnt/private (auto-triggers on USB plug-in)";
+        sourcePath = mkOption {
+          type = types.str;
+          default = "/mnt/private";
+          description = "Directory to back up.";
+        };
+        luksUuid = mkOption {
+          type = types.str;
+          description = ''
+            LUKS UUID of the backup USB drive partition.
+            Find it after plugging in the USB: blkid /dev/sdX
+            Setup (one-time):
+              dd if=/dev/urandom of=/root/secrets/backup-usb.key bs=4096 count=1
+              chmod 600 /root/secrets/backup-usb.key
+              cryptsetup luksAddKey /dev/sdX /root/secrets/backup-usb.key
+          '';
+        };
+        keyFile = mkOption {
+          type = types.str;
+          default = "/root/secrets/backup-usb.key";
+          description = "Path to the keyfile on the NAS used to open the backup USB LUKS volume.";
+        };
+        mapperName = mkOption {
+          type = types.str;
+          default = "backup-usb";
+          description = "Device mapper name for the opened LUKS volume.";
+        };
+        mountPoint = mkOption {
+          type = types.str;
+          default = "/mnt/backup-usb";
+          description = "Temporary mount point for the backup volume during rsync.";
+        };
+      };
+
     };
 
     # -------------------------------------------------------------------------- #
