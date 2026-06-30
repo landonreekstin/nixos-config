@@ -113,6 +113,13 @@ def get_all() -> list[sqlite3.Row]:
         ).fetchall()
 
 
+def delete_article(guid: str) -> bool:
+    """Delete an article record by guid. Returns True if a row was deleted."""
+    with get_db() as conn:
+        result = conn.execute("DELETE FROM articles WHERE guid = ?", (guid,))
+        return result.rowcount > 0
+
+
 def get_setting(key: str, default: str = "") -> str:
     with get_db() as conn:
         row = conn.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()

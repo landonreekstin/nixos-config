@@ -6,6 +6,7 @@ import urllib.request
 import urllib.error
 from datetime import datetime, timezone
 from email.utils import format_datetime
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.responses import Response
@@ -71,6 +72,9 @@ _UI_TEMPLATE = """<!DOCTYPE html>
        border-bottom: 1px solid #21262d; }
   td { padding: 0.65em 0.75em; border-bottom: 1px solid #161b22; vertical-align: top; }
   tr:last-child td { border-bottom: none; }
+  .del-btn { background: none; border: none; color: #6e7681; cursor: pointer;
+             font-size: 1.1em; padding: 0 0.25em; line-height: 1; }
+  .del-btn:hover { color: #f85149; }
   .badge { display: inline-block; padding: 0.15em 0.55em; border-radius: 1em;
            font-size: 0.78em; font-weight: 600; }
   .badge-done       { background: #0d4429; color: #3fb950; }
@@ -105,8 +109,8 @@ _UI_TEMPLATE = """<!DOCTYPE html>
 
 <h2>Queue</h2>
 <table>
-  <thead><tr><th>Status</th><th>Article</th><th>Info</th></tr></thead>
-  <tbody id="queue-body"><tr><td colspan="3" style="color:#8b949e">Loading…</td></tr></tbody>
+  <thead><tr><th>Status</th><th>Article</th><th>Info</th><th></th></tr></thead>
+  <tbody id="queue-body"><tr><td colspan="4" style="color:#8b949e">Loading…</td></tr></tbody>
 </table>
 
 <h2>Voice</h2>
@@ -146,7 +150,7 @@ async function load() {
 
   const tbody = document.getElementById("queue-body");
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="3" style="color:#8b949e">No articles yet.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" style="color:#8b949e">No articles yet.</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(r => {
@@ -165,6 +169,7 @@ async function load() {
       '<td><a class="title-link" href="' + r.url + '" target="_blank">' + title + '</a>' +
           '<span class="url-text">' + r.url + '</span></td>' +
       '<td class="info-cell">' + info + '</td>' +
+      '<td><button class="del-btn" title="Delete" onclick="deleteArticle(\'' + r.guid + '\')">×</button></td>' +
       '</tr>';
   }).join("");
 }
@@ -199,6 +204,13 @@ async function loadVoices() {
     ).join("");
     return '<optgroup label="' + (labels[p] || p) + '">' + opts + '</optgroup>';
   }).join("");
+}
+
+async function deleteArticle(guid) {
+  if (!confirm("Delete this episode? This removes the MP3 from the server.")) return;
+  const resp = await fetch("/articles/" + guid, {method: "DELETE", headers: hdrs});
+  if (resp.ok) { showToast("Deleted."); load(); }
+  else showToast("Delete failed.");
 }
 
 async function saveVoice() {
@@ -252,6 +264,17 @@ def update_settings(req: SettingsRequest, _token: str = Depends(_verify)):
     db.set_setting("voice", req.voice)
     log.info("Voice changed to %s", req.voice)
     return {"voice": req.voice}
+
+
+@app.delete("/articles/{guid}")
+def delete_article(guid: str, _token: str = Depends(_verify)):
+    mp3 = Path(AUDIO_DIR) / f"{guid}.mp3"
+    if mp3.exists():
+        mp3.unlink()
+    if not db.delete_article(guid):
+        raise HTTPException(status_code=404, detail="Not found")
+    log.info("Deleted article %s", guid)
+    return {"status": "deleted"}
 
 
 @app.post("/add")
