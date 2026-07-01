@@ -90,11 +90,17 @@ _UI_TEMPLATE = """<!DOCTYPE html>
   @keyframes spin { to { transform: rotate(360deg); } }
   .voice-row { display: flex; gap: 0.75em; align-items: center; flex-wrap: wrap;
                margin-bottom: 0.5em; }
+  .submit-row { display: flex; gap: 0.75em; align-items: center; flex-wrap: wrap;
+                margin-bottom: 0.5em; }
   select { background: #161b22; color: #c9d1d9; border: 1px solid #30363d;
            padding: 0.4em 0.6em; border-radius: 6px; font-size: 0.9em; min-width: 220px; }
+  input[type=url] { background: #161b22; color: #c9d1d9; border: 1px solid #30363d;
+                    padding: 0.4em 0.6em; border-radius: 6px; font-size: 0.9em;
+                    flex: 1; min-width: 280px; }
   button { background: #238636; color: #fff; border: none; padding: 0.4em 1.1em;
            border-radius: 6px; cursor: pointer; font-size: 0.88em; }
   button:hover { background: #2ea043; }
+  button:disabled { background: #21262d; color: #6e7681; cursor: default; }
   .note { color: #6e7681; font-size: 0.82em; }
   .toast { position: fixed; bottom: 1.5em; right: 1.5em; background: #1f6feb; color: #fff;
            padding: 0.6em 1.2em; border-radius: 8px; font-size: 0.88em;
@@ -113,10 +119,19 @@ _UI_TEMPLATE = """<!DOCTYPE html>
   <tbody id="queue-body"><tr><td colspan="4" style="color:#8b949e">Loading...</td></tr></tbody>
 </table>
 
+<h2>Submit Article</h2>
+<div class="submit-row">
+  <input type="url" id="url-input" placeholder="https://example.com/article" onkeydown="if(event.key==='Enter')submitUrl()" />
+  <button onclick="submitUrl()">Queue</button>
+</div>
+<p id="submit-status" class="note"></p>
+
 <h2>Voice</h2>
 <div class="voice-row">
   <select id="voice-select"><option>Loading...</option></select>
   <button onclick="saveVoice()">Save</button>
+  <button onclick="previewVoice()" id="preview-btn">Preview</button>
+  <span id="current-voice" style="color:#3fb950;font-size:0.85em"></span>
 </div>
 <p class="note">Takes effect on the next article. Does not affect articles currently processing.</p>
 
@@ -210,6 +225,7 @@ async function loadVoices() {
       if (!groups[p]) groups[p] = [];
       groups[p].push(v);
     });
+  document.getElementById("current-voice").textContent = "✓ " + current;
   const sel = document.getElementById("voice-select");
   sel.innerHTML = Object.entries(groups).map(([p, vs]) => {
     const opts = vs.map(v =>
@@ -219,6 +235,59 @@ async function loadVoices() {
   }).join("");
   } catch(e) {
     document.getElementById("voice-select").innerHTML = '<option>Error: ' + e + '</option>';
+  }
+}
+
+async function submitUrl() {
+  const input = document.getElementById("url-input");
+  const status = document.getElementById("submit-status");
+  const url = input.value.trim();
+  if (!url) return;
+  status.textContent = "Submitting...";
+  status.style.color = "#8b949e";
+  try {
+    const resp = await fetch("/add", {
+      method: "POST",
+      headers: {...hdrs, "Content-Type": "application/json"},
+      body: JSON.stringify({url}),
+    });
+    const data = await resp.json();
+    if (data.status === "queued") {
+      status.textContent = "Queued!";
+      status.style.color = "#3fb950";
+      input.value = "";
+      load();
+    } else if (data.status === "duplicate") {
+      status.textContent = "Already in queue.";
+      status.style.color = "#e3b341";
+    } else {
+      status.textContent = "Error: " + JSON.stringify(data);
+      status.style.color = "#f85149";
+    }
+  } catch(e) {
+    status.textContent = "Error: " + e;
+    status.style.color = "#f85149";
+  }
+}
+
+async function previewVoice() {
+  const voice = document.getElementById("voice-select").value;
+  const btn = document.getElementById("preview-btn");
+  btn.textContent = "Loading...";
+  btn.disabled = true;
+  try {
+    const resp = await fetch("/preview-voice?voice=" + encodeURIComponent(voice), {headers: hdrs});
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const blob = await resp.blob();
+    const audioUrl = URL.createObjectURL(blob);
+    const audio = new Audio(audioUrl);
+    audio.play();
+    audio.onended = () => URL.revokeObjectURL(audioUrl);
+  } catch(e) {
+    showToast("Preview failed: " + e);
+  } finally {
+    btn.textContent = "Preview";
+    btn.disabled = false;
   }
 }
 
@@ -235,7 +304,8 @@ async function saveVoice() {
     method: "POST", headers: {...hdrs, "Content-Type": "application/json"},
     body: JSON.stringify({voice}),
   });
-  showToast("Voice set to " + voice);
+  document.getElementById("current-voice").textContent = "✓ " + voice;
+  showToast("Voice saved.");
 }
 
 function showToast(msg) {
@@ -284,6 +354,29 @@ def update_settings(req: SettingsRequest, _token: str = Depends(_verify)):
     db.set_setting("voice", req.voice)
     log.info("Voice changed to %s", req.voice)
     return {"voice": req.voice}
+
+
+@app.get("/preview-voice")
+def preview_voice(voice: str, _token: str = Depends(_verify)):
+    sample = "This is a preview. Article to pod converts web articles into podcast episodes."
+    try:
+        payload = json.dumps({
+            "model": "kokoro",
+            "input": sample,
+            "voice": voice,
+            "response_format": "mp3",
+            "speed": 1.0,
+        }).encode()
+        req = urllib.request.Request(
+            f"{KOKORO_URL}/v1/audio/speech",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            audio_data = resp.read()
+        return Response(content=audio_data, media_type="audio/mpeg")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"TTS error: {e}")
 
 
 @app.delete("/articles/{guid}")
