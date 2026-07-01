@@ -105,24 +105,26 @@ _UI_TEMPLATE = """<!DOCTYPE html>
 </head>
 <body>
 <h1>article2pod</h1>
-<div class="subtitle" id="counts">Loading…</div>
+<div class="subtitle" id="counts">Loading...</div>
 
 <h2>Queue</h2>
 <table>
   <thead><tr><th>Status</th><th>Article</th><th>Info</th><th></th></tr></thead>
-  <tbody id="queue-body"><tr><td colspan="4" style="color:#8b949e">Loading…</td></tr></tbody>
+  <tbody id="queue-body"><tr><td colspan="4" style="color:#8b949e">Loading...</td></tr></tbody>
 </table>
 
 <h2>Voice</h2>
 <div class="voice-row">
-  <select id="voice-select"><option>Loading…</option></select>
+  <select id="voice-select"><option>Loading...</option></select>
   <button onclick="saveVoice()">Save</button>
 </div>
 <p class="note">Takes effect on the next article. Does not affect articles currently processing.</p>
 
 <div class="toast" id="toast"></div>
+<noscript><p style="color:#f85149">JavaScript is disabled — dashboard requires JS.</p></noscript>
 
 <script>
+document.getElementById("counts").textContent = "JS OK, fetching...";
 const TOKEN = "__TOKEN__";
 const hdrs = {"Authorization": "Bearer " + TOKEN};
 
@@ -142,61 +144,72 @@ function badge(status) {
 }
 
 async function load() {
-  const rows = await fetch("/status", {headers: hdrs}).then(r => r.json());
-  const counts = {};
-  rows.forEach(r => counts[r.status] = (counts[r.status] || 0) + 1);
-  document.getElementById("counts").textContent =
-    Object.entries(counts).map(([k,v]) => v + " " + k).join(" · ") || "No articles yet";
+  try {
+    const resp = await fetch("/status", {headers: hdrs});
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const rows = await resp.json();
+    const counts = {};
+    rows.forEach(r => counts[r.status] = (counts[r.status] || 0) + 1);
+    document.getElementById("counts").textContent =
+      Object.entries(counts).map(([k,v]) => v + " " + k).join(" · ") || "No articles yet";
 
-  const tbody = document.getElementById("queue-body");
-  if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="4" style="color:#8b949e">No articles yet.</td></tr>';
-    return;
-  }
-  tbody.innerHTML = rows.map(r => {
-    const title = r.title && r.title !== "Untitled" ? r.title : "Untitled";
-    let info = fmtDate(r.added_at);
-    if (r.status === "done") {
-      info = fmtDuration(r.duration) +
-             (r.size_bytes ? " · " + (r.size_bytes/1048576).toFixed(1) + " MB" : "");
-    } else if (r.status === "processing") {
-      info = '<span class="spin">↻</span> since ' + fmtDate(r.added_at);
-    } else if (r.status === "failed") {
-      info = '<span class="error-text" title="' + (r.error || "") + '">Error (hover)</span>';
+    const tbody = document.getElementById("queue-body");
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="color:#8b949e">No articles yet.</td></tr>';
+      return;
     }
-    return '<tr>' +
-      '<td>' + badge(r.status) + '</td>' +
-      '<td><a class="title-link" href="' + r.url + '" target="_blank">' + title + '</a>' +
-          '<span class="url-text">' + r.url + '</span></td>' +
-      '<td class="info-cell">' + info + '</td>' +
-      '<td><button class="del-btn" title="Delete" onclick="deleteArticle(\'' + r.guid + '\')">×</button></td>' +
-      '</tr>';
-  }).join("");
+    tbody.innerHTML = rows.map(r => {
+      const title = r.title && r.title !== "Untitled" ? r.title : "Untitled";
+      let info = fmtDate(r.added_at);
+      if (r.status === "done") {
+        info = fmtDuration(r.duration) +
+               (r.size_bytes ? " · " + (r.size_bytes/1048576).toFixed(1) + " MB" : "");
+      } else if (r.status === "processing") {
+        info = '<span class="spin">&#8635;</span> since ' + fmtDate(r.added_at);
+      } else if (r.status === "failed") {
+        info = '<span class="error-text" title="' + (r.error || "") + '">Error (hover)</span>';
+      }
+      return '<tr>' +
+        '<td>' + badge(r.status) + '</td>' +
+        '<td><a class="title-link" href="' + r.url + '" target="_blank">' + title + '</a>' +
+            '<span class="url-text">' + r.url + '</span></td>' +
+        '<td class="info-cell">' + info + '</td>' +
+        '<td><button class="del-btn" title="Delete" onclick="deleteArticle(\\'' + r.guid + '\\')">&#215;</button></td>' +
+        '</tr>';
+    }).join("");
+  } catch(e) {
+    document.getElementById("counts").textContent = "Error loading queue: " + e;
+    document.getElementById("queue-body").innerHTML =
+      '<tr><td colspan="4" class="error-text">' + e + '</td></tr>';
+  }
 }
 
 async function loadVoices() {
-  const [vr, sr] = await Promise.all([
-    fetch("/voices", {headers: hdrs}).then(r => r.json()),
-    fetch("/settings", {headers: hdrs}).then(r => r.json()),
-  ]);
-  const current = sr.voice;
-  const groups = {};
-  const labels = {
-    af:"American Female", am:"American Male",
-    bf:"British Female",  bm:"British Male",
-    ef:"Spanish Female",  em:"Spanish Male",
-    ff:"French Female",
-    hf:"Hindi Female",    hm:"Hindi Male",
-    "if":"Italian Female",im:"Italian Male",
-    jf:"Japanese Female", jm:"Japanese Male",
-    pf:"Portuguese Female",pm:"Portuguese Male",
-    zf:"Chinese Female",  zm:"Chinese Male",
-  };
-  vr.voices.forEach(v => {
-    const p = v.id.slice(0, 2);
-    if (!groups[p]) groups[p] = [];
-    groups[p].push(v);
-  });
+  try {
+    const vResp = await fetch("/voices", {headers: hdrs});
+    if (!vResp.ok) throw new Error("/voices HTTP " + vResp.status);
+    const sResp = await fetch("/settings", {headers: hdrs});
+    if (!sResp.ok) throw new Error("/settings HTTP " + sResp.status);
+    const vr = await vResp.json();
+    const sr = await sResp.json();
+    const current = sr.voice;
+    const groups = {};
+    const labels = {
+      af:"American Female", am:"American Male",
+      bf:"British Female",  bm:"British Male",
+      ef:"Spanish Female",  em:"Spanish Male",
+      ff:"French Female",
+      hf:"Hindi Female",    hm:"Hindi Male",
+      "if":"Italian Female",im:"Italian Male",
+      jf:"Japanese Female", jm:"Japanese Male",
+      pf:"Portuguese Female",pm:"Portuguese Male",
+      zf:"Chinese Female",  zm:"Chinese Male",
+    };
+    vr.voices.forEach(v => {
+      const p = v.id.slice(0, 2);
+      if (!groups[p]) groups[p] = [];
+      groups[p].push(v);
+    });
   const sel = document.getElementById("voice-select");
   sel.innerHTML = Object.entries(groups).map(([p, vs]) => {
     const opts = vs.map(v =>
@@ -204,6 +217,9 @@ async function loadVoices() {
     ).join("");
     return '<optgroup label="' + (labels[p] || p) + '">' + opts + '</optgroup>';
   }).join("");
+  } catch(e) {
+    document.getElementById("voice-select").innerHTML = '<option>Error: ' + e + '</option>';
+  }
 }
 
 async function deleteArticle(guid) {
@@ -241,7 +257,11 @@ setInterval(load, 10000);
 def ui(token: str):
     if token != TOKEN:
         raise HTTPException(status_code=403, detail="Forbidden")
-    return Response(content=_UI_TEMPLATE.replace("__TOKEN__", TOKEN), media_type="text/html")
+    return Response(
+        content=_UI_TEMPLATE.replace("__TOKEN__", TOKEN),
+        media_type="text/html",
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @app.get("/voices")

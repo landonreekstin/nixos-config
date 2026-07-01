@@ -380,6 +380,7 @@
   networking.firewall.allowedUDPPorts = [ 137 138 ];
   networking.extraHosts = ''
     192.168.1.76  optiplex-nas
+    192.168.1.76  reader.lan jellyfin.lan jellyseerr.lan transmission.lan radarr.lan sonarr.lan bazarr.lan prowlarr.lan nix-cache.lan
   '';
   # Blacklist the Realtek RTW8852CE wireless driver.
   # The rtw89_8852ce firmware crashes periodically (SER errors), causing a brief

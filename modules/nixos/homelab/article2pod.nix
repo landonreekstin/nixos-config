@@ -97,7 +97,7 @@ in
         User            = "article2pod";
         Group           = "article2pod";
         EnvironmentFile = config.sops.secrets."article2pod-token".path;
-        ExecStart       = "${pythonEnv}/bin/uvicorn app:app --host 127.0.0.1 --port ${toString cfg.port}";
+        ExecStart       = "${pythonEnv}/bin/uvicorn app:app --host 0.0.0.0 --port ${toString cfg.port}";
         WorkingDirectory = "${appSrc}";
         Restart         = "on-failure";
         RestartSec      = "5s";
@@ -140,6 +140,9 @@ in
         Persistent = true;
       };
     };
+
+    # ── Firewall ─────────────────────────────────────────────────────────────
+    networking.firewall.allowedTCPPorts = [ cfg.port ];
 
     # ── CLI helper ───────────────────────────────────────────────────────────
     environment.systemPackages = [
