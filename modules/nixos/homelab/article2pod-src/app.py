@@ -5,7 +5,6 @@ import logging
 import urllib.request
 import urllib.error
 from datetime import datetime, timezone
-from email.utils import format_datetime
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Depends, Request
@@ -22,7 +21,7 @@ logging.basicConfig(
 )
 log = logging.getLogger("app")
 
-TOKEN = os.environ["ARTICLE2POD_TOKEN"]
+ADMIN_TOKEN = os.environ["ARTICLE2POD_TOKEN"]
 AUDIO_DIR = os.environ.get("ARTICLE2POD_AUDIO", "/mnt/storage/podcasts/audio")
 HOSTNAME = os.environ.get("ARTICLE2POD_HOSTNAME", "reader.lan")
 TITLE = os.environ.get("ARTICLE2POD_TITLE", "Article Podcast")
@@ -36,13 +35,25 @@ BASE_URL = f"http://{HOSTNAME}"
 app = FastAPI(title="article2pod", docs_url=None, redoc_url=None)
 security = HTTPBearer(auto_error=False)
 
-db.init_db()
+db.init_db(admin_token=ADMIN_TOKEN, default_voice=KOKORO_VOICE)
 
 
-def _verify(credentials: HTTPAuthorizationCredentials | None = Depends(security)):
-    if credentials is None or credentials.credentials != TOKEN:
+def _verify(credentials: HTTPAuthorizationCredentials | None = Depends(security)) -> dict:
+    token = credentials.credentials if credentials else None
+    user = db.get_user_by_token(token) if token else None
+    if user is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
-    return credentials.credentials
+    return dict(user)
+
+
+def _verify_admin(credentials: HTTPAuthorizationCredentials | None = Depends(security)) -> dict:
+    token = credentials.credentials if credentials else None
+    if token != ADMIN_TOKEN:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    user = db.get_user_by_token(token)
+    if user is None:
+        raise HTTPException(status_code=500, detail="Admin user not found")
+    return dict(user)
 
 
 class AddRequest(BaseModel):
@@ -52,6 +63,14 @@ class AddRequest(BaseModel):
 class SettingsRequest(BaseModel):
     voice: str
 
+
+class CreateUserRequest(BaseModel):
+    username: str
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# User dashboard template
+# ─────────────────────────────────────────────────────────────────────────────
 
 _UI_TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
@@ -94,7 +113,7 @@ _UI_TEMPLATE = """<!DOCTYPE html>
                 margin-bottom: 0.5em; }
   select { background: #161b22; color: #c9d1d9; border: 1px solid #30363d;
            padding: 0.4em 0.6em; border-radius: 6px; font-size: 0.9em; min-width: 220px; }
-  input[type=url] { background: #161b22; color: #c9d1d9; border: 1px solid #30363d;
+  input[type=url], input[type=text] { background: #161b22; color: #c9d1d9; border: 1px solid #30363d;
                     padding: 0.4em 0.6em; border-radius: 6px; font-size: 0.9em;
                     flex: 1; min-width: 280px; }
   button { background: #238636; color: #fff; border: none; padding: 0.4em 1.1em;
@@ -323,19 +342,275 @@ setInterval(load, 10000);
 </html>"""
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Admin dashboard template
+# ─────────────────────────────────────────────────────────────────────────────
+
+_ADMIN_TEMPLATE = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>article2pod — Admin</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         background: #0d1117; color: #c9d1d9; margin: 0; padding: 1.5em; }
+  h1 { color: #f0883e; margin: 0 0 0.2em; font-size: 1.5em; }
+  .subtitle { color: #8b949e; font-size: 0.9em; margin-bottom: 1.8em; }
+  h2 { font-size: 0.8em; color: #8b949e; text-transform: uppercase; letter-spacing: 0.1em;
+       margin: 1.8em 0 0.75em; border-bottom: 1px solid #21262d; padding-bottom: 0.4em; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.88em; }
+  th { text-align: left; color: #8b949e; font-weight: 500; padding: 0.5em 0.75em;
+       border-bottom: 1px solid #21262d; }
+  td { padding: 0.65em 0.75em; border-bottom: 1px solid #161b22; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  .del-btn { background: none; border: none; color: #6e7681; cursor: pointer;
+             font-size: 1.1em; padding: 0 0.25em; line-height: 1; }
+  .del-btn:hover { color: #f85149; }
+  .badge { display: inline-block; padding: 0.15em 0.55em; border-radius: 1em;
+           font-size: 0.78em; font-weight: 600; }
+  .badge-done       { background: #0d4429; color: #3fb950; }
+  .badge-processing { background: #3d2b00; color: #e3b341; }
+  .badge-queued     { background: #0c2d6b; color: #58a6ff; }
+  .badge-failed     { background: #3d0000; color: #f85149; }
+  .title-link { color: #c9d1d9; text-decoration: none; font-weight: 500; }
+  .title-link:hover { color: #58a6ff; }
+  .url-text { color: #8b949e; font-size: 0.82em; white-space: nowrap; overflow: hidden;
+              text-overflow: ellipsis; max-width: 380px; display: block; }
+  .info-cell { color: #8b949e; font-size: 0.85em; white-space: nowrap; }
+  .spin { display: inline-block; animation: spin 1.2s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .add-row { display: flex; gap: 0.75em; align-items: center; flex-wrap: wrap;
+             margin-bottom: 0.5em; }
+  input[type=text] { background: #161b22; color: #c9d1d9; border: 1px solid #30363d;
+                     padding: 0.4em 0.6em; border-radius: 6px; font-size: 0.9em;
+                     flex: 1; min-width: 200px; }
+  button { background: #238636; color: #fff; border: none; padding: 0.4em 1.1em;
+           border-radius: 6px; cursor: pointer; font-size: 0.88em; }
+  button:hover { background: #2ea043; }
+  button.danger { background: none; border: 1px solid #f85149; color: #f85149; }
+  button.danger:hover { background: #3d0000; }
+  button:disabled { background: #21262d; color: #6e7681; cursor: default; }
+  .note { color: #6e7681; font-size: 0.82em; }
+  .error-text { color: #f85149; font-size: 0.82em; }
+  .token-box { font-family: monospace; background: #161b22; border: 1px solid #30363d;
+               border-radius: 6px; padding: 0.5em 0.75em; font-size: 0.85em;
+               color: #3fb950; word-break: break-all; margin-top: 0.75em; }
+  .token-box .token-label { color: #8b949e; font-size: 0.82em; margin-bottom: 0.3em; font-family: sans-serif; }
+  .token-mono { font-family: monospace; font-size: 0.82em; color: #8b949e; }
+  a.link { color: #58a6ff; text-decoration: none; font-size: 0.85em; }
+  a.link:hover { text-decoration: underline; }
+  .counts { font-size: 0.82em; color: #8b949e; }
+  .user-tag { display: inline-block; background: #1c2b3a; color: #79c0ff;
+              border-radius: 4px; padding: 0.1em 0.45em; font-size: 0.78em;
+              font-weight: 600; margin-right: 0.3em; }
+  .toast { position: fixed; bottom: 1.5em; right: 1.5em; background: #1f6feb; color: #fff;
+           padding: 0.6em 1.2em; border-radius: 8px; font-size: 0.88em;
+           opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<h1>article2pod — Admin</h1>
+<div class="subtitle">Admin dashboard · <a class="link" href="/ui/__TOKEN__">My queue</a></div>
+
+<h2>Users</h2>
+<table id="users-table">
+  <thead><tr><th>Username</th><th>Articles</th><th>Voice</th><th>Token</th><th>Links</th><th></th></tr></thead>
+  <tbody id="users-body"><tr><td colspan="6" style="color:#8b949e">Loading...</td></tr></tbody>
+</table>
+
+<h2>Add User</h2>
+<div class="add-row">
+  <input type="text" id="new-username" placeholder="username" onkeydown="if(event.key==='Enter')createUser()" />
+  <button onclick="createUser()">Create</button>
+</div>
+<div id="new-token-box" style="display:none"></div>
+
+<h2>All Articles</h2>
+<div id="all-counts" class="note" style="margin-bottom:0.75em">Loading...</div>
+<table>
+  <thead><tr><th>User</th><th>Status</th><th>Article</th><th>Info</th><th></th></tr></thead>
+  <tbody id="all-body"><tr><td colspan="5" style="color:#8b949e">Loading...</td></tr></tbody>
+</table>
+
+<div class="toast" id="toast"></div>
+<noscript><p style="color:#f85149">JavaScript is disabled — dashboard requires JS.</p></noscript>
+
+<script>
+const TOKEN = "__TOKEN__";
+const hdrs = {"Authorization": "Bearer " + TOKEN};
+
+function fmtDuration(s) {
+  if (!s) return "";
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+  return h > 0 ? h + "h " + m + "m" : m + "m";
+}
+function fmtDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, {month:"short", day:"numeric"}) + " " +
+         d.toLocaleTimeString(undefined, {hour:"2-digit", minute:"2-digit"});
+}
+function badge(status) {
+  return '<span class="badge badge-' + status + '">' + status + '</span>';
+}
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 3000);
+}
+
+async function loadUsers() {
+  try {
+    const resp = await fetch("/admin-api/users", {headers: hdrs});
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const users = await resp.json();
+    const tbody = document.getElementById("users-body");
+    if (!users.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="color:#8b949e">No users.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = users.map(u => {
+      const counts = (u.queued ? u.queued + " queued" : "") +
+                     (u.processing ? (u.queued ? " · " : "") + u.processing + " proc." : "") +
+                     (u.done ? " · " + u.done + " done" : "") +
+                     (u.failed ? " · " + u.failed + " failed" : "") || "—";
+      const tok = u.token_tail ? "···" + u.token_tail : "—";
+      const dashLink = '<a class="link" href="/ui/' + u.token + '" target="_blank">Dashboard</a>';
+      const rssLink  = '<a class="link" href="/rss/' + u.token + '" target="_blank">RSS</a>';
+      const delBtn = u.is_admin
+        ? '<span class="note">admin</span>'
+        : '<button class="del-btn" title="Delete user" onclick="deleteUser(\\'' + u.username + '\\')">&#215;</button>';
+      return '<tr>' +
+        '<td><strong>' + u.username + '</strong></td>' +
+        '<td class="counts">' + counts + '</td>' +
+        '<td class="token-mono">' + u.voice + '</td>' +
+        '<td class="token-mono">' + tok + '</td>' +
+        '<td>' + dashLink + ' · ' + rssLink + '</td>' +
+        '<td>' + delBtn + '</td>' +
+        '</tr>';
+    }).join("");
+  } catch(e) {
+    document.getElementById("users-body").innerHTML =
+      '<tr><td colspan="6" class="error-text">' + e + '</td></tr>';
+  }
+}
+
+async function loadAllArticles() {
+  try {
+    const resp = await fetch("/admin-api/all-articles", {headers: hdrs});
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const rows = await resp.json();
+    const counts = {};
+    rows.forEach(r => counts[r.status] = (counts[r.status] || 0) + 1);
+    document.getElementById("all-counts").textContent =
+      Object.entries(counts).map(([k,v]) => v + " " + k).join(" · ") || "No articles";
+
+    const tbody = document.getElementById("all-body");
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="color:#8b949e">No articles.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(r => {
+      const title = r.title && r.title !== "Untitled" ? r.title : "Untitled";
+      let info = fmtDate(r.added_at);
+      if (r.status === "done") {
+        info = fmtDuration(r.duration) +
+               (r.size_bytes ? " · " + (r.size_bytes/1048576).toFixed(1) + " MB" : "");
+      } else if (r.status === "processing") {
+        info = '<span class="spin">&#8635;</span>';
+      } else if (r.status === "failed") {
+        info = '<span class="error-text" title="' + (r.error || "") + '">Error</span>';
+      }
+      return '<tr>' +
+        '<td><span class="user-tag">' + (r.username || "?") + '</span></td>' +
+        '<td>' + badge(r.status) + '</td>' +
+        '<td><a class="title-link" href="' + r.url + '" target="_blank">' + title + '</a>' +
+            '<span class="url-text">' + r.url + '</span></td>' +
+        '<td class="info-cell">' + info + '</td>' +
+        '<td><button class="del-btn" title="Delete" onclick="adminDeleteArticle(\\'' + r.guid + '\\')">&#215;</button></td>' +
+        '</tr>';
+    }).join("");
+  } catch(e) {
+    document.getElementById("all-body").innerHTML =
+      '<tr><td colspan="5" class="error-text">' + e + '</td></tr>';
+  }
+}
+
+async function createUser() {
+  const input = document.getElementById("new-username");
+  const username = input.value.trim();
+  if (!username) return;
+  try {
+    const resp = await fetch("/admin-api/users", {
+      method: "POST",
+      headers: {...hdrs, "Content-Type": "application/json"},
+      body: JSON.stringify({username}),
+    });
+    if (!resp.ok) {
+      const err = await resp.json();
+      showToast("Error: " + (err.detail || resp.status));
+      return;
+    }
+    const u = await resp.json();
+    input.value = "";
+    const box = document.getElementById("new-token-box");
+    box.style.display = "block";
+    box.innerHTML = '<div class="token-box">' +
+      '<div class="token-label">Token for <strong>' + u.username + '</strong> — copy this now, it cannot be retrieved later:</div>' +
+      u.token +
+      '</div>';
+    loadUsers();
+  } catch(e) {
+    showToast("Error: " + e);
+  }
+}
+
+async function deleteUser(username) {
+  if (!confirm("Delete user \\"" + username + "\\" and all their articles? This cannot be undone.")) return;
+  const resp = await fetch("/admin-api/users/" + encodeURIComponent(username), {
+    method: "DELETE", headers: hdrs,
+  });
+  if (resp.ok) { showToast("User deleted."); loadUsers(); loadAllArticles(); }
+  else showToast("Delete failed.");
+}
+
+async function adminDeleteArticle(guid) {
+  if (!confirm("Delete this episode? This removes the MP3 from the server.")) return;
+  const resp = await fetch("/admin-api/articles/" + guid, {method: "DELETE", headers: hdrs});
+  if (resp.ok) { showToast("Deleted."); loadAllArticles(); }
+  else showToast("Delete failed.");
+}
+
+loadUsers();
+loadAllArticles();
+setInterval(() => { loadUsers(); loadAllArticles(); }, 15000);
+</script>
+</body>
+</html>"""
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# User-facing endpoints
+# ─────────────────────────────────────────────────────────────────────────────
+
 @app.get("/ui/{token}")
 def ui(token: str):
-    if token != TOKEN:
+    user = db.get_user_by_token(token)
+    if user is None:
         raise HTTPException(status_code=403, detail="Forbidden")
     return Response(
-        content=_UI_TEMPLATE.replace("__TOKEN__", TOKEN),
+        content=_UI_TEMPLATE.replace("__TOKEN__", token),
         media_type="text/html",
         headers={"Cache-Control": "no-store"},
     )
 
 
 @app.get("/voices")
-def list_voices(_token: str = Depends(_verify)):
+def list_voices(_user: dict = Depends(_verify)):
     try:
         req = urllib.request.Request(f"{KOKORO_URL}/v1/audio/voices")
         with urllib.request.urlopen(req, timeout=5) as resp:
@@ -345,19 +620,19 @@ def list_voices(_token: str = Depends(_verify)):
 
 
 @app.get("/settings")
-def get_settings(_token: str = Depends(_verify)):
-    return {"voice": db.get_setting("voice", KOKORO_VOICE)}
+def get_settings(user: dict = Depends(_verify)):
+    return {"voice": user["voice"]}
 
 
 @app.post("/settings")
-def update_settings(req: SettingsRequest, _token: str = Depends(_verify)):
-    db.set_setting("voice", req.voice)
-    log.info("Voice changed to %s", req.voice)
+def update_settings(req: SettingsRequest, user: dict = Depends(_verify)):
+    db.set_user_voice(user["id"], req.voice)
+    log.info("User %s voice changed to %s", user["username"], req.voice)
     return {"voice": req.voice}
 
 
 @app.get("/preview-voice")
-def preview_voice(voice: str, _token: str = Depends(_verify)):
+def preview_voice(voice: str, _user: dict = Depends(_verify)):
     sample = "This is a preview. Article to pod converts web articles into podcast episodes."
     try:
         payload = json.dumps({
@@ -380,43 +655,47 @@ def preview_voice(voice: str, _token: str = Depends(_verify)):
 
 
 @app.delete("/articles/{guid}")
-def delete_article(guid: str, _token: str = Depends(_verify)):
+def delete_article(guid: str, user: dict = Depends(_verify)):
+    is_admin = user["token"] == ADMIN_TOKEN
     mp3 = Path(AUDIO_DIR) / f"{guid}.mp3"
     if mp3.exists():
         mp3.unlink()
-    if not db.delete_article(guid):
+    deleted = db.delete_article(guid, user_id=None if is_admin else user["id"])
+    if not deleted:
         raise HTTPException(status_code=404, detail="Not found")
-    log.info("Deleted article %s", guid)
+    log.info("Deleted article %s by %s", guid, user["username"])
     return {"status": "deleted"}
 
 
 @app.post("/add")
-def add_url(req: AddRequest, _token: str = Depends(_verify)):
+def add_url(req: AddRequest, user: dict = Depends(_verify)):
     url = str(req.url)
-    result = db.enqueue(url)
+    result = db.enqueue(url, user_id=user["id"])
     if result is None:
         return {"status": "duplicate", "message": "URL already in queue"}
-    log.info("Enqueued: %s", url)
+    log.info("Enqueued for %s: %s", user["username"], url)
     return {"status": "queued", "guid": result["guid"]}
 
 
 @app.get("/status")
-def status(_token: str = Depends(_verify)):
-    rows = db.get_all()
+def status(user: dict = Depends(_verify)):
+    rows = db.get_all(user_id=user["id"])
     return [dict(r) for r in rows]
 
 
 @app.get("/rss/{token}")
 def get_feed(token: str):
-    if token != TOKEN:
+    user = db.get_user_by_token(token)
+    if user is None:
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    episodes = db.get_done()
+    episodes = db.get_done(user_id=user["id"])
+    feed_title = f"{TITLE} — {user['username']}"
 
     fg = FeedGenerator()
     fg.load_extension("podcast")
     fg.id(f"{BASE_URL}/rss/{token}")
-    fg.title(TITLE)
+    fg.title(feed_title)
     fg.author({"name": AUTHOR})
     fg.link(href=f"{BASE_URL}/rss/{token}", rel="self")
     fg.description(DESCRIPTION)
@@ -447,34 +726,16 @@ def get_feed(token: str):
     return Response(content=rss_bytes, media_type="application/rss+xml")
 
 
-@app.get("/")
-def root():
-    rows = db.get_all()
-    counts = {}
-    for r in rows:
-        counts[r["status"]] = counts.get(r["status"], 0) + 1
-    return {
-        "service": "article2pod",
-        "endpoints": {
-            "ui":     f"GET  /ui/<token>",
-            "add":    "POST /add  {\"url\":\"...\"}  (Authorization: Bearer <token>)",
-            "feed":   f"GET  /rss/<token>",
-            "status": "GET  /status  (Authorization: Bearer <token>)",
-            "health": "GET  /health",
-        },
-        "queue": counts,
-    }
-
-
 @app.get("/submit")
 def submit_url(url: str, token: str):
-    if token != TOKEN:
+    user = db.get_user_by_token(token)
+    if user is None:
         raise HTTPException(status_code=403, detail="Forbidden")
-    result = db.enqueue(url)
+    result = db.enqueue(url, user_id=user["id"])
     if result is None:
         msg, color = "Already queued or processed.", "#e6a817"
     else:
-        log.info("Enqueued via /submit: %s", url)
+        log.info("Enqueued via /submit for %s: %s", user["username"], url)
         msg, color = "Queued! Check AntennaPod in ~20-30 min.", "#4caf50"
     html = f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>article2pod</title>
@@ -493,10 +754,125 @@ def submit_url(url: str, token: str):
     return Response(content=html, media_type="text/html")
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Admin endpoints
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.get("/admin/{token}")
+def admin_ui(token: str):
+    if token != ADMIN_TOKEN:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return Response(
+        content=_ADMIN_TEMPLATE.replace("__TOKEN__", token),
+        media_type="text/html",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.get("/admin-api/users")
+def admin_list_users(_user: dict = Depends(_verify_admin)):
+    users = db.get_all_users()
+    all_articles = db.get_all()
+    counts_by_user: dict[int, dict] = {}
+    for a in all_articles:
+        uid = a["user_id"]
+        if uid not in counts_by_user:
+            counts_by_user[uid] = {"queued": 0, "processing": 0, "done": 0, "failed": 0}
+        s = a["status"]
+        if s in counts_by_user[uid]:
+            counts_by_user[uid][s] += 1
+
+    result = []
+    for u in users:
+        uid = u["id"]
+        c = counts_by_user.get(uid, {})
+        result.append({
+            "id": uid,
+            "username": u["username"],
+            "token": u["token"],
+            "token_tail": u["token"][-8:],
+            "voice": u["voice"],
+            "created_at": u["created_at"],
+            "is_admin": u["token"] == ADMIN_TOKEN,
+            **c,
+        })
+    return result
+
+
+@app.post("/admin-api/users")
+def admin_create_user(req: CreateUserRequest, _user: dict = Depends(_verify_admin)):
+    try:
+        user = db.create_user(req.username)
+        log.info("Admin created user: %s", req.username)
+        return dict(user)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.delete("/admin-api/users/{username}")
+def admin_delete_user(username: str, _user: dict = Depends(_verify_admin)):
+    if username == "lando":
+        raise HTTPException(status_code=400, detail="Cannot delete admin user")
+    all_users = db.get_all_users()
+    target = next((u for u in all_users if u["username"] == username), None)
+    if target is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    guids = db.delete_user(target["id"])
+    audio_dir = Path(AUDIO_DIR)
+    for guid in guids:
+        mp3 = audio_dir / f"{guid}.mp3"
+        if mp3.exists():
+            mp3.unlink()
+    log.info("Admin deleted user %s (%d articles)", username, len(guids))
+    return {"status": "deleted", "articles_removed": len(guids)}
+
+
+@app.get("/admin-api/all-articles")
+def admin_all_articles(_user: dict = Depends(_verify_admin)):
+    rows = db.get_all()
+    return [dict(r) for r in rows]
+
+
+@app.delete("/admin-api/articles/{guid}")
+def admin_delete_article(guid: str, _user: dict = Depends(_verify_admin)):
+    mp3 = Path(AUDIO_DIR) / f"{guid}.mp3"
+    if mp3.exists():
+        mp3.unlink()
+    deleted = db.delete_article(guid)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Not found")
+    log.info("Admin deleted article %s", guid)
+    return {"status": "deleted"}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Misc
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.get("/")
+def root():
+    rows = db.get_all()
+    counts: dict = {}
+    for r in rows:
+        counts[r["status"]] = counts.get(r["status"], 0) + 1
+    return {
+        "service": "article2pod",
+        "endpoints": {
+            "ui":     "GET  /ui/<token>",
+            "admin":  "GET  /admin/<token>",
+            "add":    "POST /add  {\"url\":\"...\"}  (Authorization: Bearer <token>)",
+            "feed":   "GET  /rss/<token>",
+            "status": "GET  /status  (Authorization: Bearer <token>)",
+            "health": "GET  /health",
+        },
+        "queue": counts,
+    }
+
+
 @app.get("/health")
 def health():
     try:
-        db.init_db()
+        db.init_db(admin_token=ADMIN_TOKEN, default_voice=KOKORO_VOICE)
         return {"status": "ok"}
     except Exception as e:
         raise HTTPException(status_code=503, detail=str(e))
