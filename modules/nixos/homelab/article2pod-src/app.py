@@ -613,7 +613,7 @@ def ui(token: str):
 def list_voices(_user: dict = Depends(_verify)):
     try:
         req = urllib.request.Request(f"{KOKORO_URL}/v1/audio/voices")
-        with urllib.request.urlopen(req, timeout=5) as resp:
+        with urllib.request.urlopen(req, timeout=180) as resp:
             return json.loads(resp.read())
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Could not reach TTS backend: {e}")
