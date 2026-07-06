@@ -68,7 +68,9 @@ def _write_mp3(audio_bytes: bytes, guid: str, title: str,
 
 
 def run():
-    db.init_db()
+    admin_token = os.environ.get("ARTICLE2POD_TOKEN", "")
+    default_voice = os.environ.get("KOKORO_VOICE", "af_heart")
+    db.init_db(admin_token=admin_token, default_voice=default_voice)
     row = db.get_next_queued()
     if row is None:
         log.info("No queued articles — nothing to do")
@@ -94,7 +96,7 @@ def run():
         log.info("Extracted: '%s' by %s (%d chars)", title, author, len(text))
 
         # Stage 2: TTS
-        voice = db.get_setting("voice", os.environ.get("KOKORO_VOICE", "af_heart"))
+        voice = db.get_user_voice(row["user_id"], fallback=os.environ.get("KOKORO_VOICE", "af_heart"))
         audio_bytes = tts_client.synthesize(text, voice=voice)
         log.info("Synthesized %d bytes of audio", len(audio_bytes))
 
