@@ -65,10 +65,12 @@ def init_db(admin_token: str = "", default_voice: str = "af_heart"):
             )
         """)
 
-        # Add user_id column to existing DB if missing (migration)
+        # Migrations: add columns to existing DB if missing
         cols = {row[1] for row in conn.execute("PRAGMA table_info(articles)")}
         if "user_id" not in cols:
             conn.execute("ALTER TABLE articles ADD COLUMN user_id INTEGER REFERENCES users(id)")
+        if "voice" not in cols:
+            conn.execute("ALTER TABLE articles ADD COLUMN voice TEXT")
 
         # Bootstrap lando (admin) user if admin_token is provided
         if admin_token:
@@ -124,6 +126,19 @@ def delete_user(user_id: int) -> list[str]:
         conn.execute("DELETE FROM articles WHERE user_id = ?", (user_id,))
         conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
     return guids
+
+
+def requeue_article(guid: str, user_id: int, voice: str) -> bool:
+    """Reset article to queued with a specific voice. Returns True if found and owned."""
+    with get_db() as conn:
+        result = conn.execute(
+            """UPDATE articles
+               SET status='queued', voice=?, error=NULL,
+                   duration=NULL, size_bytes=NULL, processed_at=NULL
+               WHERE guid=? AND user_id=?""",
+            (voice, guid, user_id),
+        )
+        return result.rowcount > 0
 
 
 def get_user_voice(user_id: int, fallback: str = "af_heart") -> str:

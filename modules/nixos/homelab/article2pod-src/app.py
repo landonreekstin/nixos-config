@@ -68,6 +68,10 @@ class CreateUserRequest(BaseModel):
     username: str
 
 
+class ReprocessRequest(BaseModel):
+    voice: str
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # User dashboard template
 # ─────────────────────────────────────────────────────────────────────────────
@@ -94,6 +98,9 @@ _UI_TEMPLATE = """<!DOCTYPE html>
   .del-btn { background: none; border: none; color: #6e7681; cursor: pointer;
              font-size: 1.1em; padding: 0 0.25em; line-height: 1; }
   .del-btn:hover { color: #f85149; }
+  .reprocess-btn { background: none; border: none; color: #6e7681; cursor: pointer;
+                   font-size: 1.1em; padding: 0 0.25em; line-height: 1; }
+  .reprocess-btn:hover { color: #58a6ff; }
   .badge { display: inline-block; padding: 0.15em 0.55em; border-radius: 1em;
            font-size: 0.78em; font-weight: 600; }
   .badge-done       { background: #0d4429; color: #3fb950; }
@@ -203,12 +210,15 @@ async function load() {
       } else if (r.status === "failed") {
         info = '<span class="error-text" title="' + (r.error || "") + '">Error (hover)</span>';
       }
+      const reprocessBtn = (r.status === 'done' || r.status === 'failed')
+        ? '<button class="reprocess-btn" title="Reprocess with different voice" onclick="reprocessArticle(\\'' + r.guid + '\\')">&#8635;</button>'
+        : '';
       return '<tr>' +
         '<td>' + badge(r.status) + '</td>' +
         '<td><a class="title-link" href="' + r.url + '" target="_blank">' + title + '</a>' +
             '<span class="url-text">' + r.url + '</span></td>' +
         '<td class="info-cell">' + info + '</td>' +
-        '<td><button class="del-btn" title="Delete" onclick="deleteArticle(\\'' + r.guid + '\\')">&#215;</button></td>' +
+        '<td>' + reprocessBtn + '<button class="del-btn" title="Delete" onclick="deleteArticle(\\'' + r.guid + '\\')">&#215;</button></td>' +
         '</tr>';
     }).join("");
   } catch(e) {
@@ -315,6 +325,19 @@ async function deleteArticle(guid) {
   const resp = await fetch("/articles/" + guid, {method: "DELETE", headers: hdrs});
   if (resp.ok) { showToast("Deleted."); load(); }
   else showToast("Delete failed.");
+}
+
+async function reprocessArticle(guid) {
+  const voice = document.getElementById("voice-select").value || "";
+  const chosen = prompt("Reprocess with voice:", voice);
+  if (chosen === null) return;
+  const resp = await fetch("/articles/" + guid + "/reprocess", {
+    method: "POST",
+    headers: {...hdrs, "Content-Type": "application/json"},
+    body: JSON.stringify({voice: chosen || voice}),
+  });
+  if (resp.ok) { showToast("Requeued!"); load(); }
+  else { const e = await resp.json(); showToast("Failed: " + (e.detail || resp.status)); }
 }
 
 async function saveVoice() {
@@ -665,6 +688,18 @@ def delete_article(guid: str, user: dict = Depends(_verify)):
         raise HTTPException(status_code=404, detail="Not found")
     log.info("Deleted article %s by %s", guid, user["username"])
     return {"status": "deleted"}
+
+
+@app.post("/articles/{guid}/reprocess")
+def reprocess_article(guid: str, req: ReprocessRequest, user: dict = Depends(_verify)):
+    mp3 = Path(AUDIO_DIR) / f"{guid}.mp3"
+    if mp3.exists():
+        mp3.unlink()
+    ok = db.requeue_article(guid, user_id=user["id"], voice=req.voice)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Not found")
+    log.info("Requeue article %s with voice %s by %s", guid, req.voice, user["username"])
+    return {"status": "queued"}
 
 
 @app.post("/add")

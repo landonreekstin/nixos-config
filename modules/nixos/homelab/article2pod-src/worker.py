@@ -95,8 +95,8 @@ def run():
         text = article["text"]
         log.info("Extracted: '%s' by %s (%d chars)", title, author, len(text))
 
-        # Stage 2: TTS
-        voice = db.get_user_voice(row["user_id"], fallback=os.environ.get("KOKORO_VOICE", "af_heart"))
+        # Stage 2: TTS — per-article voice overrides user default
+        voice = row["voice"] or db.get_user_voice(row["user_id"], fallback=os.environ.get("KOKORO_VOICE", "af_heart"))
         audio_bytes = tts_client.synthesize(text, voice=voice)
         log.info("Synthesized %d bytes of audio", len(audio_bytes))
 
