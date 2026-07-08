@@ -133,6 +133,16 @@ _UI_TEMPLATE = """<!DOCTYPE html>
            opacity: 0; transition: opacity 0.3s; pointer-events: none; }
   .toast.show { opacity: 1; }
   .error-text { color: #f85149; font-size: 0.82em; }
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6);
+                   z-index:100; align-items:center; justify-content:center; }
+  .modal-overlay.show { display:flex; }
+  .modal { background:#161b22; border:1px solid #30363d; border-radius:10px;
+           padding:1.5em; min-width:300px; max-width:90vw; }
+  .modal h3 { margin:0 0 0.9em; color:#c9d1d9; font-size:1em; font-weight:600; }
+  .modal select { width:100%; }
+  .modal-actions { display:flex; gap:0.75em; margin-top:1.1em; justify-content:flex-end; }
+  .btn-cancel { background:none; border:1px solid #30363d; color:#8b949e; }
+  .btn-cancel:hover { background:#21262d; color:#c9d1d9; }
 </style>
 </head>
 <body>
@@ -161,6 +171,16 @@ _UI_TEMPLATE = """<!DOCTYPE html>
 </div>
 <p class="note">Takes effect on the next article. Does not affect articles currently processing.</p>
 
+<div class="modal-overlay" id="reprocess-modal">
+  <div class="modal">
+    <h3>Reprocess with voice</h3>
+    <select id="reprocess-voice-select"></select>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeReprocessModal()">Cancel</button>
+      <button onclick="confirmReprocess()">Reprocess</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 <noscript><p style="color:#f85149">JavaScript is disabled — dashboard requires JS.</p></noscript>
 
@@ -327,14 +347,30 @@ async function deleteArticle(guid) {
   else showToast("Delete failed.");
 }
 
-async function reprocessArticle(guid) {
-  const voice = document.getElementById("voice-select").value || "";
-  const chosen = prompt("Reprocess with voice:", voice);
-  if (chosen === null) return;
+let _reprocessGuid = null;
+
+function reprocessArticle(guid) {
+  _reprocessGuid = guid;
+  const src = document.getElementById("voice-select");
+  const dst = document.getElementById("reprocess-voice-select");
+  dst.innerHTML = src.innerHTML;
+  dst.value = src.value;
+  document.getElementById("reprocess-modal").classList.add("show");
+}
+
+function closeReprocessModal() {
+  document.getElementById("reprocess-modal").classList.remove("show");
+  _reprocessGuid = null;
+}
+
+async function confirmReprocess() {
+  const voice = document.getElementById("reprocess-voice-select").value;
+  const guid = _reprocessGuid;
+  closeReprocessModal();
   const resp = await fetch("/articles/" + guid + "/reprocess", {
     method: "POST",
     headers: {...hdrs, "Content-Type": "application/json"},
-    body: JSON.stringify({voice: chosen || voice}),
+    body: JSON.stringify({voice}),
   });
   if (resp.ok) { showToast("Requeued!"); load(); }
   else { const e = await resp.json(); showToast("Failed: " + (e.detail || resp.status)); }
