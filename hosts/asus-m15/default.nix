@@ -173,6 +173,7 @@
         "vscode"
         "chromium"
         "firefox"
+        "claude-code"
       ];
       homeManager = with pkgs; [
         vscode

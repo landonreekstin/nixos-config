@@ -202,10 +202,11 @@
         kitty
         claude-code
       ];
-      unstable-override = [ 
+      unstable-override = [
         "vscode"
         #"librewolf"
         "ungoogled-chromium"
+        "claude-code"
       ];
       homeManager = with pkgs; [ 
         jamesdsp

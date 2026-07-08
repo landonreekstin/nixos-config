@@ -290,7 +290,7 @@
         "librewolf"
         "brave"
         "ungoogled-chromium"
-        #"claude-code"
+        "claude-code"
         "gurk-rs"
         "vlc"
         "signal-desktop"
