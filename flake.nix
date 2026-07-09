@@ -46,6 +46,11 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    article2pod = {
+      url = "github:landonreekstin/article2pod";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, nixpkgs-unstable, disko, nixos-hardware, home-manager, plasma-manager, nixos-vscode-server, nix-flatpak, ... }@inputs:
