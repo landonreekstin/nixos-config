@@ -10,6 +10,124 @@ let
 
   ckbScripts = import ./ckb-scripts.nix { inherit pkgs; };
 
+  claudeRwrScript = pkgs.writeShellApplication {
+    name = "claude-rwr";
+    runtimeInputs = with pkgs; [ hyprland jq coreutils gawk ];
+    text = ''
+      state_file="/tmp/claude-state.json"
+      if [ ! -f "$state_file" ]; then
+        entries='{}'
+      else
+        entries="$(cat "$state_file" 2>/dev/null || echo '{}')"
+      fi
+
+      user_id="$(id -u)"
+      export XDG_RUNTIME_DIR="/run/user/$user_id"
+      sig=""
+      shopt -s nullglob
+      for entry in "$XDG_RUNTIME_DIR"/hypr/*; do
+        name="$(basename "$entry")"
+        case "$name" in *.lock) continue ;; esac
+        if [ -d "$entry" ]; then sig="$name"; break; fi
+      done
+      shopt -u nullglob
+      if [ -n "$sig" ]; then export HYPRLAND_INSTANCE_SIGNATURE="$sig"; fi
+
+      monitors_json="$(hyprctl -j monitors 2>/dev/null || echo "[]")"
+      clients_json="$(hyprctl -j clients 2>/dev/null || echo "[]")"
+
+      mon_ids="$(echo "$monitors_json" | jq -r 'sort_by(.x)[].id' 2>/dev/null || echo "")"
+      if [ -z "$mon_ids" ]; then
+        printf '{"text":"","class":"rwr-empty","tooltip":"RWR unavailable"}\n'
+        exit 0
+      fi
+
+      declare -A slot
+      for m in $mon_ids; do
+        for d in N NE E SE S SW W NW C; do
+          slot["$m,$d"]="<span foreground='#3d4654'>·</span>"
+        done
+      done
+
+      tooltip_lines="Claude RWR"
+      any_active=0
+
+      while IFS= read -r row; do
+        [ -z "$row" ] && continue
+        pid_key="$(echo "$row" | jq -r '.key')"
+        addr="$(echo "$row" | jq -r '.value.address // ""')"
+        st="$(echo "$row" | jq -r '.value.state')"
+        [ -z "$addr" ] && continue
+        wpos="$(echo "$clients_json" | jq --arg a "$addr" '.[] | select(.address==$a)')"
+        [ -z "$wpos" ] && continue
+        wx="$(echo "$wpos" | jq '.at[0] + .size[0]/2 | floor')"
+        wy="$(echo "$wpos" | jq '.at[1] + .size[1]/2 | floor')"
+        mon_id="$(echo "$wpos" | jq '.monitor')"
+        win_mon="$(echo "$monitors_json" | jq --argjson m "$mon_id" '.[] | select(.id==$m)')"
+        if [ -z "$win_mon" ]; then continue; fi
+        mon_x="$(echo "$win_mon" | jq '.x')"
+        mon_y="$(echo "$win_mon" | jq '.y')"
+        mon_w="$(echo "$win_mon" | jq '.width')"
+        mon_h="$(echo "$win_mon" | jq '.height')"
+        mon_name="$(echo "$win_mon" | jq -r '.name')"
+        cx=$(( mon_x + mon_w / 2 ))
+        cy=$(( mon_y + mon_h / 2 ))
+        dx=$(( wx - cx ))
+        dy=$(( wy - cy ))
+        ww="$(echo "$wpos" | jq '.size[0]')"
+        wh="$(echo "$wpos" | jq '.size[1]')"
+        dir="$(awk -v dx="$dx" -v dy="$dy" -v ww="$ww" -v wh="$wh" -v mw="$mon_w" -v mh="$mon_h" 'BEGIN {
+          if (ww * wh > mw * mh * 0.5) { print "C"; exit }
+          pi = 3.14159265
+          a = atan2(dy, dx) * 180 / pi
+          if (a < 0) a += 360
+          if (a < 22.5 || a >= 337.5) print "E"
+          else if (a < 67.5) print "SE"
+          else if (a < 112.5) print "S"
+          else if (a < 157.5) print "SW"
+          else if (a < 202.5) print "W"
+          else if (a < 247.5) print "NW"
+          else if (a < 292.5) print "N"
+          else print "NE"
+        }')"
+        any_active=1
+        if [ "$st" = "notification" ]; then
+          slot["$mon_id,$dir"]="<span foreground='#ff3838' weight='bold'>◉</span>"
+          tooltip_lines="$tooltip_lines"$'\n'"LOCK: pid $pid_key @ $mon_name/$dir"
+        elif [ "$st" = "stop" ]; then
+          slot["$mon_id,$dir"]="<span foreground='#00ff88' weight='bold'>●</span>"
+          tooltip_lines="$tooltip_lines"$'\n'"BLIP: pid $pid_key @ $mon_name/$dir"
+        fi
+      done < <(echo "$entries" | jq -c 'to_entries[]' 2>/dev/null)
+
+      sep="<span foreground='#2a3441'>│</span>"
+      line1=""
+      line2=""
+      line3=""
+      first=1
+      for m in $mon_ids; do
+        if [ "$first" = "1" ]; then
+          first=0
+        else
+          line1="$line1 $sep "
+          line2="$line2 $sep "
+          line3="$line3 $sep "
+        fi
+        line1="$line1''${slot["$m,NW"]} ''${slot["$m,N"]} ''${slot["$m,NE"]}"
+        line2="$line2''${slot["$m,W"]} ''${slot["$m,C"]} ''${slot["$m,E"]}"
+        line3="$line3''${slot["$m,SW"]} ''${slot["$m,S"]} ''${slot["$m,SE"]}"
+      done
+
+      text="$line1"$'\n'"$line2"$'\n'"$line3"
+
+      cls="rwr-idle"
+      if [ "$any_active" = "1" ]; then cls="rwr-active"; fi
+
+      jq -nc --arg t "$text" --arg c "$cls" --arg tt "$tooltip_lines" \
+        '{text: $t, class: $c, tooltip: $tt}'
+    '';
+  };
+
   # Check if home-manager, Hyprland, and the Century Series theme are enabled
   centurySeriesThemeCondition = lib.elem "hyprland" customConfig.desktop.environments
     && customConfig.homeManager.themes.hyprland == "century-series";
@@ -127,6 +245,18 @@ in {
             on-scroll-down = "${ckbScripts.brightnessScript} down";
             smooth-scrolling-threshold = 1;
           };
+
+          # Claude RWR - Radar Warning Receiver for Claude Code session state
+          "custom/claude-rwr" = {
+            exec = "${claudeRwrScript}/bin/claude-rwr";
+            interval = 5;
+            signal = 16;
+            return-type = "json";
+            format = "{}";
+            tooltip = true;
+          };
+
+          modules-right = mkBefore [ "custom/claude-rwr" ];
         };
       } // lib.optionalAttrs launcherEnabled {
         # Launcher bar - Cockpit control panel styling
@@ -640,6 +770,23 @@ in {
           box-shadow:
             inset 0 2px 4px ${c.bg-primary}60,
             0 0 8px ${c.accent-amber}60;
+        }
+
+        /* Claude RWR - Radar Warning Receiver */
+        #custom-claude-rwr {
+          font-family: "JetBrains Mono", monospace;
+          font-size: 9px;
+          font-weight: 700;
+          padding: 1px 8px;
+          margin: 2px 4px;
+          background-color: ${c.bg-primary};
+          border: 1px solid ${c.border-primary};
+          border-radius: 3px;
+          color: ${c.text-tertiary};
+        }
+        #custom-claude-rwr.rwr-active {
+          border-color: ${c.accent-radar};
+          box-shadow: inset 0 0 4px ${c.accent-radar}40;
         }
       '';
     };

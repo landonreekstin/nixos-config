@@ -326,9 +326,6 @@ in {
           "float, class:^(.*), title:^(.*)(dialog|Dialog|confirm|Confirm).*$"
           "center, class:^(.*), title:^(.*)(dialog|Dialog|confirm|Confirm).*$"
 
-          # Terminal - phosphor green accent border
-          "bordercolor rgb(${removePrefix "#" c.accent-green}) rgb(${removePrefix "#" c.accent-green-dim}) 45deg, class:^(kitty)$"
-
           # Browsers - amber accent border
           "bordercolor rgb(${removePrefix "#" c.accent-amber}) rgb(${removePrefix "#" c.accent-amber-dim}) 45deg, class:^(firefox|chromium|brave).*$"
 
