@@ -1,23 +1,9 @@
 # ~/nixos-config/modules/nixos/homelab/article2pod.nix
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, inputs, ... }:
 
 let
   cfg = config.customConfig.homelab.article2pod;
-
-  pythonEnv = pkgs.python3.withPackages (ps: with ps; [
-    fastapi
-    uvicorn
-    trafilatura
-    feedgen
-    pydantic
-  ]);
-
-  workerEnv = pkgs.python3.withPackages (ps: with ps; [
-    trafilatura
-    feedgen
-  ]);
-
-  appSrc = ./article2pod-src;
+  pkg = inputs.article2pod.packages.${pkgs.system}.default;
 
   commonEnv = {
     ARTICLE2POD_DB          = "${cfg.statePath}/db.sqlite";
@@ -31,7 +17,6 @@ let
     TTS_BACKEND             = cfg.ttsBackend;
     PIPER_URL               = cfg.piperUrl;
     FLARESOLVERR_URL        = cfg.flareSolverrUrl;
-    PYTHONPATH              = "${appSrc}";
   };
 in
 {
@@ -93,17 +78,16 @@ in
       wantedBy    = [ "multi-user.target" ];
       environment = commonEnv;
       serviceConfig = {
-        Type            = "simple";
-        User            = "article2pod";
-        Group           = "article2pod";
-        EnvironmentFile = config.sops.secrets."article2pod-token".path;
-        ExecStart       = "${pythonEnv}/bin/uvicorn app:app --host 0.0.0.0 --port ${toString cfg.port}";
-        WorkingDirectory = "${appSrc}";
-        Restart         = "on-failure";
-        RestartSec      = "5s";
+        Type             = "simple";
+        User             = "article2pod";
+        Group            = "article2pod";
+        EnvironmentFile  = config.sops.secrets."article2pod-token".path;
+        ExecStart        = "${pkg}/bin/article2pod-api --host 0.0.0.0 --port ${toString cfg.port}";
+        Restart          = "on-failure";
+        RestartSec       = "5s";
         SyslogIdentifier = "article2pod";
-        CPUQuota        = "25%";
-        Nice            = "10";
+        CPUQuota         = "25%";
+        Nice             = "10";
       };
     };
 
@@ -117,15 +101,12 @@ in
         "sops-nix.service"
       ];
       wants       = [ "docker-kokoro-fastapi.service" ];
-      path        = [ pkgs.ffmpeg ];
-      environment = commonEnv // {
-        PYTHONPATH = "${appSrc}";
-      };
+      environment = commonEnv;
       serviceConfig = {
         Type             = "oneshot";
         User             = "article2pod";
         Group            = "article2pod";
-        ExecStart        = "${workerEnv}/bin/python ${appSrc}/worker.py";
+        ExecStart        = "${pkg}/bin/article2pod-worker";
         SyslogIdentifier = "article2pod-worker";
         CPUQuota         = "100%";
         Nice             = "15";
