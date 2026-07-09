@@ -197,7 +197,7 @@ in {
 
         # Advanced settings
         allow_remote_control yes
-        listen_on unix:/tmp/kitty
+        listen_on unix:/tmp/kitty-{kitty_pid}
 
         # Startup session
         startup_session none

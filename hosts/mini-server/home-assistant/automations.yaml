@@ -6,8 +6,8 @@
 # Schedule:
 #   Morning (Mon/Tue/Wed/Thu): On 100% warm white at 6:14 AM, off at 7:15 AM
 #   Evening (every day): On 100% warm white 1hr before sunset
-#   Mon/Tue/Wed: Shift warm white -> amber -> orange -> deep red by 9 PM, dim to 25% by 10 PM
-#   Thu/Fri/Sat/Sun: Shift warm white -> orange by 9 PM, no dimming
+#   Sun/Mon/Tue/Wed: Shift warm white -> amber -> orange -> deep red by 9 PM, dim to 25% by 10 PM
+#   Thu/Fri/Sat: Shift warm white -> orange by 9 PM, no dimming
 
 # ==================== MORNING LIGHTS (Mon/Tue/Wed/Thu) ====================
 
@@ -90,6 +90,7 @@
   conditions:
     - condition: time
       weekday:
+        - sun
         - mon
         - tue
         - wed
@@ -137,6 +138,7 @@
   conditions:
     - condition: time
       weekday:
+        - sun
         - mon
         - tue
         - wed
@@ -166,13 +168,13 @@
           - delay:
               seconds: "{{ step_seconds }}"
 
-# ==================== EVENING COLOR SHIFT Thu/Fri/Sat/Sun ====================
+# ==================== EVENING COLOR SHIFT Thu/Fri/Sat ====================
 # Gradual shift: warm white (hs 40,40) -> orange (hs 25,100)
 # Starts 5 min after evening lights on, arrives at orange by 9:00 PM
 # No dimming after
 
 - id: evening_color_shift_thu_sun
-  alias: "Evening Color Shift (Thu-Sun)"
+  alias: "Evening Color Shift (Thu-Sat)"
   description: "Gradually shift from warm white to orange by 9 PM"
   triggers:
     - trigger: sun
@@ -184,7 +186,6 @@
         - thu
         - fri
         - sat
-        - sun
   mode: restart
   actions:
     - variables:
