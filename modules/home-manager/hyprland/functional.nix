@@ -176,6 +176,9 @@ in
             "sleep 1 && $HOME/.local/bin/waybar-start > /tmp/waybar-start.log 2>&1"
             # Re-apply persisted monitor on/off state (runs after waybar so it can restart cleanly)
             "sleep 2 && restore-monitors"
+            # Keep persisted monitor state applied across config reloads (e.g. after a rebuild),
+            # not just at startup — watches Hyprland's event socket for configreloaded events.
+            "monitor-state-watcher > /tmp/monitor-state-watcher.log 2>&1 &"
             # Initialize WirePlumber mixer by playing silent audio, then refresh waybar.
             # Without this, wpctl get-volume returns 1.00 on HDMI pro-audio sinks until
             # real audio plays, causing the volume widget to display 100% at boot.
