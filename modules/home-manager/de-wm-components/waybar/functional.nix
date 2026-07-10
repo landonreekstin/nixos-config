@@ -77,6 +77,16 @@ let
     printf '{"text":"%s","tooltip":"%s","class":"%s"}' "$TEXT" "$TOOLTIP" "$CLASS"
   '';
 
+  # Clicking the weather widget opens a full wttr.in forecast in the terminal.
+  # Same source as the widget; empty location auto-detects by IP. ?u/?m sets units.
+  weatherClickScript = pkgs.writeShellScript "waybar-weather-click" ''
+    LOC="${weatherLocation}"
+    UNIT="${if weatherUseFahrenheit then "u" else "m"}"
+    ${pkgs.curl}/bin/curl -s "https://wttr.in/''${LOC}?''${UNIT}"
+    echo
+    read -p "Press enter to close..." _
+  '';
+
   audioStatusScript = pkgs.writeShellScript "waybar-audio-status" ''
     # Single-shot polling script (interval=2 + signal=11 for immediate scroll refresh).
     #
@@ -581,6 +591,7 @@ in
             interval = 300; # Refresh every 5 minutes
             signal = 10;
             format = lib.mkDefault "{}";
+            on-click = "${customConfig.desktop.hyprland.applications.terminal} -e ${weatherClickScript}";
           };
 
           "custom/power" = {
