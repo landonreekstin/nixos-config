@@ -88,13 +88,59 @@ let
       ${pkgs.waybar}/bin/waybar > /tmp/waybar-restart.log 2>&1 &
     fi
   '';
+
+  monitorStateWatcherScript = pkgs.writeShellScriptBin "monitor-state-watcher" ''
+    #!${pkgs.stdenv.shell}
+    # Re-apply persisted monitor disable state whenever Hyprland reloads its config.
+    #
+    # exec-once only runs restore-monitors at Hyprland startup, so a `hyprctl reload`
+    # (which is what a `nixos-rebuild` triggers when home-manager rewrites hyprland.conf)
+    # re-applies the declarative `monitor = [...]` list and re-enables any monitor the
+    # user had toggled off. This watcher listens on Hyprland's event socket (socket2) and
+    # replays restore-monitors on every `configreloaded` event, so runtime disable state
+    # survives rebuilds — not just reboots.
+
+    # Resolve the Hyprland instance signature (env var, or newest runtime dir as fallback)
+    SIG="''${HYPRLAND_INSTANCE_SIGNATURE:-}"
+    if [ -z "$SIG" ]; then
+      SIG=$(ls -t "$XDG_RUNTIME_DIR/hypr" 2>/dev/null | head -n1)
+    fi
+
+    if [ -z "$SIG" ]; then
+      echo "monitor-state-watcher: no Hyprland instance found" >&2
+      exit 1
+    fi
+
+    SOCK="$XDG_RUNTIME_DIR/hypr/$SIG/.socket2.sock"
+
+    # Reconnect loop so the watcher survives transient socket drops.
+    while true; do
+      if [ ! -S "$SOCK" ]; then
+        sleep 2
+        continue
+      fi
+      ${pkgs.socat}/bin/socat -U - UNIX-CONNECT:"$SOCK" 2>/dev/null | while IFS= read -r line; do
+        case "$line" in
+          configreloaded*)
+            # Let Hyprland finish applying the reloaded monitor list before re-disabling.
+            sleep 0.3
+            ${restoreMonitorsScript}/bin/restore-monitors
+            ;;
+        esac
+      done
+      # socat exited (Hyprland gone or socket closed); wait and retry.
+      sleep 2
+    done
+  '';
 in
 {
   home.packages = [
     toggleMonitorScript
     restoreMonitorsScript
+    monitorStateWatcherScript
     pkgs.jq
     pkgs.gnugrep
     pkgs.waybar
+    pkgs.socat
   ];
 }
