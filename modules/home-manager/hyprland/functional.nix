@@ -287,6 +287,8 @@ in
           "$mainMod SHIFT, C, workspace, emptym"
           "$mainMod SHIFT, C, exec, ${customConfig.desktop.hyprland.applications.chat}"
           "$mainMod $altMod, C, exec, ${pkgs.signal-desktop}/bin/signal-desktop"
+          "$mainMod $altMod, M, exec, $terminal -e ${pkgs.cava}/bin/cava"
+          "$mainMod, P, exec, ${pkgs.bitwarden-desktop}/bin/bitwarden"
           "$mainMod, G, exec, ${customConfig.desktop.hyprland.applications.gaming}"
           "$mainMod SHIFT, G, workspace, emptym"
           "$mainMod SHIFT, G, exec, ${customConfig.desktop.hyprland.applications.gaming}"
@@ -519,6 +521,8 @@ in
       kdePackages.konsole # Often a dependency for Kate or other KDE apps
       brave
       discord
+      cava            # audio visualizer — Super+Alt+M
+      bitwarden-desktop # password manager — Super+P
 
       # From Hyprland exec/binds not covered by services:
       (if pkgs ? vscode then vscode else null) # Conditional if package might not exist
