@@ -188,6 +188,7 @@
 
       dns.enable = true;
       reverseProxy.enable = true;
+      landingPage.enable = true;
 
       flakeUpdater.enable = true;
       localCA.trustCA = true;
