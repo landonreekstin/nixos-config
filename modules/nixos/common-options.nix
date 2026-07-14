@@ -1509,6 +1509,11 @@ in
           default = false;
           description = "Only run the update when on AC power (ConditionACPower). Recommended for laptops.";
         };
+        shutdownAfterRebuild = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Power the system off after a successful automated rebuild. Only fires when a rebuild actually occurred (new commits pulled and rebuild succeeded).";
+        };
       };
     };
 

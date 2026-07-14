@@ -53,6 +53,10 @@ let
     ${lib.optionalString cfg.lowPriority "nice -n 19 ionice -c 3"} nixos-rebuild switch \
       --flake "$NIXOS_CONFIG_DIR#$HOSTNAME" --impure --max-jobs auto --cores 0
     log "Rebuild complete."
+    ${lib.optionalString cfg.shutdownAfterRebuild ''
+    log "shutdownAfterRebuild is set — powering off."
+    systemctl poweroff
+    ''}
   '';
 in
 {
@@ -61,7 +65,7 @@ in
       description = "Weekly automated NixOS config sync and rebuild";
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
-      path = with pkgs; [ git openssh nix coreutils util-linux ];
+      path = with pkgs; [ git openssh nix coreutils util-linux systemd ];
       environment.NIXPKGS_ALLOW_UNFREE = "1";
       unitConfig = lib.optionalAttrs cfg.onlyOnAC {
         ConditionACPower = true;
