@@ -65,7 +65,8 @@ in
       description = "Weekly automated NixOS config sync and rebuild";
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
-      path = with pkgs; [ git openssh nix coreutils util-linux systemd ];
+      path = [ config.system.build.nixos-rebuild ]
+        ++ (with pkgs; [ git openssh nix coreutils util-linux systemd ]);
       environment.NIXPKGS_ALLOW_UNFREE = "1";
       unitConfig = lib.optionalAttrs cfg.onlyOnAC {
         ConditionACPower = true;
