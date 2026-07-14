@@ -122,6 +122,26 @@ BODY
         continue
       fi
 
+      # Check mergeability before attempting the merge. A conflicting PR must
+      # never abort the whole run (set -e) — that would wedge the pipeline and
+      # block every other PR plus the new weekly branch.
+      MERGE_STATE=$(${pkgs.gh}/bin/gh pr view "''${PR_NUM}" \
+        --repo "''${REPO}" \
+        --json mergeable -q '.mergeable' 2>/dev/null || echo "UNKNOWN")
+
+      if [ "''${MERGE_STATE}" = "CONFLICTING" ]; then
+        log "PR #''${PR_NUM} has merge conflicts — flagging '${cfg.blockLabel}' and skipping"
+        ${pkgs.gh}/bin/gh pr edit "''${PR_NUM}" --repo "''${REPO}" \
+          --add-label "''${BLOCK_LABEL}" 2>/dev/null || true
+        continue
+      fi
+
+      if [ "''${MERGE_STATE}" != "MERGEABLE" ]; then
+        # UNKNOWN = GitHub is still computing mergeability; retry next run.
+        log "PR #''${PR_NUM} mergeability=''${MERGE_STATE} — skipping this run"
+        continue
+      fi
+
       CREATED=$(${pkgs.gh}/bin/gh pr view "''${PR_NUM}" \
         --repo "''${REPO}" \
         --json createdAt -q '.createdAt')
@@ -130,8 +150,11 @@ BODY
 
       if [ "''${AGE}" -ge "''${AUTO_MERGE_DAYS}" ]; then
         log "Auto-merging PR #''${PR_NUM}"
-        ${pkgs.gh}/bin/gh pr merge "''${PR_NUM}" --repo "''${REPO}" --merge --delete-branch
-        log "PR #''${PR_NUM} merged"
+        if ${pkgs.gh}/bin/gh pr merge "''${PR_NUM}" --repo "''${REPO}" --merge --delete-branch; then
+          log "PR #''${PR_NUM} merged"
+        else
+          log "Auto-merge failed for PR #''${PR_NUM} — leaving open"
+        fi
       else
         log "Not old enough yet (''${AGE}/''${AUTO_MERGE_DAYS} days) — skipping"
       fi
