@@ -21,10 +21,8 @@ in
         rpc-host-whitelist-enabled = false;
         umask = 2;
 
-        # Bandwidth limits — WAN uplink is ~27 Mbps down / 20 Mbps up.
-        # Leave headroom for gaming/streaming to avoid bufferbloat.
-        speed-limit-down = 2500;         # 20 Mbps
-        speed-limit-down-enabled = true;
+        # Upload cap prevents bufferbloat from saturating the ~20 Mbps WAN uplink.
+        # Download is left uncapped — turtle mode handles the gaming case.
         speed-limit-up = 1875;           # 15 Mbps
         speed-limit-up-enabled = true;
 
