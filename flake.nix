@@ -152,6 +152,17 @@
         ];
       };
 
+      # Configuration for AJ's Laptop (Asus ROG Zephyrus G14)
+      aj-laptop = nixpkgs.lib.nixosSystem {
+        specialArgs = specialArgs;
+        modules = [
+          ./hosts/aj-laptop/default.nix
+          inputs.home-manager.nixosModules.default
+          inputs.disko.nixosModules.default
+          { nixpkgs.hostPlatform = "x86_64-linux"; }
+        ];
+      };
+
       # Configuration for the Asus ROG Zephyrus M15 Laptop
       asus-m15 = nixpkgs.lib.nixosSystem {
         specialArgs = specialArgs;

@@ -587,7 +587,7 @@ When asked to work on tasks, follow this workflow for each task:
    ```
    For changes to shared modules, check **all hosts**:
    ```bash
-   for host in gaming-pc optiplex blaney-pc justus-pc asus-laptop asus-m15 atl-mini-pc optiplex-nas mini-server; do
+   for host in gaming-pc optiplex blaney-pc justus-pc asus-laptop asus-m15 atl-mini-pc optiplex-nas mini-server aj-laptop; do
      echo -n "$host: " && NIXPKGS_ALLOW_UNFREE=1 nix eval --impure ".#nixosConfigurations.${host}.config.system.build.toplevel.drvPath" 2>&1 | tail -1
    done
    ```

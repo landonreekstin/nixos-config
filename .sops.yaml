@@ -14,6 +14,8 @@ keys:
   - &justus-pc age1PLACEHOLDER_justus-pc
   - &asus-m15 age1PLACEHOLDER_asus-m15
   - &atl-mini-pc age1PLACEHOLDER_atl-mini-pc
+  # TODO: fill in after install — run: cat /etc/ssh/ssh_host_ed25519_key.pub | ssh-to-age
+  - &aj-laptop age1PLACEHOLDER_aj-laptop
   - &optiplex-nas age1zngsf2yrpft0uhcs3wrac3raqw2ykwna066z5wvecamaczr77yzsfe8k6n
   - &mini-server age1x3zk4djdjyqz4gem4s877s9vcg9pq9266383vdqpthmtuvhqgu4qsufc5z
 
@@ -46,6 +48,10 @@ creation_rules:
   - path_regex: secrets/atl-mini-pc\.yaml$
     key_groups:
       - age: [*atl-mini-pc, *lando]
+
+  - path_regex: secrets/aj-laptop\.yaml$
+    key_groups:
+      - age: [*aj-laptop, *lando]
 
   - path_regex: secrets/optiplex-nas\.yaml$
     key_groups:
