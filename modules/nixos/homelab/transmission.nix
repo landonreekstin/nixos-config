@@ -20,6 +20,19 @@ in
         rpc-whitelist-enabled = false;
         rpc-host-whitelist-enabled = false;
         umask = 2;
+
+        # Bandwidth limits — WAN uplink is ~27 Mbps down / 20 Mbps up.
+        # Leave headroom for gaming/streaming to avoid bufferbloat.
+        speed-limit-down = 2500;         # 20 Mbps
+        speed-limit-down-enabled = true;
+        speed-limit-up = 1875;           # 15 Mbps
+        speed-limit-up-enabled = true;
+
+        # Turtle mode (toggle from web UI when gaming): 5 Mbps down / 3 Mbps up
+        alt-speed-down = 625;
+        alt-speed-up = 375;
+
+        peer-limit-global = 80;
       };
     };
 
