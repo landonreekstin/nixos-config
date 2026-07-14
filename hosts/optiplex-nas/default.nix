@@ -214,6 +214,19 @@
           { name = "cmoore"; jellyseerrId = 7; }
         ];
       };
+
+      # Encrypted USB backup of /mnt/private.
+      # One-time setup (run on optiplex-nas as root):
+      #   dd if=/dev/urandom of=/root/secrets/backup-usb.key bs=4096 count=1
+      #   chmod 600 /root/secrets/backup-usb.key
+      #   cryptsetup luksAddKey /dev/sdX /root/secrets/backup-usb.key  # enter existing passphrase
+      #   blkid /dev/sdX  # copy the UUID value, set it below, enable = true, rebuild
+      # After setup: plugging in the USB auto-starts the backup. Monitor with:
+      #   journalctl -u private-backup -f
+      privateBackup = {
+        enable = false;
+        luksUuid = "PLACEHOLDER";  # replace after running blkid on the USB drive
+      };
     };
   };
 
