@@ -21,6 +21,7 @@ in
           local-zone = [ ''"lan." static'' ];
           local-data = [
             # optiplex-nas
+            ''"home.lan. A 192.168.1.76"''
             ''"nas.lan. A 192.168.1.76"''
             ''"jellyfin.lan. A 192.168.1.76"''
             ''"jellyseerr.lan. A 192.168.1.76"''

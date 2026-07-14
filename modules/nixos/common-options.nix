@@ -1542,6 +1542,14 @@ in
         };
       };
 
+      landingPage = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Serve a homelab dashboard at home.lan listing all service links.";
+        };
+      };
+
       samba = {
         enable = mkOption { 
           type = types.bool; 

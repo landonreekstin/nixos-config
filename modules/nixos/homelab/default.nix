@@ -26,5 +26,6 @@
     ./reverse-proxy-nas.nix
     ./reverse-proxy-mini.nix
     ./article2pod.nix
+    ./landing-page.nix
   ];
 }
