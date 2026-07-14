@@ -176,6 +176,9 @@ in
             "sleep 1 && $HOME/.local/bin/waybar-start > /tmp/waybar-start.log 2>&1"
             # Re-apply persisted monitor on/off state (runs after waybar so it can restart cleanly)
             "sleep 2 && restore-monitors"
+            # Keep persisted monitor state applied across config reloads (e.g. after a rebuild),
+            # not just at startup — watches Hyprland's event socket for configreloaded events.
+            "monitor-state-watcher > /tmp/monitor-state-watcher.log 2>&1 &"
             # Initialize WirePlumber mixer by playing silent audio, then refresh waybar.
             # Without this, wpctl get-volume returns 1.00 on HDMI pro-audio sinks until
             # real audio plays, causing the volume widget to display 100% at boot.
@@ -284,6 +287,8 @@ in
           "$mainMod SHIFT, C, workspace, emptym"
           "$mainMod SHIFT, C, exec, ${customConfig.desktop.hyprland.applications.chat}"
           "$mainMod $altMod, C, exec, ${pkgs.signal-desktop}/bin/signal-desktop"
+          "$mainMod $altMod, M, exec, $terminal -e ${pkgs.cava}/bin/cava"
+          "$mainMod, P, exec, ${pkgs.bitwarden-desktop}/bin/bitwarden"
           "$mainMod, G, exec, ${customConfig.desktop.hyprland.applications.gaming}"
           "$mainMod SHIFT, G, workspace, emptym"
           "$mainMod SHIFT, G, exec, ${customConfig.desktop.hyprland.applications.gaming}"
@@ -516,6 +521,8 @@ in
       kdePackages.konsole # Often a dependency for Kate or other KDE apps
       brave
       discord
+      cava            # audio visualizer — Super+Alt+M
+      bitwarden-desktop # password manager — Super+P
 
       # From Hyprland exec/binds not covered by services:
       (if pkgs ? vscode then vscode else null) # Conditional if package might not exist

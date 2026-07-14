@@ -20,5 +20,7 @@
   # Point gh at the user's config directory even when running as root (e.g. sudo claude-code)
   environment.variables.GH_CONFIG_DIR = "${config.customConfig.user.home}/.config/gh";
 
+  environment.variables.CLAUDE_CODE_ENABLE_AUTO_MODE = "1";
+
   system.stateVersion = config.customConfig.system.stateVersion; # Set state version from customConfig
 }

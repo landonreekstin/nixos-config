@@ -138,7 +138,7 @@
         #"chromium"
         "desmume"
         "mgba"
-        #"claude-code" 
+        "claude-code"
         "signal-desktop"     
       ];
       homeManager = with pkgs; [
