@@ -14,7 +14,7 @@ in
     };
 
     fileSystems.${cfg.mountPoint} = {
-      device = "//192.168.1.76/storage";
+      device = "//${cfg.serverAddress}/storage";
       fsType = "cifs";
       options = [
         "credentials=${config.sops.secrets.smb-credentials.path}"
