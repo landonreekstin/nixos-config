@@ -6,6 +6,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a modular NixOS configuration flake that manages multiple hosts with shared modules. The configuration uses a custom options system (`customConfig`) to provide type-safe, declarative configuration across all hosts.
 
+## Choosing the Right Host to Work On
+
+**At the start of a session, before diving in, check whether the task is better handled natively on a different host** — many features/fixes can only be rebuilt, tested, and verified on the machine that actually runs the affected component. If the current host isn't the ideal one, say so and recommend switching before doing the work, rather than making a change that can't be verified here.
+
+Rough guide for the three commonly-used hosts:
+
+- **gaming-pc** — primary desktop (KDE + Hyprland) and beta-tester host. Best for: desktop environments, Hyprland/Waybar/theme work, SDDM/display-manager, gaming profile, general development, and anything needing a display to verify.
+- **optiplex-nas** — headless homelab NAS. Best for: Jellyfin, Samba, the *arr stack, mediaLinker, media/storage layout, and homelab service config.
+- **mini-server** — headless server on the server LAN (behind optiplex-fw). Best for: Home Assistant, Wyoming voice satellite, the game-control dashboard, and game servers.
+
+When a task clearly belongs to another host (e.g. a Jellyfin tweak while on gaming-pc), recommend the user start the session there so it can be verified in place. Cross-machine changes that genuinely can't be tested on the current host follow the branch → PR → verify-on-target workflow below.
+
 ## Development Commands
 
 ### Running as sudo (Claude Code)
