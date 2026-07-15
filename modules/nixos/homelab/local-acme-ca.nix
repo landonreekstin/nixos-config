@@ -32,47 +32,49 @@ in
         mkdir -p "${publicCaDir}"
         chmod 755 "${publicCaDir}"
 
+        # NOTE: activation snippets are concatenated into one script, so a bare
+        # `exit 0` here would terminate the WHOLE activate script (skipping
+        # /run/current-system creation) and panic the boot. Use if/else instead.
         if [ -f "${caDir}/certs/root_ca.crt" ]; then
           # Always refresh the public copy in case it was wiped.
           cp "${caDir}/certs/root_ca.crt" "${publicCaDir}/root_ca.crt"
           chmod 644 "${publicCaDir}/root_ca.crt"
-          exit 0
+        else
+          echo "Bootstrapping homelab CA..."
+          mkdir -p "${caDir}/certs" "${caDir}/secrets" "${caDir}/db"
+
+          STEPPATH=$(mktemp -d)
+          export STEPPATH
+
+          ${pkgs.step-cli}/bin/step certificate create \
+            "Homelab Root CA" \
+            "${caDir}/certs/root_ca.crt" \
+            "${caDir}/secrets/root_ca_key" \
+            --profile root-ca \
+            --no-password --insecure
+
+          ${pkgs.step-cli}/bin/step certificate create \
+            "Homelab Intermediate CA" \
+            "${caDir}/certs/intermediate_ca.crt" \
+            "${caDir}/secrets/intermediate_ca_key" \
+            --profile intermediate-ca \
+            --ca "${caDir}/certs/root_ca.crt" \
+            --ca-key "${caDir}/secrets/root_ca_key" \
+            --no-password --insecure
+
+          rm -rf "$STEPPATH"
+
+          chmod 700 "${caDir}/secrets"
+          chmod 600 "${caDir}/secrets/"*
+          chmod 755 "${caDir}/certs"
+          chmod 644 "${caDir}/certs/"*
+          chown -R step-ca:step-ca "${caDir}"
+
+          cp "${caDir}/certs/root_ca.crt" "${publicCaDir}/root_ca.crt"
+          chmod 644 "${publicCaDir}/root_ca.crt"
+
+          echo "Homelab CA initialized. Root cert: ${caDir}/certs/root_ca.crt"
         fi
-
-        echo "Bootstrapping homelab CA..."
-        mkdir -p "${caDir}/certs" "${caDir}/secrets" "${caDir}/db"
-
-        STEPPATH=$(mktemp -d)
-        export STEPPATH
-
-        ${pkgs.step-cli}/bin/step certificate create \
-          "Homelab Root CA" \
-          "${caDir}/certs/root_ca.crt" \
-          "${caDir}/secrets/root_ca_key" \
-          --profile root-ca \
-          --no-password --insecure
-
-        ${pkgs.step-cli}/bin/step certificate create \
-          "Homelab Intermediate CA" \
-          "${caDir}/certs/intermediate_ca.crt" \
-          "${caDir}/secrets/intermediate_ca_key" \
-          --profile intermediate-ca \
-          --ca "${caDir}/certs/root_ca.crt" \
-          --ca-key "${caDir}/secrets/root_ca_key" \
-          --no-password --insecure
-
-        rm -rf "$STEPPATH"
-
-        chmod 700 "${caDir}/secrets"
-        chmod 600 "${caDir}/secrets/"*
-        chmod 755 "${caDir}/certs"
-        chmod 644 "${caDir}/certs/"*
-        chown -R step-ca:step-ca "${caDir}"
-
-        cp "${caDir}/certs/root_ca.crt" "${publicCaDir}/root_ca.crt"
-        chmod 644 "${publicCaDir}/root_ca.crt"
-
-        echo "Homelab CA initialized. Root cert: ${caDir}/certs/root_ca.crt"
       '';
     };
 
