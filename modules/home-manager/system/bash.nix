@@ -50,6 +50,12 @@ in
       ccnr() {
         cd "$HOME/nixos-config" && sudo claude -r
       }
+      claude-rebuild-failed() {
+        cd "$HOME/nixos-config" && sudo claude "A NixOS rebuild failed. Run \`rebuild\` to reproduce the error, diagnose the cause, and fix it. Then create a PR with the fix. This is a blaney-pc session: follow all blaney-pc rules in CLAUDE.md (branch prefix blaney/, never push to main). Keep all explanations brief and simple — the user is non-technical and does not know Nix, Linux, or code, so do not rely on their knowledge or ask them to make technical decisions. Take full ownership of every technical decision and recommendation and just get the system working. Lando reviews and approves the PR, so make the best call and proceed."
+      }
+      claude-auto-update-failed() {
+        cd "$HOME/nixos-config" && sudo claude "The latest weekly auto-update PR failed CI. Investigate the failure (check the open 'chore(flake): weekly update' PR with gh pr checks / CI logs), diagnose the cause, and fix it on the update/* branch. See the 'Automated Weekly Flake Updates' section in CLAUDE.md for the workflow. Keep me posted with a brief summary of what broke and how you fixed it."
+      }
     '';
 
     bashrcExtra = ''
