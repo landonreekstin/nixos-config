@@ -95,8 +95,8 @@
       staticIP = {
         enable = true;
         interface = "enp0s31f6";
-        address = "192.168.1.76";
-        gateway = "192.168.1.1";
+        address = "192.168.100.76";
+        gateway = "192.168.100.1";
       };
       firewall = { enable = false; };
     };
