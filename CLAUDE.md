@@ -409,7 +409,7 @@ Spectrum Router (SAX2V1S)
 WAN: 68.184.198.204  /  LAN: 192.168.1.1
     │
     ├── 192.168.1.x  (Main LAN)
-    │   ├── gaming-pc       192.168.1.60
+    │   ├── gaming-pc       192.168.1.62
     │   ├── optiplex-nas    192.168.1.76
     │   └── optiplex-fw     192.168.1.189
     │
@@ -467,8 +467,8 @@ doas pfctl -si                # statistics
 | Emily | 10.10.0.6 | Restricted | NAS only |
 | Russell | 10.10.0.7 | Restricted | NAS only |
 | Cmoore | 10.10.0.8 | Restricted | NAS only |
-| Alex | 10.10.0.9 | Full | |
-| Unknown | 10.10.0.10 | Restricted | identity not documented — check wg show on optiplex-fw |
+| Alex | 10.10.0.10 | Restricted | NAS only |
+| _(stale)_ | 10.10.0.9 | — | Configured server-side but never handshaken. Believed to be a misplaced copy of a trusted config onto asus-m15 for a one-time Emily use — asus-m15 should get Emily's proper 10.10.0.6 config when next reachable, and this peer can then be removed from `/etc/hostname.wg0` on optiplex-fw. |
 
 Restricted peers can reach: Jellyfin (8096), Jellyseerr (5055), Transmission (9091) on 192.168.1.76 and game-control dashboard (8080) on mini-server. All other traffic blocked via `<restricted_peers>` PF table.
 
