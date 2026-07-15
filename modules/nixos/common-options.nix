@@ -1599,6 +1599,16 @@ in
           default = "/mnt/nas";
           description = "Local path where the NAS storage share will be mounted.";
         };
+        serverAddress = mkOption {
+          type = types.str;
+          default = "192.168.1.76";
+          description = ''
+            IP or hostname of the NAS as reached from this host. Default is the
+            legacy main-LAN IP; override for hosts that route to the NAS by a
+            different address (e.g. gaming-pc reaches it via a dedicated LAN
+            WireGuard tunnel at 192.168.100.76 post-migration).
+          '';
+        };
       };
       mediaSetup = {
         enable = lib.mkEnableOption "Enable the shared media setup";

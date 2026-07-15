@@ -1,6 +1,19 @@
 # ~/nixos-config/hosts/gaming-pc/default.nix
 { inputs, pkgs, lib, config, unstablePkgs, ... }: # Standard module arguments. `config` is the final NixOS config.
 
+let
+  # Post-migration flag for reaching optiplex-nas over a dedicated LAN WireGuard tunnel.
+  # Flip to `true` ONLY after all four steps are complete:
+  #   1. optiplex-nas is physically on the 192.168.100.0/24 segment at 192.168.100.76.
+  #   2. optiplex-fw has the updated pf.conf loaded and the 192.168.1.76 alias on re0.
+  #   3. A wg-nas keypair has been generated and the public key added to
+  #      /etc/hostname.wg0 on optiplex-fw as a peer with `allowed-ips 10.10.0.11/32`.
+  #   4. The wg-nas private key has been added to secrets/gaming-pc.yaml as
+  #      `wg-nas-private-key`.
+  # When enabled, Samba traffic to the NAS is tunneled over WireGuard on the LAN
+  # instead of traversing 192.168.1.x in cleartext.
+  nasViaLanWg = false;
+in
 {
   imports = [
     # Hardware-specific configuration for this host
@@ -353,10 +366,40 @@
     };
 
     homelab = {
-      nasClient.enable = true;
+      nasClient = {
+        enable = true;
+        # When nasViaLanWg is true, mount the NAS via the dedicated LAN WG tunnel
+        # (routes to 192.168.100.76 through wg-nas). Otherwise, use the legacy
+        # main-LAN address (which post-migration is an alias on the fw's re0).
+        serverAddress = if nasViaLanWg then "192.168.100.76" else "192.168.1.76";
+      };
       localCA.trustCA = true;
     };
 
+    # Dedicated LAN WireGuard peer for private NAS access (post-migration).
+    # Gated by the nasViaLanWg flag at the top of this file. When enabled,
+    # captures only 192.168.100.76 traffic through the tunnel — the rest of
+    # the network stays direct. Endpoint is the fw's LAN IP, so no internet
+    # trip is involved when gaming-pc is on the home LAN.
+    services.wireguard.client = lib.mkIf nasViaLanWg {
+      enable = true;
+      interfaceName = "wg-nas";
+      address = "10.10.0.11/32";
+      privateKeyFile = config.sops.secrets.wg-nas-private-key.path;
+      peer = {
+        publicKey = "Z1ZtZiXE59cBZvmjkvcWr5nlEtmHVJJ16P0pb4QtFiY=";
+        allowedIPs = [ "192.168.100.76/32" ];
+        endpoint = "192.168.1.189:51822";
+        persistentKeepalive = 25;
+      };
+    };
+
+  };
+
+  # sops secret for the wg-nas private key. Only declared when nasViaLanWg is on
+  # so eval doesn't require the key to be present in gaming-pc.yaml pre-migration.
+  sops.secrets = lib.mkIf nasViaLanWg {
+    wg-nas-private-key.sopsFile = ../../secrets/gaming-pc.yaml;
   };
 
   # === Additional nixos configuration for this host ===
