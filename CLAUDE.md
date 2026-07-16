@@ -491,10 +491,24 @@ holds `192.168.1.76/32` as an alias on `re0` and redirects to the NAS:
   `*.lan` domains by Host header), `8096` (Jellyfin), `5055` (Jellyseerr), `5000`
   (nix binary cache), and `53` (DNS, tcp+udp) → `192.168.100.76`.
 - **From WireGuard (`wg0`)**: full peers additionally get `445`/`139` (Samba) and `9091`
-  (Transmission) on the legacy IP; restricted peers are limited by the allow-list above.
+  (Transmission) on the legacy IP; `8100` (article2pod) is redirected for all peers
+  (restricted peers are then filtered by the allow-list above). Restricted peers are
+  limited to the allow-listed ports.
 - **SSH to the NAS is NOT forwarded on `.76`** — port 22 to `192.168.1.76` hits the
   firewall itself. Reach the NAS via jump host: `ssh -J lando@192.168.1.189 lando@192.168.100.76`
   (or over the wg-nas tunnel from gaming-pc).
+
+**VPN peer addressing (which NAS address a client should use)** — the legacy `.76`
+redirect only helps a peer if that peer's WireGuard **`AllowedIPs`** actually routes
+`192.168.1.76` into the tunnel:
+- **Restricted peers** (Chris, Blaney, …) are generated with `AllowedIPs = 192.168.1.76/32`
+  (see `add-vpn-client.sh`), so they route only `.76` and reach NAS services via the
+  legacy alias + rdr. Correct address for them: **`192.168.1.76`**.
+- **Full peers** whose tunnel routes the **server subnet** (`192.168.100.0/24`) but *not*
+  the old Main LAN (`192.168.1.0/24`) — e.g. Lando's phone — must use the NAS's real
+  address **`192.168.100.76`** (the `.76` alias won't route for them). To make the legacy
+  `.76` work for such a peer instead, add `192.168.1.0/24` to that peer's client-side
+  `AllowedIPs`. gaming-pc sidesteps this entirely via the dedicated `wg-nas` tunnel.
 
 **DNS**: the NAS runs Unbound (`homelab.dns.enable`) as the LAN resolver; the Spectrum
 router hands out `192.168.1.76` as the DHCP DNS server. The `.76`→NAS port-53 rdr keeps
