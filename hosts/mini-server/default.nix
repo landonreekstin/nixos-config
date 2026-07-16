@@ -109,7 +109,13 @@
     };
 
     homelab = {
-      nasClient.enable = true;
+      nasClient = {
+        enable = true;
+        # NAS is on this same server subnet post-migration; mount Samba directly
+        # rather than via the firewall's legacy 192.168.1.76 alias (which doesn't
+        # forward 445/139). Traffic stays within the trusted server segment.
+        serverAddress = "192.168.100.76";
+      };
 
       vaultwarden.enable = true;
 
