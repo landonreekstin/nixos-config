@@ -201,6 +201,8 @@
       jellyseerr.enable = true;
       flaresolverr.enable = true;
       nixCache.enable = true;
+      # This host serves the cache; reach it on the server subnet, not the fw alias.
+      nixCache.clientHost = "192.168.100.76";
 
       dns.enable = true;
       reverseProxy.enable = true;

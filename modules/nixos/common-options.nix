@@ -1739,6 +1739,17 @@ in
           default = false;
           description = "Enable nix-serve to host a local Nix binary cache on port 5000.";
         };
+        clientHost = mkOption {
+          type = types.str;
+          default = "192.168.1.76";
+          description = ''
+            Address at which the NAS nix binary cache (port 5000) is reached as a
+            substituter from this host. Default is the legacy Main-LAN IP (a firewall
+            alias post-migration, reachable from the LAN via rdr). Server-subnet hosts
+            should override to 192.168.100.76 to reach it directly, since the legacy
+            alias is not reachable from behind the firewall.
+          '';
+        };
       };
 
       flakeUpdater = {

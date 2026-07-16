@@ -117,6 +117,10 @@
         serverAddress = "192.168.100.76";
       };
 
+      # Reach the NAS nix binary cache directly on the server subnet (the legacy
+      # 192.168.1.76 alias isn't reachable from behind the firewall).
+      nixCache.clientHost = "192.168.100.76";
+
       vaultwarden.enable = true;
 
       homeAssistant = {
