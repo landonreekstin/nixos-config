@@ -511,10 +511,20 @@ redirect only helps a peer if that peer's WireGuard **`AllowedIPs`** actually ro
   `.76` work for such a peer instead, add `192.168.1.0/24` to that peer's client-side
   `AllowedIPs`. gaming-pc sidesteps this entirely via the dedicated `wg-nas` tunnel.
 
-**DNS**: the NAS runs Unbound (`homelab.dns.enable`) as the LAN resolver; the Spectrum
-router hands out `192.168.1.76` as the DHCP DNS server. The `.76`→NAS port-53 rdr keeps
-the whole LAN resolving after the move. `mini-server` (server subnet) points
-`localDns.server` directly at `192.168.100.76`.
+**DNS**: the NAS runs Unbound (`homelab.dns.enable`) as the LAN resolver — a split-horizon
+setup that serves the `.lan` zone locally and forwards everything else to Cloudflare/Quad9
+over DoT. The `.76`→NAS port-53 rdr routes queries aimed at the legacy IP to it.
+
+**The Spectrum router does NOT hand out `192.168.1.76` as the DHCP DNS server** — it points
+DHCP clients at itself (`192.168.1.1`), which knows nothing about `.lan`. NixOS hosts resolve
+`.lan` only because their resolver is hardcoded to `192.168.1.76` in config (`localDns.server`
+/ `networking.nameservers`); `mini-server` (server subnet) points directly at `192.168.100.76`.
+Plain DHCP devices (phones, guests, IoT) therefore **cannot resolve `.lan` out of the box**.
+The fix used is **per-device static DNS = `192.168.1.76` with NO public secondary** (a public
+DNS2 like `8.8.8.8` poisons `.lan`, since clients race the two resolvers and accept the public
+NXDOMAIN). A LAN-wide fix (router DHCP → `.76`) was rejected: it makes the NAS a single point
+of failure for all internet DNS and routes every device's lookups through the NAS's Mullvad
+full-tunnel exit.
 
 **Mullvad return-route gotcha** (`hosts/optiplex-nas/default.nix`): the NAS runs Mullvad
 as a full-tunnel VPN, whose policy routing sends any subnet **not in the main routing
