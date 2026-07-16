@@ -410,8 +410,8 @@ WAN: 68.184.198.204  /  LAN: 192.168.1.1
     │
     ├── 192.168.1.x  (Main LAN)
     │   ├── gaming-pc       192.168.1.62
-    │   ├── optiplex-nas    192.168.1.76
     │   └── optiplex-fw     192.168.1.189
+    │         └─ re0 alias  192.168.1.76  (legacy NAS IP; rdr'd to 192.168.100.76)
     │
     ▼
 ┌──────────────────────────────────────────┐
@@ -419,12 +419,20 @@ WAN: 68.184.198.204  /  LAN: 192.168.1.1
 │  Hardware: Dell Optiplex 3040 MT         │
 │  OS: OpenBSD 7.9                         │
 │  ext_if re0: 192.168.1.189 (Main LAN)   │
+│           +  192.168.1.76/32 alias       │
 │  int_if em0: 192.168.100.1 (Server LAN) │
 └──────────────────────────────────────────┘
     │
     ├── 192.168.100.x  (Server LAN)
+    │   ├── optiplex-nas    192.168.100.76
     │   └── mini-server     192.168.100.103
 ```
+
+**optiplex-nas is behind the firewall** (moved off the Main LAN 2026-07-15). Its old
+address `192.168.1.76` lives on as a `/32` alias on the firewall's `re0`, with pf
+`rdr-to` rules forwarding the exposed services to `192.168.100.76` so LAN/VPN clients
+that still know the NAS as `.76` keep working with no client changes. See
+[NAS-behind-firewall specifics](#nas-behind-firewall-specifics) below.
 
 ### SSH Access
 
@@ -468,9 +476,51 @@ doas pfctl -si                # statistics
 | Russell | 10.10.0.7 | Restricted | NAS only |
 | Cmoore | 10.10.0.8 | Restricted | NAS only |
 | Alex | 10.10.0.10 | Restricted | NAS only |
-| _(stale)_ | 10.10.0.9 | — | Configured server-side but never handshaken. Believed to be a misplaced copy of a trusted config onto asus-m15 for a one-time Emily use — asus-m15 should get Emily's proper 10.10.0.6 config when next reachable, and this peer can then be removed from `/etc/hostname.wg0` on optiplex-fw. |
+| Lando (gaming-pc wg-nas) | 10.10.0.11 | NAS Samba only | Dedicated LAN tunnel for encrypted SMB; allowed-ips 192.168.100.76/32. See `nasViaLanWg` in `hosts/gaming-pc/default.nix`. |
 
-Restricted peers can reach: Jellyfin (8096), Jellyseerr (5055), Transmission (9091) on 192.168.1.76 and game-control dashboard (8080) on mini-server. All other traffic blocked via `<restricted_peers>` PF table.
+Restricted peers can reach (all via the legacy 192.168.1.76 alias, rdr'd to the NAS at 192.168.100.76): Jellyfin (8096), Jellyseerr (5055), article2pod/reader (8100) on the NAS, and game-control dashboard (8080) + Vaultwarden (8222) on mini-server. Transmission is no longer exposed to restricted peers. All other traffic blocked via `<restricted_peers>` PF table.
+
+### NAS-behind-firewall specifics
+
+optiplex-nas is on the server subnet at **192.168.100.76**. Its NixOS static IP is set
+in `hosts/optiplex-nas/default.nix` (`192.168.100.76` / gw `192.168.100.1`).
+
+**Legacy `192.168.1.76` alias + rdr** (in `/etc/pf.conf` on optiplex-fw): the firewall
+holds `192.168.1.76/32` as an alias on `re0` and redirects to the NAS:
+- **From the Main LAN (`re0`)**: TCP `8096` (Jellyfin), `5055` (Jellyseerr), `5000`
+  (nix binary cache), and `53` (DNS, tcp+udp) → `192.168.100.76`.
+- **From WireGuard (`wg0`)**: full peers additionally get `445`/`139` (Samba) and `9091`
+  (Transmission) on the legacy IP; restricted peers are limited by the allow-list above.
+- **SSH to the NAS is NOT forwarded on `.76`** — port 22 to `192.168.1.76` hits the
+  firewall itself. Reach the NAS via jump host: `ssh -J lando@192.168.1.189 lando@192.168.100.76`
+  (or over the wg-nas tunnel from gaming-pc).
+
+**DNS**: the NAS runs Unbound (`homelab.dns.enable`) as the LAN resolver; the Spectrum
+router hands out `192.168.1.76` as the DHCP DNS server. The `.76`→NAS port-53 rdr keeps
+the whole LAN resolving after the move. `mini-server` (server subnet) points
+`localDns.server` directly at `192.168.100.76`.
+
+**Mullvad return-route gotcha** (`hosts/optiplex-nas/default.nix`): the NAS runs Mullvad
+as a full-tunnel VPN, whose policy routing sends any subnet **not in the main routing
+table** into the tunnel. Replies to Main-LAN clients (`192.168.1.0/24`) and WireGuard
+peers (`10.10.0.0/24`) would vanish into Mullvad, so explicit main-table routes send
+that return traffic back through the firewall:
+```nix
+networking.interfaces.enp0s31f6.ipv4.routes = [
+  { address = "192.168.1.0"; prefixLength = 24; via = "192.168.100.1"; }
+  { address = "10.10.0.0";   prefixLength = 24; via = "192.168.100.1"; }
+];
+```
+Without these, DNS/Jellyfin/Samba/nix-cache all break for anything not on the server
+subnet — the SYN arrives at the NAS but the reply disappears into the VPN.
+
+**gaming-pc Samba over wg-nas**: gaming-pc mounts the NAS Samba share (`/mnt/nas`) over a
+dedicated LAN WireGuard tunnel (`wg-nas`, peer `10.10.0.11`, allowed-ips
+`192.168.100.76/32`) so SMB is never in cleartext on the LAN. Gated by `nasViaLanWg` in
+`hosts/gaming-pc/default.nix`; the private key is in `secrets/gaming-pc.yaml` as
+`wg-nas-private-key`. The `rebuild` cache-push (`modules/nixos/common/commands.nix`)
+pushes to the NAS at `192.168.100.76` (reachable via this tunnel / directly from the
+server subnet).
 
 #### Adding a New Peer
 
