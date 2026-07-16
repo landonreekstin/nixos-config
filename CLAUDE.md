@@ -487,7 +487,8 @@ in `hosts/optiplex-nas/default.nix` (`192.168.100.76` / gw `192.168.100.1`).
 
 **Legacy `192.168.1.76` alias + rdr** (in `/etc/pf.conf` on optiplex-fw): the firewall
 holds `192.168.1.76/32` as an alias on `re0` and redirects to the NAS:
-- **From the Main LAN (`re0`)**: TCP `8096` (Jellyfin), `5055` (Jellyseerr), `5000`
+- **From the Main LAN (`re0`)**: TCP `80` (nginx reverse proxy — serves all the
+  `*.lan` domains by Host header), `8096` (Jellyfin), `5055` (Jellyseerr), `5000`
   (nix binary cache), and `53` (DNS, tcp+udp) → `192.168.100.76`.
 - **From WireGuard (`wg0`)**: full peers additionally get `445`/`139` (Samba) and `9091`
   (Transmission) on the legacy IP; restricted peers are limited by the allow-list above.
