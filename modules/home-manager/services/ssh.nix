@@ -25,8 +25,11 @@ in
             };
 
             "nas" = {
-                hostname = "192.168.1.76";
+                # Behind optiplex-fw on the server subnet post-migration; .76 is now a
+                # firewall alias (port 22 there hits the fw), so jump through fw to reach it.
+                hostname = "192.168.100.76";
                 user = "lando";
+                proxyJump = "fw";
             };
 
             "atl-mini-pc" = {

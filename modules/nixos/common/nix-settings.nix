@@ -11,7 +11,7 @@
       "https://cache.nixos.org/"
       "https://cosmic.cachix.org/"
       "https://nix-community.cachix.org"
-      "http://192.168.1.76:5000"   # optiplex-nas local binary cache (LAN)
+      "http://${config.customConfig.homelab.nixCache.clientHost}:5000"   # optiplex-nas local binary cache
     ];
     trusted-public-keys = [
       "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="

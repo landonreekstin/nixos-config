@@ -67,7 +67,9 @@
         gateway = "192.168.100.1";
       };
       firewall.enable = false;
-      localDns.server = "192.168.1.76";
+      # NAS (Unbound resolver) lives on this same server subnet post-migration;
+      # reach it directly rather than via the firewall's legacy 192.168.1.76 alias.
+      localDns.server = "192.168.100.76";
     };
 
     # Headless from customConfig perspective; GNOME is configured via raw NixOS options above
@@ -107,7 +109,17 @@
     };
 
     homelab = {
-      nasClient.enable = true;
+      nasClient = {
+        enable = true;
+        # NAS is on this same server subnet post-migration; mount Samba directly
+        # rather than via the firewall's legacy 192.168.1.76 alias (which doesn't
+        # forward 445/139). Traffic stays within the trusted server segment.
+        serverAddress = "192.168.100.76";
+      };
+
+      # Reach the NAS nix binary cache directly on the server subnet (the legacy
+      # 192.168.1.76 alias isn't reachable from behind the firewall).
+      nixCache.clientHost = "192.168.100.76";
 
       vaultwarden.enable = true;
 

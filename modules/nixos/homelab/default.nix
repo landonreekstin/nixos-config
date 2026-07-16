@@ -22,9 +22,11 @@
     ./game-servers.nix
     ./game-control.nix
     ./game-backup.nix
+    ./private-backup.nix
     ./dns.nix
     ./reverse-proxy-nas.nix
     ./reverse-proxy-mini.nix
     ./article2pod.nix
+    ./landing-page.nix
   ];
 }

@@ -71,6 +71,22 @@
     "d /mnt/private 0775 lando users - -"
   ];
 
+  # === Return routes for legacy-LAN and WireGuard subnets (post-fw migration) ===
+  # The NAS runs Mullvad as a full-tunnel VPN (see homelab.mullvad), whose policy
+  # routing (`ip rule ... suppress_prefixlength 0` + a fwmark default) pushes any
+  # destination NOT present in the main routing table into the tunnel. Now that the
+  # NAS lives on 192.168.100.0/24 behind optiplex-fw, replies to main-LAN clients
+  # (192.168.1.0/24, which reach NAS services via the firewall's legacy 192.168.1.76
+  # alias) and to WireGuard peers (10.10.0.0/24) would otherwise disappear into
+  # Mullvad. These explicit main-table routes send that return traffic back through
+  # the firewall. Without them, DNS/Jellyfin/Samba break for everything that isn't
+  # on the NAS's own server subnet. (`mullvad lan set allow` already permits these
+  # private ranges through Mullvad's firewall; only the routes were missing.)
+  networking.interfaces.enp0s31f6.ipv4.routes = [
+    { address = "192.168.1.0"; prefixLength = 24; via = "192.168.100.1"; }
+    { address = "10.10.0.0";   prefixLength = 24; via = "192.168.100.1"; }
+  ];
+
   # === Optiplex NAS Specific Values for `customConfig` ===
   customConfig = {
     
@@ -95,8 +111,8 @@
       staticIP = {
         enable = true;
         interface = "enp0s31f6";
-        address = "192.168.1.76";
-        gateway = "192.168.1.1";
+        address = "192.168.100.76";
+        gateway = "192.168.100.1";
       };
       firewall = { enable = false; };
     };
@@ -185,9 +201,12 @@
       jellyseerr.enable = true;
       flaresolverr.enable = true;
       nixCache.enable = true;
+      # This host serves the cache; reach it on the server subnet, not the fw alias.
+      nixCache.clientHost = "192.168.100.76";
 
       dns.enable = true;
       reverseProxy.enable = true;
+      landingPage.enable = true;
 
       flakeUpdater.enable = true;
       localCA.trustCA = true;
@@ -213,6 +232,19 @@
           { name = "russell"; jellyseerrId = 8; }
           { name = "cmoore"; jellyseerrId = 7; }
         ];
+      };
+
+      # Encrypted USB backup of /mnt/private.
+      # One-time setup (run on optiplex-nas as root):
+      #   dd if=/dev/urandom of=/root/secrets/backup-usb.key bs=4096 count=1
+      #   chmod 600 /root/secrets/backup-usb.key
+      #   cryptsetup luksAddKey /dev/sdX /root/secrets/backup-usb.key  # enter existing passphrase
+      #   blkid /dev/sdX  # copy the UUID value, set it below, enable = true, rebuild
+      # After setup: plugging in the USB auto-starts the backup. Monitor with:
+      #   journalctl -u private-backup -f
+      privateBackup = {
+        enable = false;
+        luksUuid = "PLACEHOLDER";  # replace after running blkid on the USB drive
       };
     };
   };

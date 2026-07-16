@@ -1542,6 +1542,14 @@ in
         };
       };
 
+      landingPage = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Serve a homelab dashboard at home.lan listing all service links.";
+        };
+      };
+
       samba = {
         enable = mkOption { 
           type = types.bool; 
@@ -1590,6 +1598,16 @@ in
           type = types.str;
           default = "/mnt/nas";
           description = "Local path where the NAS storage share will be mounted.";
+        };
+        serverAddress = mkOption {
+          type = types.str;
+          default = "192.168.1.76";
+          description = ''
+            IP or hostname of the NAS as reached from this host. Default is the
+            legacy main-LAN IP; override for hosts that route to the NAS by a
+            different address (e.g. gaming-pc reaches it via a dedicated LAN
+            WireGuard tunnel at 192.168.100.76 post-migration).
+          '';
         };
       };
       mediaSetup = {
@@ -1720,6 +1738,17 @@ in
           type = types.bool;
           default = false;
           description = "Enable nix-serve to host a local Nix binary cache on port 5000.";
+        };
+        clientHost = mkOption {
+          type = types.str;
+          default = "192.168.1.76";
+          description = ''
+            Address at which the NAS nix binary cache (port 5000) is reached as a
+            substituter from this host. Default is the legacy Main-LAN IP (a firewall
+            alias post-migration, reachable from the LAN via rdr). Server-subnet hosts
+            should override to 192.168.100.76 to reach it directly, since the legacy
+            alias is not reachable from behind the firewall.
+          '';
         };
       };
 
@@ -2037,6 +2066,41 @@ in
           type = types.path;
           default = "/run/secrets/article2pod-token";
           description = "Path to file containing ARTICLE2POD_TOKEN env var (managed by sops-nix).";
+        };
+      };
+
+      privateBackup = {
+        enable = mkEnableOption "encrypted USB backup of /mnt/private (auto-triggers on USB plug-in)";
+        sourcePath = mkOption {
+          type = types.str;
+          default = "/mnt/private";
+          description = "Directory to back up.";
+        };
+        luksUuid = mkOption {
+          type = types.str;
+          description = ''
+            LUKS UUID of the backup USB drive partition.
+            Find it after plugging in the USB: blkid /dev/sdX
+            Setup (one-time):
+              dd if=/dev/urandom of=/root/secrets/backup-usb.key bs=4096 count=1
+              chmod 600 /root/secrets/backup-usb.key
+              cryptsetup luksAddKey /dev/sdX /root/secrets/backup-usb.key
+          '';
+        };
+        keyFile = mkOption {
+          type = types.str;
+          default = "/root/secrets/backup-usb.key";
+          description = "Path to the keyfile on the NAS used to open the backup USB LUKS volume.";
+        };
+        mapperName = mkOption {
+          type = types.str;
+          default = "backup-usb";
+          description = "Device mapper name for the opened LUKS volume.";
+        };
+        mountPoint = mkOption {
+          type = types.str;
+          default = "/mnt/backup-usb";
+          description = "Temporary mount point for the backup volume during rsync.";
         };
       };
 

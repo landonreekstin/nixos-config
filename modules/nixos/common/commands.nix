@@ -191,8 +191,11 @@ in
       sudo nixos-rebuild switch --flake "$FLAKE_PATH" --impure --max-jobs auto --cores 0
       echo "Rebuild complete."
 
-      # Push new system closure to NAS binary cache if reachable (skips on the NAS itself)
-      NAS_IP="192.168.1.76"
+      # Push new system closure to NAS binary cache if reachable (skips on the NAS itself).
+      # Post-migration the NAS lives at 192.168.100.76 on the server subnet; SSH to it is
+      # reachable from gaming-pc via the wg-nas tunnel and from server-subnet hosts directly.
+      # LAN hosts without a route to it fail the ping gate below and skip the push (harmless).
+      NAS_IP="192.168.100.76"
       if [ "${hostName}" != "optiplex-nas" ] && ping -c 1 -W 2 "$NAS_IP" > /dev/null 2>&1; then
         echo "--- Pushing build to NAS binary cache ---"
         STORE_PATHS=$(nix path-info --recursive /run/current-system)
