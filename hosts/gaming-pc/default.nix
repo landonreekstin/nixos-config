@@ -12,7 +12,7 @@ let
   #      `wg-nas-private-key`.
   # When enabled, Samba traffic to the NAS is tunneled over WireGuard on the LAN
   # instead of traversing 192.168.1.x in cleartext.
-  nasViaLanWg = false;
+  nasViaLanWg = true;
 in
 {
   imports = [
