@@ -490,10 +490,11 @@ holds `192.168.1.76/32` as an alias on `re0` and redirects to the NAS:
 - **From the Main LAN (`re0`)**: TCP `80` (nginx reverse proxy — serves all the
   `*.lan` domains by Host header), `8096` (Jellyfin), `5055` (Jellyseerr), `5000`
   (nix binary cache), and `53` (DNS, tcp+udp) → `192.168.100.76`.
-- **From WireGuard (`wg0`)**: full peers additionally get `445`/`139` (Samba) and `9091`
-  (Transmission) on the legacy IP; `8100` (article2pod) is redirected for all peers
-  (restricted peers are then filtered by the allow-list above). Restricted peers are
-  limited to the allow-listed ports.
+- **From WireGuard (`wg0`)**: full peers get the same `53` (DNS) and `80` (reverse
+  proxy → `*.lan`) as the LAN, plus `445`/`139` (Samba), `9091` (Transmission), and the
+  service ports; `8100` (article2pod) is redirected for all peers. Restricted peers are
+  then filtered by the `<restricted_peers>` allow-list (they use `1.1.1.1` for DNS and
+  reach services by direct IP, so they don't need 53/80).
 - **SSH to the NAS is NOT forwarded on `.76`** — port 22 to `192.168.1.76` hits the
   firewall itself. Reach the NAS via jump host: `ssh -J lando@192.168.1.189 lando@192.168.100.76`
   (or over the wg-nas tunnel from gaming-pc).
