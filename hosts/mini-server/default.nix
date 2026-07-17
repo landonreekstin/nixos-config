@@ -132,8 +132,11 @@
       wyoming = {
         enable = true;
         satellite.name = "mini-server";
-        satellite.micDevice = "plughw:0,0";
-        satellite.sndDevice = "hw:1,0";
+        # Reference cards by ALSA card *name* (stable) rather than numeric index —
+        # USB re-enumeration on reboot has swapped card 0/1 twice now.
+        # MIC = Generalplus USB mic, PCH = onboard HDA Intel (analog line-out).
+        satellite.micDevice = "plughw:MIC,0";
+        satellite.sndDevice = "plughw:PCH,0";
         satellite.awakeWav = "${../../modules/nixos/homelab/wyoming-sounds/awake.wav}";
         satellite.doneWav = "${../../modules/nixos/homelab/wyoming-sounds/done.wav}";
         whisper.model = "small-int8";
