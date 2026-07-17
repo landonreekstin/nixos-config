@@ -1497,7 +1497,7 @@ in
         skipIfActiveSession = mkOption {
           type = types.bool;
           default = false;
-          description = "Skip the update if any user session is active. Recommended for desktop hosts.";
+          description = "Skip the update if a user session is actively in use (logind IdleHint=no). An idle session (locked screen / no recent input) still allows the update. Recommended for desktop hosts. Note: IdleHint reliability depends on the desktop environment reporting idle to logind.";
         };
         lowPriority = mkOption {
           type = types.bool;
