@@ -23,10 +23,16 @@ let
     fi
 
     ${lib.optionalString cfg.skipIfActiveSession ''
-    if [ -n "$(loginctl list-sessions --no-legend 2>/dev/null)" ]; then
-      log "Active user session detected — skipping update."
-      exit 0
-    fi
+    # Skip only if a user session is present AND actively in use. A session that is
+    # idle (screen locked / no recent input, per logind's IdleHint) still allows the
+    # update to proceed. Uses process substitution so `exit` leaves the whole script.
+    while read -r _sid _rest; do
+      [ -z "$_sid" ] && continue
+      if [ "$(loginctl show-session "$_sid" --property=IdleHint --value 2>/dev/null)" = "no" ]; then
+        log "Active (non-idle) user session detected — skipping update."
+        exit 0
+      fi
+    done < <(loginctl list-sessions --no-legend 2>/dev/null)
     ''}
 
     HEAD_BEFORE=$(runuser -l "$GIT_USER" -c "git -C '$NIXOS_CONFIG_DIR' rev-parse HEAD")
