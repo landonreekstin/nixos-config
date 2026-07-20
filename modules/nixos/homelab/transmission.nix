@@ -20,6 +20,17 @@ in
         rpc-whitelist-enabled = false;
         rpc-host-whitelist-enabled = false;
         umask = 2;
+
+        # Upload cap prevents bufferbloat from saturating the ~20 Mbps WAN uplink.
+        # Download is left uncapped — turtle mode handles the gaming case.
+        speed-limit-up = 1875;           # 15 Mbps
+        speed-limit-up-enabled = true;
+
+        # Turtle mode (toggle from web UI when gaming): 5 Mbps down / 3 Mbps up
+        alt-speed-down = 625;
+        alt-speed-up = 375;
+
+        peer-limit-global = 80;
       };
     };
 
