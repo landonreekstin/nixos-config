@@ -32,7 +32,12 @@
           - light.standing_lamp
           - light.nightstand_lamp
       data:
-        color_temp_kelvin: 2700
+        # hs 40,40 = warm white (matches color-shift start). Avoids Cync
+        # integration bug where color_temp_kelvin: 2700 falls outside the
+        # 1-100 scaled range the Cync device library requires.
+        hs_color:
+          - 40
+          - 40
         brightness_pct: 100
 
 - id: morning_lights_off
@@ -73,7 +78,12 @@
           - light.standing_lamp
           - light.nightstand_lamp
       data:
-        color_temp_kelvin: 2700
+        # hs 40,40 = warm white (matches color-shift start). Avoids Cync
+        # integration bug where color_temp_kelvin: 2700 falls outside the
+        # 1-100 scaled range the Cync device library requires.
+        hs_color:
+          - 40
+          - 40
         brightness_pct: 100
 
 # ==================== EVENING COLOR SHIFT Mon/Tue/Wed ====================
