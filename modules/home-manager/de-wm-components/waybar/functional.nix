@@ -102,6 +102,16 @@ let
     VOLUME="''${VOLUME:-0}"
     if echo "$WPVOL" | grep -q "MUTED"; then MUTED=1; else MUTED=0; fi
 
+    # L/R flip active: the default sink is the virtual "flip-lr-sink". Resolve the
+    # icon/description from the wrapped real sink so the widget keeps the correct
+    # device icon; the flip state is surfaced in the class and tooltip below.
+    FLIP=0
+    if [ -f "$XDG_RUNTIME_DIR/audio-flip-lr.state" ]; then
+      FLIP=1
+      REAL=$(cat "$XDG_RUNTIME_DIR/audio-flip-lr.state" 2>/dev/null)
+      [ -n "$REAL" ] && SINK="$REAL"
+    fi
+
     # HDMI sink uninitialized: read stored volume from WirePlumber routes file and re-apply.
     # The re-apply initializes wpctl so scroll updates work immediately via signal refresh.
     if [ "$VOLUME" -ge 99 ] && [ "$MUTED" -eq 0 ]; then
@@ -172,6 +182,11 @@ let
     fi
 
     TOOLTIP="Sink: $SINK\nDesc: $DESC\nVol: $VOLUME%"
+    if [ "$FLIP" -eq 1 ]; then
+      CLASS="$CLASS flipped"
+      TEXT="$TEXT ⇄"
+      TOOLTIP="$TOOLTIP\nFlip L/R: ON"
+    fi
     printf '{"text":"%s","class":"%s","tooltip":"%s"}' "$TEXT" "$CLASS" "$TOOLTIP"
   '';
 
@@ -459,6 +474,7 @@ in
   imports = [
     # Relative path from de-wm-components/waybar/ to scripts/
     ../../scripts/audio-switcher.nix    # Audio sink switcher script
+    ../../scripts/audio-flip.nix        # Left/right channel flip toggle
     ../../scripts/hyprsunset-control.nix # Hyprsunset control scripts
   ];
 
@@ -575,6 +591,7 @@ in
             interval = 2;
             signal = 11;  # pkill -RTMIN+11 waybar forces an immediate refresh
             on-click = "switch-audio-sink";
+            on-click-middle = "toggle-audio-flip";
             on-click-right = "${pkgs.pavucontrol}/bin/pavucontrol";
             on-scroll-up = "${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ --limit 1.0 && pkill -RTMIN+11 waybar";
             on-scroll-down = "${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- && pkill -RTMIN+11 waybar";

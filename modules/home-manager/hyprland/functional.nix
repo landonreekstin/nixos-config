@@ -372,6 +372,7 @@ in
           "$mainMod, XF86AudioRaiseVolume, exec, cycle-audio-sink next"
           "$mainMod, XF86AudioLowerVolume, exec, cycle-audio-sink prev"
           "$ctrlMod $mainMod, A, exec, cycle-audio-sink next"
+          "$ctrlMod $mainMod, L, exec, toggle-audio-flip"
 
         ] ++ (lib.imap1 (i: mon:
           let

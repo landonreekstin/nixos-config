@@ -26,6 +26,12 @@ let
   switchAudioSinkScript = pkgs.writeShellScriptBin "switch-audio-sink" ''
     #!${pkgs.stdenv.shell}
 
+    # Reset any active L/R flip first so we switch between real hardware sinks
+    # (and the virtual flip sink never appears in the picker).
+    if [ -f "$XDG_RUNTIME_DIR/audio-flip-lr.state" ]; then
+      toggle-audio-flip off
+    fi
+
     # Build a list of "name|description" pairs from pactl
     SINK_DATA=$(${pkgs.pulseaudio}/bin/pactl list sinks | ${pkgs.gawk}/bin/awk '
       /^\s*Name:/ { name = $2 }
@@ -34,7 +40,7 @@ let
         desc = $0
         print name "|" desc
       }
-    ')
+    ' | grep -v '^flip-lr-sink|')
 
     if [ -z "$SINK_DATA" ]; then
       exit 1
@@ -95,8 +101,13 @@ let
 
     DIRECTION="''${1:-next}"
 
-    # Get ordered list of sink names (exclude monitor sources)
-    SINKS=$(${pkgs.pulseaudio}/bin/pactl list sinks short | ${pkgs.gawk}/bin/awk '{print $2}' | grep -v '\.monitor$')
+    # Reset any active L/R flip first so we cycle between real hardware sinks.
+    if [ -f "$XDG_RUNTIME_DIR/audio-flip-lr.state" ]; then
+      toggle-audio-flip off
+    fi
+
+    # Get ordered list of sink names (exclude monitor sources and the flip sink)
+    SINKS=$(${pkgs.pulseaudio}/bin/pactl list sinks short | ${pkgs.gawk}/bin/awk '{print $2}' | grep -v '\.monitor$' | grep -v '^flip-lr-sink$')
 
     if [ -z "$SINKS" ]; then
       exit 1
