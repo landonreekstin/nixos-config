@@ -543,6 +543,13 @@ in {
           opacity: 0.6;
         }
 
+        /* L/R channel flip active */
+        #custom-audio-sink.flipped {
+          color: ${c.info-blue};
+          border-color: ${c.info-blue};
+          box-shadow: 0 0 6px ${c.info-blue}66;
+        }
+
         /* System tray */
         #tray {
           padding: 0 8px;
