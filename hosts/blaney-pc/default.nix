@@ -1,6 +1,15 @@
 # ~/nixos-config/hosts/blaney-pc/default.nix
 { inputs, pkgs, lib, config, unstablePkgs, ... }: # Standard module arguments. `config` is the final NixOS config.
 
+let
+  # Homelab WireGuard VPN via a KDE-toggleable NetworkManager profile (restricted peer,
+  # 10.10.0.5, NAS-only). Flip to `true` ONLY after blaney-pc's sops is set up:
+  #   1. blaney-pc's real age key replaces age1PLACEHOLDER_blaney-pc in .sops.yaml
+  #   2. secrets/blaney-pc.yaml exists with `wg-nm-private-key` (Blaney's WG private key)
+  # See the WireGuard-VPN setup checklist. Until then this stays false so eval passes
+  # without the secret present.
+  blaneyWgVpn = false;
+in
 {
   imports = [
     # Hardware-specific configuration for this host
@@ -185,6 +194,24 @@
     services = {
       ssh.enable = false;
       vscodeServer.enable = false;
+
+      # Homelab VPN as a KDE-toggleable NetworkManager WireGuard profile (restricted
+      # peer 10.10.0.5, NAS-only). Gated by blaneyWgVpn until sops is set up (top of file).
+      wireguard.nmClient = lib.mkIf blaneyWgVpn {
+        enable = true;
+        connectionName = "homelab-vpn";
+        interfaceName = "wg-homelab";
+        autoconnect = false;              # Blaney toggles it in the KDE network applet
+        address = "10.10.0.5/32";
+        dns = "192.168.1.76";             # NAS resolver -> .lan works (nginx-gated)
+        sopsFile = ../../secrets/blaney-pc.yaml;
+        peer = {
+          publicKey = "Z1ZtZiXE59cBZvmjkvcWr5nlEtmHVJJ16P0pb4QtFiY=";
+          endpoint = "68.184.198.204:51822";
+          allowedIPs = "192.168.1.76/32;";  # restricted: NAS only
+          persistentKeepalive = 25;
+        };
+      };
     };
 
   };

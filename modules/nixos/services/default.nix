@@ -7,5 +7,6 @@
     ./vscode-server.nix
 ./wireguard-server.nix
     ./wireguard-client.nix
+    ./wireguard-nm-client.nix
   ];
 }
