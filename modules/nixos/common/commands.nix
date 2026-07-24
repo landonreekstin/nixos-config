@@ -227,6 +227,55 @@ in
       sudo nixos-rebuild test --flake "$FLAKE_PATH" --impure --max-jobs auto --cores 0
       echo "Test activation complete. Reboot to revert."
     '')
+
+    (writeShellScriptBin "testvm" ''
+      #!${stdenv.shell}
+      set -euo pipefail
+      # Build and launch a throwaway QEMU test VM (see hosts/vm-common.nix). Needs KVM +
+      # a display, so run it at a desktop host (gaming-pc). Disks live in a cache dir so
+      # they persist between runs and don't clutter the cwd.
+      VMDIR="${cfg.user.home}/.cache/nixos-testvms"
+      CONFIG="${nixosConfigDir}"
+
+      usage() {
+        echo "Usage: testvm <sandbox|blaney> [--clean]"
+        echo "  Builds and launches a throwaway test VM (login: password 'vm')."
+        echo "  --clean, -c   discard the VM's disk first for a fresh boot"
+        exit 1
+      }
+
+      [ $# -ge 1 ] || usage
+      NAME="$1"; shift
+      CLEAN=0
+      for arg in "$@"; do
+        case "$arg" in
+          --clean|-c) CLEAN=1 ;;
+          *) echo "Unknown option: $arg"; usage ;;
+        esac
+      done
+
+      case "$NAME" in
+        sandbox|vm-sandbox) HOST="vm-sandbox" ;;
+        blaney|vm-blaney)   HOST="vm-blaney" ;;
+        *) echo "Unknown VM: '$NAME'"; usage ;;
+      esac
+
+      export NIXPKGS_ALLOW_UNFREE=1
+      mkdir -p "$VMDIR"
+      cd "$VMDIR"
+
+      DISK="$VMDIR/$HOST.qcow2"
+      if [ "$CLEAN" -eq 1 ] && [ -e "$DISK" ]; then
+        echo "--- Discarding $DISK for a clean boot ---"
+        rm -f "$DISK"
+      fi
+
+      echo "--- Building $HOST VM ---"
+      nixos-rebuild build-vm --flake "$CONFIG#$HOST" --impure --max-jobs auto --cores 0
+
+      echo "--- Launching $HOST (disk: $DISK; login password: vm) ---"
+      NIX_DISK_IMAGE="$DISK" exec ./result/bin/run-*-vm
+    '')
   ]) ++ (lib.optionals cfg.user.updateCmdPermission [
     # --- Conditional Commands ---
     # These will be included only if cfg.user.updateCmdPermission is true.

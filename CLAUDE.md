@@ -343,7 +343,14 @@ headless server. They are never installed to hardware — they share `hosts/vm-c
   stack and heavy packages trimmed) so his theme/plasma issues can be reproduced and fixed
   locally before pushing a `blaney/` PR to that remote machine.
 
-Launch (needs KVM — run on gaming-pc, log in as the host user / password `vm`):
+Launch (needs KVM — run on gaming-pc, log in as the host user / password `vm`). The
+`testvm` command (from `modules/nixos/common/commands.nix`) builds + launches in one step,
+keeping the disk in `~/.cache/nixos-testvms/`:
+```bash
+testvm sandbox           # or: testvm blaney
+testvm sandbox --clean   # discard the VM disk first for a fresh boot
+```
+Equivalent raw invocation:
 ```bash
 nixos-rebuild build-vm --flake /home/lando/nixos-config#vm-sandbox --impure
 ./result/bin/run-*-vm
