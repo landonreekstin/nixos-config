@@ -359,11 +359,14 @@ VMs + build-CI target build-time and software-config regressions only.
 `.github/workflows/check.yml` has two jobs:
 - **`evaluate`** (GitHub-hosted `ubuntu-latest`) — fast `nix eval …drvPath` for **all**
   hosts incl. the two VMs. Catches type/option errors and stale fetch hashes.
-- **`build`** (self-hosted runner on **optiplex-nas**) — actually `nix build`s the toplevel
-  for the source-build/DE-heavy hosts (`gaming-pc`, `blaney-pc`, `optiplex`, `asus-m15`,
-  `vm-sandbox`, `vm-blaney`). This realizes aerothemeplasma's ~13 C++ derivations and the
-  openrazer module, so PR #74/#83-class build breaks fail CI instead of a user's rebuild.
-  The NAS store is warm from the nightly flake-updater, so incremental PR builds are cheap.
+- **`build`** (self-hosted runner on **optiplex-nas**) — `nix build`s only the fragile
+  *source-built* derivations, **not** full toplevels: aerothemeplasma's ~13 KWin/Plasma
+  C++ derivations (via `vm-sandbox.pkgs.*`) and the openrazer out-of-tree kernel module
+  (`blaney-pc.config.boot.kernelPackages.openrazer`). These are the things that break on
+  nixpkgs bumps (PR #74/#83 class). Full toplevels are deliberately avoided — they drag in
+  browsers/steam/kernels that are usually cached but OOM this modest NAS when momentarily
+  uncached, for no benefit to what we test. The NAS store is warm from the nightly
+  flake-updater, so these builds are cheap and incremental.
 
 **Security posture:** self-hosted runners must not execute untrusted code. The `build` job
 is gated (`if:`) to run only on `push` to repo branches and **same-repo** PRs — never fork

@@ -40,12 +40,9 @@ jobs:
           exit $failed
 
   build:
-    name: Build fragile host toplevels
+    name: Build fragile derivations
     # Runs on the self-hosted runner on optiplex-nas — its Nix store is warm from the
     # nightly flake-updater, so incremental PR builds only recompile changed derivations.
-    # Unlike `evaluate`, this actually realizes the ~13 aerothemeplasma C++ derivations and
-    # the openrazer out-of-tree kernel module, so source-build regressions (PR #74 / #83
-    # class) fail CI instead of a user's rebuild. Headless server hosts stay eval-only.
     runs-on: [self-hosted, nixos]
     needs: evaluate
     # Only run on branches inside this repo (push) or same-repo PRs — never on fork PRs,
@@ -58,25 +55,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build fragile toplevels
+      - name: Build aerothemeplasma + openrazer
         env:
           NIXPKGS_ALLOW_UNFREE: "1"
         run: |
-          hosts=(gaming-pc blaney-pc optiplex asus-m15 vm-sandbox vm-blaney)
-          failed=0
-          # Cap parallelism: one derivation at a time, few cores each. When a heavy
-          # package falls out of the binary cache and must build from source on the NAS
-          # (e.g. librewolf/firefox), unbounded parallel compile jobs can exhaust RAM and
-          # trip the OOM killer. Serializing trades speed for not OOMing a modest host.
-          for host in "${hosts[@]}"; do
-            echo "::group::Building $host"
-            if nix build --impure --no-link --max-jobs 1 --cores 4 \
-                 ".#nixosConfigurations.${host}.config.system.build.toplevel"; then
-              echo "✓ $host built"
-            else
-              echo "✗ $host FAILED to build"
-              failed=1
-            fi
-            echo "::endgroup::"
+          # Realize only the fragile *source-built* derivations this repo carries — NOT full
+          # host toplevels. Building toplevels drags in browsers/steam/kernels that are
+          # usually cached but OOM this modest NAS whenever they momentarily fall out of the
+          # binary cache (e.g. an aged-out librewolf pin), for zero benefit to what we test.
+          # These targets are the small C++/kernel-module builds that actually break on
+          # nixpkgs bumps — the recurring aerothemeplasma (PR #74/#83) and openrazer
+          # kernel-ABI classes. The `evaluate` job still type-checks every full toplevel.
+          #
+          # aerothemeplasma's ~13 KWin/Plasma C++ derivations, via the overlay on vm-sandbox
+          # (host-independent — same drv on any aerotheme host):
+          aero=(decoration smodsnap smodglow startupfeedback aeroglassblur aeroglide
+                seventasks sevenstart desktopcontainment volume notifications aerothemeplasma)
+          targets=()
+          for p in "${aero[@]}"; do
+            targets+=(".#nixosConfigurations.vm-sandbox.pkgs.$p")
           done
-          exit $failed
+          # openrazer out-of-tree module, patched for the current kernel — from a host that
+          # enables it. blaney-pc + optiplex share a kernel, so one build covers both.
+          targets+=(".#nixosConfigurations.blaney-pc.config.boot.kernelPackages.openrazer")
+          echo "Building ${#targets[@]} fragile derivations:"
+          printf '  %s\n' "${targets[@]}"
+          nix build --impure --no-link --print-out-paths "${targets[@]}"
