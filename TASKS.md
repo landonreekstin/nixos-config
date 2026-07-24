@@ -33,6 +33,8 @@ Format: `- [ ] **Title** — description`
 
 - [x] **Encrypted DNS** — Add `customConfig.networking.encryptedDns.enable` backed by `services.dnscrypt-proxy2`. Include option for resolver selection (Cloudflare, Quad9, etc.).
 
+- [x] **Test-VM hosts + build-based CI** — Added `vm-sandbox` (kitchen-sink ricing) and `vm-blaney` (blaney-pc software mirror) throwaway QEMU hosts sharing `hosts/vm-common.nix`, for iterating on aerothemeplasma/plasma/Hyprland without disrupting real machines (`nixos-rebuild build-vm --flake .#vm-sandbox --impure`). Upgraded CI: `evaluate` now covers the VMs; new `build` job on a self-hosted runner (optiplex-nas) realizes the fragile toplevels so aerotheme/openrazer source-build breaks fail CI. VMs can't validate GPU/driver behaviour (llvmpipe). *(PR open — the optiplex-nas self-hosted runner needs the `github-runner-token` secret added and must be verified registering on the NAS before merge.)*
+
 ---
 
 ## Hardware / Peripherals

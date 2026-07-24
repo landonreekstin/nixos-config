@@ -251,7 +251,7 @@ Flake updates are automated via a systemd service on `optiplex-nas` that runs ev
 
 ### How it works
 
-1. NAS creates branch `update/YYYY-WNN`, runs `nix flake update`, builds all 8 hosts, opens a GitHub PR
+1. NAS creates branch `update/YYYY-WNN`, runs `nix flake update`, builds all 9 hosts, opens a GitHub PR
 2. **gaming-pc** (`betaTesterHost = true`) automatically tracks the latest `update/*` branch on the next `sync` — it receives the update one week before everyone else
 3. After **7 days**, the NAS auto-merges the PR if no `update-blocked` label is present
 4. All other hosts pick up the update on their next `sync` after the merge
@@ -329,6 +329,49 @@ git checkout main && rebuild
 
 ### Hardware Configurations
 Hardware configs are auto-generated during installation and should not be manually edited. They're stored per-host in `hosts/<hostname>/hardware-configuration.nix`.
+
+## Test VMs & CI Build Job
+
+Two throwaway QEMU hosts exist for iterating on the fragile *software-config* surface
+(aerothemeplasma, plasma, Hyprland, browser/app config) without disrupting gaming-pc or a
+headless server. They are never installed to hardware — they share `hosts/vm-common.nix`
+(VM sizing, guest agents, boot/FS stub) and force `nvidia`/`peripherals` **off**.
+
+- **`vm-sandbox`** — kitchen-sink: KDE (windows7-alt aerotheme) + Hyprland (century-series),
+  SDDM autologin. General ricing/experimentation.
+- **`vm-blaney`** — mirrors blaney-pc's KDE/aerotheme + Hyprland *software* config (gaming
+  stack and heavy packages trimmed) so his theme/plasma issues can be reproduced and fixed
+  locally before pushing a `blaney/` PR to that remote machine.
+
+Launch (needs KVM — run on gaming-pc, log in as the host user / password `vm`):
+```bash
+nixos-rebuild build-vm --flake /home/lando/nixos-config#vm-sandbox --impure
+./result/bin/run-*-vm
+```
+
+**Limitation — VMs cannot validate GPU/driver behaviour.** QEMU falls back to `llvmpipe`
+software rendering, so the NVIDIA KMS/boot-hang, TTY-framebuffer, and WiFi-driver classes
+are *not* reproducible in a VM. Those still rely on the real-hardware beta-host soak. The
+VMs + build-CI target build-time and software-config regressions only.
+
+### CI build job
+
+`.github/workflows/check.yml` has two jobs:
+- **`evaluate`** (GitHub-hosted `ubuntu-latest`) — fast `nix eval …drvPath` for **all**
+  hosts incl. the two VMs. Catches type/option errors and stale fetch hashes.
+- **`build`** (self-hosted runner on **optiplex-nas**) — actually `nix build`s the toplevel
+  for the source-build/DE-heavy hosts (`gaming-pc`, `blaney-pc`, `optiplex`, `asus-m15`,
+  `vm-sandbox`, `vm-blaney`). This realizes aerothemeplasma's ~13 C++ derivations and the
+  openrazer module, so PR #74/#83-class build breaks fail CI instead of a user's rebuild.
+  The NAS store is warm from the nightly flake-updater, so incremental PR builds are cheap.
+
+**Security posture:** self-hosted runners must not execute untrusted code. The `build` job
+is gated (`if:`) to run only on `push` to repo branches and **same-repo** PRs — never fork
+PRs (fork PRs still get the `evaluate` gate). Keep the repo setting "Require approval for
+all outside collaborators". The runner is defined in `hosts/optiplex-nas/default.nix`
+(`services.github-runners.nixos-config-ci`) and needs the `github-runner-token` sops secret
+(a PAT with repo Administration read/write) in `secrets/optiplex-nas.yaml` before it can
+register — verify it registers on the NAS before merging any change that enables it.
 
 ## Installation
 

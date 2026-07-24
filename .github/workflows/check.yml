@@ -25,7 +25,7 @@ jobs:
         env:
           NIXPKGS_ALLOW_UNFREE: "1"
         run: |
-          hosts=(gaming-pc optiplex blaney-pc justus-pc asus-laptop asus-m15 atl-mini-pc optiplex-nas mini-server)
+          hosts=(gaming-pc optiplex blaney-pc justus-pc asus-laptop asus-m15 atl-mini-pc optiplex-nas mini-server vm-sandbox vm-blaney)
           failed=0
           for host in "${hosts[@]}"; do
             echo "::group::Evaluating $host"
@@ -33,6 +33,44 @@ jobs:
               echo "✓ $host OK"
             else
               echo "✗ $host FAILED"
+              failed=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $failed
+
+  build:
+    name: Build fragile host toplevels
+    # Runs on the self-hosted runner on optiplex-nas — its Nix store is warm from the
+    # nightly flake-updater, so incremental PR builds only recompile changed derivations.
+    # Unlike `evaluate`, this actually realizes the ~13 aerothemeplasma C++ derivations and
+    # the openrazer out-of-tree kernel module, so source-build regressions (PR #74 / #83
+    # class) fail CI instead of a user's rebuild. Headless server hosts stay eval-only.
+    runs-on: [self-hosted, nixos]
+    needs: evaluate
+    # Only run on branches inside this repo (push) or same-repo PRs — never on fork PRs,
+    # since a self-hosted runner must not execute untrusted code. Fork PRs still get the
+    # `evaluate` gate on the GitHub-hosted runner.
+    if: >-
+      github.event_name == 'push' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build fragile toplevels
+        env:
+          NIXPKGS_ALLOW_UNFREE: "1"
+        run: |
+          hosts=(gaming-pc blaney-pc optiplex asus-m15 vm-sandbox vm-blaney)
+          failed=0
+          for host in "${hosts[@]}"; do
+            echo "::group::Building $host"
+            if nix build --impure --no-link \
+                 ".#nixosConfigurations.${host}.config.system.build.toplevel"; then
+              echo "✓ $host built"
+            else
+              echo "✗ $host FAILED to build"
               failed=1
             fi
             echo "::endgroup::"
