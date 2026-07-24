@@ -64,9 +64,13 @@ jobs:
         run: |
           hosts=(gaming-pc blaney-pc optiplex asus-m15 vm-sandbox vm-blaney)
           failed=0
+          # Cap parallelism: one derivation at a time, few cores each. When a heavy
+          # package falls out of the binary cache and must build from source on the NAS
+          # (e.g. librewolf/firefox), unbounded parallel compile jobs can exhaust RAM and
+          # trip the OOM killer. Serializing trades speed for not OOMing a modest host.
           for host in "${hosts[@]}"; do
             echo "::group::Building $host"
-            if nix build --impure --no-link \
+            if nix build --impure --no-link --max-jobs 1 --cores 4 \
                  ".#nixosConfigurations.${host}.config.system.build.toplevel"; then
               echo "✓ $host built"
             else
