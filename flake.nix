@@ -201,6 +201,30 @@
         ];
       };
 
+      # Throwaway QEMU test-VM hosts — not installed to hardware. Launch with:
+      #   nixos-rebuild build-vm --flake .#vm-sandbox --impure && ./result/bin/run-*-vm
+      # See hosts/vm-common.nix. Used for iterating on the fragile software-config surface
+      # (aerothemeplasma, plasma, Hyprland) and for the CI build job. No disko (synthetic disk).
+      vm-sandbox = nixpkgs.lib.nixosSystem {
+        specialArgs = specialArgs;
+        modules = [
+          ./hosts/vm-sandbox/default.nix
+          inputs.home-manager.nixosModules.default
+          inputs.nur.modules.nixos.default
+          { nixpkgs.hostPlatform = "x86_64-linux"; }
+        ];
+      };
+
+      vm-blaney = nixpkgs.lib.nixosSystem {
+        specialArgs = specialArgs;
+        modules = [
+          ./hosts/vm-blaney/default.nix
+          inputs.home-manager.nixosModules.default
+          inputs.nur.modules.nixos.default
+          { nixpkgs.hostPlatform = "x86_64-linux"; }
+        ];
+      };
+
       # Bootable installer ISO — flash to USB for zero-touch install target setup.
       # SSH is pre-configured with lando's key so nixos-anywhere can connect immediately.
       # Build: nix build .#nixosConfigurations.installer.config.system.build.isoImage
