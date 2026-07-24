@@ -278,6 +278,14 @@
     extraPackages = [ pkgs.nix pkgs.git ];
   };
 
+  # Self-heal: if the runner (or a job it spawns) is ever OOM-killed, the unit lands in
+  # `failed` and stays offline until manually restarted. Auto-restart so a memory spike
+  # can't silently take CI's only runner offline. (Applies on the next NAS rebuild.)
+  systemd.services.github-runner-nixos-config-ci.serviceConfig = {
+    Restart = lib.mkForce "always";
+    RestartSec = 30;
+  };
+
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {
     extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
