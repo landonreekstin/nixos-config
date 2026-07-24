@@ -155,6 +155,8 @@
 
       gameBackup.enable = true;
 
+      astroneerSnapshots.enable = true;
+
       localCA.enable = true;
       localCA.trustCA = true;
 

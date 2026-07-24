@@ -1977,6 +1977,20 @@ in
         };
       };
 
+      astroneerSnapshots = {
+        enable = mkEnableOption "hourly local snapshots of Astroneer saves with a restore CLI";
+        retention = mkOption {
+          type = types.int;
+          default = 48;
+          description = "Number of hourly snapshots to keep (older ones are pruned).";
+        };
+        snapshotDir = mkOption {
+          type = types.path;
+          default = "/var/lib/game-servers/astroneer-snapshots";
+          description = "Directory where timestamped snapshot subdirectories live.";
+        };
+      };
+
       article2pod = {
         enable = mkEnableOption "article2pod read-it-later podcast service";
 
