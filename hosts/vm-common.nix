@@ -34,12 +34,15 @@
   # nested here. This block applies only when building `…build.vm`; the plain toplevel
   # (CI) is unaffected.
   virtualisation.vmVariant.virtualisation = {
-    memorySize = 8192;   # MiB — Plasma under llvmpipe wants headroom
-    cores = 4;
+    memorySize = 16384;  # MiB — gaming-pc has 64G; Plasma under llvmpipe likes headroom
+    cores = 12;          # llvmpipe rendering is CPU-bound — more vCPUs = much smoother
     diskSize = 20480;    # MiB throwaway qcow2
     resolution = { x = 1920; y = 1080; };
-    # virtio-gpu gives flexible modesetting; GL is still software (llvmpipe).
-    qemu.options = [ "-vga virtio" ];
+    # Host-GPU-accelerated GL via virgl: virtio-vga-gl + a GTK display with gl=on offloads
+    # the guest's OpenGL to gaming-pc's real GPU instead of llvmpipe software rendering —
+    # a big smoothness jump for Plasma/Hyprland compositing. Needs a host GL stack (fine on
+    # gaming-pc). If a host ever shows a black window, fall back to `[ "-vga virtio" ]`.
+    qemu.options = [ "-vga none" "-device virtio-vga-gl" "-display gtk,gl=on" ];
   };
 
   # --- Guest integration ------------------------------------------------------
