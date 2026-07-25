@@ -100,9 +100,13 @@ EOF
     };
 
     # == Ly Greeter Configuration ==
+    # X is disabled by default here (all Wayland DEs). When an X11 desktop (xfce) is in
+    # the environment list, drop the override so x_cmd falls back to the ly module's
+    # default (the xserver wrapper, active because services.xserver.enable is then true),
+    # letting Ly launch the X11 session.
     services.displayManager.ly = lib.mkIf (cfg.type == "ly") {
       enable = true;
-      settings = {
+      settings = lib.mkIf (!(lib.elem "xfce" des)) {
         x_cmd = "/bin/false"; # Ensures it doesn't try to run X11
       };
     };
