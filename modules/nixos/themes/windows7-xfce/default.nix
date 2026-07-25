@@ -17,19 +17,11 @@ in {
       })
     ];
 
-    # Segoe UI (from vista-fonts). Harmlessly duplicates the aerotheme font block when
-    # both KDE-aero and XFCE-win7 are active on one host (e.g. vm-sandbox) — list values
-    # merge and fontconfig uses the first match.
-    fonts = {
-      packages = with pkgs; [ corefonts vista-fonts ];
-      fontconfig = {
-        enable = true;
-        defaultFonts = {
-          sansSerif = [ "Segoe UI" ];
-          serif = [ "Segoe UI" ];
-          monospace = [ "Hack" ];
-        };
-      };
-    };
+    # Install the Segoe UI font stack (from vista-fonts) so XFCE's xsettings Gtk/FontName
+    # = "Segoe UI 9" resolves. Deliberately does NOT set fonts.defaultFonts — that would
+    # change the system-wide default sans for ALL desktops (KDE/Hyprland) whenever this
+    # theme is enabled. The font is selected per-session via xsettings instead, keeping
+    # XFCE enablement non-disruptive on multi-DE hosts.
+    fonts.packages = with pkgs; [ corefonts vista-fonts ];
   };
 }

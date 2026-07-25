@@ -54,7 +54,7 @@ in
     };
 
     desktop = {
-      environments = [ "kde" "hyprland" ];
+      environments = [ "kde" "hyprland" "xfce" ];
       monitors = [
         {
           name = "main";
@@ -252,6 +252,8 @@ in
       services.updateNotification.enable = true;
       themes = {
         hyprland = "century-series";
+        xfce = "windows7";   # X11 desktop option; pick "Xfce Session" at the Ly greeter
+        xfceOverride = true; # rebuild re-asserts the theme during development (flip off later)
       };
     };
 

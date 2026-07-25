@@ -90,10 +90,14 @@ Format: `- [ ] **Title** — description`
   option; `modules/home-manager/xfce/{default,functional}.nix` (reused `mkDesktopEntry`
   autostart + `mkDefault` xfconf seed); register in `home-manager/default.nix`. Go/no-go
   gate for the xfconf seed approach.
-- [ ] **M3 — Win7 visuals (xfwm4 + GTK + icons + cursor)** — `modules/nixos/themes/windows7-xfce/`
-  (B00merang GTK/xfwm4 derivation + light aero-assets derivation + XFCE-gated overlay);
-  `modules/home-manager/themes/windows7-xfce/{default,theme,xfwm4,gtk,icons-cursor}.nix`;
-  register in `themes/default.nix`.
+- [x] **M3 — Win7 visuals (xfwm4 + GTK + icons + cursor)** — `modules/nixos/themes/windows7-xfce/`
+  (GTKAero GTK/xfwm4+icons derivation + aero-drop cursor derivation + XFCE-gated overlay,
+  Segoe UI fonts installed without changing the system default);
+  `modules/home-manager/themes/windows7-xfce/{default,theme,assets,xfconf}.nix`; register in
+  `themes/default.nix`. **Switched B00merang→GTKAero** (B00merang's GTK3 CSS is pre-3.20 and
+  renders stock on GTK 3.24; GTKAero is modern + bundles the Win7 Aero icon theme, so icons
+  are done here, not deferred). Also fixed Ly to allow X11 sessions (`x_cmd` was hardcoded
+  `/bin/false`). Verified natively on gaming-pc (widgets, icons, titlebars, font, cursor).
 - [ ] **M4 — panel/Start-menu + fonts + sounds** — `windows7-xfce/{panel,wallpaper,fonts,sounds}.nix`:
   bottom taskbar with Start orb (whiskermenu), grouped window-buttons, systray, clock; Segoe
   UI; Win7 wallpaper; libcanberra event sounds.

@@ -15,6 +15,10 @@ in {
     home.file = {
       ".local/share/themes/Windows-7".source =
         "${pkgs.windows7-xfce-gtk}/share/themes/Windows-7";
+      # "Windows 7 Aero" icon theme (bundled with GTKAero)
+      ".local/share/icons/Windows 7 Aero".source =
+        "${pkgs.windows7-xfce-gtk}/share/icons/Windows 7 Aero";
+      # aero-drop cursor (extracted from AeroThemePlasma)
       ".local/share/icons/aero-drop".source =
         "${pkgs.windows7-xfce-assets}/share/icons/aero-drop";
     };

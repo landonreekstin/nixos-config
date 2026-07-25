@@ -15,5 +15,6 @@
     ./development/default.nix
     ./homelab/default.nix
     ./themes/aerothemeplasma/plasma-system.nix
+    ./themes/windows7-xfce/default.nix
   ];
 }

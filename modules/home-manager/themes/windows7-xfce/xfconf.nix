@@ -29,14 +29,14 @@ let
     </channel>
   '';
 
-  # GTK theme, Segoe UI, and the aero-drop cursor. Icon theme left at Adwaita until a
-  # proper Win7 icon set is wired in the M5 polish pass. Event sounds enabled in M4.
+  # GTK theme, "Windows 7 Aero" icons, Segoe UI, and the aero-drop cursor.
+  # Event sounds enabled in M4.
   xsettingsXml = ''
     <?xml version="1.0" encoding="UTF-8"?>
     <channel name="xsettings" version="1.0">
       <property name="Net" type="empty">
         <property name="ThemeName" type="string" value="Windows-7"/>
-        <property name="IconThemeName" type="string" value="Adwaita"/>
+        <property name="IconThemeName" type="string" value="Windows 7 Aero"/>
         <property name="EnableEventSounds" type="bool" value="false"/>
         <property name="EnableInputFeedbackSounds" type="bool" value="false"/>
       </property>
