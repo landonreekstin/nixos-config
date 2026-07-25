@@ -20,6 +20,7 @@ in {
     ./xfconf.nix
     ./panel.nix
     ./keybindings.nix
+    ./wallpaper.nix
   ];
 
   config = lib.mkIf win7XfceCondition {
