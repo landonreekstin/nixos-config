@@ -173,7 +173,8 @@ EOF
       enable = true;
       extraPortals =
         lib.optionals (firstDE == "hyprland") [ pkgs.xdg-desktop-portal-hyprland ]
-        ++ lib.optionals (firstDE == "cosmic") [ pkgs.xdg-desktop-portal-cosmic ];
+        ++ lib.optionals (firstDE == "cosmic") [ pkgs.xdg-desktop-portal-cosmic ]
+        ++ lib.optionals (firstDE == "xfce") [ pkgs.xdg-desktop-portal-gtk ];
     };
 
 
@@ -253,7 +254,8 @@ EOF
       ])
       ++
       (lib.optionals (cfg.type == "none" && firstDE == "hyprland") [ pkgs.xdg-desktop-portal-hyprland ])
-      ++ (lib.optionals (cfg.type == "none" && firstDE == "cosmic") [ pkgs.xdg-desktop-portal-cosmic ]);
+      ++ (lib.optionals (cfg.type == "none" && firstDE == "cosmic") [ pkgs.xdg-desktop-portal-cosmic ])
+      ++ (lib.optionals (cfg.type == "none" && firstDE == "xfce") [ pkgs.xdg-desktop-portal-gtk ]);
 
     # == Assertions ==
     # Ensure that configuration choices don't conflict

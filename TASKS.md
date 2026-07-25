@@ -71,6 +71,38 @@ Format: `- [ ] **Title** — description`
 
 ---
 
+## XFCE (X11) + Windows 7 Theme
+
+> New X11 desktop added as a coexisting login-session choice (rock-solid on NVIDIA;
+> xfwm4/xfce4-panel make it a well-shaped Win7 canvas). Base env + a separate `windows7`
+> theme, following the KDE/Hyprland functional-vs-theme paradigm. Iterated in `vm-sandbox`.
+> Branch: `feat/xfce-windows7`. Full plan: staged M1–M5. Sandbox-only until M4 passes.
+> Settled: vendor B00merang `Windows-7` (GTK+xfwm4) + reuse aero icons/cursors/sounds;
+> toggleable `homeManager.themes.xfceOverride` (off = seed-once, on = rebuild-enforced).
+
+- [ ] **M1 — base XFCE session boots** — `"xfce"` in `desktop.environments` enum;
+  `modules/nixos/desktop/xfce.nix` (xserver + desktopManager.xfce + gtk portal + plugins);
+  register in `desktop/default.nix`; `none`-path portal branch in `display-manager.nix`;
+  sandbox wiring (`environments += "xfce"`, `defaultSession = mkForce "xfce"`). *(eval clean
+  all 11 hosts; `xfce.desktop` xsession registers — needs in-person `testvm sandbox --clean`
+  to confirm autologin lands in a working XFCE desktop)*
+- [ ] **M2 — declarative xfconf plumbing** — `homeManager.themes.xfce` enum + `xfceOverride`
+  option; `modules/home-manager/xfce/{default,functional}.nix` (reused `mkDesktopEntry`
+  autostart + `mkDefault` xfconf seed); register in `home-manager/default.nix`. Go/no-go
+  gate for the xfconf seed approach.
+- [ ] **M3 — Win7 visuals (xfwm4 + GTK + icons + cursor)** — `modules/nixos/themes/windows7-xfce/`
+  (B00merang GTK/xfwm4 derivation + light aero-assets derivation + XFCE-gated overlay);
+  `modules/home-manager/themes/windows7-xfce/{default,theme,xfwm4,gtk,icons-cursor}.nix`;
+  register in `themes/default.nix`.
+- [ ] **M4 — panel/Start-menu + fonts + sounds** — `windows7-xfce/{panel,wallpaper,fonts,sounds}.nix`:
+  bottom taskbar with Start orb (whiskermenu), grouped window-buttons, systray, clock; Segoe
+  UI; Win7 wallpaper; libcanberra event sounds.
+- [ ] **M5 — fidelity + reproducibility pass** — refine `windows7-xfce/*` + `colors.nix`;
+  confirm `xfceOverride` re-asserts theme on rebuild; side-by-side vs KDE aerotheme. Then
+  revert sandbox `defaultSession` and consider real-host rollout.
+
+---
+
 ## SDDM
 
 - [ ] **SDDM: per-orientation theme layout for vertical monitors** — The sddm-astronaut theme is shared across all monitors but vertical/portrait monitors need layout adjustments. Goals: different wallpaper/background per monitor orientation, repositioned clock and login prompt (centered vertically for portrait), potentially larger font for the narrow portrait width. Requires either forking/patching the sddm-astronaut theme QML or finding a theme that supports per-screen layout overrides. Scope: research SDDM multi-screen QML theming, then implement as a `customConfig.desktop.displayManager.sddm.portraitLayout` option.

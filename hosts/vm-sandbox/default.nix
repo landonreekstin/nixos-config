@@ -29,7 +29,7 @@
     bootloader.quietBoot = false;
 
     desktop = {
-      environments = [ "kde" "hyprland" ];
+      environments = [ "kde" "hyprland" "xfce" ];
       kde.kwallet.enable = false;
       displayManager = {
         enable = true;
@@ -79,8 +79,9 @@
 
   # === Host-specific NixOS configuration ===
 
-  # Default to a Plasma (Wayland) session so autologin is unambiguous with two DEs present.
-  services.displayManager.defaultSession = lib.mkDefault "plasma";
+  # Autologin into XFCE while the windows7-xfce theme is under development (M1–M4).
+  # Revert to "plasma" (or pick at the SDDM chooser) once XFCE work is verified.
+  services.displayManager.defaultSession = lib.mkForce "xfce";
 
   # Throwaway login password (autologin covers the GUI; this is for sudo / TTY).
   users.users.${config.customConfig.user.name}.initialPassword = "vm";

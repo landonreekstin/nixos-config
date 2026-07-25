@@ -214,7 +214,7 @@ in
           description = "Whether to enable a desktop environment.";
         };
       environments = mkOption {
-        type = types.listOf (types.enum [ "hyprland" "cosmic" "kde" "none" ]);
+        type = types.listOf (types.enum [ "hyprland" "cosmic" "kde" "xfce" "none" ]);
         default = []; # Default to an empty list
         example = [ "kde" "hyprland" ];
         description = "A list of desktop environments or window managers to make available on the system.";
@@ -846,6 +846,16 @@ in
           default = "none";
           description = "Set the Hyprland theme for Home Manager.";
         };
+        xfce = mkOption {
+          type = types.enum [ "windows7" "none" ];
+          default = "none";
+          description = "Set the XFCE theme for Home Manager.";
+        };
+        xfceOverride = mkEnableOption ''
+          rebuild-enforced XFCE theme. When on, an activation script wipes the xfconf
+          perchannel-xml dir each switch so the seeded theme is re-asserted on every
+          rebuild (the XFCE analog of plasmaOverride). When off (default), the theme is
+          seeded once and user tweaks in XFCE persist across rebuilds'';
         wallpaper = mkOption {
           type = types.nullOr types.path;
           default = null;
