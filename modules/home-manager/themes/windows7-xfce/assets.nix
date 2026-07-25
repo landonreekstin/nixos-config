@@ -21,6 +21,9 @@ in {
       # aero-drop cursor (extracted from AeroThemePlasma)
       ".local/share/icons/aero-drop".source =
         "${pkgs.windows7-xfce-assets}/share/icons/aero-drop";
+      # Win7 Start orb, referenced by the whiskermenu button (panel.nix)
+      ".local/share/windows7-xfce/orb.png".source =
+        "${pkgs.windows7-xfce-assets}/share/windows7-xfce/orb.png";
     };
   };
 }

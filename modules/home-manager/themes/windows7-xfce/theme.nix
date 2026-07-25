@@ -18,6 +18,8 @@ in {
   imports = [
     ./assets.nix
     ./xfconf.nix
+    ./panel.nix
+    ./keybindings.nix
   ];
 
   config = lib.mkIf win7XfceCondition {
@@ -27,7 +29,8 @@ in {
     # runtime XFCE tweaks persist.
     home.activation = lib.mkIf customConfig.homeManager.themes.xfceOverride {
       wipeXfconfForWin7 = lib.hm.dag.entryBefore [ "linkGeneration" ] ''
-        run rm -rf "${config.xdg.configHome}/xfce4/xfconf/xfce-perchannel-xml"
+        run rm -rf "${config.xdg.configHome}/xfce4/xfconf/xfce-perchannel-xml" \
+                   "${config.xdg.configHome}/xfce4/panel"
       '';
     };
   };

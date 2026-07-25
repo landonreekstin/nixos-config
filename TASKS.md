@@ -98,9 +98,15 @@ Format: `- [ ] **Title** — description`
   renders stock on GTK 3.24; GTKAero is modern + bundles the Win7 Aero icon theme, so icons
   are done here, not deferred). Also fixed Ly to allow X11 sessions (`x_cmd` was hardcoded
   `/bin/false`). Verified natively on gaming-pc (widgets, icons, titlebars, font, cursor).
-- [ ] **M4 — panel/Start-menu + fonts + sounds** — `windows7-xfce/{panel,wallpaper,fonts,sounds}.nix`:
-  bottom taskbar with Start orb (whiskermenu), grouped window-buttons, systray, clock; Segoe
-  UI; Win7 wallpaper; libcanberra event sounds.
+- [~] **M4 — panel/Start-menu + sounds** — Taskbar DONE (`windows7-xfce/panel.nix`: bottom
+  panel, whiskermenu Start orb from the SevenStart sprite cropped+trimmed to 54x54→38x38,
+  grouped window-buttons, systray, two-line clock, show-desktop; `keybindings.nix`: Super-tap
+  → Start via xcape→Ctrl+Esc + xfconf-query login binding). Fonts landed in M3. **REMAINING:
+  Win7 event sounds** — user chose vendor-locally via libcanberra (personal-use, MS-proprietary;
+  the aero repo at 6.3.4 has NO sound theme, so needs a separate source). Verified taskbar
+  natively on gaming-pc. Note: `xfceOverride` wipe covers both `xfce-perchannel-xml/` AND the
+  `panel/` dir (whiskermenu rc is fragile — xfce4-panel `-r` deletes plugin rc; use full
+  logout/login to test, not `xfce4-panel -r`).
 - [ ] **M5 — fidelity + reproducibility pass** — refine `windows7-xfce/*` + `colors.nix`;
   confirm `xfceOverride` re-asserts theme on rebuild; side-by-side vs KDE aerotheme. Then
   revert sandbox `defaultSession` and consider real-host rollout.
