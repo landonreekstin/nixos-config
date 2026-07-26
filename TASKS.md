@@ -98,15 +98,17 @@ Format: `- [ ] **Title** — description`
   renders stock on GTK 3.24; GTKAero is modern + bundles the Win7 Aero icon theme, so icons
   are done here, not deferred). Also fixed Ly to allow X11 sessions (`x_cmd` was hardcoded
   `/bin/false`). Verified natively on gaming-pc (widgets, icons, titlebars, font, cursor).
-- [~] **M4 — panel/Start-menu + sounds** — Taskbar DONE (`windows7-xfce/panel.nix`: bottom
-  panel, whiskermenu Start orb from the SevenStart sprite cropped+trimmed to 54x54→38x38,
-  grouped window-buttons, systray, two-line clock, show-desktop; `keybindings.nix`: Super-tap
-  → Start via xcape→Ctrl+Esc + xfconf-query login binding). Fonts landed in M3. **REMAINING:
-  Win7 event sounds** — user chose vendor-locally via libcanberra (personal-use, MS-proprietary;
-  the aero repo at 6.3.4 has NO sound theme, so needs a separate source). Verified taskbar
-  natively on gaming-pc. Note: `xfceOverride` wipe covers both `xfce-perchannel-xml/` AND the
-  `panel/` dir (whiskermenu rc is fragile — xfce4-panel `-r` deletes plugin rc; use full
-  logout/login to test, not `xfce4-panel -r`).
+- [x] **M4 — panel/Start-menu + sounds + tray** — DONE. `panel.nix`: bottom taskbar
+  (whiskermenu Start orb from SevenStart sprite cropped+trimmed 54x54→38x38, grouped window
+  buttons, systray, xfce4-pulseaudio-plugin volume control, two-line clock, show-desktop);
+  `keybindings.nix`: Super-tap → Start via xcape→Ctrl+Esc; `wallpaper.nix`: per-monitor via
+  xrandr+xfconf login script; `sounds.nix` + `windows7-xfce-sounds` derivation: 'Windows 7'
+  libcanberra theme (ORelio Faithful wavs, pinned; personal-use), login jingle self-unmutes
+  by PID. Verified natively on gaming-pc. Notes: use full logout/login to test (not
+  `xfce4-panel -r`, which deletes plugin rc); `xfceOverride` wipe covers `xfce-perchannel-xml/`
+  AND `panel/`; on gaming-pc the default sink must be a proper FL/FR sink (jamesdsp_sink) —
+  raw `pro-output-N` are unpositioned AUX and stereo players can't route to them; WirePlumber
+  had `mute=yes` saved for the `paplay` app name (why the jingle was silent for so long).
 - [ ] **M5 — fidelity + reproducibility pass** — refine `windows7-xfce/*` + `colors.nix`;
   confirm `xfceOverride` re-asserts theme on rebuild; side-by-side vs KDE aerotheme. Then
   revert sandbox `defaultSession` and consider real-host rollout.
