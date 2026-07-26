@@ -875,10 +875,12 @@ in
             '';
           };
           trayApplets = mkOption {
-            type = with types; listOf (enum [ "network" "bluetooth" ]);
+            type = with types; listOf (enum [ "network" "bluetooth" "power" "clipboard" ]);
             default = [ "network" ];
             description = ''
-              Status-notifier applets autostarted into the XFCE systray (wifi/bluetooth).
+              Status-notifier applets autostarted into the XFCE systray, left→right:
+              network (nm-applet), bluetooth (blueman), power (xfce4-power-manager),
+              clipboard (xfce4-clipman).
             '';
           };
           iconSize = mkOption {

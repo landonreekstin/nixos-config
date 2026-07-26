@@ -148,6 +148,8 @@ let
   trayCmd = {
     network = "${pkgs.networkmanagerapplet}/bin/nm-applet --indicator";
     bluetooth = "${pkgs.blueman}/bin/blueman-applet";
+    power = "${pkgs.xfce.xfce4-power-manager}/bin/xfce4-power-manager --no-daemon";
+    clipboard = "${pkgs.xfce.xfce4-clipman-plugin}/bin/xfce4-clipman";
   };
   trayFiles = lib.listToAttrs (map (t: {
     name = "autostart/win7-tray-${t}.desktop";
