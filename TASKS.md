@@ -113,6 +113,37 @@ Format: `- [ ] **Title** — description`
   confirm `xfceOverride` re-asserts theme on rebuild; side-by-side vs KDE aerotheme. Then
   revert sandbox `defaultSession` and consider real-host rollout.
 
+### M6 — taskbar/tray polish + declarative options (post-M4 requests)
+
+- [ ] **Sounds: follow the last-set sink + volume** — The login jingle currently forces its
+  stream to 100% + unmute (a workaround for WirePlumber restoring `mute=yes` on the `paplay`
+  app name). Change it to play at the user's **current/last-set volume** on the **last-set
+  default sink** instead of forcing full volume. Prefer root-fixing the saved-mute (clear the
+  bad `sink-input-by-application-name:paplay` restore entry, or play under an app name with no
+  muted saved state / a stream that opts out of stream-restore) over force-unmuting every play.
+  Event sounds already follow the default sink.
+- [ ] **Tray: volume icon size + placement** — The `xfce4-pulseaudio-plugin` icon is too large
+  (it follows the panel `icon-size` = 36). Make the tray/status-plugin icons smaller than the
+  Start orb, and place the **volume widget to the LEFT of the network (wifi) widget**. May need
+  a smaller panel icon-size with the orb sized independently, or per-plugin/systray icon-size.
+- [ ] **Declarative XFCE taskbar options (per-host, like KDE)** — Add `customConfig` options
+  mirroring KDE's `homeManager.themes.pinnedApps` / systray so the taskbar is configured per
+  host. Suggest `homeManager.themes.xfcePanel.pinnedApps` (ordered list → icon-only `launcher`
+  plugins, no labels) and `homeManager.themes.xfcePanel.trayItems`. `panel.nix` consumes them
+  to generate the launcher plugins + tray/plugin layout (instead of the hardcoded plugin list).
+  Open windows keep showing in the tasklist with full names. gaming-pc default pins (left→right,
+  icon-only): **System Settings (xfce4-settings-manager), Terminal/CMD, Thunar, Librewolf,
+  Steam**.
+- [ ] **System tray widgets: wifi + notifications (+ match KDE)** — Add a **wifi** widget
+  (`networkmanagerapplet`/nm-applet in the systray) and **notifications** to the tray. Match
+  KDE's shown tray set where XFCE has equivalents: volume, bluetooth, power/brightness, display,
+  network, notifications. Wire through the new declarative `trayItems` option.
+- [ ] **Match blaney-pc's KDE pins on its XFCE** — Once the declarative options exist, set
+  blaney-pc's XFCE `pinnedApps`/tray to match its KDE set: **Konsole/kitty, System Settings,
+  Dolphin/Thunar, Chromium, Lutris, Heroic, Steam, Discord, Spotify, System Monitor, KCalc,
+  Polychromatic, input-remapper, OpenRGB, Notes**; tray shown: volume, bluetooth, power,
+  display, network, notifications (hidden: media controller, clipboard, keyboard layout, vault).
+
 ---
 
 ## SDDM
