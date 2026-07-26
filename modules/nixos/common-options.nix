@@ -856,6 +856,37 @@ in
           perchannel-xml dir each switch so the seeded theme is re-asserted on every
           rebuild (the XFCE analog of plasmaOverride). When off (default), the theme is
           seeded once and user tweaks in XFCE persist across rebuilds'';
+        xfcePanel = {
+          pinnedApps = mkOption {
+            type = with types; listOf (submodule {
+              options = {
+                name = mkOption { type = str; description = "Launcher label (shown as tooltip)."; };
+                exec = mkOption { type = str; description = "Command to launch."; };
+                icon = mkOption { type = str; description = "Icon name or absolute path."; };
+              };
+            });
+            default = [];
+            description = ''
+              Icon-only app launchers pinned to the XFCE (windows7) taskbar, ordered
+              left→right (the Win7 analog of homeManager.themes.pinnedApps for KDE).
+            '';
+            example = lib.literalExpression ''
+              [ { name = "Files"; exec = "thunar"; icon = "system-file-manager"; } ]
+            '';
+          };
+          trayApplets = mkOption {
+            type = with types; listOf (enum [ "network" "bluetooth" ]);
+            default = [ "network" ];
+            description = ''
+              Status-notifier applets autostarted into the XFCE systray (wifi/bluetooth).
+            '';
+          };
+          iconSize = mkOption {
+            type = types.ints.between 16 48;
+            default = 28;
+            description = "Panel icon size (px) for the XFCE windows7 taskbar.";
+          };
+        };
         wallpaper = mkOption {
           type = types.nullOr types.path;
           default = null;

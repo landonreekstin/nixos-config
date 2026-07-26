@@ -255,6 +255,27 @@ in
         xfce = "windows7";   # X11 desktop option; pick "Xfce Session" at the Ly greeter
         xfceOverride = true; # rebuild re-asserts the theme during development (flip off later)
         wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
+        # Rich set mirroring blaney-pc's KDE pins (this is primarily blaney's layout,
+        # previewed on gaming-pc). Librewolf uses the Win7 Aero "internet-web-browser"
+        # icon, which is the Internet Explorer blue-e in this theme.
+        xfcePanel.pinnedApps = [
+          { name = "Terminal";        exec = "xfce4-terminal";         icon = "utilities-terminal"; }
+          { name = "System Settings"; exec = "xfce4-settings-manager"; icon = "preferences-system"; }
+          { name = "Files";           exec = "thunar";                 icon = "system-file-manager"; }
+          { name = "Librewolf";       exec = "librewolf";              icon = "internet-web-browser"; }
+          { name = "Lutris";          exec = "lutris";                 icon = "net.lutris.Lutris"; }
+          { name = "Heroic";          exec = "heroic";                 icon = "com.heroicgameslauncher.hgl"; }
+          { name = "Steam";           exec = "steam";                  icon = "steam"; }
+          { name = "Discord";         exec = "discord";                icon = "discord"; }
+          { name = "Spotify";         exec = "spotify";                icon = "spotify-client"; }
+          { name = "System Monitor";  exec = "xfce4-taskmanager";      icon = "utilities-system-monitor"; }
+          { name = "Calculator";      exec = "kcalc";                  icon = "accessories-calculator"; }
+          # Not installed on gaming-pc (blaney-only apps) — icons render on blaney-pc.
+          { name = "Polychromatic";   exec = "polychromatic-controller"; icon = "polychromatic"; }
+          { name = "Input Remapper";  exec = "input-remapper-gtk";     icon = "input-remapper"; }
+          { name = "OpenRGB";         exec = "openrgb";                icon = "OpenRGB"; }
+          { name = "Notes";           exec = "notes";                  icon = "io.github.nuttyartist.notes"; }
+        ];
       };
     };
 
