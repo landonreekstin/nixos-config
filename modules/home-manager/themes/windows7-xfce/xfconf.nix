@@ -37,7 +37,8 @@ let
       <property name="Net" type="empty">
         <property name="ThemeName" type="string" value="Windows-7"/>
         <property name="IconThemeName" type="string" value="Windows 7 Aero"/>
-        <property name="EnableEventSounds" type="bool" value="false"/>
+        <property name="SoundThemeName" type="string" value="Windows 7"/>
+        <property name="EnableEventSounds" type="bool" value="true"/>
         <property name="EnableInputFeedbackSounds" type="bool" value="false"/>
       </property>
       <property name="Gtk" type="empty">

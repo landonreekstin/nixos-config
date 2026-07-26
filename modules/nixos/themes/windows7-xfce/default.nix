@@ -14,6 +14,7 @@ in {
       (final: prev: {
         windows7-xfce-gtk = prev.callPackage ./windows7-xfce-gtk.nix { };
         windows7-xfce-assets = prev.callPackage ./windows7-xfce-assets.nix { };
+        windows7-xfce-sounds = prev.callPackage ./windows7-xfce-sounds.nix { };
       })
     ];
 

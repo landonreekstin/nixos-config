@@ -21,6 +21,7 @@ in {
     ./panel.nix
     ./keybindings.nix
     ./wallpaper.nix
+    ./sounds.nix
   ];
 
   config = lib.mkIf win7XfceCondition {

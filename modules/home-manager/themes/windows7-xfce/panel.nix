@@ -32,6 +32,7 @@ let
             <value type="int" value="4"/>
             <value type="int" value="5"/>
             <value type="int" value="6"/>
+            <value type="int" value="7"/>
           </property>
         </property>
       </property>
@@ -50,13 +51,17 @@ let
         <property name="plugin-4" type="string" value="systray">
           <property name="square-icons" type="bool" value="true"/>
         </property>
-        <property name="plugin-5" type="string" value="clock">
+        <property name="plugin-5" type="string" value="pulseaudio">
+          <property name="enable-keyboard-shortcuts" type="bool" value="true"/>
+          <property name="show-notifications" type="bool" value="true"/>
+        </property>
+        <property name="plugin-6" type="string" value="clock">
           <property name="mode" type="uint" value="2"/>
           <property name="digital-layout" type="uint" value="3"/>
           <property name="digital-time-format" type="string" value="%-I:%M %p"/>
           <property name="digital-date-format" type="string" value="%-m/%-d/%Y"/>
         </property>
-        <property name="plugin-6" type="string" value="showdesktop"/>
+        <property name="plugin-7" type="string" value="showdesktop"/>
       </property>
     </channel>
   '';
