@@ -122,27 +122,50 @@ Format: `- [ ] **Title** — description`
   bad `sink-input-by-application-name:paplay` restore entry, or play under an app name with no
   muted saved state / a stream that opts out of stream-restore) over force-unmuting every play.
   Event sounds already follow the default sink.
-- [ ] **Tray: volume icon size + placement** — The `xfce4-pulseaudio-plugin` icon is too large
-  (it follows the panel `icon-size` = 36). Make the tray/status-plugin icons smaller than the
-  Start orb, and place the **volume widget to the LEFT of the network (wifi) widget**. May need
-  a smaller panel icon-size with the orb sized independently, or per-plugin/systray icon-size.
-- [ ] **Declarative XFCE taskbar options (per-host, like KDE)** — Add `customConfig` options
-  mirroring KDE's `homeManager.themes.pinnedApps` / systray so the taskbar is configured per
-  host. Suggest `homeManager.themes.xfcePanel.pinnedApps` (ordered list → icon-only `launcher`
-  plugins, no labels) and `homeManager.themes.xfcePanel.trayItems`. `panel.nix` consumes them
-  to generate the launcher plugins + tray/plugin layout (instead of the hardcoded plugin list).
-  Open windows keep showing in the tasklist with full names. gaming-pc default pins (left→right,
-  icon-only): **System Settings (xfce4-settings-manager), Terminal/CMD, Thunar, Librewolf,
-  Steam**.
-- [ ] **System tray widgets: wifi + notifications (+ match KDE)** — Add a **wifi** widget
-  (`networkmanagerapplet`/nm-applet in the systray) and **notifications** to the tray. Match
-  KDE's shown tray set where XFCE has equivalents: volume, bluetooth, power/brightness, display,
-  network, notifications. Wire through the new declarative `trayItems` option.
-- [ ] **Match blaney-pc's KDE pins on its XFCE** — Once the declarative options exist, set
-  blaney-pc's XFCE `pinnedApps`/tray to match its KDE set: **Konsole/kitty, System Settings,
+- [x] **Tray: volume icon size + placement** — Shrunk panel `icon-size` 36→configurable 28
+  (`xfcePanel.iconSize`); volume moved to the LEFT of the systray (which holds the network
+  applet). Verified on gaming-pc.
+- [x] **Declarative XFCE taskbar options (per-host, like KDE)** — Added
+  `customConfig.homeManager.themes.xfcePanel.{pinnedApps,trayApplets,iconSize}`; `panel.nix`
+  generates icon-only launcher plugins + their `.desktop` files + tray-applet autostarts from
+  the options (open windows still show with labels in the tasklist). gaming-pc uses the rich
+  blaney-mirroring set; Librewolf uses the Win7 Aero `internet-web-browser` (IE) icon.
+- [x] **System tray applets (network/bluetooth/power/clipboard)** — `trayApplets` enum +
+  autostarts (nm-applet, blueman, xfce4-power-manager, xfce4-clipman). Note: nm-applet only
+  lists WiFi where a radio exists (gaming-pc is wired-only, so no WiFi menu there — works on
+  hosts with a wireless card). Notifications are handled by xfce4-notifyd (already installed).
+- [ ] **Match blaney-pc's KDE pins on its XFCE** — Once blaney-pc's XFCE is enabled, set its
+  `xfcePanel.pinnedApps`/`trayApplets` to match its KDE set: **Konsole/kitty, System Settings,
   Dolphin/Thunar, Chromium, Lutris, Heroic, Steam, Discord, Spotify, System Monitor, KCalc,
-  Polychromatic, input-remapper, OpenRGB, Notes**; tray shown: volume, bluetooth, power,
-  display, network, notifications (hidden: media controller, clipboard, keyboard layout, vault).
+  Polychromatic, input-remapper, OpenRGB, Notes**; tray: network, bluetooth, power, clipboard.
+  (gaming-pc already previews this set; blaney enablement is its own on-target step.)
+
+### M7 — XFCE session polish (startup/screensaver/lock/app theming)
+
+- [ ] **Startup apps (declarative)** — Wire per-host XFCE startup apps. The shared
+  `customConfig.desktop.autostart` (command/desktops) is already consumed by
+  `modules/home-manager/xfce/functional.nix` (filters `desktops` for `"xfce"`) → verify it
+  works end-to-end and/or surface a cleaner per-host list. The tray applets + wallpaper/sound
+  scripts already use the autostart mechanism.
+- [ ] **Screensaver: match the Ly ASCII-gif** — Use the same ASCII animation as the Ly greeter
+  (century-series F-18/F-15 ASCII; see `assets/ly/f18-animation.dur` / `assets/ly/f15-source.gif`
+  in `ly-century-series-theme.nix`). Explore driving an XFCE/X11 screensaver (xscreensaver or
+  xfce4-screensaver) that plays the ASCII animation — likely a terminal-based saver running the
+  .dur/gif. Gate on the windows7-xfce theme.
+- [ ] **Screen lock + display-off timeouts** — Consume the existing
+  `customConfig.desktop.idle.{lockTimeout,sleepTimeout}` (+ battery variants) in XFCE like KDE
+  (`kde/functional.nix`) and Hyprland do: feed lock timeout into xfce4-screensaver and
+  display-off into xfce4-power-manager DPMS. Currently XFCE ignores these.
+- [ ] **Thunar toolbar overlap bug** — In Thunar the search/location (path) bar overlaps the
+  "Organize / Open / Share With / Email / New Folder" toolbar row. Investigate whether it's the
+  Windows-7 GTK theme's toolbar/entry CSS (padding/height) or a Thunar toolbar layout setting;
+  fix so the two rows don't collide.
+- [ ] **App-theming audit (is everything Win7?)** — XFCE installs Mousepad, Ristretto, Parole,
+  Thunar, App Finder, Terminal, Task Manager, Screenshooter, Screensaver, Notifyd, Power Manager
+  + settings dialogs. All are GTK so they inherit the Windows-7 GTK theme + Aero icons, but audit
+  for gaps: apps carrying their own non-Aero app icon (Parole/Ristretto), any XFCE-specific
+  dialog chrome that isn't Win7-shaped, and terminal/mousepad color schemes. Decide what to
+  re-skin vs leave.
 
 ---
 
