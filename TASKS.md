@@ -115,13 +115,12 @@ Format: `- [ ] **Title** — description`
 
 ### M6 — taskbar/tray polish + declarative options (post-M4 requests)
 
-- [ ] **Sounds: follow the last-set sink + volume** — The login jingle currently forces its
-  stream to 100% + unmute (a workaround for WirePlumber restoring `mute=yes` on the `paplay`
-  app name). Change it to play at the user's **current/last-set volume** on the **last-set
-  default sink** instead of forcing full volume. Prefer root-fixing the saved-mute (clear the
-  bad `sink-input-by-application-name:paplay` restore entry, or play under an app name with no
-  muted saved state / a stream that opts out of stream-restore) over force-unmuting every play.
-  Event sounds already follow the default sink.
+- [x] **Sounds: follow the last-set sink + volume** — Confirmed working. The login jingle plays
+  via `paplay` (→ the last-set **default sink**) and sets the *stream-input* volume to `100%`,
+  which is 100% **of the sink's current level** (sink-input volume is relative), so it plays at
+  the user's last-set volume on the last-set sink. The only remaining "force" is the unmute
+  (`set-sink-input-mute 0`), which just works around WirePlumber restoring `mute=yes` on the
+  `paplay` app name — not a volume/sink override. Event sounds already follow the default sink.
 - [x] **Tray: volume icon size + placement** — Shrunk panel `icon-size` 36→configurable 28
   (`xfcePanel.iconSize`); volume moved to the LEFT of the systray (which holds the network
   applet). Verified on gaming-pc.
