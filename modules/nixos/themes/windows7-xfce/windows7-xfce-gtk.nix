@@ -29,6 +29,30 @@ stdenv.mkDerivation {
     mkdir -p "$out/share/themes/Windows-7" "$out/share/icons"
     cp -r index.theme gtk-2.0 gtk-3.0 gtk-4.0 xfwm4 "$out/share/themes/Windows-7/"
 
+    # Fix Thunar toolbar overlap: the theme's bundled thunar.css is tuned for the pre-4.20
+    # Thunar toolbar (hardcoded `entry { height:16px !important }`, negative toolbar margins,
+    # magic-number offsets). Thunar 4.20 redesigned the toolbar, so those offsets make the
+    # location/search bar overlap the command buttons. Drop the `@import "thunar.css"` so
+    # Thunar uses the normal Win7-themed widgets (still fully themed by the base gtk.css)
+    # without the broken pre-4.20 geometry. Also append a small sane entry sizing for
+    # entries inside toolbars, in case a toolbar entry inherits the global 16px height.
+    for css in gtk-3.0/gtk.css gtk-3.0/gtk-dark.css; do
+      f="$out/share/themes/Windows-7/$css"
+      [ -f "$f" ] || continue
+      sed -i '/@import url("thunar.css")/d' "$f"
+      cat >> "$f" <<'EOF'
+
+/* nixos-config: sane entry height inside toolbars (Thunar 4.20 location/search bar) */
+toolbar entry, .primary-toolbar entry, headerbar entry {
+  min-height: 24px;
+  height: auto;
+  max-height: none;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+EOF
+    done
+
     # Bundled "Windows 7 Aero" icon theme → share/icons
     tar -xzf AeroIcons.tar.gz -C "$out/share/icons"
     gtk-update-icon-cache "$out/share/icons/Windows 7 Aero" || true

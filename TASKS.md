@@ -156,10 +156,12 @@ Format: `- [ ] **Title** — description`
   `customConfig.desktop.idle.{lockTimeout,sleepTimeout}` (+ battery variants) in XFCE like KDE
   (`kde/functional.nix`) and Hyprland do: feed lock timeout into xfce4-screensaver and
   display-off into xfce4-power-manager DPMS. Currently XFCE ignores these.
-- [ ] **Thunar toolbar overlap bug** — In Thunar the search/location (path) bar overlaps the
-  "Organize / Open / Share With / Email / New Folder" toolbar row. Investigate whether it's the
-  Windows-7 GTK theme's toolbar/entry CSS (padding/height) or a Thunar toolbar layout setting;
-  fix so the two rows don't collide.
+- [x] **Thunar toolbar overlap bug** — Cause: the GTKAero theme's bundled `thunar.css` is tuned
+  for pre-4.20 Thunar (hardcoded `entry { height:16px !important }`, negative toolbar margins,
+  magic offsets); Thunar 4.20's redesigned toolbar made those overlap the command row. Fix:
+  `windows7-xfce-gtk.nix` drops the `@import "thunar.css"` (Thunar now uses the normal
+  Win7-themed widgets) + appends a sane toolbar-entry height. Verified on gaming-pc. (Follow-up
+  if wanted: re-add just the Win7 breadcrumb/path-bar styling adapted for 4.20.)
 - [ ] **App-theming audit (is everything Win7?)** — XFCE installs Mousepad, Ristretto, Parole,
   Thunar, App Finder, Terminal, Task Manager, Screenshooter, Screensaver, Notifyd, Power Manager
   + settings dialogs. All are GTK so they inherit the Windows-7 GTK theme + Aero icons, but audit
