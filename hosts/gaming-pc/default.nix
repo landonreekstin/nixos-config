@@ -88,10 +88,16 @@ in
           transform = "0";
         }
       ];
-      autostart = [];
+      autostart = [
+        # Steam + Heroic autostart via their own app settings; add these for the session.
+        { command = "vesktop";  desktops = [ "xfce" ]; }
+        { command = "ckb-next"; desktops = [ "xfce" ]; }
+      ];
 
       idle = {
-        lockTimeout = 1500; # 25 minutes
+        screensaverTimeout = 900;   # screensaver at 15 min (respects media/game inhibitors)
+        lockTimeout = 1200;         # lock at 20 min
+        sleepTimeout = 1800;        # display off (DPMS) at 30 min
       };
 
       hyprland = {
@@ -255,27 +261,24 @@ in
         xfce = "windows7";   # X11 desktop option; pick "Xfce Session" at the Ly greeter
         xfceOverride = true; # rebuild re-asserts the theme during development (flip off later)
         wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
-        xfcePanel.trayApplets = [ "network" "bluetooth" "power" "clipboard" ];
-        # Rich set mirroring blaney-pc's KDE pins (this is primarily blaney's layout,
-        # previewed on gaming-pc). Librewolf uses the Win7 Aero "internet-web-browser"
-        # icon, which is the Internet Explorer blue-e in this theme.
+        xfcePanel.trayApplets = [ "network" "bluetooth" "power" "clipboard" "nightlight" ];
+        xfcePanel.nightlight = { tempDay = 6500; tempNight = 1500; };
+        # gaming-pc's own pinned set (icon-only, left→right). Librewolf uses the Win7 Aero
+        # "internet-web-browser" icon (the Internet Explorer blue-e in this theme). Spotify
+        # forces X11 ozone since XFCE is an X11 session (its default .desktop has a Wayland
+        # ozone flag that fails under X11).
         xfcePanel.pinnedApps = [
-          { name = "Terminal";        exec = "xfce4-terminal";         icon = "utilities-terminal"; }
+          { name = "Terminal";        exec = "kitty";                  icon = "kitty"; }
           { name = "System Settings"; exec = "xfce4-settings-manager"; icon = "preferences-system"; }
           { name = "Files";           exec = "thunar";                 icon = "system-file-manager"; }
           { name = "Librewolf";       exec = "librewolf";              icon = "internet-web-browser"; }
-          { name = "Lutris";          exec = "lutris";                 icon = "net.lutris.Lutris"; }
+          { name = "Chromium";        exec = "chromium";               icon = "chromium"; }
           { name = "Heroic";          exec = "heroic";                 icon = "com.heroicgameslauncher.hgl"; }
           { name = "Steam";           exec = "steam";                  icon = "steam"; }
-          { name = "Discord";         exec = "discord";                icon = "discord"; }
-          { name = "Spotify";         exec = "spotify";                icon = "spotify-client"; }
-          { name = "System Monitor";  exec = "xfce4-taskmanager";      icon = "utilities-system-monitor"; }
-          { name = "Calculator";      exec = "kcalc";                  icon = "accessories-calculator"; }
-          # Not installed on gaming-pc (blaney-only apps) — icons render on blaney-pc.
-          { name = "Polychromatic";   exec = "polychromatic-controller"; icon = "polychromatic"; }
-          { name = "Input Remapper";  exec = "input-remapper-gtk";     icon = "input-remapper"; }
-          { name = "OpenRGB";         exec = "openrgb";                icon = "OpenRGB"; }
-          { name = "Notes";           exec = "notes";                  icon = "io.github.nuttyartist.notes"; }
+          { name = "Discord";         exec = "vesktop";                icon = "vesktop"; }
+          { name = "Signal";          exec = "signal-desktop";         icon = "signal-desktop"; }
+          { name = "Spotify";         exec = "env NIXOS_OZONE_WL=0 spotify"; icon = "spotify-client"; }
+          { name = "VS Code";         exec = "code";                   icon = "vscode"; }
         ];
       };
     };

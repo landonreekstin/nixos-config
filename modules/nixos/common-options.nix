@@ -328,6 +328,16 @@ in
         '';
       };
       idle = {
+        screensaverTimeout = mkOption {
+          type = types.nullOr types.int;
+          default = null;
+          description = ''
+            Seconds of idle before the screensaver activates (AC power). Currently consumed
+            by XFCE (xfce4-screensaver); locking then follows at idle.lockTimeout. Null =
+            no separate screensaver stage (saver == lock).
+          '';
+          example = 900;
+        };
         lockTimeout = mkOption {
           type = types.nullOr types.int;
           default = 600;
@@ -875,18 +885,40 @@ in
             '';
           };
           trayApplets = mkOption {
-            type = with types; listOf (enum [ "network" "bluetooth" "power" "clipboard" ]);
+            type = with types; listOf (enum [ "network" "bluetooth" "power" "clipboard" "nightlight" ]);
             default = [ "network" ];
             description = ''
               Status-notifier applets autostarted into the XFCE systray, left→right:
               network (nm-applet), bluetooth (blueman), power (xfce4-power-manager),
-              clipboard (xfce4-clipman).
+              clipboard (xfce4-clipman), nightlight (redshift-gtk — day/night color temp).
             '';
           };
           iconSize = mkOption {
             type = types.ints.between 16 48;
             default = 28;
             description = "Panel icon size (px) for the XFCE windows7 taskbar.";
+          };
+          nightlight = {
+            tempDay = mkOption {
+              type = types.ints.between 1000 25000;
+              default = 6500;
+              description = "Daytime color temperature (K) for the nightlight (redshift) applet.";
+            };
+            tempNight = mkOption {
+              type = types.ints.between 1000 25000;
+              default = 3500;
+              description = "Nighttime color temperature (K); lower = warmer.";
+            };
+            latitude = mkOption {
+              type = types.float;
+              default = 41.88;
+              description = "Latitude for redshift's manual day/night transition (default: Chicago).";
+            };
+            longitude = mkOption {
+              type = types.float;
+              default = -87.63;
+              description = "Longitude for redshift's manual day/night transition.";
+            };
           };
         };
         wallpaper = mkOption {

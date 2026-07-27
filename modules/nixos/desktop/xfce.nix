@@ -11,6 +11,11 @@
     services.xserver.enable = true;
     services.xserver.desktopManager.xfce.enable = true;
 
+    # NIXOS_OZONE_WL=1 is set globally (hyprland.nix) as a Wayland hint, but it leaks into
+    # this X11 session and breaks Electron apps whose wrappers unset DISPLAY when they see it
+    # (e.g. Spotify won't launch). Reset it for the X11 session so Electron apps use X11.
+    services.xserver.displayManager.sessionCommands = "export NIXOS_OZONE_WL=0";
+
     # GTK portal for XFCE (file pickers, screenshots, etc.).
     xdg.portal = {
       enable = true;

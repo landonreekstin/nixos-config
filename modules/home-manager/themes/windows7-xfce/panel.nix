@@ -150,6 +150,25 @@ let
     bluetooth = "${pkgs.blueman}/bin/blueman-applet";
     power = "${pkgs.xfce.xfce4-power-manager}/bin/xfce4-power-manager --no-daemon";
     clipboard = "${pkgs.xfce.xfce4-clipman-plugin}/bin/xfce4-clipman";
+    nightlight = "${pkgs.redshift}/bin/redshift-gtk";
+  };
+
+  # redshift needs a location; seed a manual one so redshift-gtk works without geoclue.
+  # Temperatures + location come from the declarative xfcePanel.nightlight options.
+  nl = panelCfg.nightlight;
+  redshiftConf = lib.optionalAttrs (lib.elem "nightlight" trays) {
+    "redshift/redshift.conf".text = ''
+      [redshift]
+      temp-day=${toString nl.tempDay}
+      temp-night=${toString nl.tempNight}
+      transition=1
+      location-provider=manual
+      adjustment-method=randr
+
+      [manual]
+      lat=${toString nl.latitude}
+      lon=${toString nl.longitude}
+    '';
   };
   trayFiles = lib.listToAttrs (map (t: {
     name = "autostart/win7-tray-${t}.desktop";
@@ -167,6 +186,7 @@ in {
     xdg.configFile = lib.mkMerge [
       launcherFiles
       trayFiles
+      redshiftConf
       {
         "xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml".text = panelXml;
         "xfce4/panel/whiskermenu-1.rc".text = whiskerRc;

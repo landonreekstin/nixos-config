@@ -142,6 +142,14 @@ Format: `- [ ] **Title** — description`
 
 ### M7 — XFCE session polish (startup/screensaver/lock/app theming)
 
+- [x] **Spotify won't launch (taskbar + search)** — Real root cause: `NIXOS_OZONE_WL=1` is set
+  globally (hyprland.nix) and leaks into the X11 XFCE session; Spotify's wrapper does
+  `if NIXOS_OZONE_WL==1: unset DISPLAY`, so it can't reach X11. Fix: `xfce.nix` resets it via
+  `services.xserver.displayManager.sessionCommands = "export NIXOS_OZONE_WL=0"` (X11-session
+  scoped) — fixes both the taskbar launcher and Start-menu search, and any other Electron app.
+  Taskbar Spotify launcher also carries `env NIXOS_OZONE_WL=0` as belt-and-suspenders. Verify
+  on gaming-pc.
+
 - [ ] **Startup apps (declarative)** — Wire per-host XFCE startup apps. The shared
   `customConfig.desktop.autostart` (command/desktops) is already consumed by
   `modules/home-manager/xfce/functional.nix` (filters `desktops` for `"xfce"`) → verify it
