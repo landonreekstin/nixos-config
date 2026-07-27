@@ -133,11 +133,13 @@ Format: `- [ ] **Title** — description`
   autostarts (nm-applet, blueman, xfce4-power-manager, xfce4-clipman). Note: nm-applet only
   lists WiFi where a radio exists (gaming-pc is wired-only, so no WiFi menu there — works on
   hosts with a wireless card). Notifications are handled by xfce4-notifyd (already installed).
-- [ ] **Match blaney-pc's KDE pins on its XFCE** — Once blaney-pc's XFCE is enabled, set its
-  `xfcePanel.pinnedApps`/`trayApplets` to match its KDE set: **Konsole/kitty, System Settings,
-  Dolphin/Thunar, Chromium, Lutris, Heroic, Steam, Discord, Spotify, System Monitor, KCalc,
-  Polychromatic, input-remapper, OpenRGB, Notes**; tray: network, bluetooth, power, clipboard.
-  (gaming-pc already previews this set; blaney enablement is its own on-target step.)
+- [x] **Match blaney-pc's KDE pins on its XFCE** — Enabled `"xfce"` + `themes.xfce = "windows7"`
+  on blaney-pc and set `xfcePanel.pinnedApps`/`trayApplets` mirroring its KDE set (kitty, Settings,
+  Thunar, Chromium, Lutris, Heroic, Steam, Discord, Spotify, System Monitor, galculator,
+  Polychromatic, input-remapper, OpenRGB, xpad-notes; tray network/bluetooth/power/clipboard).
+  Eval-clean all hosts. *(PR open — needs on-target test on blaney: pick "Xfce Session" at Ly,
+  confirm taskbar/icons + file-open defaults. NOTE the gaming-pc caveat below applies to blaney
+  too — enabling XFCE there will likely break its KDE **Wayland**; blaney's KDE is X11-safe.)*
 
 ### M7 — XFCE session polish (startup/screensaver/lock/app theming)
 
@@ -174,12 +176,30 @@ Format: `- [ ] **Title** — description`
   `windows7-xfce-gtk.nix` drops the `@import "thunar.css"` (Thunar now uses the normal
   Win7-themed widgets) + appends a sane toolbar-entry height. Verified on gaming-pc. (Follow-up
   if wanted: re-add just the Win7 breadcrumb/path-bar styling adapted for 4.20.)
-- [ ] **App-theming audit (is everything Win7?)** — XFCE installs Mousepad, Ristretto, Parole,
-  Thunar, App Finder, Terminal, Task Manager, Screenshooter, Screensaver, Notifyd, Power Manager
-  + settings dialogs. All are GTK so they inherit the Windows-7 GTK theme + Aero icons, but audit
-  for gaps: apps carrying their own non-Aero app icon (Parole/Ristretto), any XFCE-specific
-  dialog chrome that isn't Win7-shaped, and terminal/mousepad color schemes. Decide what to
-  re-skin vs leave.
+- [x] **App-theming audit (is everything Win7?)** — Made XFCE standalone (self-sufficient without
+  KDE) + closed icon gaps. `xfce.nix` now installs the categories XFCE's default suite omits:
+  `xarchiver` (+`thunar-archive-plugin` for right-click extract), `xreader` (PDF), `galculator`,
+  `mpv`, `xpad` (sticky notes) — all GTK3 so they inherit the Win7 theme. `windows7-xfce-gtk.nix`
+  aliases app-specific `org.xfce.*`/`xarchiver`/`galculator`/`mpv` Icon= names to the Aero
+  standard icons the theme ships (Start menu / taskbar / titlebar now Aero, not stock). Verified
+  on gaming-pc (apps open themed; mime scoping below). *(icon-in-Start-menu visual spot-check
+  still worth a glance)*
+- [x] **XFCE default-app associations** — Opening a file in an XFCE session launches the themed
+  apps (Thunar/Mousepad/Ristretto/Parole/Xreader/xarchiver) via `windows7-xfce/mimeapps.nix` →
+  `~/.config/xfce-mimeapps.list` (read only when `XDG_CURRENT_DESKTOP=XFCE`, so KDE/Hyprland
+  associations are untouched; unlisted types fall through to the host default set). Verified on
+  gaming-pc: XFCE→themed apps, KDE→Okular/Gwenview/Dolphin/Kate (zero leakage).
+
+- [ ] **KNOWN ISSUE — enabling XFCE breaks KDE *Wayland* on NVIDIA hosts** — Adding `"xfce"` to
+  `environments` forces `services.xserver.enable` system-wide, which breaks the KDE Plasma
+  **Wayland** session on gaming-pc's NVIDIA-open + unused-AMD-iGPU box (kwin_wayland: `Atomic
+  modeset test failed! Permission denied` / `Failed to find a working output layer configuration`
+  → white cursor then black). **Hyprland (Wayland) and Plasma X11 both work.** Confirmed by
+  branch-vs-`main` rebuild (main = no XFCE = Wayland works). **Decision (2026-07-27): keep XFCE,
+  use the Plasma (X11) session for KDE on gaming-pc.** Same caveat will apply to blaney-pc.
+  Optional future lever to reclaim KDE Wayland: disable the unused AMD iGPU so the X stack can't
+  drag it into kwin's multi-GPU output-layer config. See memory
+  `xfce-breaks-kde-wayland-gaming-pc`.
 
 ---
 
