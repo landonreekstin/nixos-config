@@ -139,6 +139,13 @@
         satellite.sndDevice = "plughw:PCH,0";
         satellite.awakeWav = "${../../modules/nixos/homelab/wyoming-sounds/awake.wav}";
         satellite.doneWav = "${../../modules/nixos/homelab/wyoming-sounds/done.wav}";
+        # ok_nabu is a more robust openWakeWord model than hey_jarvis; combined with
+        # higher threshold/trigger-level and WebRTC noise suppression to cut TV false triggers.
+        satellite.wakeWord = "ok_nabu";
+        satellite.noiseSuppression = 2;
+        satellite.autoGain = 0;
+        openwakeword.threshold = 0.7;
+        openwakeword.triggerLevel = 2;
         whisper.model = "small-int8";
         whisper.language = "en";
         piper.voice = "en_US-lessac-medium";

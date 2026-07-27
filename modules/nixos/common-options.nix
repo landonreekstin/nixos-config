@@ -1867,6 +1867,28 @@ in
             default = "hey_jarvis";
             description = "openWakeWord model name passed to wyoming-satellite (e.g. hey_jarvis, ok_nabu).";
           };
+          noiseSuppression = mkOption {
+            type = types.ints.between 0 4;
+            default = 0;
+            description = "WebRTC noise-suppression level on the mic (0 = off, 4 = max — may distort).";
+          };
+          autoGain = mkOption {
+            type = types.ints.between 0 31;
+            default = 0;
+            description = "Automatic gain control in dbFS (0 = off, 31 = loudest). Off is usually best in noisy rooms.";
+          };
+        };
+        openwakeword = {
+          threshold = mkOption {
+            type = types.numbers.between 0.0 1.0;
+            default = 0.5;
+            description = "openWakeWord activation threshold (0.0-1.0). Higher = fewer false triggers.";
+          };
+          triggerLevel = mkOption {
+            type = types.ints.unsigned;
+            default = 1;
+            description = "Consecutive activations required before a wake event fires. Higher = fewer detections.";
+          };
         };
         whisper = {
           model = mkOption {
