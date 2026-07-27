@@ -125,7 +125,7 @@
             { name = "Terminal";        exec = "kitty";                              icon = "kitty"; }
             { name = "System Settings"; exec = "xfce4-settings-manager";             icon = "org.xfce.settings.manager"; }
             { name = "Files";           exec = "thunar";                             icon = "system-file-manager"; }
-            { name = "Chromium";        exec = "flatpak run org.chromium.Chromium";  icon = "org.chromium.Chromium"; }
+            { name = "Chromium";        exec = "flatpak run org.chromium.Chromium";  icon = "internet-web-browser"; }
             { name = "Lutris";          exec = "lutris";                             icon = "net.lutris.Lutris"; }
             { name = "Heroic";          exec = "heroic";                             icon = "com.heroicgameslauncher.hgl"; }
             { name = "Steam";           exec = "steam";                              icon = "steam"; }
