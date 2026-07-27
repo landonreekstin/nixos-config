@@ -50,7 +50,24 @@ in
       xfce.xfce4-pulseaudio-plugin
       xfce.xfce4-screenshooter
       networkmanagerapplet
+
+      # Standalone completeness: XFCE's default suite ships an editor (Mousepad), image
+      # viewer (Ristretto), media player (Parole), files (Thunar), terminal, task manager,
+      # screenshooter and settings — but NO archive GUI, PDF viewer or calculator. Add GTK3
+      # apps for those categories so an XFCE-only host (KDE removed) is self-sufficient, and
+      # so they inherit the Windows-7 GTK theme + Aero icons via xsettings. GTK3 specifically
+      # — the new libadwaita apps (Papers, recent gnome-calculator) hardcode Adwaita and
+      # would ignore the theme; VLC is Qt for the same reason. mpv adds codec range alongside
+      # the GTK-themed Parole.
+      xarchiver     # archive manager (backend for thunar-archive-plugin below)
+      xreader       # PDF/document viewer (GTK3 Evince fork — themes cleanly)
+      galculator    # calculator (GTK3)
+      mpv           # media player with broad codec support
+      xpad          # GTK sticky-notes (Windows 7 "Sticky Notes" analog)
     ];
+
+    # Thunar right-click Extract/Compress (uses xarchiver as its backend).
+    programs.thunar.plugins = [ pkgs.xfce.thunar-archive-plugin ];
 
   };
 }

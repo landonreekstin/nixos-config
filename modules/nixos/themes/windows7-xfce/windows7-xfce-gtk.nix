@@ -55,7 +55,36 @@ EOF
 
     # Bundled "Windows 7 Aero" icon theme → share/icons
     tar -xzf AeroIcons.tar.gz -C "$out/share/icons"
-    gtk-update-icon-cache "$out/share/icons/Windows 7 Aero" || true
+
+    # Alias app-specific Icon= names to the freedesktop-standard Aero icons the theme already
+    # ships. XFCE apps (and a couple of the standalone additions in xfce.nix) declare
+    # app-specific names in their .desktop — org.xfce.mousepad, org.xfce.parole, xarchiver,
+    # mpv, … — which this theme does NOT provide, so without aliases they fall back to their
+    # stock upstream icon in the Start menu / taskbar buttons / titlebar. For each
+    # "alias -> target" pair, symlink alias.png next to the existing target.png in every size
+    # tier that has it (icon lookup then picks the best size). org.xfce.thunar is already
+    # covered upstream; xreader has no clean Aero document-viewer target so it keeps its own.
+    aero="$out/share/icons/Windows 7 Aero"
+    alias_icon() {
+      local aliasName="$1" target="$2" d
+      for d in "$aero"/apps/*; do
+        [ -f "$d/$target.png" ] || continue
+        ln -sf "$target.png" "$d/$aliasName.png"
+      done
+    }
+    alias_icon "org.xfce.mousepad"         "accessories-text-editor"
+    alias_icon "org.xfce.ristretto"        "multimedia-photo-viewer"
+    alias_icon "org.xfce.parole"           "multimedia-video-player"
+    alias_icon "mpv"                       "multimedia-video-player"
+    alias_icon "xarchiver"                 "archive-manager"
+    alias_icon "galculator"                "accessories-calculator"
+    alias_icon "org.xfce.terminal"         "utilities-terminal"
+    alias_icon "org.xfce.taskmanager"      "utilities-system-monitor"
+    alias_icon "org.xfce.screenshooter"    "accessories-camera"
+    alias_icon "org.xfce.powermanager"     "utilities-energy-monitor"
+    alias_icon "org.xfce.settings.manager" "system-settings"
+
+    gtk-update-icon-cache "$aero" || true
 
     runHook postInstall
   '';
