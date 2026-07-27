@@ -24,6 +24,7 @@ in {
     ./sounds.nix
     ./idle.nix
     ./screensaver.nix
+    ./mimeapps.nix
   ];
 
   config = lib.mkIf win7XfceCondition {
