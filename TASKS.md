@@ -61,6 +61,21 @@ Format: `- [ ] **Title** — description`
 
 - [x] **Declarative idle/lock/sleep timeouts** — Add `customConfig.desktop.idle.lockTimeout` and `customConfig.desktop.idle.sleepTimeout` (in seconds). For Hyprland: feed into swayidle config. For KDE: feed into plasma-manager DPMS settings.
 
+- [ ] **Declarative monitor config (position + orientation), consumed by Hyprland** — Make
+  per-monitor position + orientation/rotation declarative and have Hyprland apply them, using
+  gaming-pc's current Hyprland monitor layout as the reference. Default sensibly when a host
+  specifies none (single 1080p, normal orientation) so hosts without a monitor block still work.
+  First check the existing `customConfig.hardware.monitors` option (from the earlier "Global
+  monitor configuration" task) and **extend** it rather than duplicating. blaney-pc: needs his
+  real connector names — run `hyprctl monitors` on blaney to get them, then set his layout; leave
+  the default until then.
+
+- [ ] **X11: Start-menu / KWin "Restart" needs two clicks** — On Plasma X11 (and XFCE) clicking
+  Start → Restart (or the KWin/logout power-menu Restart) does nothing on the first click; a
+  second click works. Emerged on X11. Investigate the logout/shutdown path — `ksmserver` /
+  `org.kde.LogoutPrompt` / `org.kde.Shutdown` DBus + journal on first-vs-second click (likely a
+  first-invocation focus/grab or session-manager init race). Reproduce on gaming-pc Plasma X11.
+
 - [ ] **distrobox for non-NixOS programs** — Add `customConfig.programs.distrobox.enable`. Enables running Arch/Ubuntu containers for software that resists NixOS packaging. Small scope.
 
 - [ ] **Windows VM (QEMU/KVM)** — Enable `libvirtd` + `virt-manager` via a `customConfig.profiles.virtualization.enable` option. Includes UEFI (OVMF) support for Windows 11.
@@ -196,10 +211,27 @@ Format: `- [ ] **Title** — description`
   modeset test failed! Permission denied` / `Failed to find a working output layer configuration`
   → white cursor then black). **Hyprland (Wayland) and Plasma X11 both work.** Confirmed by
   branch-vs-`main` rebuild (main = no XFCE = Wayland works). **Decision (2026-07-27): keep XFCE,
-  use the Plasma (X11) session for KDE on gaming-pc.** Same caveat will apply to blaney-pc.
-  Optional future lever to reclaim KDE Wayland: disable the unused AMD iGPU so the X stack can't
-  drag it into kwin's multi-GPU output-layer config. See memory
-  `xfce-breaks-kde-wayland-gaming-pc`.
+  use the Plasma (X11) session for KDE on gaming-pc.** Likely real root cause is the NVIDIA
+  **open** kernel module (gaming-pc is the only host on `open = true`; blaney + all others use
+  proprietary — so blaney probably won't hit this). Optional future lever to reclaim KDE Wayland:
+  flip gaming-pc to `hardware.nvidia.open = false` (proprietary), rebuild+reboot, verify KDE
+  Wayland works + Plymouth splash still renders + Hyprland fine — one-line, reversible,
+  gaming-pc-only. See memory `xfce-breaks-kde-wayland-gaming-pc`.
+
+- [ ] **Test xfceOverride re-assertion (before PR)** — Verify `homeManager.themes.xfceOverride`
+  behaves: ON = rebuild wipes `~/.config/xfce4/{xfconf/xfce-perchannel-xml,panel}` before
+  linkGeneration so the declared theme/pins are re-asserted (runtime tweaks discarded); OFF =
+  runtime tweaks persist. Test on gaming-pc: move/remove a panel launcher, rebuild, confirm ON
+  reverts it and OFF keeps it. Part of M5; do before opening the PR. (Related: flip xfceOverride
+  OFF on gaming-pc/vm-sandbox for daily use once satisfied.)
+
+- [ ] **Theme the xscreensaver unlock dialog like Windows 7** — The XFCE lock uses xscreensaver's
+  built-in password dialog (currently dark aviation colors in `~/.xscreensaver`). Make it Win7-ish
+  within xscreensaver's limited theming — the `passwd.*` / dialog X-resources (foreground,
+  background, borderColor, font, `passwd.heading`/logo, `passwd.thermometer.*`). Aim for an Aero
+  light-blue/white palette + Segoe UI + a Win7 logo. Pixel-perfect Win7 isn't achievable with
+  xscreensaver's dialog — get as close as the resource set allows. (User recalls a Win7-styled
+  lock previously and wants that look back.)
 
 ---
 
