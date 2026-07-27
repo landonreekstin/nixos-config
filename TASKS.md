@@ -155,15 +155,20 @@ Format: `- [ ] **Title** — description`
   `modules/home-manager/xfce/functional.nix` (filters `desktops` for `"xfce"`) → verify it
   works end-to-end and/or surface a cleaner per-host list. The tray applets + wallpaper/sound
   scripts already use the autostart mechanism.
-- [ ] **Screensaver: match the Ly ASCII-gif** — Use the same ASCII animation as the Ly greeter
-  (century-series F-18/F-15 ASCII; see `assets/ly/f18-animation.dur` / `assets/ly/f15-source.gif`
-  in `ly-century-series-theme.nix`). Explore driving an XFCE/X11 screensaver (xscreensaver or
-  xfce4-screensaver) that plays the ASCII animation — likely a terminal-based saver running the
-  .dur/gif. Gate on the windows7-xfce theme.
-- [ ] **Screen lock + display-off timeouts** — Consume the existing
-  `customConfig.desktop.idle.{lockTimeout,sleepTimeout}` (+ battery variants) in XFCE like KDE
-  (`kde/functional.nix`) and Hyprland do: feed lock timeout into xfce4-screensaver and
-  display-off into xfce4-power-manager DPMS. Currently XFCE ignores these.
+- [x] **Screensaver: match the Ly ASCII-gif** — Done via **xscreensaver** (not xfce4-screensaver,
+  whose saver engine returns NULL for every theme on NixOS — garcon theme discovery is broken, even
+  its own built-ins never render). `windows7-xfce/screensaver.nix` ships a stdlib-Python `.dur`
+  player that replays the host's exact Ly animation (resolved from `displayManager.ly.animationFile`,
+  same fallback as `ly-century-series-theme.nix`), embedded via `xterm -into $XSCREENSAVER_WINDOW`
+  and sized per-monitor. xfce4-screensaver is disabled (autostart override) and DPMS handed to
+  xscreensaver. **Requires setuid `xscreensaver-auth` wrapper + PAM service** (in `desktop/xfce.nix`,
+  gated on the windows7 theme) or unlock fails with "Password initialization failed". Verified on
+  gaming-pc: animation renders on both monitors, locks + unlocks.
+- [x] **Screen lock + display-off timeouts** — Consumes `customConfig.desktop.idle`
+  (`screensaverTimeout`/`lockTimeout`/`sleepTimeout`) in XFCE. Now owned by **xscreensaver**
+  (`screensaver.nix`): saver at `screensaverTimeout`, lock at `lockTimeout`, DPMS off at
+  `sleepTimeout`. xfce4-power-manager DPMS is disabled in `idle.nix` (xscreensaver clobbers
+  `xset` DPMS on activate, so they must not both manage it). gaming-pc: 15/20/30 min.
 - [x] **Thunar toolbar overlap bug** — Cause: the GTKAero theme's bundled `thunar.css` is tuned
   for pre-4.20 Thunar (hardcoded `entry { height:16px !important }`, negative toolbar margins,
   magic offsets); Thunar 4.20's redesigned toolbar made those overlap the command row. Fix:
