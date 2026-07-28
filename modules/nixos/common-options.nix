@@ -255,6 +255,17 @@ in
               '';
               example = "LG ULTRAGEAR";
             };
+            wallpaper = mkOption {
+              type = types.nullOr types.path;
+              default = null;
+              description = ''
+                Optional per-monitor wallpaper image. Used by the XFCE windows7 wallpaper script
+                to override this monitor's orientation default (portrait → vertical image,
+                landscape → Win7 image) — e.g. to mirror the per-monitor wallpapers the Hyprland
+                theme shows on the same host. null = use the orientation default.
+              '';
+              example = literalExpression "../../assets/wallpapers/f-15-satellite.jpg";
+            };
             resolution = mkOption {
               type = types.str;
               default = "preferred";
@@ -940,6 +951,18 @@ in
           default = null;
           description = "Absolute path to the desktop wallpaper. If null, a default will be used.";
           example = "/path/to/my/wallpaper.png";
+        };
+        xfceWallpaper = mkOption {
+          type = types.nullOr types.path;
+          default = null;
+          description = ''
+            Landscape wallpaper for the XFCE windows7 session only, overriding the global
+            `wallpaper` there. Lets a host give XFCE a different (e.g. aviation) wallpaper than
+            its KDE aerotheme without changing the shared `wallpaper`. Portrait monitors still
+            use the vertical default (carrier-top); per-monitor `desktop.monitors.*.wallpaper`
+            overrides both. If null, XFCE falls back to `wallpaper`.
+          '';
+          example = literalExpression "../../assets/wallpapers/f-15-satellite.jpg";
         };
         pinnedApps = mkOption {
           type = with types; listOf str;

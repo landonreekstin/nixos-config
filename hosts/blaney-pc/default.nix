@@ -114,6 +114,11 @@
         xfce = "windows7";
         xfceOverride = true;
         wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
+        # XFCE session gets the aviation wallpaper (matches his Hyprland/century-series, which
+        # also falls back to f-15 since he has no desktop.monitors yet) while KDE keeps the Win7
+        # wallpaper above. Once his desktop.monitors are set up on-target, portraits can get
+        # carrier-top via per-monitor wallpaper.
+        xfceWallpaper = ../../assets/wallpapers/f-15-satellite.jpg;
         # XFCE taskbar mirrors the KDE pin set below, using themed/XFCE-native apps where the
         # KDE app has an equivalent (Konsole→kitty, Dolphin→Thunar, KCalc→galculator,
         # plasma-systemmonitor→xfce4-taskmanager, systemsettings→xfce4-settings-manager,

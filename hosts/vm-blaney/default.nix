@@ -68,6 +68,9 @@
         xfce = "windows7";
         xfceOverride = true;
         wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
+        # Mirror blaney-pc: XFCE gets the aviation wallpaper (no desktop.monitors → f-15 on all),
+        # KDE keeps Win7.
+        xfceWallpaper = ../../assets/wallpapers/f-15-satellite.jpg;
         xfcePanel = {
           trayApplets = [ "network" "bluetooth" "power" "clipboard" ];
           pinnedApps = [

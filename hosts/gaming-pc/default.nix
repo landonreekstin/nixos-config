@@ -65,6 +65,9 @@ in
           name = "main";
           identifier = "DP-1";
           edid = "LG ULTRAGEAR";
+          # XFCE wallpaper matches Hyprland/century-series (primary horizontal). Portraits keep
+          # the carrier-top orientation default (also what century-series uses on verticals).
+          wallpaper = ../../assets/wallpapers/f-15-satellite.jpg;
           resolution = "2560x1440@180";
           position = "0x0";
           scale = "1.0667";
@@ -94,6 +97,8 @@ in
           name = "tv";
           identifier = "HDMI-A-1";
           edid = "4Series43";
+          # Matches Hyprland/century-series (secondary horizontal).
+          wallpaper = ../../assets/wallpapers/f-4-cockpit.png;
           resolution = "preferred";
           position = "0x-1080";
           scale = "1";
