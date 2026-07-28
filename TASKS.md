@@ -61,14 +61,19 @@ Format: `- [ ] **Title** — description`
 
 - [x] **Declarative idle/lock/sleep timeouts** — Add `customConfig.desktop.idle.lockTimeout` and `customConfig.desktop.idle.sleepTimeout` (in seconds). For Hyprland: feed into swayidle config. For KDE: feed into plasma-manager DPMS settings.
 
-- [ ] **Declarative monitor config (position + orientation), consumed by Hyprland** — Make
-  per-monitor position + orientation/rotation declarative and have Hyprland apply them, using
-  gaming-pc's current Hyprland monitor layout as the reference. Default sensibly when a host
-  specifies none (single 1080p, normal orientation) so hosts without a monitor block still work.
-  First check the existing `customConfig.hardware.monitors` option (from the earlier "Global
-  monitor configuration" task) and **extend** it rather than duplicating. blaney-pc: needs his
-  real connector names — run `hyprctl monitors` on blaney to get them, then set his layout; leave
-  the default until then.
+- [x] **Declarative monitor config (position + orientation) for XFCE** — Hyprland already
+  consumes `customConfig.desktop.monitors`; this taught the **XFCE** session to apply the same
+  layout (scope: XFCE only — KDE/Hyprland already fine). New `modules/home-manager/xfce/
+  monitors.nix` resolves each monitor to its current X11 connector by **EDID** at login and
+  applies position + orientation via xrandr (scale dropped; overlap from a fractionally-scaled
+  primary corrected). Added optional `monitors.*.edid` (EDID substring) used only by XFCE,
+  because X11 (NVIDIA) and Wayland report different connector names for the same port — so
+  `identifier` (connector) drives Hyprland while `edid` drives XFCE. Also: portrait monitors get
+  a vertical wallpaper, and the Win7 taskbar is cloned to every monitor (tray/volume on primary
+  only). Verified on gaming-pc (XFCE live + Hyprland via hyprctl). *(committed on
+  feat/xfce-windows7; desc: matching was tried but is unreliable in this Hyprland build, hence
+  the connector-name + edid split.)* blaney-pc: still needs his real connector names + edids when
+  his XFCE rollout is tested on-target.
 
 - [ ] **X11: Start-menu / KWin "Restart" needs two clicks** — On Plasma X11 (and XFCE) clicking
   Start → Restart (or the KWin/logout power-menu Restart) does nothing on the first click; a
