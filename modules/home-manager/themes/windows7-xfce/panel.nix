@@ -5,12 +5,22 @@
 # pinned apps / tray applets / icon size are declarative per host (the Win7 analog of the
 # KDE pinnedApps + systemTray config).
 #
-# Layout (left→right): Start orb (whiskermenu) · pinned icon-only launchers · window list
-# (open apps, with labels) · expanding spacer · volume · systray (wifi/bluetooth applets) ·
-# clock · show-desktop. Volume sits to the LEFT of the systray (which holds the wifi applet).
+# Multi-monitor: XFCE can't span one panel across outputs, so we generate ONE panel per
+# enabled monitor (customConfig.desktop.monitors). Every panel is a full clone — Start orb ·
+# pinned launchers · window list · clock · show-desktop — but the system tray + volume live
+# only on the PRIMARY panel (status-notifier icons can register to just one host). Panels are
+# bound to their monitor by EDID at login (bind-outputs script) so they follow the right
+# physical screen even when connector names reorder across reboots — mirroring the layout
+# resolver in modules/home-manager/xfce/monitors.nix. Hosts with no desktop.monitors get a
+# single full panel (previous behaviour).
 #
-# Plugin ids: 1 = whiskermenu; 10.. = pinned launchers; 2 tasklist, 3 spacer, 4 pulseaudio,
-# 5 systray, 6 clock, 7 showdesktop.
+# Layout (left→right): Start orb (whiskermenu) · pinned icon-only launchers · window list
+# (open apps, with labels) · expanding spacer · [volume · systray — primary only] · clock ·
+# show-desktop.
+#
+# Per-panel plugin ids are namespaced by panel index p as base = p*100 (panel 0 keeps the
+# familiar 1/8/10../2-7 ids): 1 whiskermenu · 8 separator · 10.. launchers · 2 tasklist ·
+# 3 spacer · 4 pulseaudio · 5 systray · 6 clock · 7 showdesktop.
 let
   win7XfceCondition = lib.elem "xfce" customConfig.desktop.environments
     && customConfig.homeManager.themes.xfce == "windows7";
@@ -21,80 +31,117 @@ let
 
   orb = "${config.home.homeDirectory}/.local/share/windows7-xfce/orb.png";
 
-  # Stable per-launcher desktop-file id + panel plugin id.
+  # Stable per-launcher desktop-file id.
   deskId = app: lib.toLower (lib.replaceStrings [ " " "/" ] [ "-" "-" ] app.name);
-  launcherId = i: 10 + i;
-  launcherIds = lib.imap0 (i: _: launcherId i) pins;
-  # id 8 = a small transparent spacer between the Start orb and the pinned launchers.
-  allIds = [ 1 8 ] ++ launcherIds ++ [ 2 3 4 5 6 7 ];
 
-  pluginIdsXml = lib.concatMapStrings
-    (id: "            <value type=\"int\" value=\"${toString id}\"/>\n") allIds;
+  isDesc = id: lib.hasPrefix "desc:" id || lib.hasInfix " " id;
 
-  # One launcher plugin per pinned app (single item → shows just its icon).
-  launcherPluginsXml = lib.concatStrings (lib.imap0 (i: app: ''
-            <property name="plugin-${toString (launcherId i)}" type="string" value="launcher">
-              <property name="items" type="array">
-                <value type="string" value="${deskId app}.desktop"/>
-              </property>
-              <property name="disable-tooltips" type="bool" value="false"/>
-              <property name="show-label" type="bool" value="false"/>
-            </property>
-  '') pins);
+  # One panel per enabled monitor; fall back to a single (primary) panel when none configured.
+  enabledMons = lib.filter (m: m.enabled) customConfig.desktop.monitors;
+  panelMons = if enabledMons != [] then enabledMons else [ null ];
+  indexedMons = lib.imap0 (i: m: { inherit i m; }) panelMons;
+  primaryIndex =
+    let mains = lib.filter (e: e.m != null && e.m.name == "main") indexedMons;
+    in if mains != [] then (lib.head mains).i else 0;
 
-  panelXml = ''
-    <?xml version="1.0" encoding="UTF-8"?>
-    <channel name="xfce4-panel" version="1.0">
-      <property name="configver" type="int" value="2"/>
-      <property name="panels" type="array">
-        <value type="int" value="1"/>
-        <property name="dark-mode" type="bool" value="true"/>
-        <property name="panel-1" type="empty">
+  # ---- Per-panel fragment builders -------------------------------------------------------
+  panelBase = i: i * 100;
+
+  panelPluginIds = { i, m }:
+    let
+      base = panelBase i;
+      isPrim = i == primaryIndex;
+      launcherIds = lib.imap0 (j: _: base + 10 + j) pins;
+    in
+    [ (base + 1) (base + 8) ] ++ launcherIds ++ [ (base + 2) (base + 3) ]
+    ++ lib.optionals isPrim [ (base + 4) (base + 5) ]
+    ++ [ (base + 6) (base + 7) ];
+
+  # <panel-N> property block (geometry + plugin-id list). output-name is seeded by the
+  # bind-outputs login script, not here.
+  mkPanelBlock = { i, m }:
+    let
+      num = toString (i + 1);
+      idsXml = lib.concatMapStrings
+        (id: "            <value type=\"int\" value=\"${toString id}\"/>\n")
+        (panelPluginIds { inherit i m; });
+    in ''
+        <property name="panel-${num}" type="empty">
           <property name="position" type="string" value="p=8;x=0;y=0"/>
           <property name="length" type="uint" value="100"/>
           <property name="position-locked" type="bool" value="true"/>
           <property name="icon-size" type="uint" value="${toString panelCfg.iconSize}"/>
           <property name="size" type="uint" value="40"/>
           <property name="plugin-ids" type="array">
-    ${pluginIdsXml}      </property>
+    ${idsXml}      </property>
         </property>
-      </property>
-      <property name="plugins" type="empty">
-        <property name="plugin-1" type="string" value="whiskermenu"/>
-        <property name="plugin-8" type="string" value="separator">
+    '';
+
+  # Plugin definitions for one panel.
+  mkPanelPlugins = { i, m }:
+    let
+      base = panelBase i;
+      isPrim = i == primaryIndex;
+      launcherPluginsXml = lib.concatStrings (lib.imap0 (j: app: ''
+            <property name="plugin-${toString (base + 10 + j)}" type="string" value="launcher">
+              <property name="items" type="array">
+                <value type="string" value="${deskId app}.desktop"/>
+              </property>
+              <property name="disable-tooltips" type="bool" value="false"/>
+              <property name="show-label" type="bool" value="false"/>
+            </property>
+      '') pins);
+      trayPluginsXml = lib.optionalString isPrim ''
+        <property name="plugin-${toString (base + 4)}" type="string" value="pulseaudio">
+          <property name="enable-keyboard-shortcuts" type="bool" value="true"/>
+          <property name="show-notifications" type="bool" value="true"/>
+        </property>
+        <property name="plugin-${toString (base + 5)}" type="string" value="systray">
+          <property name="square-icons" type="bool" value="true"/>
+          <property name="icon-size" type="int" value="${toString panelCfg.iconSize}"/>
+        </property>
+      '';
+    in ''
+        <property name="plugin-${toString (base + 1)}" type="string" value="whiskermenu"/>
+        <property name="plugin-${toString (base + 8)}" type="string" value="separator">
           <property name="expand" type="bool" value="false"/>
           <property name="style" type="uint" value="0"/>
         </property>
-    ${launcherPluginsXml}    <property name="plugin-2" type="string" value="tasklist">
+    ${launcherPluginsXml}    <property name="plugin-${toString (base + 2)}" type="string" value="tasklist">
           <property name="grouping" type="uint" value="1"/>
           <property name="show-labels" type="bool" value="true"/>
           <property name="flat-buttons" type="bool" value="false"/>
           <property name="show-handle" type="bool" value="false"/>
         </property>
-        <property name="plugin-3" type="string" value="separator">
+        <property name="plugin-${toString (base + 3)}" type="string" value="separator">
           <property name="expand" type="bool" value="true"/>
           <property name="style" type="uint" value="0"/>
         </property>
-        <property name="plugin-4" type="string" value="pulseaudio">
-          <property name="enable-keyboard-shortcuts" type="bool" value="true"/>
-          <property name="show-notifications" type="bool" value="true"/>
-        </property>
-        <property name="plugin-5" type="string" value="systray">
-          <property name="square-icons" type="bool" value="true"/>
-          <property name="icon-size" type="int" value="${toString panelCfg.iconSize}"/>
-        </property>
-        <property name="plugin-6" type="string" value="clock">
+    ${trayPluginsXml}    <property name="plugin-${toString (base + 6)}" type="string" value="clock">
           <property name="mode" type="uint" value="2"/>
           <property name="digital-layout" type="uint" value="3"/>
           <property name="digital-time-format" type="string" value="%-I:%M %p"/>
           <property name="digital-date-format" type="string" value="%-m/%-d/%Y"/>
         </property>
-        <property name="plugin-7" type="string" value="showdesktop"/>
-      </property>
+        <property name="plugin-${toString (base + 7)}" type="string" value="showdesktop"/>
+    '';
+
+  panelsListXml = lib.concatMapStrings
+    (e: "        <value type=\"int\" value=\"${toString (e.i + 1)}\"/>\n") indexedMons;
+
+  panelXml = ''
+    <?xml version="1.0" encoding="UTF-8"?>
+    <channel name="xfce4-panel" version="1.0">
+      <property name="configver" type="int" value="2"/>
+      <property name="panels" type="array">
+    ${panelsListXml}    <property name="dark-mode" type="bool" value="true"/>
+    ${lib.concatMapStrings mkPanelBlock indexedMons}  </property>
+      <property name="plugins" type="empty">
+    ${lib.concatMapStrings mkPanelPlugins indexedMons}  </property>
     </channel>
   '';
 
-  # Whiskermenu (Start menu) — Win7 orb button, no text label, search + favorites.
+  # Whiskermenu (Start menu) rc — one instance per panel (plugin id base+1). Win7 orb button.
   whiskerRc = ''
     button-title=Start
     button-icon=${orb}
@@ -128,23 +175,148 @@ let
     show-command-logout=true
     search-actions=5
   '';
+  whiskerRcFiles = lib.listToAttrs (map (e: {
+    name = "xfce4/panel/whiskermenu-${toString (panelBase e.i + 1)}.rc";
+    value.text = whiskerRc;
+  }) indexedMons);
 
-  # Each pinned app becomes a .desktop file in its launcher-<id> directory.
-  launcherFiles = lib.listToAttrs (lib.imap0 (i: app: {
-    name = "xfce4/panel/launcher-${toString (launcherId i)}/${deskId app}.desktop";
-    value.text = ''
-      [Desktop Entry]
-      Version=1.0
-      Type=Application
-      Name=${app.name}
-      Exec=${app.exec}
-      Icon=${app.icon}
-      Terminal=false
-      StartupNotify=true
-    '';
-  }) pins);
+  # Each pinned app becomes a .desktop file in its launcher-<id> directory, per panel.
+  launcherFiles = lib.listToAttrs (lib.concatMap
+    (e: lib.imap0 (j: app: {
+      name = "xfce4/panel/launcher-${toString (panelBase e.i + 10 + j)}/${deskId app}.desktop";
+      value.text = ''
+        [Desktop Entry]
+        Version=1.0
+        Type=Application
+        Name=${app.name}
+        Exec=${app.exec}
+        Icon=${app.icon}
+        Terminal=false
+        StartupNotify=true
+      '';
+    }) pins)
+    indexedMons);
 
-  # Autostart the requested status-notifier applets into the systray.
+  # ---- Bind each panel to its monitor by EDID, at login ----------------------------------
+  # JSON: [{panel, primary, selector, isDesc}] — selector is the EDID substring or connector.
+  # Same edid-aware selector as the layout resolver: prefer `edid` (EDID match), else the
+  # `identifier` (desc: → EDID match, or a plain connector name → literal).
+  useEdid = m: m.edid != null && m.edid != "";
+  monSelector = m:
+    if useEdid m then m.edid
+    else if isDesc m.identifier then lib.removePrefix "desc:" m.identifier
+    else m.identifier;
+  panelBindJson = pkgs.writeText "xfce-panel-bind.json" (builtins.toJSON (map (e: {
+    panel = e.i + 1;
+    primary = e.i == primaryIndex;
+    selector = if e.m == null then "" else monSelector e.m;
+    isDesc = e.m != null && (useEdid e.m || isDesc e.m.identifier);
+  }) indexedMons));
+
+  bindPy = pkgs.writeText "xfce-bind-panels.py" ''
+    import json, re, subprocess, sys
+
+    XRANDR = "${pkgs.xorg.xrandr}/bin/xrandr"
+    XQ = "${pkgs.xfce.xfconf}/bin/xfconf-query"
+    PANEL = "${pkgs.xfce.xfce4-panel}/bin/xfce4-panel"
+
+    def parse_edid(hexstr):
+        try:
+            b = bytes.fromhex(hexstr)
+        except ValueError:
+            return ""
+        if len(b) < 128:
+            return ""
+        mfg = (b[8] << 8) | b[9]
+        letters = "".join(chr(((mfg >> s) & 0x1f) + 64) for s in (10, 5, 0))
+        parts = [letters]
+        for off in (54, 72, 90, 108):
+            d = b[off:off + 18]
+            if len(d) == 18 and d[0] == 0 and d[1] == 0 and d[2] == 0 and d[3] in (0xFC, 0xFF, 0xFE):
+                txt = d[5:18].split(b"\n")[0].decode("ascii", "ignore").strip()
+                if txt:
+                    parts.append(txt)
+        parts.append(str(int.from_bytes(b[12:16], "little")))
+        return " ".join(parts)
+
+    def get_outputs():
+        try:
+            out = subprocess.run([XRANDR, "--verbose"], capture_output=True, text=True).stdout
+        except Exception:
+            return {}
+        outputs, cur, edid_mode, edid_hex = {}, None, False, []
+        def flush():
+            if cur is not None:
+                outputs[cur]["edid"] = parse_edid("".join(edid_hex))
+        for line in out.splitlines():
+            m = re.match(r"^(\S+) (connected|disconnected)", line)
+            if m:
+                flush()
+                edid_hex[:] = []
+                edid_mode = False
+                cur = m.group(1)
+                outputs[cur] = {"connected": m.group(2) == "connected", "edid": ""}
+                continue
+            if cur is None:
+                continue
+            if re.match(r"^\s+EDID:", line):
+                edid_mode = True
+                continue
+            if edid_mode:
+                h = line.strip()
+                if re.fullmatch(r"[0-9a-fA-F]+", h):
+                    edid_hex.append(h)
+                else:
+                    edid_mode = False
+        flush()
+        return outputs
+
+    def resolve(sel, is_desc, outputs, used):
+        if not sel:
+            return None
+        if not is_desc:
+            o = outputs.get(sel)
+            return sel if (o and o["connected"] and sel not in used) else None
+        seln = sel.lower()
+        for name, info in outputs.items():
+            if info["connected"] and name not in used and seln in info["edid"].lower():
+                return name
+        return None
+
+    def set_output(panel, value):
+        subprocess.run([XQ, "-c", "xfce4-panel",
+                        "-p", "/panels/panel-%d/output-name" % panel,
+                        "--create", "-t", "string", "-s", value])
+
+    def main():
+        panels = json.load(open(sys.argv[1]))
+        outputs = get_outputs()
+        used = set()
+        for p in panels:
+            conn = resolve(p["selector"], p["isDesc"], outputs, used) if p["selector"] else None
+            if p["primary"]:
+                # Full taskbar → the primary monitor's connector (resolved by EDID, so it
+                # doesn't depend on --primary having been set yet); fall back to "Primary".
+                if conn:
+                    used.add(conn)
+                set_output(p["panel"], conn or "Primary")
+            elif conn:
+                used.add(conn)
+                set_output(p["panel"], conn)
+            else:
+                # Monitor absent → bind to a name that can't match so the panel stays hidden
+                # (rather than piling a duplicate onto the primary).
+                set_output(p["panel"], "__absent-panel-%d__" % p["panel"])
+        subprocess.run([PANEL, "-r"])
+
+    main()
+  '';
+
+  bindScript = pkgs.writeShellScript "win7-bind-panels" ''
+    exec ${pkgs.python3}/bin/python3 ${bindPy} ${panelBindJson}
+  '';
+
+  # ---- Tray applets (primary panel systray) ----------------------------------------------
   trayCmd = {
     network = "${pkgs.networkmanagerapplet}/bin/nm-applet --indicator";
     bluetooth = "${pkgs.blueman}/bin/blueman-applet";
@@ -185,11 +357,20 @@ in {
   config = lib.mkIf win7XfceCondition {
     xdg.configFile = lib.mkMerge [
       launcherFiles
+      whiskerRcFiles
       trayFiles
       redshiftConf
       {
         "xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml".text = panelXml;
-        "xfce4/panel/whiskermenu-1.rc".text = whiskerRc;
+        # Bind panels to their monitors by EDID after the session (and monitor layout) come up.
+        "autostart/win7-bind-panels.desktop".text = ''
+          [Desktop Entry]
+          Type=Application
+          Name=Windows 7 panel monitor binding
+          Exec=${bindScript}
+          OnlyShowIn=XFCE;
+          X-XFCE-Autostart-enabled=true
+        '';
       }
     ];
   };
