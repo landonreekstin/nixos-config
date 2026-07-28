@@ -6,5 +6,6 @@
 {
   imports = [
     ./functional.nix
+    ./monitors.nix
   ];
 }

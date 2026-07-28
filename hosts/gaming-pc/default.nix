@@ -56,24 +56,35 @@ in
     desktop = {
       environments = [ "kde" "hyprland" "xfce" ];
       monitors = [
+        # `identifier` = Wayland/DRM connector name (what Hyprland matches on — desc: matching
+        # is unreliable in this Hyprland build). `edid` = EDID description substring used ONLY
+        # by the XFCE X11 resolver, because X11 (NVIDIA) reports DIFFERENT connector names than
+        # Wayland for the same port (LG: DP-1 Wayland / DP-0 X11; Samsung: DP-2 / DP-3;
+        # TV: HDMI-A-1 / HDMI-0), so one connector name can't drive both. Hyprland ignores edid.
         {
           name = "main";
           identifier = "DP-1";
+          edid = "LG ULTRAGEAR";
           resolution = "2560x1440@180";
           position = "0x0";
           scale = "1.0667";
         }
         {
+          # Left portrait = Dell (rarely connected). edid is a placeholder — capture the exact
+          # EDID product name from `xrandr --verbose` next time it's plugged in and tighten it.
           name = "left";
           identifier = "DP-3";
+          edid = "DELL";
           resolution = "preferred";
           position = "-1080x-410";
           scale = "1";
           transform = "1";
         }
         {
+          # Right portrait = Samsung S27R65x (serial H4TW800293) — the everyday vertical.
           name = "right";
           identifier = "DP-2";
+          edid = "S27R65x";
           resolution = "preferred";
           position = "2400x-390";
           scale = "1";
@@ -82,6 +93,7 @@ in
         {
           name = "tv";
           identifier = "HDMI-A-1";
+          edid = "4Series43";
           resolution = "preferred";
           position = "0x-1080";
           scale = "1";

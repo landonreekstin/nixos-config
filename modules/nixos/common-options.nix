@@ -241,6 +241,20 @@ in
               description = "The monitor identifier. Can be a manufacturer description (desc:...) or output name (DP-1, HDMI-A-1, etc.).";
               example = "Dell Inc. DELL S2721HGF DZR2123";
             };
+            edid = mkOption {
+              type = types.nullOr types.str;
+              default = null;
+              description = ''
+                Optional EDID description substring (make / model / serial) used ONLY by the
+                XFCE X11 monitor resolver to identify this monitor stably regardless of
+                connector-name reordering. Hyprland ignores this and matches on `identifier`.
+                Needed because X11 (NVIDIA) and Wayland report DIFFERENT connector names for
+                the same physical port (e.g. an output that is DP-1 under Wayland is DP-0 under
+                X11), so a shared connector name can't drive both sessions. When null, the XFCE
+                resolver falls back to `identifier`.
+              '';
+              example = "LG ULTRAGEAR";
+            };
             resolution = mkOption {
               type = types.str;
               default = "preferred";
