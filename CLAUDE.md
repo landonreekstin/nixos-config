@@ -388,6 +388,39 @@ all outside collaborators". The runner is defined in `hosts/optiplex-nas/default
 (a PAT with repo Administration read/write) in `secrets/optiplex-nas.yaml` before it can
 register — verify it registers on the NAS before merging any change that enables it.
 
+## Remote XFCE via RDP (gaming-pc)
+
+For desktop/theme work that needs a visible session (e.g. the `feat/xfce-windows7`
+branch) while working remotely from the Windows 11 box. Enabled by
+`customConfig.desktop.xrdp.enable` on gaming-pc (`modules/nixos/desktop/xrdp.nix`).
+Port **3389 is firewalled** — access is SSH-tunnel only, never exposed.
+
+**Windows flow:**
+
+1. Open the tunnel (leave it running):
+   ```
+   ssh -L 3389:localhost:3389 lando@192.168.1.62
+   ```
+   `192.168.1.62` is gaming-pc on the LAN — substitute its reachable address when off-LAN.
+2. Launch **Remote Desktop** (`mstsc`) and connect to **`127.0.0.2`** — NOT `localhost`
+   / `127.0.0.1`. Windows throws error `0x708` ("console session in progress") when the
+   RDP target looks like the local machine; `127.0.0.2` dodges that self-connect check.
+3. Session type **Xorg**, user `lando`, your password → you land in the XFCE session.
+
+**Iteration loop** (no reboot): edit the theme → `rebuild` over SSH → **log out the RDP
+session and reconnect**. A fresh session re-seeds the xfconf theme and re-runs the
+autostarts, which is exactly the boundary the win7 theme needs.
+
+**Gotchas:**
+- The remote session runs on its own private D-Bus bus (`dbus-run-session -- startxfce4`)
+  so it coexists with the physical KDE/Hyprland login. Use `startxfce4` (the launcher),
+  not `xfce4-session` (the bare binary), or the session exits instantly.
+- NixOS does **not** auto-restart `xrdp-sesman` on a `rebuild` (restarting it kills live
+  sessions), so changes *to the xrdp module itself* only take effect after
+  `sudo systemctl restart xrdp-sesman`. Theme changes don't need this — just reconnect.
+- No audio (login jingle/event sounds) — needs `pulseaudio-module-xrdp` redirection, not
+  wired up.
+
 ## Installation
 
 ### Preferred: Remote deploy via nixos-anywhere (LAN or VPN)
