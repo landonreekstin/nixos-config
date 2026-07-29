@@ -75,11 +75,22 @@ Format: `- [ ] **Title** — description`
   the connector-name + edid split.)* blaney-pc: still needs his real connector names + edids when
   his XFCE rollout is tested on-target.
 
-- [ ] **X11: Start-menu / KWin "Restart" needs two clicks** — On Plasma X11 (and XFCE) clicking
-  Start → Restart (or the KWin/logout power-menu Restart) does nothing on the first click; a
-  second click works. Emerged on X11. Investigate the logout/shutdown path — `ksmserver` /
-  `org.kde.LogoutPrompt` / `org.kde.Shutdown` DBus + journal on first-vs-second click (likely a
-  first-invocation focus/grab or session-manager init race). Reproduce on gaming-pc Plasma X11.
+- [x] **XFCE: Start-menu "Restart" needed two clicks** — Root cause found via DBus capture: the
+  stock `xfce4-session-logout` confirmation dialog grabs the seat (`gdk_seat_grab`) while a
+  fadeout window fade-animates over the screen on X11, so the first pointer click lands on the
+  fade and is lost (keyboard/Escape still worked) — only the second click hit the button. The
+  fadeout is hardcoded under `ENABLE_X11` in `xfsm-logout-dialog.c` with **no xfconf toggle**.
+  Fix: the Win7 Start "Shut Down" button now opens a small GTK flyout
+  (`win7-power-menu`, in `windows7-xfce/panel.nix`) whose buttons run direct
+  `xfce4-session-logout --reboot/--halt/--suspend/--logout` (and `xflock4`) actions, bypassing
+  the fading dialog entirely → first click always registers. Verified on gaming-pc (Lock +
+  Restart both fire on the first click). Inherits the Win7 GTK theme; `confirm-session-command`
+  disabled so the flyout is the sole chooser.
+- [ ] **Plasma X11: KWin/logout power-menu "Restart" needs two clicks** — Same first-click symptom
+  in the Plasma **X11** session (separate mechanism from the XFCE fix above). Investigate the KDE
+  logout/shutdown path — `ksmserver` / `org.kde.LogoutPrompt` / `org.kde.Shutdown` DBus + journal
+  on first-vs-second click (likely the same class of first-invocation fade/grab race in the
+  fullscreen logout greeter). Reproduce in a Plasma X11 session on gaming-pc.
 
 - [ ] **distrobox for non-NixOS programs** — Add `customConfig.programs.distrobox.enable`. Enables running Arch/Ubuntu containers for software that resists NixOS packaging. Small scope.
 

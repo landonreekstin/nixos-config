@@ -141,6 +141,120 @@ let
     </channel>
   '';
 
+  # ── Windows-7 power flyout (the Start-menu "Shut Down" button) ───────────────────────────
+  # The stock xfce4-session-logout confirmation dialog swallows the FIRST pointer click on
+  # X11: xfce4-session grabs the seat (gdk_seat_grab) while a fadeout window fade-animates over
+  # the screen, so the first click lands on the fade and is lost (keyboard/Escape still work) —
+  # the second click hits the button. The fadeout is hardcoded under ENABLE_X11 in
+  # xfsm-logout-dialog.c with no xfconf toggle, so it can't be disabled by config. Instead the
+  # Start "Shut Down" button opens this tiny GTK flyout whose buttons run direct
+  # xfce4-session-logout actions (--reboot/--halt/--suspend/--logout) — bypassing the dialog
+  # and its fade entirely, so the first click always registers. The window inherits the Win7
+  # GTK theme, so it matches the rest of the desktop with no extra styling.
+  sessionBin = "${pkgs.xfce.xfce4-session}/bin";
+  pyEnv = pkgs.python3.withPackages (ps: [ ps.pygobject3 ]);
+  powerMenuPy = pkgs.writeText "win7-power-menu.py" ''
+    import gi, subprocess, sys
+    gi.require_version("Gtk", "3.0")
+    from gi.repository import Gtk, Gdk, GLib
+
+    LOGOUT = "${sessionBin}/xfce4-session-logout"
+    LOCK = "${sessionBin}/xflock4"
+
+    ACTIONS = [
+        ("Shut Down", "system-shutdown",    [LOGOUT, "--halt", "--fast"]),
+        ("Restart",   "system-reboot",      [LOGOUT, "--reboot", "--fast"]),
+        ("Sleep",     "system-suspend",     [LOGOUT, "--suspend"]),
+        ("Log Off",   "system-log-out",     [LOGOUT, "--logout", "--fast"]),
+        ("Lock",      "system-lock-screen", [LOCK]),
+    ]
+
+    class PowerMenu(Gtk.Window):
+        def __init__(self):
+            Gtk.Window.__init__(self, type=Gtk.WindowType.TOPLEVEL)
+            self.set_title("Shut down")
+            self.set_decorated(False)
+            self.set_skip_taskbar_hint(True)
+            self.set_skip_pager_hint(True)
+            self.set_keep_above(True)
+            self.set_resizable(False)
+            self.set_type_hint(Gdk.WindowTypeHint.UTILITY)
+            self.set_position(Gtk.WindowPosition.MOUSE)
+
+            frame = Gtk.Frame()
+            frame.set_shadow_type(Gtk.ShadowType.OUT)
+            self.add(frame)
+            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+            box.set_border_width(2)
+            frame.add(box)
+
+            for label, icon, cmd in ACTIONS:
+                btn = Gtk.Button()
+                btn.set_relief(Gtk.ReliefStyle.NONE)
+                row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+                row.set_border_width(4)
+                row.pack_start(Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.LARGE_TOOLBAR),
+                               False, False, 0)
+                lbl = Gtk.Label(label=label)
+                lbl.set_xalign(0.0)
+                row.pack_start(lbl, True, True, 0)
+                btn.add(row)
+                btn.connect("clicked", self.on_click, cmd)
+                box.pack_start(btn, False, False, 0)
+
+            self._ready = False
+            self.connect("key-press-event", self.on_key)
+            self.connect("focus-out-event", self.on_focus_out)
+            self.connect("destroy", Gtk.main_quit)
+            # Ignore the spurious focus-out that can fire while the window first maps.
+            GLib.timeout_add(300, self._enable_dismiss)
+
+        def _enable_dismiss(self):
+            self._ready = True
+            return False
+
+        def on_focus_out(self, *args):
+            if self._ready:
+                Gtk.main_quit()
+            return False
+
+        def on_key(self, widget, event):
+            if event.keyval == Gdk.KEY_Escape:
+                Gtk.main_quit()
+            return False
+
+        def on_click(self, button, cmd):
+            self.hide()
+            while Gtk.events_pending():
+                Gtk.main_iteration()
+            try:
+                subprocess.Popen(cmd)
+            except Exception as exc:
+                sys.stderr.write("win7-power-menu: " + str(exc) + "\n")
+            Gtk.main_quit()
+
+    def main():
+        win = PowerMenu()
+        win.show_all()
+        win.present()
+        Gtk.main()
+
+    main()
+  '';
+  powerMenu = pkgs.stdenv.mkDerivation {
+    name = "win7-power-menu";
+    dontUnpack = true;
+    nativeBuildInputs = [ pkgs.wrapGAppsHook3 pkgs.gobject-introspection ];
+    buildInputs = [ pkgs.gtk3 pyEnv ];
+    installPhase = ''
+      runHook preInstall
+      mkdir -p $out/bin
+      { echo '#!${pyEnv}/bin/python3'; cat ${powerMenuPy}; } > $out/bin/win7-power-menu
+      chmod +x $out/bin/win7-power-menu
+      runHook postInstall
+    '';
+  };
+
   # Whiskermenu (Start menu) rc — one instance per panel (plugin id base+1). Win7 orb button.
   whiskerRc = ''
     button-title=Start
@@ -163,7 +277,7 @@ let
     position-commands-alternate=false
     position-categories-alternate=true
     stay-focused=false
-    confirm-session-command=true
+    confirm-session-command=false
     menu-width=450
     menu-height=550
     menu-opacity=100
@@ -171,7 +285,7 @@ let
     show-command-settings=true
     command-lockscreen=xflock4
     show-command-lockscreen=true
-    command-logout=xfce4-session-logout
+    command-logout=${powerMenu}/bin/win7-power-menu
     show-command-logout=true
     search-actions=5
   '';
