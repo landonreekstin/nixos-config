@@ -195,6 +195,28 @@ Format: `- [ ] **Title** — description`
   UI 9"`, the xscreensaver dialog, KDE aerotheme) is rendering in Noto Sans. Fidelity gap affecting
   all Win7 theming. Fix: source a Segoe UI (or the metric-compatible **Selawik**) font package and
   add it to `fonts.packages` so the declared "Segoe UI" actually resolves.
+- [ ] **XFCE keyboard shortcuts (Hyprland/Win11 parity)** — Today `windows7-xfce/keybindings.nix`
+  only maps the Super-tap → Start menu (xcape). Bring a fuller shortcut set over, modeled on
+  `hyprland/functional.nix`'s binds and/or Windows 11 defaults: launch terminal/browser/files,
+  window move/resize/close/(un)maximize, workspace switch + move-window-to-workspace, screenshot,
+  lock. xfwm4 window actions live in `xfce4-keyboard-shortcuts.xml` under `<xfwm4>`; app-launch
+  binds under `/commands/custom/*`. Seed via idempotent `xfconf --create` (like the Start-key
+  script) or a whole-file `xfce4-keyboard-shortcuts.xml`. **Get the exact keymap from the user**
+  (Win11 Super+E / Super+arrows vs the Hyprland `mainMod` set) — user leans "like my Hyprland".
+- [ ] **Window snapping + grouping (KDE/Win11-like)** — Enable xfwm4's built-in edge tiling: bind
+  Super+←/→/↑/↓ to tile half/quarter/maximize (Win11 Snap feel) and turn on
+  `/general/snap_to_windows` + `/general/snap_to_border` (xfwm4 xfconf) for KDE-style edge
+  snapping; add these to the theme's xfwm4 config next to `keybindings.nix`. **Limitation to flag
+  to the user:** xfwm4 has no Win11 "snap layouts" flyout and no KWin window-tabbing/grouping —
+  closest is edge-tiling + the taskbar's existing window grouping. If true snap-groups are wanted,
+  evaluate a helper vs. accepting xfwm4's native tiling. Get UX direction first.
+- [ ] **Win7 terminal icon for kitty (gaming-pc + blaney-pc)** — kitty ships `Icon=kitty`, which
+  isn't in the "Windows 7 Aero" icon set, so it shows kitty's own logo in the Start menu / taskbar
+  / titlebar. Alias `kitty` → the Aero terminal icon in the icon-alias step of
+  `modules/nixos/themes/windows7-xfce/windows7-xfce-gtk.nix` (same mechanism as the
+  org.xfce.*/galculator aliases), mapping to `utilities-terminal` — or vendor a dedicated Win7
+  cmd/terminal PNG if a closer match is wanted. One change covers every win7-xfce host, since
+  gaming-pc and blaney-pc both pin kitty with `icon = "kitty"`.
 - [x] **Screensaver: match the Ly ASCII-gif** — Done via **xscreensaver** (not xfce4-screensaver,
   whose saver engine returns NULL for every theme on NixOS — garcon theme discovery is broken, even
   its own built-ins never render). `windows7-xfce/screensaver.nix` ships a stdlib-Python `.dur`
