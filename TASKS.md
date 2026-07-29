@@ -33,7 +33,7 @@ Format: `- [ ] **Title** — description`
 
 - [x] **Encrypted DNS** — Add `customConfig.networking.encryptedDns.enable` backed by `services.dnscrypt-proxy2`. Include option for resolver selection (Cloudflare, Quad9, etc.).
 
-- [x] **Test-VM hosts + build-based CI** — Added `vm-sandbox` (kitchen-sink ricing) and `vm-blaney` (blaney-pc software mirror) throwaway QEMU hosts sharing `hosts/vm-common.nix`, launched via the `testvm <sandbox|blaney>` command (12 vCPU / 16G / virgl GPU accel). Upgraded CI: `evaluate` covers the VMs; a `build` job on the optiplex-nas self-hosted runner realizes just the fragile source-built derivations (aerothemeplasma's C++ pkgs + openrazer module) so those breaks fail CI without OOMing the NAS on incidental full-toplevel builds. VMs can't validate GPU/driver behaviour (llvmpipe). Merged in PR #87; runner online with `Restart=always` self-heal.
+- [x] **Test-VM hosts + build-based CI** — Added `vm-sandbox` (kitchen-sink ricing) and `vm-blaney` (blaney-pc software mirror) throwaway QEMU hosts sharing `hosts/vm-common.nix`, launched via the `testvm <sandbox|blaney>` command (12 vCPU / 16G; `-vga virtio` software display — the virgl `virtio-vga-gl`/`gl=on` path black-screens on gaming-pc's NVIDIA-proprietary + X11 host, so it was dropped; see `hosts/vm-common.nix`). Upgraded CI: `evaluate` covers the VMs; a `build` job on the optiplex-nas self-hosted runner realizes just the fragile source-built derivations (aerothemeplasma's C++ pkgs + openrazer module) so those breaks fail CI without OOMing the NAS on incidental full-toplevel builds. VMs can't validate GPU/driver behaviour (llvmpipe). Merged in PR #87; runner online with `Restart=always` self-heal.
 
 ---
 
@@ -168,9 +168,11 @@ Format: `- [ ] **Title** — description`
   on blaney-pc and set `xfcePanel.pinnedApps`/`trayApplets` mirroring its KDE set (kitty, Settings,
   Thunar, Chromium, Lutris, Heroic, Steam, Discord, Spotify, System Monitor, galculator,
   Polychromatic, input-remapper, OpenRGB, xpad-notes; tray network/bluetooth/power/clipboard).
-  Eval-clean all hosts. *(PR open — needs on-target test on blaney: pick "Xfce Session" at Ly,
-  confirm taskbar/icons + file-open defaults. NOTE the gaming-pc caveat below applies to blaney
-  too — enabling XFCE there will likely break its KDE **Wayland**; blaney's KDE is X11-safe.)*
+  Eval-clean all hosts. XFCE wallpaper (F-15 aviation `xfceWallpaper`) verified rendering in
+  `vm-blaney` (the SW mirror). *(PR open — real-hardware on-target test on blaney still pending:
+  pick "Xfce Session" at Ly, confirm taskbar/icons + file-open defaults. NOTE the gaming-pc caveat
+  below applies to blaney too — enabling XFCE there will likely break its KDE **Wayland**; blaney's
+  KDE is X11-safe.)*
 
 ### M7 — XFCE session polish (startup/screensaver/lock/app theming)
 
