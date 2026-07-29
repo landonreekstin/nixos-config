@@ -79,6 +79,7 @@ EOF
     alias_icon "xarchiver"                 "archive-manager"
     alias_icon "galculator"                "accessories-calculator"
     alias_icon "org.xfce.terminal"         "utilities-terminal"
+    alias_icon "kitty"                     "utilities-terminal"
     alias_icon "org.xfce.taskmanager"      "utilities-system-monitor"
     alias_icon "org.xfce.screenshooter"    "accessories-camera"
     alias_icon "org.xfce.powermanager"     "utilities-energy-monitor"

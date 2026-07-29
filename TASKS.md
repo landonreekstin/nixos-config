@@ -210,7 +210,7 @@ Format: `- [ ] **Title** — description`
   to the user:** xfwm4 has no Win11 "snap layouts" flyout and no KWin window-tabbing/grouping —
   closest is edge-tiling + the taskbar's existing window grouping. If true snap-groups are wanted,
   evaluate a helper vs. accepting xfwm4's native tiling. Get UX direction first.
-- [ ] **Win7 terminal icon for kitty (gaming-pc + blaney-pc)** — kitty ships `Icon=kitty`, which
+- [x] **Win7 terminal icon for kitty (gaming-pc + blaney-pc)** — kitty ships `Icon=kitty`, which
   isn't in the "Windows 7 Aero" icon set, so it shows kitty's own logo in the Start menu / taskbar
   / titlebar. Alias `kitty` → the Aero terminal icon in the icon-alias step of
   `modules/nixos/themes/windows7-xfce/windows7-xfce-gtk.nix` (same mechanism as the
