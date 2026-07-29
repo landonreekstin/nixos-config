@@ -184,11 +184,17 @@ Format: `- [ ] **Title** — description`
   Taskbar Spotify launcher also carries `env NIXOS_OZONE_WL=0` as belt-and-suspenders. Verify
   on gaming-pc.
 
-- [ ] **Startup apps (declarative)** — Wire per-host XFCE startup apps. The shared
-  `customConfig.desktop.autostart` (command/desktops) is already consumed by
-  `modules/home-manager/xfce/functional.nix` (filters `desktops` for `"xfce"`) → verify it
-  works end-to-end and/or surface a cleaner per-host list. The tray applets + wallpaper/sound
-  scripts already use the autostart mechanism.
+- [x] **Startup apps (declarative)** — Confirmed working: the shared
+  `customConfig.desktop.autostart` (command/desktops) is consumed by
+  `modules/home-manager/xfce/functional.nix` (filters `desktops` for `"xfce"`) and lands XFCE
+  autostart entries end-to-end (verified on gaming-pc). The tray applets + wallpaper/sound
+  scripts use the same autostart mechanism.
+- [ ] **XFCE/KDE "Segoe UI" silently falls back to Noto Sans** — `fc-match "Segoe UI"` → Noto Sans:
+  `vista-fonts` (installed by `modules/nixos/themes/windows7-xfce/default.nix` + aerothemeplasma's
+  `plasma-system.nix`) does NOT ship Segoe UI, so the whole Win7 look (GTK `Gtk/FontName = "Segoe
+  UI 9"`, the xscreensaver dialog, KDE aerotheme) is rendering in Noto Sans. Fidelity gap affecting
+  all Win7 theming. Fix: source a Segoe UI (or the metric-compatible **Selawik**) font package and
+  add it to `fonts.packages` so the declared "Segoe UI" actually resolves.
 - [x] **Screensaver: match the Ly ASCII-gif** — Done via **xscreensaver** (not xfce4-screensaver,
   whose saver engine returns NULL for every theme on NixOS — garcon theme discovery is broken, even
   its own built-ins never render). `windows7-xfce/screensaver.nix` ships a stdlib-Python `.dur`
@@ -243,13 +249,20 @@ Format: `- [ ] **Title** — description`
   reverts it and OFF keeps it. Part of M5; do before opening the PR. (Related: flip xfceOverride
   OFF on gaming-pc/vm-sandbox for daily use once satisfied.)
 
-- [ ] **Theme the xscreensaver unlock dialog like Windows 7** — The XFCE lock uses xscreensaver's
-  built-in password dialog (currently dark aviation colors in `~/.xscreensaver`). Make it Win7-ish
-  within xscreensaver's limited theming — the `passwd.*` / dialog X-resources (foreground,
-  background, borderColor, font, `passwd.heading`/logo, `passwd.thermometer.*`). Aim for an Aero
-  light-blue/white palette + Segoe UI + a Win7 logo. Pixel-perfect Win7 isn't achievable with
-  xscreensaver's dialog — get as close as the resource set allows. (User recalls a Win7-styled
-  lock previously and wants that look back.)
+- [x] **Theme the xscreensaver unlock dialog like Windows 7** — Aero light-blue/white palette
+  applied. **Key gotcha:** xscreensaver 6's unlock dialog is raw Xlib and reads its theme ONLY
+  from the `XScreenSaver` **app-defaults** file — NOT `~/.xscreensaver`, NOT xrdb/RESOURCE_MANAGER
+  (per jwz's FAQ). Worse, it uses the FIRST occurrence of each resource and ignores anything after
+  the file's trailing "xrdb-prevention kludge" comment, so **appending doesn't work** — the built-in
+  `default` dialogTheme values must be rewritten **in place**. Implemented by `overrideAttrs`-ing
+  `pkgs.xscreensaver` in `modules/nixos/themes/windows7-xfce/default.nix` (a `sed -i` over the
+  `*default.Dialog.*` + `*Dialog.*Font` lines → aero-blue heading/labels, white password field,
+  subtle bevel, aero thermometer). The overlay-patched package is used by both the HM daemon
+  (`screensaver.nix`) and the setuid `xscreensaver-auth` wrapper (`nixos/desktop/xfce.nix`).
+  Verified via `xscreensaver-auth --splash` screenshot: background sampled `#e9f0fa` ≈ configured
+  `#eaf1fb` (splash shares the `*default.Dialog.*` resources with the unlock dialog). Limits: the
+  big xscreensaver flame **logo is compiled-in** (can't be swapped for a Win7 orb — only its
+  background is themed), and "Segoe UI" falls back to Noto Sans (see font-gap task below).
 
 ---
 

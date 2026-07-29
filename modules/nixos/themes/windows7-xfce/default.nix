@@ -15,6 +15,43 @@ in {
         windows7-xfce-gtk = prev.callPackage ./windows7-xfce-gtk.nix { };
         windows7-xfce-assets = prev.callPackage ./windows7-xfce-assets.nix { };
         windows7-xfce-sounds = prev.callPackage ./windows7-xfce-sounds.nix { };
+
+        # Windows 7 "Aero" unlock-dialog palette. xscreensaver 6's raw-Xlib password dialog
+        # reads its theme ONLY from the XScreenSaver app-defaults file (not ~/.xscreensaver or
+        # xrdb), so the custom theme must be baked into the package. It uses the FIRST occurrence
+        # of each resource and ignores anything after the file's trailing "xrdb prevention
+        # kludge" comment — so we must rewrite the built-in "default" dialogTheme's values
+        # IN PLACE (appending does nothing). Light Aero panel, aero-blue heading/labels, white
+        # password field, subtle bevel, aero-blue thermometer. Font is "Segoe UI" to match the
+        # rest of the theme's xsettings. This patched xscreensaver is used by both the HM
+        # daemon/autostart (screensaver.nix) and the setuid xscreensaver-auth wrapper
+        # (modules/nixos/desktop/xfce.nix), so the lock dialog they draw picks it up.
+        xscreensaver = prev.xscreensaver.overrideAttrs (old: {
+          postInstall = (old.postInstall or "") + ''
+            ad="$out/share/xscreensaver/app-defaults/XScreenSaver"
+            sed -i -E \
+              -e 's|^(\*Dialog\.headingFont:).*|\1 Segoe UI bold 18|' \
+              -e 's|^(\*Dialog\.bodyFont:).*|\1 Segoe UI 13|' \
+              -e 's|^(\*Dialog\.labelFont:).*|\1 Segoe UI 13|' \
+              -e 's|^(\*Dialog\.unameFont:).*|\1 Segoe UI 12|' \
+              -e 's|^(\*Dialog\.buttonFont:).*|\1 Segoe UI bold 13|' \
+              -e 's|^(\*Dialog\.errorFont:).*|\1 Segoe UI bold 13|' \
+              -e 's|^(\*default\.Dialog\.foreground:).*|\1 #12395e|' \
+              -e 's|^(\*default\.Dialog\.background:).*|\1 #eaf1fb|' \
+              -e 's|^(\*default\.Dialog\.topShadowColor:).*|\1 #ffffff|' \
+              -e 's|^(\*default\.Dialog\.bottomShadowColor:).*|\1 #b4cbe6|' \
+              -e 's|^(\*default\.Dialog\.borderColor:).*|\1 #6f9bc9|' \
+              -e 's|^(\*default\.Dialog\.borderWidth:).*|\1 1|' \
+              -e 's|^(\*default\.Dialog\.text\.foreground:).*|\1 #1a1a1a|' \
+              -e 's|^(\*default\.Dialog\.text\.background:).*|\1 #ffffff|' \
+              -e 's|^(\*default\.Dialog\.button\.foreground:).*|\1 #12395e|' \
+              -e 's|^(\*default\.Dialog\.button\.background:).*|\1 #e2edfb|' \
+              -e 's|^(\*default\.Dialog\.thermometer\.foreground:).*|\1 #2f8fdf|' \
+              -e 's|^(\*default\.Dialog\.thermometer\.background:).*|\1 #cfe0f4|' \
+              -e 's|^(\*default\.Dialog\.logo\.background:).*|\1 #eaf1fb|' \
+              "$ad"
+          '';
+        });
       })
     ];
 

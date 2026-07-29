@@ -142,7 +142,8 @@ let
       -e ${pkgs.python3}/bin/python3 ${durPlayer} "$dur"
   '';
 
-  # --- ~/.xscreensaver: one-saver mode running our program, dark aviation lock palette -----
+  # --- ~/.xscreensaver: one-saver mode running our program (daemon settings only; the unlock
+  # dialog's Aero palette lives in win7DialogXres below, merged via xrdb) --------------------
   xscreensaverConf = ''
     timeout:	${toHMS saverSecs}
     cycle:	${toHMS saverSecs}
@@ -166,15 +167,13 @@ let
     fadeSeconds:	0:00:00
     fadeTicks:	0
     splash:	False
-    foreground:	#8fd6ff
-    background:	#0a0e14
-    textForeground:	#8fd6ff
-    textBackground:	#0a0e14
-    borderColor:	#1f6feb
   '';
 
   # xscreensaver launcher (the daemon). xfce4-power-manager keeps DPMS, so xscreensaver owns
-  # only the saver + lock.
+  # only the saver + lock. The unlock dialog's Windows 7 "Aero" palette is applied by patching
+  # xscreensaver's app-defaults in modules/nixos/themes/windows7-xfce/default.nix — the v6
+  # dialog is drawn in raw Xlib and reads its theme ONLY from the app-defaults file (not
+  # ~/.xscreensaver, not xrdb/RESOURCE_MANAGER), so that's the only place a custom theme lands.
   xscreensaverAutostart = ''
     [Desktop Entry]
     Type=Application
