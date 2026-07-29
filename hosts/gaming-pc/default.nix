@@ -55,6 +55,9 @@ in
 
     desktop = {
       environments = [ "kde" "hyprland" "xfce" ];
+      # Remote XFCE session over RDP for remote theme work. Port 3389 stays firewalled;
+      # reach it via `ssh -L 3389:localhost:3389 lando@gaming-pc` then RDP to localhost.
+      xrdp.enable = true;
       monitors = [
         # `identifier` = Wayland/DRM connector name (what Hyprland matches on — desc: matching
         # is unreliable in this Hyprland build). `edid` = EDID description substring used ONLY
