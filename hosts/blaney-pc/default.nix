@@ -210,7 +210,7 @@
 
     apps = {
       defaultSet = "kde";
-      defaults.kde.browser = "chromium.desktop";
+      defaults.kde.browser = "org.chromium.Chromium.desktop";
     };
 
     programs.claudeCode.enable = true;
