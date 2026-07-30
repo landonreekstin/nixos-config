@@ -110,7 +110,7 @@ in
       ];
       autostart = [
         # Steam + Heroic autostart via their own app settings; add these for the session.
-        { command = "vesktop";  desktops = [ "xfce" ]; }
+        { command = "discord";  desktops = [ "xfce" ]; }
         { command = "ckb-next"; desktops = [ "xfce" ]; }
       ];
 
@@ -295,7 +295,7 @@ in
           { name = "Chromium";        exec = "chromium";               icon = "chromium"; }
           { name = "Heroic";          exec = "heroic";                 icon = "com.heroicgameslauncher.hgl"; }
           { name = "Steam";           exec = "steam";                  icon = "steam"; }
-          { name = "Discord";         exec = "vesktop";                icon = "vesktop"; }
+          { name = "Discord";         exec = "discord";                icon = "discord"; }
           { name = "Signal";          exec = "signal-desktop";         icon = "signal-desktop"; }
           { name = "Spotify";         exec = "env NIXOS_OZONE_WL=0 spotify"; icon = "spotify-client"; }
           { name = "VS Code";         exec = "code";                   icon = "vscode"; }
