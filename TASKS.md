@@ -86,6 +86,29 @@ Format: `- [ ] **Title** — description`
   the fading dialog entirely → first click always registers. Verified on gaming-pc (Lock +
   Restart both fire on the first click). Inherits the Win7 GTK theme; `confirm-session-command`
   disabled so the flyout is the sole chooser.
+  **Follow-up (2026-07-30) — that flyout still failed on gaming-pc; refixed, NEEDS REAL-MACHINE
+  VERIFICATION:** the buttons spawned `xfce4-session-logout --reboot/--halt/...` then quit, and
+  that client silently failed to deliver to the session manager in gaming-pc's local `ly`
+  session (logind never saw the request — journal silent; the manager itself was healthy,
+  `CanRestart=true`, no inhibitors). Only Lock worked because `xflock4` is self-contained (no
+  manager round-trip). The "Verified on gaming-pc" above was mistaken — a reboot is hard to
+  confirm as first-vs-second click. Refix: the flyout now calls the `org.xfce.Session.Manager`
+  D-Bus methods **directly** (`Restart`/`Shutdown`/`Suspend`/`Logout(show_dialog=false)`) on its
+  own session-bus connection — deterministic, still skips the fading dialog.
+  **Verified single-click in a VM (`testvm`); still needs confirming on real gaming-pc** — can't
+  safely reboot it over SSH, and gaming-pc showed the separate whisker-rc bug (below) that can
+  stop the Start menu from invoking the flyout at all on a clean boot.
+- [ ] **XFCE: whisker-menu rc files vanish after login (Start menu loses its config)** — On
+  gaming-pc's clean boot, `~/.config/xfce4/panel/whiskermenu-{1,201,301}.rc` (the rc's of the
+  *running* whisker plugins) are missing after login, while `whiskermenu-101.rc` (a plugin not
+  instantiated) survives. HM seeds all four correctly (symlinks into the generation) and the
+  `xfceOverride` wipe+relink recreates them at activation, but something removes the active
+  plugins' rc's afterward (likely the live `xfce4-panel` rewriting/removing its read-only store
+  symlinks). Those Start menus then fall back to XFCE defaults → no `command-logout` → the stock
+  `xfce4-session-logout` fading dialog (the original two-click bug) and the win7 power flyout is
+  never invoked. Fix candidates: install the whisker rc as a **writable copy** via
+  `home.activation` instead of a read-only `xdg.configFile` symlink, or reconcile the panel
+  plugin-id layout so seeds match the live plugins. Reproduce/iterate in `vm-sandbox`.
 - [ ] **Plasma X11: KWin/logout power-menu "Restart" needs two clicks** — Same first-click symptom
   in the Plasma **X11** session (separate mechanism from the XFCE fix above). Investigate the KDE
   logout/shutdown path — `ksmserver` / `org.kde.LogoutPrompt` / `org.kde.Shutdown` DBus + journal

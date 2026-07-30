@@ -142,31 +142,45 @@ let
   '';
 
   # ── Windows-7 power flyout (the Start-menu "Shut Down" button) ───────────────────────────
-  # The stock xfce4-session-logout confirmation dialog swallows the FIRST pointer click on
-  # X11: xfce4-session grabs the seat (gdk_seat_grab) while a fadeout window fade-animates over
-  # the screen, so the first click lands on the fade and is lost (keyboard/Escape still work) —
-  # the second click hits the button. The fadeout is hardcoded under ENABLE_X11 in
-  # xfsm-logout-dialog.c with no xfconf toggle, so it can't be disabled by config. Instead the
-  # Start "Shut Down" button opens this tiny GTK flyout whose buttons run direct
-  # xfce4-session-logout actions (--reboot/--halt/--suspend/--logout) — bypassing the dialog
-  # and its fade entirely, so the first click always registers. The window inherits the Win7
-  # GTK theme, so it matches the rest of the desktop with no extra styling.
+  # The Start "Shut Down" button opens this tiny GTK flyout instead of the stock
+  # xfce4-session-logout confirmation dialog, which on X11 swallowed the FIRST pointer click
+  # (xfce4-session grabs the seat while a fadeout window fade-animates over the screen, so the
+  # first click landed on the fade and was lost — the fadeout is hardcoded under ENABLE_X11 in
+  # xfsm-logout-dialog.c with no xfconf toggle). The window inherits the Win7 GTK theme, so it
+  # matches the rest of the desktop with no extra styling.
+  #
+  # The four session actions call the xfce4-session manager's D-Bus methods DIRECTLY on the
+  # flyout's own session-bus connection (org.xfce.Session.Manager: Shutdown/Restart/Suspend/
+  # Logout at /org/xfce/SessionManager). The earlier approach — spawning
+  # `xfce4-session-logout --reboot/--halt/...` and immediately quitting — silently failed to
+  # deliver in the local `ly` session (logind never saw the request; the manager itself was
+  # healthy and CanRestart=true), while Lock kept working because xflock4 needs no manager
+  # round-trip. Calling the manager directly is deterministic and still skips the fading
+  # dialog (Logout is invoked with show_dialog=false). Lock stays on xflock4 (already works).
   sessionBin = "${pkgs.xfce.xfce4-session}/bin";
   pyEnv = pkgs.python3.withPackages (ps: [ ps.pygobject3 ]);
   powerMenuPy = pkgs.writeText "win7-power-menu.py" ''
     import gi, subprocess, sys
     gi.require_version("Gtk", "3.0")
-    from gi.repository import Gtk, Gdk, GLib
+    from gi.repository import Gtk, Gdk, GLib, Gio
 
-    LOGOUT = "${sessionBin}/xfce4-session-logout"
     LOCK = "${sessionBin}/xflock4"
 
+    BUS = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+
+    def mgr(method, params):
+        BUS.call_sync("org.xfce.SessionManager", "/org/xfce/SessionManager",
+                      "org.xfce.Session.Manager", method, params,
+                      None, Gio.DBusCallFlags.NONE, -1, None)
+
+    # allow_save=False mirrors the old `--fast` (no session save); Logout show_dialog=False
+    # keeps the fading dialog (and its lost-first-click) out of the picture.
     ACTIONS = [
-        ("Shut Down", "system-shutdown",    [LOGOUT, "--halt", "--fast"]),
-        ("Restart",   "system-reboot",      [LOGOUT, "--reboot", "--fast"]),
-        ("Sleep",     "system-suspend",     [LOGOUT, "--suspend"]),
-        ("Log Off",   "system-log-out",     [LOGOUT, "--logout", "--fast"]),
-        ("Lock",      "system-lock-screen", [LOCK]),
+        ("Shut Down", "system-shutdown",    lambda: mgr("Shutdown", GLib.Variant("(b)", (False,)))),
+        ("Restart",   "system-reboot",      lambda: mgr("Restart",  GLib.Variant("(b)", (False,)))),
+        ("Sleep",     "system-suspend",     lambda: mgr("Suspend",  None)),
+        ("Log Off",   "system-log-out",     lambda: mgr("Logout",   GLib.Variant("(bb)", (False, False)))),
+        ("Lock",      "system-lock-screen", lambda: subprocess.Popen([LOCK])),
     ]
 
     class PowerMenu(Gtk.Window):
@@ -188,7 +202,7 @@ let
             box.set_border_width(2)
             frame.add(box)
 
-            for label, icon, cmd in ACTIONS:
+            for label, icon, action in ACTIONS:
                 btn = Gtk.Button()
                 btn.set_relief(Gtk.ReliefStyle.NONE)
                 row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
@@ -199,7 +213,7 @@ let
                 lbl.set_xalign(0.0)
                 row.pack_start(lbl, True, True, 0)
                 btn.add(row)
-                btn.connect("clicked", self.on_click, cmd)
+                btn.connect("clicked", self.on_click, action)
                 box.pack_start(btn, False, False, 0)
 
             self._ready = False
@@ -223,12 +237,12 @@ let
                 Gtk.main_quit()
             return False
 
-        def on_click(self, button, cmd):
+        def on_click(self, button, action):
             self.hide()
             while Gtk.events_pending():
                 Gtk.main_iteration()
             try:
-                subprocess.Popen(cmd)
+                action()
             except Exception as exc:
                 sys.stderr.write("win7-power-menu: " + str(exc) + "\n")
             Gtk.main_quit()
