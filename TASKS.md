@@ -129,6 +129,17 @@ Format: `- [ ] **Title** — description`
   proactive re-raises, all frozen once an action/dismiss commits. On close it reverts
   `stay-on-focus-out`. **Verified live on gaming-pc (xrdp + physical XFCE): flyout stays on top,
   click-desktop closes both, Escape closes the flyout.** Committed on `feat/xfce-windows7`.
+- [x] **XFCE: per-monitor display toggle keybinds (Hyprland parity)** — The XFCE session had no
+  runtime way to turn a display off/on; the Displays GUI resets the vertical monitor's position.
+  Ported Hyprland's toggle UX: `Ctrl+Super+1..4` → `xfce-toggle-monitor <name>` (generated in
+  `windows7-xfce/keybindings.nix`, auto-added to the Super+/ cheatsheet). New command lives in the
+  DE-gated `modules/home-manager/xfce/monitors.nix`: it flips the monitor's name in a runtime state
+  file (`~/.local/state/xfce-monitors/disabled`) and re-runs the existing login resolver, which
+  re-applies the full declarative layout so every OTHER monitor keeps its exact position (the thing
+  the GUI botches). The resolver now reads that state file at login too, so the last on/off choice
+  **persists across sessions**. Persist-only — no schema change, Hyprland untouched (separate state
+  file). **Verified live on gaming-pc (4-monitor physical session): toggles work, positions
+  preserved, persists across logout.** Committed on `feat/xfce-windows7`.
 - [ ] **XFCE: first Log Off per session needs two presses (pre-existing xfce4-session quirk)** —
   Not caused by the power flyout. In a fresh XFCE session the FIRST logout request is silently
   dropped by `xfce4-session` (the client returns rc=0, but no teardown happens); the second
