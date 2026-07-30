@@ -98,6 +98,8 @@ Format: `- [ ] **Title** — description`
   **Verified single-click in a VM (`testvm`); still needs confirming on real gaming-pc** — can't
   safely reboot it over SSH, and gaming-pc showed the separate whisker-rc bug (below) that can
   stop the Start menu from invoking the flyout at all on a clean boot.
+  *(⏳ REAL-MACHINE TEST PENDING on gaming-pc — VM-verified single-click only; do a fresh XFCE
+  login and click Start → Shut Down → Restart. Fix is committed on `feat/xfce-windows7`.)*
 - [x] **XFCE: whisker-menu rc files vanish after login (Start menu loses its config)** — On
   gaming-pc's clean boot, `~/.config/xfce4/panel/whiskermenu-{1,201,301}.rc` (the rc's of the
   *running* whisker plugins) went missing after login, while `whiskermenu-101.rc` (a plugin not
@@ -113,6 +115,8 @@ Format: `- [ ] **Title** — description`
   `command-logout`). **Still needs a live-session check** (fresh login → Start opens the themed
   flyout and the rc's persist after use) — do in `vm-sandbox` or a gaming-pc re-login; this is
   also what unblocks the power-flyout real-machine verification above.
+  *(⏳ REAL-MACHINE TEST PENDING on gaming-pc — VM/file-level verified only. Fix committed on
+  `feat/xfce-windows7`.)*
 - [ ] **Plasma X11: KWin/logout power-menu "Restart" needs two clicks** — Same first-click symptom
   in the Plasma **X11** session (separate mechanism from the XFCE fix above). Investigate the KDE
   logout/shutdown path — `ksmserver` / `org.kde.LogoutPrompt` / `org.kde.Shutdown` DBus + journal
