@@ -37,6 +37,16 @@ let
   apps = customConfig.desktop.hyprland.applications;
   xfconfDir = "xfce4/xfconf/xfce-perchannel-xml";
 
+  # Per-monitor display toggles, Hyprland parity (Ctrl+Super+1..4 → xfce-toggle-monitor <name>).
+  # One bind per configured monitor, indexed like Hyprland's imap1 in hyprland/functional.nix.
+  # xfce-toggle-monitor comes from the DE-gated xfce/monitors.nix on PATH (command bind, wm=false).
+  monitors = customConfig.desktop.monitors;
+  displayBinds = lib.imap1 (i: mon: {
+    key = "<Primary><Super>${toString i}";
+    value = "xfce-toggle-monitor ${mon.name}";
+    desc = "Toggle ${mon.name} display";
+  }) monitors;
+
   groups = [
     { title = "Windows & snapping"; binds = [
         { key = "<Super>Left";         value = "tile_left_key";                 wm = true; desc = "Snap window left"; }
@@ -91,7 +101,7 @@ let
         { key = "Print";                  value = "xfce4-screenshooter -f";  desc = "Screenshot (whole screen)"; }
         { key = "<Primary><Shift>Escape"; value = "xfce4-taskmanager";       desc = "Task Manager"; }
       ]; }
-  ];
+  ] ++ lib.optional (monitors != []) { title = "Displays"; binds = displayBinds; };
 
   allBinds = lib.concatMap (g: g.binds) groups;
   esc = lib.replaceStrings [ "<" ">" ] [ "&lt;" "&gt;" ];

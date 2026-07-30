@@ -103,6 +103,7 @@ let
   # from Hyprland's — see the option docs in common-options.nix.
   useEdid = m: m.edid != null && m.edid != "";
   toEntry = m: {
+    name = m.name; # stable identity for the runtime on/off state file (below)
     selector =
       if useEdid m then m.edid
       else if isDesc m.identifier then lib.removePrefix "desc:" m.identifier
@@ -195,11 +196,23 @@ let
             return ["--mode", mm, "--rate", rr]
         return ["--mode", res]
 
+    def read_disabled(path):
+        # Runtime on/off state (xfce-toggle-monitor): one monitor NAME per line = forced off.
+        # Absent/empty file → no overrides, pure declarative defaults (backward-compatible).
+        try:
+            with open(path) as f:
+                return set(l.strip() for l in f if l.strip())
+        except OSError:
+            return set()
+
     def main():
         monitors = json.load(open(sys.argv[1]))
+        disabled = read_disabled(sys.argv[2]) if len(sys.argv) > 2 else set()
         outputs = get_outputs()
         args, used, applied = [XRANDR], set(), 0
         for m in monitors:
+            if m["name"] in disabled:
+                m["enabled"] = False  # remembered toggle-off wins over declarative enabled
             out = find_output(m["selector"], m["isDesc"], outputs, used)
             if not out:
                 sys.stderr.write("xfce-monitors: no connected output for %r\n" % m["selector"])
@@ -221,14 +234,59 @@ let
     main()
   '';
 
+  # Runtime on/off state lives outside the Nix store so a toggle survives logout. Shared by the
+  # login resolver (reads it) and xfce-toggle-monitor (writes it).
+  stateExpr = "\${XDG_STATE_HOME:-$HOME/.local/state}/xfce-monitors/disabled";
+
   applyScript = pkgs.writeShellScript "xfce-apply-monitors" ''
-    exec ${pkgs.python3}/bin/python3 ${resolverPy} ${monitorsJson}
+    exec ${pkgs.python3}/bin/python3 ${resolverPy} ${monitorsJson} "${stateExpr}"
   '';
+
+  # Hyprland-parity runtime toggle (mirrors modules/home-manager/scripts/toggle-monitor.nix):
+  # flip a monitor's remembered on/off state, then re-run the full resolver so every OTHER
+  # monitor is re-applied at its exact declared position (this is what the XFCE Displays GUI
+  # fails to do). Bound to Ctrl+Super+1..4 in the windows7-xfce keybindings.
+  validNames = lib.concatMapStringsSep " " (m: m.name) monitors;
+  nameAlt = lib.concatMapStringsSep "|" (m: m.name) monitors; # case-pattern alternation
+  toggleBin = pkgs.writeShellApplication {
+    name = "xfce-toggle-monitor";
+    runtimeInputs = [ pkgs.coreutils pkgs.gnugrep ];
+    text = ''
+      name="''${1:-}"
+      if [ -z "$name" ]; then
+        echo "usage: xfce-toggle-monitor <monitor-name>" >&2
+        exit 2
+      fi
+      case "$name" in
+        ${nameAlt}) ;;
+        *) echo "xfce-toggle-monitor: unknown monitor '$name' (configured: ${validNames})" >&2
+           exit 1 ;;
+      esac
+
+      state_file="${stateExpr}"
+      mkdir -p "$(dirname "$state_file")"
+      touch "$state_file"
+      if grep -qxF "$name" "$state_file"; then
+        # currently forced off → turn it back on
+        tmp="$(mktemp)"
+        grep -vxF "$name" "$state_file" > "$tmp" || true
+        mv "$tmp" "$state_file"
+      else
+        # currently on → force it off
+        echo "$name" >> "$state_file"
+      fi
+
+      exec ${applyScript}
+    '';
+  };
 in
 {
   # Only emit the autostart entry when a layout is actually declared; otherwise leave the
   # XFCE session on plain X defaults.
   config = lib.mkIf (isXfceDesktop && monitors != []) {
+    # xfce-toggle-monitor on PATH — referenced by name from the windows7-xfce keybindings.
+    home.packages = [ toggleBin ];
+
     xdg.configFile."autostart/xfce-monitors.desktop".text = ''
       [Desktop Entry]
       Type=Application
