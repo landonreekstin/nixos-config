@@ -169,7 +169,10 @@ BODY
 
       if [ "''${AGE}" -ge "''${AUTO_MERGE_DAYS}" ]; then
         log "Auto-merging PR #''${PR_NUM}"
-        MERGE_ERR=$(${pkgs.gh}/bin/gh pr merge "''${PR_NUM}" --repo "''${REPO}" --merge --delete-branch 2>&1) \
+        # --admin bypasses the protect-main-merges ruleset (which blocks non-admin
+        # contributors like cblaney00 from merging to main). The updater's PAT
+        # belongs to the repo admin, so the bypass is legitimate.
+        MERGE_ERR=$(${pkgs.gh}/bin/gh pr merge "''${PR_NUM}" --repo "''${REPO}" --merge --admin --delete-branch 2>&1) \
           && log "PR #''${PR_NUM} merged" \
           || log "Auto-merge failed for PR #''${PR_NUM}: ''${MERGE_ERR}"
       else
