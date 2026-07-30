@@ -250,6 +250,7 @@ in
 
     apps = {
       defaultSet = "kde";
+      defaults.kde.browser = "librewolf.desktop";
     };
 
     programs = {
