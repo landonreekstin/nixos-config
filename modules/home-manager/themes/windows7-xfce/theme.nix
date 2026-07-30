@@ -20,6 +20,7 @@ in {
     ./xfconf.nix
     ./panel.nix
     ./keybindings.nix
+    ./refresh.nix
     ./wallpaper.nix
     ./sounds.nix
     ./idle.nix
