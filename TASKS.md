@@ -195,7 +195,13 @@ Format: `- [ ] **Title** — description`
   UI 9"`, the xscreensaver dialog, KDE aerotheme) is rendering in Noto Sans. Fidelity gap affecting
   all Win7 theming. Fix: source a Segoe UI (or the metric-compatible **Selawik**) font package and
   add it to `fonts.packages` so the declared "Segoe UI" actually resolves.
-- [ ] **XFCE keyboard shortcuts (Hyprland/Win11 parity)** — Today `windows7-xfce/keybindings.nix`
+- [x] **XFCE keyboard shortcuts (Hyprland/Win11 parity)** — Done: whole-file
+  `xfce4-keyboard-shortcuts.xml` seeded from a single `binds` data structure in
+  `keybindings.nix` (mirrors Hyprland app-launch binds via `hyprland.applications`; Win11
+  fallbacks: Super+Arrows Aero snap, Super+L lock, Ctrl+Shift+Esc task manager, Super+D show
+  desktop, Super+F files). Super+/ opens a themed yad cheatsheet generated from the same data.
+  Alt+F4 close required routing Super+Q through `wmctrl` (xfwm4 allows one key per action).
+  Verified on gaming-pc. Original notes below:
   only maps the Super-tap → Start menu (xcape). Bring a fuller shortcut set over, modeled on
   `hyprland/functional.nix`'s binds and/or Windows 11 defaults: launch terminal/browser/files,
   window move/resize/close/(un)maximize, workspace switch + move-window-to-workspace, screenshot,
