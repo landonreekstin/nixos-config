@@ -98,17 +98,21 @@ Format: `- [ ] **Title** — description`
   **Verified single-click in a VM (`testvm`); still needs confirming on real gaming-pc** — can't
   safely reboot it over SSH, and gaming-pc showed the separate whisker-rc bug (below) that can
   stop the Start menu from invoking the flyout at all on a clean boot.
-- [ ] **XFCE: whisker-menu rc files vanish after login (Start menu loses its config)** — On
+- [x] **XFCE: whisker-menu rc files vanish after login (Start menu loses its config)** — On
   gaming-pc's clean boot, `~/.config/xfce4/panel/whiskermenu-{1,201,301}.rc` (the rc's of the
-  *running* whisker plugins) are missing after login, while `whiskermenu-101.rc` (a plugin not
-  instantiated) survives. HM seeds all four correctly (symlinks into the generation) and the
-  `xfceOverride` wipe+relink recreates them at activation, but something removes the active
-  plugins' rc's afterward (likely the live `xfce4-panel` rewriting/removing its read-only store
-  symlinks). Those Start menus then fall back to XFCE defaults → no `command-logout` → the stock
-  `xfce4-session-logout` fading dialog (the original two-click bug) and the win7 power flyout is
-  never invoked. Fix candidates: install the whisker rc as a **writable copy** via
-  `home.activation` instead of a read-only `xdg.configFile` symlink, or reconcile the panel
-  plugin-id layout so seeds match the live plugins. Reproduce/iterate in `vm-sandbox`.
+  *running* whisker plugins) went missing after login, while `whiskermenu-101.rc` (a plugin not
+  instantiated) survived. Root cause: whiskermenu **rewrites its own rc** at runtime
+  (favorites / recently-used), and it was installed as a read-only `xdg.configFile` symlink into
+  the store — so the active plugins' writes clobbered the symlink and the file vanished, leaving
+  those Start menus with no `command-logout` → they fell back to the stock `xfce4-session-logout`
+  fading dialog (the original two-click bug), and the win7 power flyout was never invoked (the
+  inactive plugin 101 never wrote, so its symlink survived). Fix: seed each whisker rc as a
+  **writable copy** via `home.activation` (`seedWin7WhiskerRc`, only when absent so `xfceOverride`
+  ON re-asserts after the wipe and OFF preserves runtime favorites) instead of a symlink.
+  File-level verified on gaming-pc (all four now writable real files with the correct flyout
+  `command-logout`). **Still needs a live-session check** (fresh login → Start opens the themed
+  flyout and the rc's persist after use) — do in `vm-sandbox` or a gaming-pc re-login; this is
+  also what unblocks the power-flyout real-machine verification above.
 - [ ] **Plasma X11: KWin/logout power-menu "Restart" needs two clicks** — Same first-click symptom
   in the Plasma **X11** session (separate mechanism from the XFCE fix above). Investigate the KDE
   logout/shutdown path — `ksmserver` / `org.kde.LogoutPrompt` / `org.kde.Shutdown` DBus + journal

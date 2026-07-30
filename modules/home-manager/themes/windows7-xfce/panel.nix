@@ -303,10 +303,12 @@ let
     show-command-logout=true
     search-actions=5
   '';
-  whiskerRcFiles = lib.listToAttrs (map (e: {
-    name = "xfce4/panel/whiskermenu-${toString (panelBase e.i + 1)}.rc";
-    value.text = whiskerRc;
-  }) indexedMons);
+  # whiskermenu (Start menu) rc — seeded per panel as a WRITABLE copy via home.activation
+  # (below), NOT a read-only xdg.configFile symlink. whiskermenu rewrites its own rc at runtime
+  # (favorites / recently-used), and writing through a store symlink clobbers it — which is why
+  # the *active* panels' whiskermenu-N.rc used to vanish after login, leaving the Start menu
+  # with no command-logout so it fell back to the stock xfce4-session-logout two-click dialog.
+  whiskerRcStore = pkgs.writeText "win7-whiskermenu.rc" whiskerRc;
 
   # Each pinned app becomes a .desktop file in its launcher-<id> directory, per panel.
   launcherFiles = lib.listToAttrs (lib.concatMap
@@ -485,7 +487,6 @@ in {
   config = lib.mkIf win7XfceCondition {
     xdg.configFile = lib.mkMerge [
       launcherFiles
-      whiskerRcFiles
       trayFiles
       redshiftConf
       {
@@ -501,5 +502,22 @@ in {
         '';
       }
     ];
+
+    # Seed each panel's whiskermenu rc as a WRITABLE copy after HM links the generation, rather
+    # than as a read-only xdg.configFile symlink that whiskermenu clobbers when it rewrites its
+    # own state (see whiskerRcStore above). Seed only when the file is absent so the two
+    # xfceOverride modes both behave: ON wipes ~/.config/xfce4/panel each rebuild (entryBefore
+    # linkGeneration), so the file is absent here and gets re-asserted with the current theme
+    # content; OFF leaves the file in place, preserving the user's runtime favorites/recents.
+    home.activation.seedWin7WhiskerRc = lib.hm.dag.entryAfter [ "linkGeneration" ] (
+      lib.concatMapStringsSep "\n" (e:
+        let target = "${config.xdg.configHome}/xfce4/panel/whiskermenu-${toString (panelBase e.i + 1)}.rc";
+        in ''
+          if [ ! -e "${target}" ]; then
+            run ${pkgs.coreutils}/bin/install -Dm644 ${whiskerRcStore} "${target}"
+          fi
+        ''
+      ) indexedMons
+    );
   };
 }
