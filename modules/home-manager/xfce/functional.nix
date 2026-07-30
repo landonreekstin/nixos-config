@@ -36,6 +36,27 @@ let
 
   xfconfDir = "xfce4/xfconf/xfce-perchannel-xml";
 
+  # XFCE default web browser (exo helper layer). On XFCE, xdg-open/xdg-settings route through
+  # xfce4-web-browser.desktop -> `exo-open --launch WebBrowser`, which reads helpers.rc, NOT
+  # mimeapps.list. Point it at the host's chosen default browser via a custom helper so the
+  # exo path matches the generic mimeapps.list default (system/xdg.nix). gtk-launch dispatches
+  # by .desktop id, so this works for native and flatpak browsers and tracks apps.defaults.
+  browserDesktop = customConfig.apps.defaults.${customConfig.apps.defaultSet}.browser;
+  browserId = lib.removeSuffix ".desktop" browserDesktop;
+
+  webBrowserHelper = ''
+    [Desktop Entry]
+    NoDisplay=true
+    Version=1.0
+    Encoding=UTF-8
+    Type=X-XFCE-Helper
+    X-XFCE-Category=WebBrowser
+    Name=Default Browser
+    Icon=${browserId}
+    X-XFCE-Commands=${pkgs.gtk3}/bin/gtk-launch ${browserId}
+    X-XFCE-CommandsWithParameter=${pkgs.gtk3}/bin/gtk-launch ${browserId} "%s"
+  '';
+
   # Base xsettings: neutral GTK/icon/cursor defaults. The theme overrides this whole file.
   xsettingsXml = ''
     <?xml version="1.0" encoding="UTF-8"?>
@@ -78,7 +99,12 @@ in
       {
         "${xfconfDir}/xsettings.xml".text = lib.mkDefault xsettingsXml;
         "${xfconfDir}/xfwm4.xml".text = lib.mkDefault xfwm4Xml;
+        # exo's preferred WebBrowser -> the custom helper written below.
+        "xfce4/helpers.rc".text = lib.mkDefault "WebBrowser=custom-WebBrowser\n";
       }
     ];
+
+    # Custom exo WebBrowser helper launching the host default browser (see note above).
+    xdg.dataFile."xfce4/helpers/custom-WebBrowser.desktop".text = webBrowserHelper;
   };
 }
