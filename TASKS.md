@@ -240,13 +240,16 @@ Format: `- [ ] **Title** — description`
   binds under `/commands/custom/*`. Seed via idempotent `xfconf --create` (like the Start-key
   script) or a whole-file `xfce4-keyboard-shortcuts.xml`. **Get the exact keymap from the user**
   (Win11 Super+E / Super+arrows vs the Hyprland `mainMod` set) — user leans "like my Hyprland".
-- [ ] **Window snapping + grouping (KDE/Win11-like)** — Enable xfwm4's built-in edge tiling: bind
-  Super+←/→/↑/↓ to tile half/quarter/maximize (Win11 Snap feel) and turn on
-  `/general/snap_to_windows` + `/general/snap_to_border` (xfwm4 xfconf) for KDE-style edge
-  snapping; add these to the theme's xfwm4 config next to `keybindings.nix`. **Limitation to flag
-  to the user:** xfwm4 has no Win11 "snap layouts" flyout and no KWin window-tabbing/grouping —
-  closest is edge-tiling + the taskbar's existing window grouping. If true snap-groups are wanted,
-  evaluate a helper vs. accepting xfwm4's native tiling. Get UX direction first.
+- [x] **Window snapping + grouping (KDE/Win11-like)** — Done: drag-to-snap + numpad quadrant
+  tiling. `tile_on_move` is already xfwm4's default, so the real blocker was `wrap_windows=true`
+  (default) siphoning the edge-drag into a workspace-move; set `wrap_windows=false` in the theme's
+  `xfwm4.xml`. Drag → edge=half, corner=quadrant, top=maximize. Keyboard quadrants added to
+  `keybindings.nix` as `Super+Num 7/9/1/3` (numpad diagonals → screen corners), with NumLock
+  forced on via a `numlockx` autostart so the numpad emits `KP_7/9/1/3` (xfwm4 binds one
+  accelerator per action, so only one NumLock state is bindable). Verified over xrdp on gaming-pc:
+  drag-snap + numpad quadrants both work. **Snap *groups* dropped as agreed** — xfwm4 has no
+  KWin/Win11 snap-group memory (linked pair / grouped restore / taskbar pairing) and no clean
+  external tool; out of scope.
 - [ ] **Verify + finalize `win7-xfce-refresh`** — `refresh.nix` adds a command to apply a
   `rebuild` to the live XFCE session without logout/reboot (drops xfconfd's stale cache,
   `xfsettingsd --replace`, SIGHUP xfwm4, relaunch panel, `xfdesktop --reload`). Built and evals,

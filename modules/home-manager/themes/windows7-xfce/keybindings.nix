@@ -41,6 +41,14 @@ let
     { title = "Windows & snapping"; binds = [
         { key = "<Super>Left";         value = "tile_left_key";                 wm = true; desc = "Snap window left"; }
         { key = "<Super>Right";        value = "tile_right_key";                wm = true; desc = "Snap window right"; }
+        # Quadrant tiling on the numpad diagonals (7/9/1/3 sit in the numpad's corners,
+        # matching the screen corners). NumLock is forced on below so these emit KP_7/9/1/3
+        # (not KP_Home/Prior/End/Next) — xfwm4's one-key-per-action rule means we can only
+        # bind one NumLock state per action. Drag-to-corner does the same via tile_on_move.
+        { key = "<Super>KP_7";         value = "tile_up_left_key";              wm = true; desc = "Snap top-left quarter"; }
+        { key = "<Super>KP_9";         value = "tile_up_right_key";             wm = true; desc = "Snap top-right quarter"; }
+        { key = "<Super>KP_1";         value = "tile_down_left_key";            wm = true; desc = "Snap bottom-left quarter"; }
+        { key = "<Super>KP_3";         value = "tile_down_right_key";           wm = true; desc = "Snap bottom-right quarter"; }
         { key = "<Super>Up";           value = "maximize_window_key";           wm = true; desc = "Maximize"; }
         { key = "<Super>Down";         value = "hide_window_key";               wm = true; desc = "Minimize"; }
         { key = "<Super><Shift>Left";  value = "move_window_prev_workspace_key"; wm = true; desc = "Move window to previous workspace"; }
@@ -127,6 +135,7 @@ let
   keyLabel = key: lib.foldl' (s: r: lib.replaceStrings [ (builtins.elemAt r 0) ] [ (builtins.elemAt r 1) ] s) key [
     [ "<Super>" "Super + " ] [ "<Primary>" "Ctrl + " ] [ "<Alt>" "Alt + " ] [ "<Shift>" "Shift + " ]
     [ "Return" "Enter" ] [ "BackSpace" "Backspace" ] [ "Escape" "Esc" ]
+    [ "KP_7" "Num 7" ] [ "KP_9" "Num 9" ] [ "KP_1" "Num 1" ] [ "KP_3" "Num 3" ]
   ];
   cheatLine = b: "  ${keyLabel b.key} — ${b.desc}";
   cheatGroup = g:
@@ -167,6 +176,13 @@ let
   startKeyScript = pkgs.writeShellScript "win7-start-key" ''
     exec ${pkgs.xcape}/bin/xcape -e 'Super_L=Control_L|Escape'
   '';
+
+  # Force NumLock on so the numpad emits KP_7/9/1/3 (the quadrant-tile binds above) rather
+  # than KP_Home/Prior/End/Next. xfwm4 binds one accelerator per action, so we can't cover
+  # both NumLock states — pinning it on makes the numpad diagonals deterministic.
+  numlockScript = pkgs.writeShellScript "win7-numlock" ''
+    exec ${pkgs.numlockx}/bin/numlockx on
+  '';
 in {
   config = lib.mkIf win7XfceCondition {
     # xcape for the Super-tap; clipman provides xfce4-popup-clipman (Super+V) and taskmanager
@@ -177,6 +193,7 @@ in {
       pkgs.xfce.xfce4-clipman-plugin
       pkgs.xfce.xfce4-taskmanager
       pkgs.wmctrl                       # Super+Q close (xfwm4 allows one key per action)
+      pkgs.numlockx                     # NumLock-on autostart (numpad quadrant binds)
     ];
 
     xdg.configFile = {
@@ -187,6 +204,15 @@ in {
         Type=Application
         Name=Windows 7 Start key
         Exec=${startKeyScript}
+        OnlyShowIn=XFCE;
+        X-XFCE-Autostart-enabled=true
+      '';
+
+      "autostart/win7-numlock.desktop".text = ''
+        [Desktop Entry]
+        Type=Application
+        Name=Windows 7 NumLock on
+        Exec=${numlockScript}
         OnlyShowIn=XFCE;
         X-XFCE-Autostart-enabled=true
       '';

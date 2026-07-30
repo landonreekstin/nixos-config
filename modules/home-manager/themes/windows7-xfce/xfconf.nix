@@ -25,6 +25,13 @@ let
         <property name="snap_to_border" type="bool" value="true"/>
         <property name="snap_to_windows" type="bool" value="true"/>
         <property name="show_app_icon" type="bool" value="true"/>
+        <!-- Aero Snap: drag to a screen edge => half, into a corner => quadrant,
+             to the top => maximize. Keyboard equivalents live in keybindings.nix.
+             tile_on_move is already xfwm4's default; wrap_windows (also default-on)
+             competes for the same edge gesture by wrapping the window to the adjacent
+             workspace, so disable it — Windows 7 has no drag-to-next-desktop behavior. -->
+        <property name="tile_on_move" type="bool" value="true"/>
+        <property name="wrap_windows" type="bool" value="false"/>
       </property>
     </channel>
   '';
