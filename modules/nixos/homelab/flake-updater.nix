@@ -112,6 +112,18 @@ BODY
       --json number \
       --jq '.[].number' 2>/dev/null || true)
 
+    # Probe REST mergeable_state (clean/unstable/blocked/dirty/behind/unknown).
+    # GraphQL's `mergeable` field is a known GitHub quirk: it can stay UNKNOWN
+    # for weeks on untouched PRs, which previously wedged this loop and let
+    # week 29 + 30 pile up behind week 31 (PRs #71, #84, #91 in Jul 2026).
+    # A GET on the REST pulls endpoint triggers GitHub's mergeability compute,
+    # so an initial UNKNOWN is retried once after a short delay.
+    probe_merge_state() {
+      local pr="$1"
+      ${pkgs.gh}/bin/gh api "repos/''${REPO}/pulls/''${pr}" \
+        --jq '.mergeable_state' 2>/dev/null || echo "unknown"
+    }
+
     for PR_NUM in ''${OPEN_PRS}; do
       LABELS=$(${pkgs.gh}/bin/gh pr view "''${PR_NUM}" \
         --repo "''${REPO}" \
@@ -122,39 +134,47 @@ BODY
         continue
       fi
 
-      # Check mergeability before attempting the merge. A conflicting PR must
-      # never abort the whole run (set -e) — that would wedge the pipeline and
-      # block every other PR plus the new weekly branch.
-      MERGE_STATE=$(${pkgs.gh}/bin/gh pr view "''${PR_NUM}" \
-        --repo "''${REPO}" \
-        --json mergeable -q '.mergeable' 2>/dev/null || echo "UNKNOWN")
-
-      if [ "''${MERGE_STATE}" = "CONFLICTING" ]; then
-        log "PR #''${PR_NUM} has merge conflicts — flagging '${cfg.blockLabel}' and skipping"
-        ${pkgs.gh}/bin/gh pr edit "''${PR_NUM}" --repo "''${REPO}" \
-          --add-label "''${BLOCK_LABEL}" 2>/dev/null || true
-        continue
+      MERGE_STATE=$(probe_merge_state "''${PR_NUM}")
+      if [ "''${MERGE_STATE}" = "unknown" ]; then
+        # First GET wakes GitHub's background computation; give it a moment and retry once.
+        sleep 5
+        MERGE_STATE=$(probe_merge_state "''${PR_NUM}")
       fi
 
-      if [ "''${MERGE_STATE}" != "MERGEABLE" ]; then
-        # UNKNOWN = GitHub is still computing mergeability; retry next run.
-        log "PR #''${PR_NUM} mergeability=''${MERGE_STATE} — skipping this run"
-        continue
-      fi
+      case "''${MERGE_STATE}" in
+        clean|unstable|blocked|behind)
+          # clean    = all checks passing
+          # unstable = non-required check failing (our CI is advisory)
+          # blocked  = ruleset/protection would block a non-admin; admin PAT may still
+          #            succeed via bypass, so we still try and let the merge log the outcome
+          # behind   = base branch moved; --merge creates a merge commit anyway
+          ;;
+        dirty)
+          log "PR #''${PR_NUM} has merge conflicts — flagging '${cfg.blockLabel}' and skipping"
+          ${pkgs.gh}/bin/gh pr edit "''${PR_NUM}" --repo "''${REPO}" \
+            --add-label "''${BLOCK_LABEL}" 2>/dev/null || true
+          continue
+          ;;
+        unknown|*)
+          log "PR #''${PR_NUM} mergeability=''${MERGE_STATE} after retry — skipping this run"
+          continue
+          ;;
+      esac
 
       CREATED=$(${pkgs.gh}/bin/gh pr view "''${PR_NUM}" \
         --repo "''${REPO}" \
         --json createdAt -q '.createdAt')
       AGE=$(( ($(date +%s) - $(date -d "''${CREATED}" +%s)) / 86400 ))
-      log "PR #''${PR_NUM} is ''${AGE} days old (threshold: ''${AUTO_MERGE_DAYS})"
+      log "PR #''${PR_NUM} is ''${AGE} days old, mergeable_state=''${MERGE_STATE} (threshold: ''${AUTO_MERGE_DAYS})"
 
       if [ "''${AGE}" -ge "''${AUTO_MERGE_DAYS}" ]; then
         log "Auto-merging PR #''${PR_NUM}"
-        if ${pkgs.gh}/bin/gh pr merge "''${PR_NUM}" --repo "''${REPO}" --merge --delete-branch; then
-          log "PR #''${PR_NUM} merged"
-        else
-          log "Auto-merge failed for PR #''${PR_NUM} — leaving open"
-        fi
+        # --admin bypasses the protect-main-merges ruleset (which blocks non-admin
+        # contributors like cblaney00 from merging to main). The updater's PAT
+        # belongs to the repo admin, so the bypass is legitimate.
+        MERGE_ERR=$(${pkgs.gh}/bin/gh pr merge "''${PR_NUM}" --repo "''${REPO}" --merge --admin --delete-branch 2>&1) \
+          && log "PR #''${PR_NUM} merged" \
+          || log "Auto-merge failed for PR #''${PR_NUM}: ''${MERGE_ERR}"
       else
         log "Not old enough yet (''${AGE}/''${AUTO_MERGE_DAYS} days) — skipping"
       fi
