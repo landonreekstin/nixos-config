@@ -158,13 +158,24 @@ let
   # round-trip. Calling the manager directly is deterministic and still skips the fading
   # dialog (Logout is invoked with show_dialog=false). Lock stays on xflock4 (already works).
   sessionBin = "${pkgs.xfce.xfce4-session}/bin";
+  xfconfBin = "${pkgs.xfce.xfconf}/bin";                      # xfconf-query
+  whiskerBin = "${pkgs.xfce.xfce4-whiskermenu-plugin}/bin";   # xfce4-popup-whiskermenu
   pyEnv = pkgs.python3.withPackages (ps: [ ps.pygobject3 ]);
   powerMenuPy = pkgs.writeText "win7-power-menu.py" ''
-    import gi, subprocess, sys
+    import gi, subprocess, sys, signal
     gi.require_version("Gtk", "3.0")
     from gi.repository import Gtk, Gdk, GLib, Gio
 
     LOCK = "${sessionBin}/xflock4"
+    XFCONF = "${xfconfBin}/xfconf-query"
+    POPUP = "${whiskerBin}/xfce4-popup-whiskermenu"
+
+    # Optional whiskermenu instance id: the Start menu passes its own plugin id when it opens
+    # this flyout, so we can keep that Start menu visible underneath (Win7 behavior — the
+    # menu otherwise hides itself the instant its power button is clicked). Absent when the
+    # flyout is invoked standalone -> it behaves as a plain power menu (no reopen/toggle).
+    WID = sys.argv[1] if len(sys.argv) > 1 else None
+    STAY_PROP = "/plugins/plugin-%s/stay-on-focus-out" % WID if WID else None
 
     BUS = Gio.bus_get_sync(Gio.BusType.SESSION, None)
 
@@ -173,8 +184,44 @@ let
                       "org.xfce.Session.Manager", method, params,
                       None, Gio.DBusCallFlags.NONE, -1, None)
 
-    # allow_save=False mirrors the old `--fast` (no session save); Logout show_dialog=False
-    # keeps the fading dialog (and its lost-first-click) out of the picture.
+    def run(argv):
+        try:
+            subprocess.run(argv, check=False,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception as exc:
+            sys.stderr.write("win7-power-menu: " + str(exc) + "\n")
+
+    def set_stay(value):
+        # Toggle whiskermenu "stay visible when focus is lost" live via xfconf so the reopened
+        # Start menu does not hide when this flyout takes focus. -n creates the key if absent;
+        # whiskermenu watches the xfce4-panel channel and applies it immediately.
+        if STAY_PROP:
+            run([XFCONF, "-c", "xfce4-panel", "-p", STAY_PROP,
+                 "-n", "-t", "bool", "-s", "true" if value else "false"])
+
+    def toggle_start():
+        # xfce4-popup-whiskermenu -i N targets exactly this panel's Start menu (shows it if
+        # hidden, hides it if visible) — so on multi-panel hosts only the clicked monitor's
+        # Start is affected, not every panel.
+        if WID:
+            run([POPUP, "-i", WID])
+
+    _restored = [False]
+    def restore():
+        # Revert stay-on-focus-out so the Start menu returns to normal dismiss behavior.
+        # Idempotent: runs at most once across all exit paths (finally + signals).
+        if not _restored[0]:
+            _restored[0] = True
+            set_stay(False)
+
+    # Power actions call the xfce4-session manager's D-Bus methods directly (allow_save=False
+    # mirrors the old `--fast`; Logout show_dialog=False skips the fading confirm dialog). The
+    # CLI equivalents need logind/polkit and silently no-op in the local `ly` session, so the
+    # manager methods are the reliable path. Lock stays on xflock4 (no manager round-trip).
+    # NOTE: Log Off may need two presses — a pre-existing xfce4-session quirk where the FIRST
+    # logout request per session is dropped (rc=0, no teardown), reproducible even from a plain
+    # `xfce4-session-logout --logout` terminal call with no panel/flyout involved. Not caused by
+    # this flyout; tracked separately (see TASKS.md).
     ACTIONS = [
         ("Shut Down", "system-shutdown",    lambda: mgr("Shutdown", GLib.Variant("(b)", (False,)))),
         ("Restart",   "system-reboot",      lambda: mgr("Restart",  GLib.Variant("(b)", (False,)))),
@@ -217,30 +264,87 @@ let
                 box.pack_start(btn, False, False, 0)
 
             self._ready = False
+            self._close_start = False
+            self._acting = False        # set once an action/dismiss is committed
+            self._reraise_ids = []      # pending proactive-raise timeout source ids
             self.connect("key-press-event", self.on_key)
             self.connect("focus-out-event", self.on_focus_out)
             self.connect("destroy", Gtk.main_quit)
-            # Ignore the spurious focus-out that can fire while the window first maps.
+
+        def freeze(self):
+            # Commit to closing: stop the proactive raises and make the focus handlers inert so
+            # nothing re-raises or re-shows the flyout while an action fires / it tears down.
+            # (A stray raise coinciding with the click is what made Log Off need two tries.)
+            self._acting = True
+            for sid in self._reraise_ids:
+                GLib.source_remove(sid)
+            self._reraise_ids = []
+
+        def arm_dismiss(self):
+            # Start the focus-out guard from when the window is actually shown (not built), so
+            # the spurious focus-out during the initial map is ignored while a real click-away
+            # later closes it. Called by main() after show_all().
             GLib.timeout_add(300, self._enable_dismiss)
 
         def _enable_dismiss(self):
             self._ready = True
             return False
 
+        def _pointer_inside(self):
+            # True if the mouse is currently over the flyout's rectangle (root coords).
+            try:
+                seat = Gdk.Display.get_default().get_default_seat()
+                _s, px, py = seat.get_pointer().get_position()
+                gx, gy = self.get_position()
+                a = self.get_allocation()
+                m = 4  # small slop
+                return (gx - m) <= px <= (gx + a.width + m) \
+                   and (gy - m) <= py <= (gy + a.height + m)
+            except Exception:
+                return False
+
+        def raise_self(self):
+            # Pop the flyout back on top and re-take focus.
+            self.present()
+            w = self.get_window()
+            if w is not None:
+                w.raise_()
+
         def on_focus_out(self, *args):
-            if self._ready:
+            # We lost focus. Two very different causes, told apart by the pointer:
+            #  - The Start menu finished its (async, sometimes slow) reopen and grabbed focus on
+            #    top of us — the pointer is still over the flyout (user just clicked the power
+            #    button here). Reclaim top+focus, do NOT close — and do this REGARDLESS of the
+            #    dismiss guard, because in a fast session Start steals focus within the first
+            #    300ms and we must still come back on top.
+            #  - The user clicked the desktop / another window — pointer is elsewhere. Dismiss
+            #    the flyout AND the Start menu, Win7-style (only once the guard has opened, to
+            #    ignore the brief focus churn during our own initial map).
+            if self._acting:
+                return False
+            if self._pointer_inside():
+                self.raise_self()
+            elif self._ready:
+                self._close_start = True
                 Gtk.main_quit()
             return False
 
         def on_key(self, widget, event):
             if event.keyval == Gdk.KEY_Escape:
+                # Esc dismisses both, same as a click-away. (Leaving Start open here stranded it:
+                # once the flyout closed, Start didn't reliably re-take focus, so a later
+                # desktop-click never produced the focus-out that would dismiss it.)
+                self._close_start = True
+                self.freeze()
                 Gtk.main_quit()
             return False
 
         def on_click(self, button, action):
+            # Freeze first so no proactive raise / focus-out reshow steals this activation, then
+            # hide and run the action. No event pump here — pumping processed the hide's own
+            # focus-out, which re-showed the flyout.
+            self.freeze()
             self.hide()
-            while Gtk.events_pending():
-                Gtk.main_iteration()
             try:
                 action()
             except Exception as exc:
@@ -249,9 +353,43 @@ let
 
     def main():
         win = PowerMenu()
+
+        def on_signal(*_):
+            Gtk.main_quit()
+            return GLib.SOURCE_REMOVE
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, sig, on_signal)
+
+        if WID:
+            # Keep the clicked panel's Start menu open under the flyout: let it survive the
+            # focus steal (stay-on-focus-out), then reopen it (whiskermenu hid it running this
+            # command; its anti-toggle timer was reset, so this shows rather than re-hides).
+            set_stay(True)
+            toggle_start()
+
+        # Show the flyout immediately. The Start menu reopens asynchronously and, being
+        # keep-above, tends to map on top of us a moment later. on_focus_out reclaims the top
+        # spot reactively, but also raise proactively a few times over the first ~0.6s (only
+        # while the pointer is still on the flyout, i.e. the user hasn't moved to click away) so
+        # we win the stacking race whenever Start finally maps, without guessing its delay.
         win.show_all()
         win.present()
-        Gtk.main()
+        win.arm_dismiss()
+
+        if WID:
+            def reraise():
+                if not win._acting and win.get_visible() and win._pointer_inside():
+                    win.raise_self()
+                return False
+            for delay in (80, 200, 380, 600):
+                win._reraise_ids.append(GLib.timeout_add(delay, reraise))
+
+        try:
+            Gtk.main()
+        finally:
+            restore()
+            if win._close_start:
+                toggle_start()  # Start is still visible here -> this hides it.
 
     main()
   '';
@@ -270,7 +408,9 @@ let
   };
 
   # Whiskermenu (Start menu) rc — one instance per panel (plugin id base+1). Win7 orb button.
-  whiskerRc = ''
+  # Parameterised by the panel's whiskermenu instance id so command-logout can hand it to the
+  # power flyout, which uses it to keep this same Start menu open underneath (see powerMenuPy).
+  whiskerRcFor = id: ''
     button-title=Start
     button-icon=${orb}
     button-single-row=false
@@ -299,7 +439,7 @@ let
     show-command-settings=true
     command-lockscreen=xflock4
     show-command-lockscreen=true
-    command-logout=${powerMenu}/bin/win7-power-menu
+    command-logout=${powerMenu}/bin/win7-power-menu ${toString id}
     show-command-logout=true
     search-actions=5
   '';
@@ -308,7 +448,7 @@ let
   # (favorites / recently-used), and writing through a store symlink clobbers it — which is why
   # the *active* panels' whiskermenu-N.rc used to vanish after login, leaving the Start menu
   # with no command-logout so it fell back to the stock xfce4-session-logout two-click dialog.
-  whiskerRcStore = pkgs.writeText "win7-whiskermenu.rc" whiskerRc;
+  whiskerRcStoreFor = id: pkgs.writeText "win7-whiskermenu-${toString id}.rc" (whiskerRcFor id);
 
   # Each pinned app becomes a .desktop file in its launcher-<id> directory, per panel.
   launcherFiles = lib.listToAttrs (lib.concatMap
@@ -505,16 +645,18 @@ in {
 
     # Seed each panel's whiskermenu rc as a WRITABLE copy after HM links the generation, rather
     # than as a read-only xdg.configFile symlink that whiskermenu clobbers when it rewrites its
-    # own state (see whiskerRcStore above). Seed only when the file is absent so the two
+    # own state (see whiskerRcStoreFor above). Seed only when the file is absent so the two
     # xfceOverride modes both behave: ON wipes ~/.config/xfce4/panel each rebuild (entryBefore
     # linkGeneration), so the file is absent here and gets re-asserted with the current theme
     # content; OFF leaves the file in place, preserving the user's runtime favorites/recents.
     home.activation.seedWin7WhiskerRc = lib.hm.dag.entryAfter [ "linkGeneration" ] (
       lib.concatMapStringsSep "\n" (e:
-        let target = "${config.xdg.configHome}/xfce4/panel/whiskermenu-${toString (panelBase e.i + 1)}.rc";
+        let
+          id = panelBase e.i + 1;
+          target = "${config.xdg.configHome}/xfce4/panel/whiskermenu-${toString id}.rc";
         in ''
           if [ ! -e "${target}" ]; then
-            run ${pkgs.coreutils}/bin/install -Dm644 ${whiskerRcStore} "${target}"
+            run ${pkgs.coreutils}/bin/install -Dm644 ${whiskerRcStoreFor id} "${target}"
           fi
         ''
       ) indexedMons

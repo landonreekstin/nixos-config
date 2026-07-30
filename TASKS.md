@@ -117,6 +117,29 @@ Format: `- [ ] **Title** — description`
   also what unblocks the power-flyout real-machine verification above.
   *(⏳ REAL-MACHINE TEST PENDING on gaming-pc — VM/file-level verified only. Fix committed on
   `feat/xfce-windows7`.)*
+- [x] **XFCE: Start menu stays open under the power flyout (Win7 fidelity)** — In real Win7 / the
+  KDE aerotheme, clicking the Start power button opens the shut-down flyout *while the Start menu
+  stays open*; in XFCE whiskermenu closed the instant its power button was pressed
+  (`window.cpp` hides unconditionally on any command button). Fix (`windows7-xfce/panel.nix`):
+  each panel's `command-logout` now passes its whiskermenu instance id to `win7-power-menu`,
+  which sets that instance's `stay-on-focus-out` live via xfconf, reopens the exact Start menu
+  with `xfce4-popup-whiskermenu -i N` (so multi-monitor only reopens the clicked panel), and
+  layers the flyout on top. Focus race under xrdp/llvmpipe solved by a pointer-inside heuristic
+  in `on_focus_out` (Start covered us late → reclaim; pointer elsewhere → close both) plus a few
+  proactive re-raises, all frozen once an action/dismiss commits. On close it reverts
+  `stay-on-focus-out`. **Verified live on gaming-pc (xrdp + physical XFCE): flyout stays on top,
+  click-desktop closes both, Escape closes the flyout.** Committed on `feat/xfce-windows7`.
+- [ ] **XFCE: first Log Off per session needs two presses (pre-existing xfce4-session quirk)** —
+  Not caused by the power flyout. In a fresh XFCE session the FIRST logout request is silently
+  dropped by `xfce4-session` (the client returns rc=0, but no teardown happens); the second
+  request works. Proven environmental: reproducible from a plain `xfce4-session-logout --logout
+  --fast` in a terminal with NO panel/flyout involved (needed running twice), and identical
+  through the manager's `Logout` D-Bus method, a detached CLI spawn, and a synchronous CLI spawn
+  — all rc=0, all dropped first-try. `.xsession-errors` shows `xfce4-session ICE connection …
+  rejected` warnings that may be related. Shutdown/Restart/Suspend are unaffected (machine state
+  changes so a dropped first request isn't observable). Next: investigate the session-manager /
+  ICE / SESSION_MANAGER auth setup under `ly` (possibly a stale ICE authority or a
+  first-connection race); a pragmatic flyout-only workaround would be to issue the logout twice.
 - [ ] **Plasma X11: KWin/logout power-menu "Restart" needs two clicks** — Same first-click symptom
   in the Plasma **X11** session (separate mechanism from the XFCE fix above). Investigate the KDE
   logout/shutdown path — `ksmserver` / `org.kde.LogoutPrompt` / `org.kde.Shutdown` DBus + journal
