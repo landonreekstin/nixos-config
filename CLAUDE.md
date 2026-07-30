@@ -411,6 +411,28 @@ Port **3389 is firewalled** — access is SSH-tunnel only, never exposed.
 session and reconnect**. A fresh session re-seeds the xfconf theme and re-runs the
 autostarts, which is exactly the boundary the win7 theme needs.
 
+**Why a plain reconnect/logout often isn't enough — the XFCE daemon-cache problem.** The
+XFCE settings stack caches aggressively: `xfconfd` reads the per-channel XML *only at
+startup* and never re-reads it, and the consumer daemons apply their state once and hold it
+in memory — `xfsettingsd` (GTK theme / Segoe UI / Aero icons / cursor / sounds), `xfwm4`
+(window decorations **and** keyboard shortcuts) and `xfce4-panel` (layout + launcher icons).
+So a `rebuild` reseeds the XML on disk while the live session keeps the old look/binds.
+`xfconfd` is D-Bus-activated and can linger on the user bus across logout, which is why a
+change sometimes only takes after a **reboot**. Concrete reload levers (all confirmed): a
+new keybind needs `kill -HUP <xfwm4-pid>`; panel launcher icons need the panel restarted;
+xsettings needs `xfsettingsd --replace`.
+
+**`win7-xfce-refresh`** (module: `modules/home-manager/themes/windows7-xfce/refresh.nix`,
+installed on win7-xfce hosts) bundles those reloads into one command to apply a `rebuild`
+without logout/reboot: drop xfconfd's stale cache → `xfsettingsd --replace` → SIGHUP xfwm4 →
+relaunch the panel (display-scoped) → `xfdesktop --reload`. **Run it from a terminal *inside*
+the XFCE session** (it needs the full session env — launching the panel from an external
+shell without XAUTHORITY/XDG_* leaves it unmapped/invisible). **STATUS: not yet runtime-
+verified** — currently uncommitted/experimental; the panel kill+relaunch step may still need
+work (fall back to `xfce4-panel -r`, or drop the panel restart and keep only the
+xfconfd-drop + `xfsettingsd --replace` + xfwm4 SIGHUP that are proven). See the TASKS.md
+item before relying on it.
+
 **Gotchas:**
 - The remote session runs on its own private D-Bus bus (`dbus-run-session -- startxfce4`)
   so it coexists with the physical KDE/Hyprland login. Use `startxfce4` (the launcher),

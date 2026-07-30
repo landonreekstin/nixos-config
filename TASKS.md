@@ -216,6 +216,15 @@ Format: `- [ ] **Title** — description`
   to the user:** xfwm4 has no Win11 "snap layouts" flyout and no KWin window-tabbing/grouping —
   closest is edge-tiling + the taskbar's existing window grouping. If true snap-groups are wanted,
   evaluate a helper vs. accepting xfwm4's native tiling. Get UX direction first.
+- [ ] **Verify + finalize `win7-xfce-refresh`** — `refresh.nix` adds a command to apply a
+  `rebuild` to the live XFCE session without logout/reboot (drops xfconfd's stale cache,
+  `xfsettingsd --replace`, SIGHUP xfwm4, relaunch panel, `xfdesktop --reload`). Built and evals,
+  but **not runtime-verified**: it must be run from a terminal *inside* the session (needs full
+  session env) and tested against an actual pending change. The panel kill+relaunch step is the
+  weak point — if it leaves the taskbar invisible even in-session, fall back to `xfce4-panel -r`
+  or drop the panel restart (keep only the xfconfd-drop + `xfsettingsd --replace` + xfwm4 SIGHUP,
+  which are proven for keybinds/icons/xsettings). Then remove the "unverified" caveats in
+  `refresh.nix` and CLAUDE.md's Remote-XFCE section and check this off.
 - [x] **Win7 terminal icon for kitty (gaming-pc + blaney-pc)** — kitty ships `Icon=kitty`, which
   isn't in the "Windows 7 Aero" icon set, so it shows kitty's own logo in the Start menu / taskbar
   / titlebar. Alias `kitty` → the Aero terminal icon in the icon-alias step of
