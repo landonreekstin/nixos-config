@@ -98,8 +98,15 @@ Format: `- [ ] **Title** — description`
   **Verified single-click in a VM (`testvm`); still needs confirming on real gaming-pc** — can't
   safely reboot it over SSH, and gaming-pc showed the separate whisker-rc bug (below) that can
   stop the Start menu from invoking the flyout at all on a clean boot.
-  *(⏳ REAL-MACHINE TEST PENDING on gaming-pc — VM-verified single-click only; do a fresh XFCE
-  login and click Start → Shut Down → Restart. Fix is committed on `feat/xfce-windows7`.)*
+  **✅ REAL-MACHINE VERIFIED (2026-07-31, commit b64d07a):** all five actions fire on the FIRST
+  click on the physical multi-monitor gaming-pc session (Restart/Shut Down/Sleep/Log Off/Lock).
+  Two multi-monitor-only bugs surfaced and were fixed: (1) actions were wired to GTK `"clicked"`
+  (press+release), and a proactive raise (`_reraise_ids`, the "keep Start open underneath"
+  feature) firing between press and release cancelled the button's implicit grab so `"clicked"`
+  never fired — fixed by committing on `button-press-event` and freezing the reraises there
+  (llvmpipe in the VM was slow enough to never land a raise mid-click, which is why the VM
+  "worked"); (2) the dropped-first-request quirk (below) hit Restart/Shut Down/Suspend too, not
+  just Log Off — all four now go through a guarded retry.*
 - [x] **XFCE: whisker-menu rc files vanish after login (Start menu loses its config)** — On
   gaming-pc's clean boot, `~/.config/xfce4/panel/whiskermenu-{1,201,301}.rc` (the rc's of the
   *running* whisker plugins) went missing after login, while `whiskermenu-101.rc` (a plugin not
@@ -145,17 +152,37 @@ Format: `- [ ] **Title** — description`
   output at 0x0 (overlapping the LG). Fixed by having the resolver disable that auto-management
   (`displays` xfconf `/Notify` + `/AutoEnableProfiles` → 0) on every apply so our declarative
   xrandr is the sole authority. Verified live.
-- [ ] **XFCE: first Log Off per session needs two presses (pre-existing xfce4-session quirk)** —
+- [x] **XFCE: first Log Off per session needs two presses (pre-existing xfce4-session quirk)** —
   Not caused by the power flyout. In a fresh XFCE session the FIRST logout request is silently
   dropped by `xfce4-session` (the client returns rc=0, but no teardown happens); the second
   request works. Proven environmental: reproducible from a plain `xfce4-session-logout --logout
   --fast` in a terminal with NO panel/flyout involved (needed running twice), and identical
   through the manager's `Logout` D-Bus method, a detached CLI spawn, and a synchronous CLI spawn
   — all rc=0, all dropped first-try. `.xsession-errors` shows `xfce4-session ICE connection …
-  rejected` warnings that may be related. Shutdown/Restart/Suspend are unaffected (machine state
-  changes so a dropped first request isn't observable). Next: investigate the session-manager /
-  ICE / SESSION_MANAGER auth setup under `ly` (possibly a stale ICE authority or a
-  first-connection race); a pragmatic flyout-only workaround would be to issue the logout twice.
+  rejected` warnings that may be related.
+  **Resolved via workaround (2026-07-31, commit b64d07a):** the win7 power flyout now routes ALL
+  session-manager actions through a guarded retry (`mgr_retry`): issue the request, re-issue once
+  ~0.6s later. Real-machine testing corrected the old note above — **Shut Down / Restart were
+  ALSO affected** (it's the first session-manager request per session that drops, not logout
+  specifically); Suspend is guarded on wall-clock (`time.time()`) so a real suspend doesn't
+  re-fire the retry on resume. All five flyout actions now fire first-click on gaming-pc. The
+  underlying xfce4-session/ICE root cause is worked around, not fixed — reopen if it needs a
+  proper session-manager/ICE fix, but the flyout UX is correct.
+- [ ] **XFCE: active panels' whiskermenu rc destroyed at runtime (flyout durability)** — Found
+  while fixing the flyout first-click. On gaming-pc the two *active* panels' Start-menu rc files
+  (`whiskermenu-1.rc` = main, `whiskermenu-201.rc` = right Samsung) get destroyed during the
+  session, while the *inactive* panels' rc's (101 Dell-disconnected, 301 TV-off) survive — the
+  running whiskermenu plugins lose their rc (prime suspect: the panel-bind script's
+  `xfce4-panel -r`, `panel.nix` `bindPy`). `command-logout` lives only in that perishable rc, so
+  once it's gone the running plugin still shows the flyout (loaded into memory at init) but the
+  NEXT cold login re-seeds it only because `seedWin7WhiskerRc` writes "if absent" at
+  HM-activation — if a mangled/empty rc already exists it's skipped → primary Start falls back to
+  the stock two-click `xfce4-session-logout` dialog. Fix: move from "seed once if absent" to a
+  login-time repair (after the bind script's final `xfce4-panel -r`, re-assert `command-logout` +
+  `show-command-logout` into each active panel's `whiskermenu-<base+1>.rc` when missing, then a
+  single `-r` so whiskermenu re-reads them — confirm the `-r` isn't itself the destroyer first),
+  preserving runtime favorites. Low urgency (flyout works this session) but needed so the flyout
+  is the handler on every cold login. Related commit: b64d07a on `feat/xfce-windows7`.
 - [ ] **Plasma X11: KWin/logout power-menu "Restart" needs two clicks** — Same first-click symptom
   in the Plasma **X11** session (separate mechanism from the XFCE fix above). Investigate the KDE
   logout/shutdown path — `ksmserver` / `org.kde.LogoutPrompt` / `org.kde.Shutdown` DBus + journal
