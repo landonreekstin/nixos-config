@@ -139,7 +139,12 @@ Format: `- [ ] **Title** — description`
   the GUI botches). The resolver now reads that state file at login too, so the last on/off choice
   **persists across sessions**. Persist-only — no schema change, Hyprland untouched (separate state
   file). **Verified live on gaming-pc (4-monitor physical session): toggles work, positions
-  preserved, persists across logout.** Committed on `feat/xfce-windows7`.
+  preserved, persists across logout.** Committed on `feat/xfce-windows7`. Follow-up fix
+  (`89c5cd2`): with a genuinely-powered-on TV, `xfsettingsd`'s display helper reacted to the
+  RandR event from `xrandr --off` and, a few seconds later, re-enabled the still-connected
+  output at 0x0 (overlapping the LG). Fixed by having the resolver disable that auto-management
+  (`displays` xfconf `/Notify` + `/AutoEnableProfiles` → 0) on every apply so our declarative
+  xrandr is the sole authority. Verified live.
 - [ ] **XFCE: first Log Off per session needs two presses (pre-existing xfce4-session quirk)** —
   Not caused by the power flyout. In a fresh XFCE session the FIRST logout request is silently
   dropped by `xfce4-session` (the client returns rc=0, but no teardown happens); the second
