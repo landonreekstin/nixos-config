@@ -162,7 +162,7 @@ let
   whiskerBin = "${pkgs.xfce.xfce4-whiskermenu-plugin}/bin";   # xfce4-popup-whiskermenu
   pyEnv = pkgs.python3.withPackages (ps: [ ps.pygobject3 ]);
   powerMenuPy = pkgs.writeText "win7-power-menu.py" ''
-    import gi, subprocess, sys, signal
+    import gi, subprocess, sys, signal, time
     gi.require_version("Gtk", "3.0")
     from gi.repository import Gtk, Gdk, GLib, Gio
 
@@ -214,19 +214,43 @@ let
             _restored[0] = True
             set_stay(False)
 
+    def mgr_retry(method, params):
+        # xfce4-session under `ly` silently DROPS the FIRST session-manager request per session
+        # (the call returns rc=0 but nothing happens — an ICE/first-connection race); the next
+        # one is honored. This hits Shut Down / Restart / Suspend / Log Off equally (Lock is
+        # unaffected — it's xflock4, not a manager round-trip), and it's not the flyout's click
+        # handling (Lock, same code path, always fires first-click). Work around it by issuing
+        # the request, then re-issuing once ~0.6s later.
+        #   - Shut Down / Restart / Log Off: if the first was honored, teardown SIGTERMs this
+        #     process (see on_signal) before the retry fires, so there is no double action.
+        #   - Suspend: teardown does NOT happen, so guard the retry on WALL time (time.time(),
+        #     which counts time spent suspended) — if the machine actually suspended and resumed,
+        #     far more than a few seconds have passed, so skip the retry instead of re-suspending.
+        def send():
+            try:
+                mgr(method, params)
+            except Exception as exc:
+                sys.stderr.write("win7-power-menu: " + str(exc) + "\n")
+        t0 = time.time()
+        send()
+        def retry():
+            if time.time() - t0 < 3.0:
+                send()          # first request was dropped (no suspend/teardown) -> honor it now
+            Gtk.main_quit()
+            return False
+        GLib.timeout_add(600, retry)
+        return True             # keep the main loop alive for the retry
+
     # Power actions call the xfce4-session manager's D-Bus methods directly (allow_save=False
     # mirrors the old `--fast`; Logout show_dialog=False skips the fading confirm dialog). The
     # CLI equivalents need logind/polkit and silently no-op in the local `ly` session, so the
-    # manager methods are the reliable path. Lock stays on xflock4 (no manager round-trip).
-    # NOTE: Log Off may need two presses — a pre-existing xfce4-session quirk where the FIRST
-    # logout request per session is dropped (rc=0, no teardown), reproducible even from a plain
-    # `xfce4-session-logout --logout` terminal call with no panel/flyout involved. Not caused by
-    # this flyout; tracked separately (see TASKS.md).
+    # manager methods are the reliable path. All four go through mgr_retry for the
+    # first-request-drop workaround above; Lock stays on xflock4 (no manager round-trip).
     ACTIONS = [
-        ("Shut Down", "system-shutdown",    lambda: mgr("Shutdown", GLib.Variant("(b)", (False,)))),
-        ("Restart",   "system-reboot",      lambda: mgr("Restart",  GLib.Variant("(b)", (False,)))),
-        ("Sleep",     "system-suspend",     lambda: mgr("Suspend",  None)),
-        ("Log Off",   "system-log-out",     lambda: mgr("Logout",   GLib.Variant("(bb)", (False, False)))),
+        ("Shut Down", "system-shutdown",    lambda: mgr_retry("Shutdown", GLib.Variant("(b)", (False,)))),
+        ("Restart",   "system-reboot",      lambda: mgr_retry("Restart",  GLib.Variant("(b)", (False,)))),
+        ("Sleep",     "system-suspend",     lambda: mgr_retry("Suspend",  None)),
+        ("Log Off",   "system-log-out",     lambda: mgr_retry("Logout",   GLib.Variant("(bb)", (False, False)))),
         ("Lock",      "system-lock-screen", lambda: subprocess.Popen([LOCK])),
     ]
 
@@ -260,6 +284,7 @@ let
                 lbl.set_xalign(0.0)
                 row.pack_start(lbl, True, True, 0)
                 btn.add(row)
+                btn.connect("button-press-event", self.on_button_press, action)
                 btn.connect("clicked", self.on_click, action)
                 box.pack_start(btn, False, False, 0)
 
@@ -339,17 +364,42 @@ let
                 Gtk.main_quit()
             return False
 
-        def on_click(self, button, action):
+        def _activate(self, action):
+            # Run one flyout action exactly once. Guarded by _acting so the mouse path
+            # (button-press-event) and the keyboard path ("clicked") never double-fire.
+            if self._acting:
+                return
             # Freeze first so no proactive raise / focus-out reshow steals this activation, then
             # hide and run the action. No event pump here — pumping processed the hide's own
             # focus-out, which re-showed the flyout.
             self.freeze()
             self.hide()
+            keep_alive = False
             try:
-                action()
+                keep_alive = bool(action())
             except Exception as exc:
                 sys.stderr.write("win7-power-menu: " + str(exc) + "\n")
-            Gtk.main_quit()
+            # Most actions return None -> quit now. Log Off returns True to keep the main loop
+            # alive briefly for its retry (see logout()); the session teardown or the retry's own
+            # main_quit ends the loop.
+            if not keep_alive:
+                Gtk.main_quit()
+
+        def on_button_press(self, button, event, action):
+            # Commit on the PRESS, not the full press+release "clicked". On multi-monitor X11 a
+            # proactive raise (win._reraise_ids) firing between the press and release cancels the
+            # button's implicit grab, so "clicked" is never emitted and the first click is lost
+            # (the two-click bug — llvmpipe in a VM is slow enough to never land a raise mid-click).
+            # Acting on the press and freezing here (which stops the reraises) makes the first
+            # click always register. Returning True keeps the button out of its pressed state so
+            # "clicked" does not also fire for the mouse path.
+            self._activate(action)
+            return True
+
+        def on_click(self, button, action):
+            # Keyboard activation (Space/Enter on a focused button) emits "clicked" with no
+            # button-press-event; keep this path. _acting guards against the mouse path.
+            self._activate(action)
 
     def main():
         win = PowerMenu()
