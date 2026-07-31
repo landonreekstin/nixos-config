@@ -239,6 +239,13 @@ let
   stateExpr = "\${XDG_STATE_HOME:-$HOME/.local/state}/xfce-monitors/disabled";
 
   applyScript = pkgs.writeShellScript "xfce-apply-monitors" ''
+    # xfsettingsd's display helper otherwise reacts to the RandR event our `xrandr --off`
+    # produces and, a few seconds later, re-enables the still-connected output at 0x0
+    # (overlapping the primary). Disable its auto-management so our declarative xrandr layout is
+    # the sole authority. Idempotent; re-asserted on every apply (login autostart + each toggle).
+    xq=${pkgs.xfce.xfconf}/bin/xfconf-query
+    "$xq" -c displays -p /Notify             -n -t int -s 0 2>/dev/null || true
+    "$xq" -c displays -p /AutoEnableProfiles  -n -t int -s 0 2>/dev/null || true
     exec ${pkgs.python3}/bin/python3 ${resolverPy} ${monitorsJson} "${stateExpr}"
   '';
 
