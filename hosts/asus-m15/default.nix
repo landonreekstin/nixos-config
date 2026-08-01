@@ -86,36 +86,14 @@
       };
       displayManager = {
         enable = true;
-        type = "ly";
-        ly = {
-          theme = "century-series";
-          animationFile = ../../assets/ly/f15-animation-240x67.dur; # 1080p: 240x67 chars
-          ttyRows = 67;
-          ttyCols = 240;
-        };
-        # sddm = {
-        #   theme = "sddm-astronaut";
-        #   customTheme = {
-        #     enable = true;
-        #     wallpaper = ../../assets/wallpapers/spooky-sddm.mp4;
-        #     blur = 2.0;
-        #     roundCorners = 20;
-        #     colors = {
-        #       formBackground = "#1e1e2e";
-        #       dimBackground = "#1e1e2e";
-        #       headerText = "#cdd6f4";
-        #       dateText = "#cdd6f4";
-        #       timeText = "#cdd6f4";
-        #       placeholderText = "#a6adc8";
-        #       loginButtonBackground = "#89b4fa";
-        #       loginButtonText = "#1e1e2e";
-        #       highlightBackground = "#89b4fa";
-        #       systemButtonsIcons = "#cdd6f4";
-        #     };
-        #   };
-        #   screensaver = {
-        #     enable = false;
-        #   };
+        # HTPC auto-login requires SDDM (Ly does not support autoLogin/defaultSession).
+        # Previous Ly F-15 login is preserved below — swap back if not running HTPC mode.
+        type = "sddm";
+        # ly = {
+        #   theme = "century-series";
+        #   animationFile = ../../assets/ly/f15-animation-240x67.dur; # 1080p: 240x67 chars
+        #   ttyRows = 67;
+        #   ttyCols = 240;
         # };
       };
     };
@@ -174,12 +152,15 @@
         "chromium"
         "firefox"
         "claude-code"
+        "mullvad-vpn"
       ];
       homeManager = with pkgs; [
         vscode
         chromium
         firefox
         claude-code
+        gopher64
+        mullvad-vpn
       ];
       flatpak = {
         enable = true;
@@ -200,14 +181,53 @@
     profiles = {
       gaming.enable = true;
       development.gbdk.enable = true;
+      htpc = {
+        enable = true;
+        autoLogin.enable = true;
+        cec = {
+          enable = true;
+          powerOnTv = true;
+          hdmiPort = 1; # adjust to the HDMI port this machine is plugged into on the TV
+        };
+        controllerWake.enable = true;
+        virtualKeyboard.enable = true;
+      };
     };
 
     services = {
       ssh.enable = true;
       vscodeServer.enable = true;
+      # WireGuard VPN — uncomment after in-person setup:
+      #   1. wg genkey | tee /tmp/wg-private.key | wg pubkey  (note the public key)
+      #   2. Add the public key to the WireGuard server as a new peer with IP 10.10.0.4/32
+      #   3. ssh-to-age < /etc/ssh/ssh_host_ed25519_key.pub  (get this host's age key)
+      #   4. Replace age1PLACEHOLDER_asus-m15 in .sops.yaml with the real age key
+      #   5. sudo sops secrets/asus-m15.yaml  (create the file, add wireguard-private-key)
+      #   6. Uncomment the block below and rebuild.
+      #
+      # wireguard.client = {
+      #   enable = true;
+      #   address = "10.10.0.4/32"; # verify this IP is free on the server
+      #   dns = [ "1.1.1.1" ];
+      #   privateKeyFile = config.sops.secrets.wireguard-private-key.path;
+      #   peer = {
+      #     publicKey = "Z1ZtZiXE59cBZvmjkvcWr5nlEtmHVJJ16P0pb4QtFiY=";
+      #     allowedIPs = [ "0.0.0.0/0" ];
+      #     endpoint = "68.184.198.204:51822";
+      #     persistentKeepalive = 25;
+      #   };
+      # };
     };
 
   };
+
+  services.mullvad-vpn.enable = true;
+
+  # Resolve optiplex-nas by hostname (used by Jellyfin Media Player).
+  # When WireGuard is enabled above this routes through the VPN tunnel.
+  networking.hosts."192.168.1.76" = [ "optiplex-nas" ];
+  # Uncomment after setting up the sops secret (step 5 above):
+  # sops.secrets.wireguard-private-key = {};
 
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {

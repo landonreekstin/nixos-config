@@ -4,5 +4,6 @@
 {
   imports = [
     ./gaming.nix
+    ./htpc.nix
   ];
 }
