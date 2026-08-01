@@ -318,5 +318,119 @@ in
       sudo nixos-rebuild switch --upgrade --flake "$FLAKE_PATH" --impure --max-jobs auto --cores 0
       echo "System upgrade complete."
     '')
+  ]) ++ (lib.optionals (cfg.user.name == "insideabush") [
+    # --- Blaney (insideabush) helper commands ---
+    # Deterministic, non-technical-friendly tools. Gated to insideabush; do NOT
+    # use updateCmdPermission here (it is false on blaney-pc).
+
+    (pkgs.writeShellScriptBin "branch-switch" ''
+      #!${pkgs.stdenv.shell}
+      set -uo pipefail
+      REPO="${nixosConfigDir}"
+      cd "$REPO"
+
+      echo "Fetching latest branches..."
+      git fetch --prune origin || true
+      CURRENT=$(git rev-parse --abbrev-ref HEAD)
+
+      # Build a unique branch list (local + origin/*), with main first.
+      mapfile -t REMOTES < <(git branch -r --format='%(refname:short)' \
+        | grep -v 'origin/HEAD' | sed 's#^origin/##')
+      mapfile -t LOCALS  < <(git branch --format='%(refname:short)')
+      BRANCHES=(main)
+      while read -r b; do
+        [ "$b" = main ] && continue
+        BRANCHES+=("$b")
+      done < <(printf '%s\n' "''${REMOTES[@]}" "''${LOCALS[@]}" | sort -u)
+
+      echo
+      echo "Which branch do you want to try?"
+      for i in "''${!BRANCHES[@]}"; do
+        mark=""
+        [ "''${BRANCHES[$i]}" = "$CURRENT" ] && mark="  (current)"
+        printf "  %d) %s%s\n" $((i + 1)) "''${BRANCHES[$i]}" "$mark"
+      done
+      echo
+
+      read -rp "Enter a number (or q to cancel): " CHOICE
+      [ "$CHOICE" = q ] && { echo "Cancelled — nothing changed."; exit 0; }
+      if ! [[ "$CHOICE" =~ ^[0-9]+$ ]] || [ "$CHOICE" -lt 1 ] \
+           || [ "$CHOICE" -gt "''${#BRANCHES[@]}" ]; then
+        echo "That wasn't a valid choice. Nothing changed."
+        exit 1
+      fi
+      TARGET="''${BRANCHES[$((CHOICE - 1))]}"
+      [ "$TARGET" = "$CURRENT" ] && { echo "You're already on $TARGET."; exit 0; }
+
+      # Save the current working changes, tagged with the branch they came from.
+      if [ -n "$(git status --porcelain)" ]; then
+        echo "Saving your current changes (from $CURRENT)..."
+        git stash push -u -m "branch-switch:$CURRENT"
+        echo "Saved — switch back to $CURRENT later to get them back."
+      fi
+
+      echo "Switching to $TARGET..."
+      if git show-ref --verify --quiet "refs/heads/$TARGET"; then
+        git checkout "$TARGET"
+      else
+        git checkout -b "$TARGET" --track "origin/$TARGET"
+      fi
+      git pull --ff-only 2>/dev/null || true   # best-effort latest
+
+      # Offer to restore a stash previously saved for THIS branch.
+      MATCH=$(git stash list | grep -F "branch-switch:$TARGET" | head -1 | cut -d: -f1 || true)
+      if [ -n "$MATCH" ]; then
+        echo
+        echo "You have saved changes from the last time you were on $TARGET."
+        read -rp "Restore them now? (y/N): " R
+        if [[ "$R" =~ ^[Yy]$ ]]; then
+          if git stash pop "$MATCH"; then
+            echo "Restored."
+          else
+            echo "Couldn't auto-restore (conflict); your changes are still saved. Run smart-rebuild if you get stuck."
+          fi
+        else
+          echo "Left them saved."
+        fi
+      fi
+
+      echo
+      echo "Rebuilding for $TARGET..."
+      if rebuild; then
+        echo "Done — you're now on $TARGET."
+      else
+        echo
+        echo "The rebuild for $TARGET failed."
+        echo "  To get back to a working system:   smart-rebuild"
+        echo "  To try to fix this branch:          claude-rebuild-failed"
+        exit 1
+      fi
+    '')
+
+    (pkgs.writeShellScriptBin "blaney-help" ''
+      #!${pkgs.stdenv.shell}
+      cat <<'EOF'
+      Blaney's commands — type any of these in a terminal.
+
+      EVERYDAY
+        rebuild        Apply your config changes to the system
+        sync           Download the latest config from GitHub
+        branch-switch  Pick a branch by number, switch to it, and rebuild
+        smart-rebuild  Safely get back to the latest main and rebuild
+        rb             Rebuild, then reboot
+        c              Clear the screen
+
+      FIX THINGS WITH CLAUDE
+        ccn                    Open Claude in the config folder
+        ccnc                   Open Claude and continue your last chat
+        ccnr                   Open Claude and pick a past chat to resume
+        claude-rebuild-failed  Ask Claude to fix a failed rebuild and make a PR
+
+      OTHER
+        rebuild-test   Try a rebuild temporarily (undone on reboot)
+        ipr            Open the input-remapper (button remap) app
+        blaney-help    Show this list again
+      EOF
+    '')
   ]);
 }

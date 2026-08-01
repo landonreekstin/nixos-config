@@ -57,6 +57,11 @@ git config user.email  # should be: landonreekstin@gmail.com
 - `upgrade` - Update flake inputs and rebuild system in one command
 - `post-install` - Complete initial setup after fresh NixOS installation
 
+#### blaney-pc-only commands (gated to the `insideabush` user)
+Defined in `modules/nixos/common/commands.nix` under `lib.optionals (cfg.user.name == "insideabush")`:
+- `branch-switch` - Numbered-menu branch picker: fetches, lists all branches (main first), stashes current changes (tagged with their source branch), checks out the chosen branch, offers to restore a stash saved for that branch, then rebuilds. On rebuild failure it points the user at `smart-rebuild` / `claude-rebuild-failed`.
+- `blaney-help` - Prints a curated one-line cheat-sheet of the commands insideabush uses. **This is the user-facing command index — keep it in sync when adding/removing blaney commands.**
+
 ### NixOS Rebuild Commands
 
 **CRITICAL: Always use the `rebuild` command instead of manually running `nixos-rebuild`.** The `rebuild` command automatically detects the current host and uses the correct flake target. Manually specifying the wrong hostname (e.g., `--flake .#blaney-pc` on `gaming-pc`) will apply the wrong configuration, potentially removing the user account and causing system boot failures.
