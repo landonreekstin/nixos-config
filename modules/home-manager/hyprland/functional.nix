@@ -543,7 +543,10 @@ in
 
     # Only add plain librewolf if the homeManager.librewolf module is not managing it;
     # that module installs its own patched derivation and having both causes a policies.json conflict.
-    ] ++ lib.optionals (!customConfig.homeManager.librewolf.enable) [
+    # Also skip it on hosts whose Super+B browser is something else entirely (blaney-pc uses
+    # flatpak Chromium) — otherwise disabling the module silently reinstalls librewolf.
+    ] ++ lib.optionals (!customConfig.homeManager.librewolf.enable
+                        && lib.hasInfix "librewolf" customConfig.desktop.hyprland.applications.browser) [
       pkgs.librewolf
     ] ++ lib.optionals customConfig.desktop.wayvnc.enable [
       wayvnc

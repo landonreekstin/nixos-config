@@ -33,6 +33,7 @@
     desktop = {
       environments = [ "kde" "hyprland" ];
       hyprland = {
+        applications.browser = "flatpak run org.chromium.Chromium"; # mirrors blaney-pc
         launcher = {
           enable = true;
           pinnedApps = [
@@ -65,10 +66,6 @@
           "applications:org.kde.plasma-systemmonitor.desktop"
           "applications:org.kde.kcalc.desktop"
         ];
-      };
-      librewolf = {
-        enable = true;
-        overrideConfig = false;
       };
     };
 
