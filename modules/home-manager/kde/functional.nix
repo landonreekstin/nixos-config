@@ -69,6 +69,14 @@ in
       configFile."kwalletrc"."Wallet"."Enabled" =
         lib.mkIf (!customConfig.desktop.kde.kwallet.enable) false;
 
+      # Virtual desktops backing the Meta+1..0 switch/move shortcuts below. KDE ships a
+      # single desktop by default, so those shortcuts would otherwise have no target.
+      # Mirrors the Hyprland workspace layout (1-10).
+      kwin.virtualDesktops = {
+        number = 10;
+        rows = 2;
+      };
+
       shortcuts = {
         kwin = {
           # Window management
@@ -120,42 +128,31 @@ in
           "Window to Desktop 10"               = "Meta+Shift+0";
         };
 
-        # App launcher (matches Super+Space → rofi)
-        krunner = {
-          "_launch" = "Meta+Space";
-        };
+        # App launcher: intentionally unbound — KDE already opens KRunner on the bare Meta
+        # key, so a separate Meta+Space (Hyprland's rofi bind) is redundant here.
 
         # Lock screen (matches Super+Escape → swaylock)
         ksmserver = {
           "Lock Session" = "Meta+Escape";
         };
-
-        # Screenshot region (matches Super+Shift+S → grim+slurp)
-        "org.kde.spectacle" = {
-          "RectangularRegionScreenshot" = "Meta+Shift+S";
-        };
       };
 
-      # Meta+Return → terminal: re-register with kglobalacceld via D-Bus at each session start.
-      # kglobalacceld (Plasma 6) resets [services] entries on logout because they require
-      # runtime app registration. A startup script runs at every KDE login and restores it.
-      # Qt key code: Meta+Return = Qt::MetaModifier(268435456) | Qt::Key_Return(16777220) = 285212676
-      startup.startupScript."register-terminal-shortcut" = {
-        text = ''
-          sleep 2
-          dbus-send --session \
-            --dest=org.kde.kglobalaccel /kglobalaccel \
-            org.kde.KGlobalAccel.doRegister \
-            array:string:"${kdeCfg.terminalApp}.desktop","main","_launch","Launch Terminal" \
-            2>/dev/null || true
-          dbus-send --session \
-            --dest=org.kde.kglobalaccel /kglobalaccel \
-            org.kde.KGlobalAccel.setForeignShortcut \
-            array:string:"${kdeCfg.terminalApp}.desktop","main","_launch","Launch Terminal" \
-            array:int32:285212676 \
-            2>/dev/null || true
-        '';
-        runAlways = true;
+      # Screenshot region (matches Super+Shift+S → grim+slurp). Use the dedicated spectacle
+      # module: it targets the correct component (services/org.kde.spectacle.desktop) and
+      # action id (RectangularRegionScreenShot). The earlier raw shortcuts entry had the
+      # wrong component and mis-cased action ("...Screenshot"), so it never bound.
+      spectacle.shortcuts.captureRectangularRegion = "Meta+Shift+S";
+
+      # Meta+Return → terminal. Bind a command hotkey rather than the app's own `_launch`
+      # action: `_launch` only sticks once the app has registered itself with kglobalaccel,
+      # so declaring it up-front is unreliable (the earlier D-Bus re-register hack never
+      # landed). A command hotkey registers a hidden desktop entry + kglobalshortcutsrc
+      # mapping that kglobalaccel binds directly. `kstart --application` launches the
+      # configured terminal via its desktop file (default org.kde.konsole).
+      hotkeys.commands."launch-terminal" = {
+        name = "Launch Terminal";
+        key = "Meta+Return";
+        command = "kstart --application ${kdeCfg.terminalApp}";
       };
     };
   };
