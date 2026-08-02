@@ -3,7 +3,6 @@
 
 let
   isDesktop = customConfig.desktop.enable;
-  isHyprland = builtins.elem "hyprland" customConfig.desktop.environments;
   d = customConfig.apps.defaults.${customConfig.apps.defaultSet};
 in
 {
@@ -19,11 +18,43 @@ in
   xdg.portal.extraPortals = osConfig.xdg.portal.extraPortals;
 
   # Configure XDG Portals.
-  # Hyprland sessions: use hyprland portal first, fall back to gtk.
-  # The gtk portal's OpenURI respects mimeapps.list and launches directly.
-  # Using "*" on Hyprland lets the KDE portal win for OpenURI, which always
-  # shows its app-chooser dialog instead of using the registered default.
-  xdg.portal.config.common.default = if isHyprland then [ "hyprland" "gtk" ] else [ "*" ];
+  #
+  # Portal config is resolved PER SESSION: xdg-desktop-portal reads only the
+  # first matching file — "<desktop>-portals.conf" (XDG_CURRENT_DESKTOP,
+  # lower-cased) and then "portals.conf" — and never merges them. A generic
+  # portals.conf written here therefore applies to *every* session and shadows
+  # the correct per-desktop configs that Hyprland and plasma-workspace already
+  # ship in share/xdg-desktop-portal/.
+  #
+  # That is what broke screen sharing (Discord/Vesktop/OBS) in KDE sessions:
+  # the session got "hyprland;gtk", and since xdg-desktop-portal-hyprland does
+  # implement ScreenCast it won the lookup outright — leaving the KDE backend
+  # unused and the stream dead, because that backend drives Hyprland's IPC and
+  # cannot serve a KWin session. (xdg-desktop-portal only falls back to the
+  # deprecated UseIn key when *no* configured backend implements the interface,
+  # so the working KDE backend was never considered.)
+  # A bare "*" is equally wrong here: it picks implementations in
+  # lexicographical order, and "hyprland" sorts before "kde".
+  #
+  # Mirror the vendor per-desktop configs explicitly so the right backend wins
+  # in each session regardless of which DEs are installed side by side.
+  xdg.portal.config = {
+    # Matches hyprland's own hyprland-portals.conf. The hyprland backend serves
+    # ScreenCast/Screenshot/GlobalShortcuts; gtk serves the rest, because gtk's
+    # OpenURI respects mimeapps.list and launches the registered default
+    # directly, whereas the KDE portal always shows its app-chooser dialog.
+    hyprland.default = [ "hyprland" "gtk" ];
+
+    # Matches plasma-workspace's own kde-portals.conf.
+    kde = {
+      default = [ "kde" ];
+      "org.freedesktop.impl.portal.Settings" = [ "kde" "gtk" ];
+      "org.freedesktop.impl.portal.Secret" = [ "kwallet" ];
+    };
+
+    # Fallback for any session that is neither of the above.
+    common.default = [ "*" ];
+  };
 
   # -------------------------------------------------------------------------- #
   # Custom desktop entries for TUI wrapper applications
