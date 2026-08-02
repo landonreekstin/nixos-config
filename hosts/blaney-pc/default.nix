@@ -34,6 +34,11 @@
     desktop = {
       environments = [ "kde" "hyprland" ];
       hyprland = {
+        applications = {
+          # Super+B — matches the NAV launcher entry and the KDE default browser.
+          browser = "flatpak run org.chromium.Chromium";
+          chat = "${pkgs.vesktop}/bin/vesktop";
+        };
         launcher = {
           enable = true;
           pinnedApps = [
@@ -121,10 +126,6 @@
           "applications:io.github.nuttyartist.notes.desktop"
         ];
       };
-      librewolf = {
-        enable = true;
-        overrideConfig = false;
-      };
     };
 
     packages = {
@@ -149,6 +150,7 @@
         #chromium
         #discord-canary
         #discord
+        vesktop
         obs-studio
         notes
         CuboCore.corepaint
