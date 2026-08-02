@@ -42,7 +42,11 @@
     # the guest's OpenGL to gaming-pc's real GPU instead of llvmpipe software rendering —
     # a big smoothness jump for Plasma/Hyprland compositing. Needs a host GL stack (fine on
     # gaming-pc). If a host ever shows a black window, fall back to `[ "-vga virtio" ]`.
-    qemu.options = [ "-vga none" "-device virtio-vga-gl" "-display gtk,gl=on" ];
+    # grab-on-hover=on: QEMU grabs the keyboard (incl. Super/Meta) while focused, via the
+    # Wayland keyboard-shortcuts-inhibit protocol — otherwise a Wayland host compositor
+    # (Hyprland/KWin) eats Meta+* binds before they reach the guest, making Super-based
+    # keybinds untestable. Press Ctrl+Alt+G in the window to force the grab on/off.
+    qemu.options = [ "-vga none" "-device virtio-vga-gl" "-display gtk,gl=on,grab-on-hover=on" ];
   };
 
   # --- Guest integration ------------------------------------------------------
