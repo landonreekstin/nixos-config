@@ -8,7 +8,7 @@ let
   #   2. secrets/blaney-pc.yaml exists with `wg-nm-private-key` (Blaney's WG private key)
   # See the WireGuard-VPN setup checklist. Until then this stays false so eval passes
   # without the secret present.
-  blaneyWgVpn = false;
+  blaneyWgVpn = true;
 in
 {
   imports = [
