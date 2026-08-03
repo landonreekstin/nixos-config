@@ -53,6 +53,8 @@
 
     homeManager = {
       enable = true;
+      # Mirror blaney-pc: notify at next login if a walk-away rebuild-shutdown failed.
+      services.rebuildShutdownNotify.enable = true;
       themes = {
         plasmaOverride = true;
         kde = "windows7-alt";      # aerothemeplasma — the thing we're here to test
