@@ -54,6 +54,31 @@
   services.spice-vdagentd.enable = true;
   environment.systemPackages = [ pkgs.spice-vdagent ];
 
+  # --- Headless debug access --------------------------------------------------
+  # Turn on the repo's own ssh module rather than hand-rolling openssh here: it already
+  # installs lando's public keys (users-groups.nix gates them on this same flag), so the
+  # VMs get key-based login with no passwords in the guest. The host hosts set
+  # services.ssh.enable = false, hence mkForce.
+  #
+  # This is what makes a black/blank guest display debuggable: ssh in on port 2222 and
+  # read the session journal instead of guessing at a dark window.
+  #   ssh -p 2222 insideabush@127.0.0.1
+  customConfig.services.ssh.enable = lib.mkForce true;
+
+  # Throwaway VMs — don't stop to ask for a sudo password while debugging.
+  security.sudo.wheelNeedsPassword = false;
+
+  virtualisation.vmVariant.virtualisation.forwardPorts = [
+    {
+      from = "host";
+      host = {
+        address = "127.0.0.1";
+        port = 2222;
+      };
+      guest.port = 22;
+    }
+  ];
+
   # --- Force hardware OFF -----------------------------------------------------
   # The VM has no GPU and no peripherals. Forcing these off also keeps the openrazer
   # out-of-tree kernel module out of the VM runtime — its *build* coverage still comes
