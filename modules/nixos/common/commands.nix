@@ -215,6 +215,27 @@ in
       fi
     '')
 
+    # Run a rebuild, then power off when it finishes — designed to be started and walked
+    # away from. On failure it still powers off (the system is unchanged — a failed switch
+    # keeps the old, working generation), but drops a marker so the user is notified on next
+    # login (see modules/home-manager/services/rebuild-shutdown-notify.nix). NOTE: no `set -e`
+    # here (must reach poweroff even on failure), and `systemctl poweroff` is used WITHOUT sudo
+    # so a long rebuild can't leave it hung on a password prompt with nobody present.
+    (writeShellScriptBin "rebuild-shutdown" ''
+      #!${stdenv.shell}
+      echo "=== rebuild-shutdown: updating, then powering off. You can walk away. ==="
+      MARKER="$HOME/.local/state/rebuild-shutdown-failed"
+      mkdir -p "$HOME/.local/state"
+      rm -f "$MARKER"
+      if rebuild; then
+        echo "Rebuild complete — powering off."
+      else
+        echo "Rebuild FAILED — recording it; you'll be told on next login. Powering off anyway."
+        date > "$MARKER" 2>/dev/null || true
+      fi
+      systemctl poweroff
+    '')
+
     (writeShellScriptBin "rebuild-test" ''
       #!${stdenv.shell}
       set -e
@@ -413,12 +434,13 @@ in
       Blaney's commands — type any of these in a terminal.
 
       EVERYDAY
-        rebuild        Apply your config changes to the system
-        sync           Download the latest config from GitHub
-        branch-switch  Pick a branch by number, switch to it, and rebuild
-        smart-rebuild  Safely get back to the latest main and rebuild
-        rb             Rebuild, then reboot
-        c              Clear the screen
+        rebuild           Apply your config changes to the system
+        rebuild-shutdown  Update the system, then shut down (run and walk away)
+        sync              Download the latest config from GitHub
+        branch-switch     Pick a branch by number, switch to it, and rebuild
+        smart-rebuild     Safely get back to the latest main and rebuild
+        rb                Rebuild, then reboot
+        c                 Clear the screen
 
       FIX THINGS WITH CLAUDE
         ccn                    Open Claude in the config folder

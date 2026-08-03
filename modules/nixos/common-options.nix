@@ -826,6 +826,13 @@ in
             description = "Whether to enable a once-per-login desktop notification when the nixos-config repo has upstream updates.";
           };
         };
+        rebuildShutdownNotify = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Show a critical desktop notification at next login if the last `rebuild-shutdown` failed. Enable on hosts where rebuild-shutdown is used unattended.";
+          };
+        };
       };
       themes = {
         kde = mkOption {
