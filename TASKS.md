@@ -366,6 +366,27 @@ Format: `- [ ] **Title** — description`
   associations are untouched; unlisted types fall through to the host default set). Verified on
   gaming-pc: XFCE→themed apps, KDE→Okular/Gwenview/Dolphin/Kate (zero leakage).
 
+- [ ] **XFCE gaming: compositor stutter — auto-disable xfwm4 compositing during games**
+  *(committed on `feat/xfce-windows7` — ⏳ NEEDS IN-PERSON GAMEPLAY TEST)* — On gaming-pc's XFCE
+  (X11) Win7 session, games showed a high fps counter but choppy/stuttery motion. Root cause:
+  xfwm4 compositing is on (Aero glass) with `vblank_mode=auto` while the multi-monitor X screen
+  is mixed-refresh (LG 180Hz + Samsung portrait 60Hz) — the compositor paces composited
+  (non-unredirected) games to a vblank, so 180fps presents on an uneven ~60Hz cadence. NOT a
+  driver/refresh regression (LG confirmed live at 179.96Hz, no NVIDIA ForceCompositionPipeline)
+  and NOT fixable by rebasing main (flake.lock is byte-identical branch-vs-main; main's 25 extra
+  commits touch nothing gaming/NVIDIA). Fix (`modules/nixos/profiles/gaming.nix`,
+  `gamemodeXfwmCompositor`): a gamemode start/end hook toggles xfwm4 `use_compositing` off while a
+  game runs and back on after — keeps Aero glass on the desktop, drops the compositor only during
+  games. Runtime-guarded on a live xfwm4 (no-op in KDE/Hyprland) and gated on `xfce` in
+  `desktop.environments` (other gaming hosts unaffected — verified: asus-laptop gamemode.ini has
+  no `[custom]`). **Mechanism verified live** (`gamemoderun sleep` flips `use_compositing`
+  false→true→false). **Pending in-person:** launch a real game THROUGH gamemode (Steam launch
+  option `gamemoderun %command%`, or the Lutris/Heroic Feral GameMode toggle) and confirm the
+  choppiness is gone + Aero glass returns on exit. Quick manual isolation without gamemode:
+  `xfconf-query -c xfwm4 -p /general/use_compositing -s false`, launch, then `-s true`.
+  GOTCHA: after any rebuild, restart gamemoded so it reloads `/etc/gamemode.ini` — it's a store
+  symlink whose mtime never changes, so gamemode's auto-reload won't fire
+  (`systemctl --user restart gamemoded`).
 - [ ] **KNOWN ISSUE — enabling XFCE breaks KDE *Wayland* on NVIDIA hosts** — Adding `"xfce"` to
   `environments` forces `services.xserver.enable` system-wide, which breaks the KDE Plasma
   **Wayland** session on gaming-pc's NVIDIA-open + unused-AMD-iGPU box (kwin_wayland: `Atomic

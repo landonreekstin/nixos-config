@@ -18,7 +18,20 @@ let
     "proton-ge-bin"
     "xpadneo" # The package for the kernel module
   ];
-in 
+
+  # gamemode start/end hook: drop xfwm4 compositing while a game runs, restore it after.
+  # On the XFCE (X11) Win7 session the compositor paces composited (non-unredirected) games to a
+  # vblank; with a mixed-refresh multi-monitor layout (e.g. 180Hz LG + 60Hz portrait) that
+  # stutters — high fps counter, choppy feel. Disabling compositing for the game's duration
+  # removes the pacing while keeping Aero glass on the desktop the rest of the time. Guarded on a
+  # running xfwm4 so it's a no-op in KDE/Hyprland (and on non-XFCE gaming hosts). gamemoded's env
+  # may lack the session bus, so set DBUS_SESSION_BUS_ADDRESS explicitly; xfconfd applies it live.
+  gamemodeXfwmCompositor = pkgs.writeShellScript "gamemode-xfwm-compositor" ''
+    export DBUS_SESSION_BUS_ADDRESS="unix:path=''${XDG_RUNTIME_DIR:-/run/user/$(${pkgs.coreutils}/bin/id -u)}/bus"
+    ${pkgs.procps}/bin/pgrep xfwm4 >/dev/null 2>&1 || exit 0
+    ${pkgs.xfce.xfconf}/bin/xfconf-query -c xfwm4 -p /general/use_compositing -n -t bool -s "$1" || true
+  '';
+in
 {
 
   # == Configuration ==
@@ -72,6 +85,14 @@ in
     programs.gamemode = {
       enable = true;
       enableRenice = true;
+      # Only wire the XFCE compositor toggle on hosts that actually run XFCE; the script is also
+      # runtime-guarded on a live xfwm4, so it's doubly safe.
+      settings = lib.mkIf (lib.elem "xfce" config.customConfig.desktop.environments) {
+        custom = {
+          start = "${gamemodeXfwmCompositor} false";
+          end   = "${gamemodeXfwmCompositor} true";
+        };
+      };
     };
     programs.gamescope = {
       enable = true;
