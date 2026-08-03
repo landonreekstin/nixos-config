@@ -52,7 +52,20 @@
   # --- Guest integration ------------------------------------------------------
   services.qemuGuest.enable = true;
   services.spice-vdagentd.enable = true;
-  environment.systemPackages = [ pkgs.spice-vdagent ];
+  environment.systemPackages = [
+    pkgs.spice-vdagent
+
+    # `test-screenshare` — pops the compositor's screen-picker dialog via the
+    # ScreenCast portal, so screen sharing can be confirmed visually without logging
+    # into Discord. Run it from a terminal inside the VM's desktop session.
+    (pkgs.writeShellScriptBin "test-screenshare" ''
+      # Unbuffered: the script blocks in a mainloop waiting for the picker, so buffered
+      # stdout shows nothing at all until it exits when output is piped to a file.
+      export PYTHONUNBUFFERED=1
+      exec ${pkgs.python3.withPackages (ps: [ ps.dbus-python ps.pygobject3 ])}/bin/python3 \
+        ${../scripts/test-screenshare.py} "$@"
+    '')
+  ];
 
   # --- Headless debug access --------------------------------------------------
   # Turn on the repo's own ssh module rather than hand-rolling openssh here: it already
