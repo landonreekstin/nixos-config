@@ -662,14 +662,26 @@ let
       lon=${toString nl.longitude}
     '';
   };
+  # Clipman self-registers an autostart entry named xfce4-clipman-plugin-autostart.desktop
+  # (Hidden=false) the first time it runs. If we launch it under a *different* filename, that
+  # self-written entry becomes a SECOND launcher → clipman's "already running" popup on every
+  # login. So emit the clipboard tray under clipman's own canonical filename: there is then
+  # only ever one entry (our read-only HM symlink), and any runtime self-write lands on the
+  # same path instead of creating a competing one. dropStaleClipmanAutostart (below) clears a
+  # pre-existing real file so HM can own the path.
+  trayFileName = t:
+    if t == "clipboard"
+    then "autostart/xfce4-clipman-plugin-autostart.desktop"
+    else "autostart/win7-tray-${t}.desktop";
   trayFiles = lib.listToAttrs (map (t: {
-    name = "autostart/win7-tray-${t}.desktop";
+    name = trayFileName t;
     value.text = ''
       [Desktop Entry]
       Type=Application
       Name=Windows 7 tray: ${t}
       Exec=${trayCmd.${t}}
       OnlyShowIn=XFCE;
+      Hidden=false
       X-XFCE-Autostart-enabled=true
     '';
   }) trays);
@@ -699,6 +711,19 @@ in {
     # xfceOverride modes both behave: ON wipes ~/.config/xfce4/panel each rebuild (entryBefore
     # linkGeneration), so the file is absent here and gets re-asserted with the current theme
     # content; OFF leaves the file in place, preserving the user's runtime favorites/recents.
+    # Clipman writes ~/.config/autostart/xfce4-clipman-plugin-autostart.desktop (Hidden=false)
+    # as a real file, which HM won't clobber when it links our canonical clipboard autostart
+    # (trayFileName "clipboard"). Remove that real file before linkGeneration — but only when
+    # it's a non-symlink, so we never delete HM's own link. Idempotent across rebuilds.
+    home.activation.dropStaleClipmanAutostart =
+      lib.mkIf (lib.elem "clipboard" trays)
+        (lib.hm.dag.entryBefore [ "linkGeneration" ] ''
+          _clipman_autostart="${config.xdg.configHome}/autostart/xfce4-clipman-plugin-autostart.desktop"
+          if [ -e "$_clipman_autostart" ] && [ ! -L "$_clipman_autostart" ]; then
+            run rm -f "$_clipman_autostart"
+          fi
+        '');
+
     home.activation.seedWin7WhiskerRc = lib.hm.dag.entryAfter [ "linkGeneration" ] (
       lib.concatMapStringsSep "\n" (e:
         let
