@@ -52,7 +52,45 @@
   # --- Guest integration ------------------------------------------------------
   services.qemuGuest.enable = true;
   services.spice-vdagentd.enable = true;
-  environment.systemPackages = [ pkgs.spice-vdagent ];
+  environment.systemPackages = [
+    pkgs.spice-vdagent
+
+    # `test-screenshare` — pops the compositor's screen-picker dialog via the
+    # ScreenCast portal, so screen sharing can be confirmed visually without logging
+    # into Discord. Run it from a terminal inside the VM's desktop session.
+    (pkgs.writeShellScriptBin "test-screenshare" ''
+      # Unbuffered: the script blocks in a mainloop waiting for the picker, so buffered
+      # stdout shows nothing at all until it exits when output is piped to a file.
+      export PYTHONUNBUFFERED=1
+      exec ${pkgs.python3.withPackages (ps: [ ps.dbus-python ps.pygobject3 ])}/bin/python3 \
+        ${../scripts/test-screenshare.py} "$@"
+    '')
+  ];
+
+  # --- Headless debug access --------------------------------------------------
+  # Turn on the repo's own ssh module rather than hand-rolling openssh here: it already
+  # installs lando's public keys (users-groups.nix gates them on this same flag), so the
+  # VMs get key-based login with no passwords in the guest. The host hosts set
+  # services.ssh.enable = false, hence mkForce.
+  #
+  # This is what makes a black/blank guest display debuggable: ssh in on port 2222 and
+  # read the session journal instead of guessing at a dark window.
+  #   ssh -p 2222 insideabush@127.0.0.1
+  customConfig.services.ssh.enable = lib.mkForce true;
+
+  # Throwaway VMs — don't stop to ask for a sudo password while debugging.
+  security.sudo.wheelNeedsPassword = false;
+
+  virtualisation.vmVariant.virtualisation.forwardPorts = [
+    {
+      from = "host";
+      host = {
+        address = "127.0.0.1";
+        port = 2222;
+      };
+      guest.port = 22;
+    }
+  ];
 
   # --- Force hardware OFF -----------------------------------------------------
   # The VM has no GPU and no peripherals. Forcing these off also keeps the openrazer

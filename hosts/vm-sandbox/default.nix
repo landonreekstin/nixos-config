@@ -57,6 +57,7 @@
       homeManager = with pkgs; [
         kitty
         notes
+        vesktop  # screen-share / ScreenCast portal testing in a real Plasma Wayland session
       ];
       flatpak.enable = false;
     };
