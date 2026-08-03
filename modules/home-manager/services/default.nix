@@ -7,5 +7,6 @@
     ./ssh.nix
     ./swayidle.nix
     ./update-notification.nix
+    ./rebuild-shutdown-notify.nix
   ];
 }

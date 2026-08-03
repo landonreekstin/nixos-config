@@ -103,6 +103,8 @@
 
     homeManager = {
       enable = true; # Enable Home Manager for this host
+      # Notify at next login if a walk-away `rebuild-shutdown` failed.
+      services.rebuildShutdownNotify.enable = true;
       themes = {
         plasmaOverride = true;
         kde = "windows7-alt";
