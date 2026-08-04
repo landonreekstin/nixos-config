@@ -92,7 +92,7 @@ let
 
 ### Auto-merge
 
-This PR auto-merges in **''${AUTO_MERGE_DAYS} days** unless the \`''${BLOCK_LABEL}\` label is applied.
+This PR auto-merges on the **following Monday's run** (~''${AUTO_MERGE_DAYS} days after creation) unless the \`''${BLOCK_LABEL}\` label is applied.
 
 **To block:** add the \`''${BLOCK_LABEL}\` label to this PR.
 **To unblock:** push a fix to the branch, then remove the label.
