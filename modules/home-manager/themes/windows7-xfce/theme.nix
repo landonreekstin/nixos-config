@@ -26,6 +26,7 @@ in {
     ./idle.nix
     ./screensaver.nix
     ./mimeapps.nix
+    ./gaming-compositor.nix
   ];
 
   config = lib.mkIf win7XfceCondition {
