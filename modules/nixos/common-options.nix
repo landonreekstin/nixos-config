@@ -1810,8 +1810,13 @@ in
         };
         autoMergeDays = mkOption {
           type = types.int;
-          default = 7;
-          description = "Number of days after PR creation before auto-merging (if not blocked).";
+          default = 6;
+          description = ''
+            Days after PR creation before auto-merging (if not blocked). Set to 6, not 7,
+            because the updater runs Mondays 03:00 UTC but PRs open Mondays 04-09 UTC (after
+            the beta-host build finishes), so the next Monday's check sees ~6d20h — integer 6.
+            A threshold of 7 would defer the merge another full week for a 13-day soak.
+          '';
         };
         betaHost = mkOption {
           type = types.str;

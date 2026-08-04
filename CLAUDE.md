@@ -258,7 +258,7 @@ Flake updates are automated via a systemd service on `optiplex-nas` that runs ev
 
 1. NAS creates branch `update/YYYY-WNN`, runs `nix flake update`, builds all 9 hosts, opens a GitHub PR
 2. **gaming-pc** (`betaTesterHost = true`) automatically tracks the latest `update/*` branch on the next `sync` — it receives the update one week before everyone else
-3. After **7 days**, the NAS auto-merges the PR if no `update-blocked` label is present
+3. On the **following Monday's run** (about 6 days later, since the check runs before the new PR is opened), the NAS auto-merges the prior week's PR if no `update-blocked` label is present. Auto-merge uses `--admin` so it bypasses the `protect-main-merges` ruleset.
 4. All other hosts pick up the update on their next `sync` after the merge
 
 ### Blocking a bad update
@@ -285,7 +285,7 @@ On gaming-pc, running `sync` when a `update/*` branch exists on remote will auto
 
 ### For Claude: how to handle common requests
 
-**"Approve the update" / "let it merge"** — do nothing. The NAS auto-merges after 7 days automatically. There is no action needed; manually merging via `gh pr merge` is wrong and bypasses the soak period.
+**"Approve the update" / "let it merge"** — do nothing. The NAS auto-merges on the following Monday's run automatically. There is no action needed; manually merging via `gh pr merge` is wrong and bypasses the soak period.
 
 **"Block the update" / "don't merge this"**
 ```bash
