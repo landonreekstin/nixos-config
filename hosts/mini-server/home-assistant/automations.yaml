@@ -123,10 +123,9 @@
               sat: "{{ (40 + 60 * progress) | round(1)}}"
           - service: light.turn_on
             target:
-              entity_id:
-                - light.right_desk_lamp
-                - light.standing_lamp
-                - light.nightstand_lamp
+              entity_id: >
+                {{ ['light.right_desk_lamp', 'light.standing_lamp', 'light.nightstand_lamp']
+                   | select('is_state', 'on') | list }}
             data:
               hs_color:
                 - "{{ hue }}"
@@ -165,10 +164,9 @@
               brightness: "{{ (100 - 75 * progress) | round(0) | int }}"
           - service: light.turn_on
             target:
-              entity_id:
-                - light.right_desk_lamp
-                - light.standing_lamp
-                - light.nightstand_lamp
+              entity_id: >
+                {{ ['light.right_desk_lamp', 'light.standing_lamp', 'light.nightstand_lamp']
+                   | select('is_state', 'on') | list }}
             data:
               hs_color:
                 - 0
@@ -215,10 +213,9 @@
               sat: "{{ (40 + 60 * progress) | round(1)}}"
           - service: light.turn_on
             target:
-              entity_id:
-                - light.right_desk_lamp
-                - light.standing_lamp
-                - light.nightstand_lamp
+              entity_id: >
+                {{ ['light.right_desk_lamp', 'light.standing_lamp', 'light.nightstand_lamp']
+                   | select('is_state', 'on') | list }}
             data:
               hs_color:
                 - "{{ hue }}"
