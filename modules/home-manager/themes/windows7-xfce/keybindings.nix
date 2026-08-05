@@ -61,19 +61,27 @@ let
         { key = "<Super>KP_3";         value = "tile_down_right_key";           wm = true; desc = "Snap bottom-right quarter"; }
         { key = "<Super>Up";           value = "maximize_window_key";           wm = true; desc = "Maximize"; }
         { key = "<Super>Down";         value = "hide_window_key";               wm = true; desc = "Minimize"; }
-        { key = "<Super><Shift>Left";  value = "move_window_prev_workspace_key"; wm = true; desc = "Move window to previous workspace"; }
-        { key = "<Super><Shift>Right"; value = "move_window_next_workspace_key"; wm = true; desc = "Move window to next workspace"; }
+        { key = "<Super><Shift>Left";  value = "move_window_to_monitor_left_key";  wm = true; desc = "Move window to monitor left"; }
+        { key = "<Super><Shift>Right"; value = "move_window_to_monitor_right_key"; wm = true; desc = "Move window to monitor right"; }
+        # Prev/next workspace via Super+Ctrl (uses prev_/next_workspace_key so it doesn't
+        # collide with the left_/right_workspace_key actions on the Ctrl+Alt defaults below).
+        { key = "<Super><Primary>Left";  value = "prev_workspace_key"; wm = true; desc = "Previous workspace"; }
+        { key = "<Super><Primary>Right"; value = "next_workspace_key"; wm = true; desc = "Next workspace"; }
         # Alt+F4 owns the native close_window_key action; Super+Q closes via a command
         # (wmctrl) because xfwm4 allows only ONE shortcut per window action — mapping both
         # to close_window_key drops one. Same reason Alt+F10/Alt+F9 are omitted: Super+Up/Down
         # already own maximize/minimize, and a second key on the same action is ignored.
         { key = "<Alt>F4";             value = "close_window_key";              wm = true; desc = "Close window"; }
         { key = "<Super>q";            value = "wmctrl -c :ACTIVE:";            desc = "Close window"; }
-        { key = "<Super>F11";          value = "fullscreen_key";                wm = true; desc = "Toggle fullscreen"; }
+        # Bare F11 (not Super+F11) for Windows-familiar fullscreen. xfwm4 grabs it globally,
+        # so in-app F11 (browser/video) toggles WM fullscreen instead — intentional trade-off.
+        { key = "F11";                 value = "fullscreen_key";                wm = true; desc = "Toggle fullscreen"; }
         { key = "<Super>d";            value = "show_desktop_key";              wm = true; desc = "Show desktop"; }
         { key = "<Alt>Tab";            value = "cycle_windows_key";             wm = true; desc = "Switch window"; }
         { key = "<Alt><Shift>Tab";     value = "cycle_reverse_windows_key";     wm = true; desc = "Switch window (reverse)"; }
-        # Kept xfwm4 defaults with no Super equivalent (no collision) — hidden from cheatsheet.
+        # Kept xfwm4 defaults — hidden from cheatsheet. The Ctrl+Alt+Left/Right workspace
+        # defaults use the left_/right_workspace_key actions, so they don't collide with the
+        # Super+Ctrl prev_/next_workspace_key binds above (different actions).
         { key = "<Alt>F7";             value = "move_window_key";               wm = true; cheat = false; }
         { key = "<Alt>F8";             value = "resize_window_key";             wm = true; cheat = false; }
         { key = "<Alt>space";          value = "popup_menu_key";                wm = true; cheat = false; }
