@@ -908,11 +908,6 @@ in
           default = "none";
           description = "Set the XFCE theme for Home Manager.";
         };
-        xfceOverride = mkEnableOption ''
-          rebuild-enforced XFCE theme. When on, an activation script wipes the xfconf
-          perchannel-xml dir each switch so the seeded theme is re-asserted on every
-          rebuild (the XFCE analog of plasmaOverride). When off (default), the theme is
-          seeded once and user tweaks in XFCE persist across rebuilds'';
         xfcePanel = {
           pinnedApps = mkOption {
             type = with types; listOf (submodule {

@@ -8,9 +8,10 @@
 #
 # xfconf note: home-manager has no xfconf module, so settings are seeded as the
 # per-channel XML files XFCE reads at ~/.config/xfce4/xfconf/xfce-perchannel-xml/.
-# On first session these are authoritative; xfconfd then owns them at runtime (so user
-# tweaks persist). The windows7-xfce theme's `xfceOverride` toggle wipes this dir on
-# each switch when strict re-assertion is wanted.
+# On first session these are authoritative; xfconfd then owns them at runtime. The
+# windows7-xfce theme wipes this dir before every rebuild's linkGeneration so the
+# Nix-declared config is re-asserted each switch (fully declarative — runtime GUI
+# tweaks are intentionally not persisted).
 let
   isXfceDesktop = customConfig.desktop.enable
     && lib.elem "xfce" customConfig.desktop.environments;

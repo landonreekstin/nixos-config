@@ -280,7 +280,6 @@ in
       themes = {
         hyprland = "century-series";
         xfce = "windows7";   # X11 desktop option; pick "Xfce Session" at the Ly greeter
-        xfceOverride = true; # rebuild re-asserts the theme during development (flip off later)
         wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
         xfcePanel.trayApplets = [ "network" "bluetooth" "power" "clipboard" "nightlight" ];
         xfcePanel.nightlight = { tempDay = 6500; tempNight = 1500; };

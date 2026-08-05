@@ -14,7 +14,7 @@
 #
 # This reloads each piece in order: drop xfconfd's stale cache, then reload every consumer so
 # it re-reads the freshly-seeded xfconf. Assumes the seed on disk is current, i.e. run it
-# after a `rebuild` (whose xfceOverride activation re-asserts the perchannel XML). MUST be run
+# after a `rebuild` (whose wipeXfconfForWin7 activation re-asserts the perchannel XML). MUST be run
 # from a terminal *inside* the XFCE session — it needs the full session env (XAUTHORITY /
 # XDG_*); launching the panel from an external shell leaves it unmapped/invisible.
 #

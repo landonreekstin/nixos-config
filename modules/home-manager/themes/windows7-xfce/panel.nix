@@ -707,10 +707,10 @@ in {
 
     # Seed each panel's whiskermenu rc as a WRITABLE copy after HM links the generation, rather
     # than as a read-only xdg.configFile symlink that whiskermenu clobbers when it rewrites its
-    # own state (see whiskerRcStoreFor above). Seed only when the file is absent so the two
-    # xfceOverride modes both behave: ON wipes ~/.config/xfce4/panel each rebuild (entryBefore
-    # linkGeneration), so the file is absent here and gets re-asserted with the current theme
-    # content; OFF leaves the file in place, preserving the user's runtime favorites/recents.
+    # own state (see whiskerRcStoreFor above). The theme's wipeXfconfForWin7 activation removes
+    # ~/.config/xfce4/panel before linkGeneration, so the file is absent here and gets seeded
+    # fresh with the current declared theme content on every rebuild (fully declarative). The
+    # "if absent" guard keeps this idempotent within a generation.
     # Clipman writes ~/.config/autostart/xfce4-clipman-plugin-autostart.desktop (Hidden=false)
     # as a real file, which HM won't clobber when it links our canonical clipboard autostart
     # (trayFileName "clipboard"). Remove that real file before linkGeneration — but only when

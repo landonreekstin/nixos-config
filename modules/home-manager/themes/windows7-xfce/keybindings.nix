@@ -9,8 +9,7 @@
 #     commands/custom, each with override=true (which tells XFCE to use the custom set and
 #     ignore its built-in defaults). Because override drops the defaults, this file also
 #     re-declares the Windows-standard binds worth keeping (Alt+F4, Alt+Tab, Ctrl+Alt+arrows).
-#     On xfceOverride hosts the theme's wipeXfconfForWin7 activation re-asserts this each
-#     rebuild.
+#     The theme's wipeXfconfForWin7 activation re-asserts this XML on every rebuild.
 #  2. xcape, launched from an XDG autostart entry, maps a Super_L *tap* (press+release with no
 #     other key) to Ctrl+Esc — which the XML binds to the Whisker (Start) menu, i.e. Windows'
 #     Start-key behavior. Super still works as a modifier for every real combo below.

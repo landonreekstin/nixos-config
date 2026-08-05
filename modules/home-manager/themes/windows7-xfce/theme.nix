@@ -30,15 +30,14 @@ in {
   ];
 
   config = lib.mkIf win7XfceCondition {
-    # Rebuild-enforced theming (analog of plasmaOverride). When xfceOverride is on, wipe
-    # the xfconf perchannel-xml dir before HM links the new generation so the seeded Win7
-    # XML is re-asserted every switch. When off (default), the theme is seeded once and
-    # runtime XFCE tweaks persist.
-    home.activation = lib.mkIf customConfig.homeManager.themes.xfceOverride {
-      wipeXfconfForWin7 = lib.hm.dag.entryBefore [ "linkGeneration" ] ''
-        run rm -rf "${config.xdg.configHome}/xfce4/xfconf/xfce-perchannel-xml" \
-                   "${config.xdg.configHome}/xfce4/panel"
-      '';
-    };
+    # Fully declarative theming: wipe the xfconf perchannel-xml + panel dirs before HM links
+    # the new generation, so the seeded Win7 config is re-asserted on every rebuild. The
+    # whole theme is Nix-declared (pins/tray/wallpaper/monitors/power via customConfig), so
+    # runtime GUI tweaks are intentionally discarded each switch — this keeps the look and
+    # layout reproducible and avoids .hm-backup litter from HM relinking over runtime files.
+    home.activation.wipeXfconfForWin7 = lib.hm.dag.entryBefore [ "linkGeneration" ] ''
+      run rm -rf "${config.xdg.configHome}/xfce4/xfconf/xfce-perchannel-xml" \
+                 "${config.xdg.configHome}/xfce4/panel"
+    '';
   };
 }

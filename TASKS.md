@@ -206,7 +206,8 @@ Format: `- [ ] **Title** — description`
 > theme, following the KDE/Hyprland functional-vs-theme paradigm. Iterated in `vm-sandbox`.
 > Branch: `feat/xfce-windows7`. Full plan: staged M1–M5. Sandbox-only until M4 passes.
 > Settled: vendor B00merang `Windows-7` (GTK+xfwm4) + reuse aero icons/cursors/sounds;
-> toggleable `homeManager.themes.xfceOverride` (off = seed-once, on = rebuild-enforced).
+> fully declarative — every rebuild re-asserts the Nix-declared theme via `wipeXfconfForWin7`
+> (the old `homeManager.themes.xfceOverride` toggle was removed; see the override task below).
 
 - [ ] **M1 — base XFCE session boots** — `"xfce"` in `desktop.environments` enum;
   `modules/nixos/desktop/xfce.nix` (xserver + desktopManager.xfce + gtk portal + plugins);
@@ -238,8 +239,9 @@ Format: `- [ ] **Title** — description`
   raw `pro-output-N` are unpositioned AUX and stereo players can't route to them; WirePlumber
   had `mute=yes` saved for the `paplay` app name (why the jingle was silent for so long).
 - [ ] **M5 — fidelity + reproducibility pass** — refine `windows7-xfce/*` + `colors.nix`;
-  confirm `xfceOverride` re-asserts theme on rebuild; side-by-side vs KDE aerotheme. Then
-  revert sandbox `defaultSession` and consider real-host rollout.
+  reproducibility confirmed (theme re-asserts on every rebuild — went fully declarative,
+  `xfceOverride` removed; see the override task below); side-by-side vs KDE aerotheme still TODO.
+  Then revert sandbox `defaultSession` and consider real-host rollout.
 
 ### M6 — taskbar/tray polish + declarative options (post-M4 requests)
 
@@ -400,12 +402,20 @@ Format: `- [ ] **Title** — description`
   Wayland works + Plymouth splash still renders + Hyprland fine — one-line, reversible,
   gaming-pc-only. See memory `xfce-breaks-kde-wayland-gaming-pc`.
 
-- [ ] **Test xfceOverride re-assertion (before PR)** — Verify `homeManager.themes.xfceOverride`
-  behaves: ON = rebuild wipes `~/.config/xfce4/{xfconf/xfce-perchannel-xml,panel}` before
-  linkGeneration so the declared theme/pins are re-asserted (runtime tweaks discarded); OFF =
-  runtime tweaks persist. Test on gaming-pc: move/remove a panel launcher, rebuild, confirm ON
-  reverts it and OFF keeps it. Part of M5; do before opening the PR. (Related: flip xfceOverride
-  OFF on gaming-pc/vm-sandbox for daily use once satisfied.)
+- [x] **Test xfceOverride re-assertion → went fully declarative (option removed)** — Verified ON
+  end-to-end on gaming-pc: unpinned System Settings from the taskbar, rebuild's
+  `wipeXfconfForWin7` (entryBefore linkGeneration) wiped `~/.config/xfce4/{xfconf/xfce-perchannel-xml,panel}`
+  and reseeded the declared theme → the pin was restored in all 4 panels (verified on disk +
+  visually), no `.hm-backup` litter. The OFF side did **not** match its intended semantics: the
+  user-facing channels (`xfce4-panel` + launchers, `xfce4-power-manager`) are `xdg.configFile`
+  symlinks HM relinks on *every* activation regardless of the toggle, so OFF re-asserted them
+  too (only the seed-if-absent whiskermenu favorites persisted). Decision (lando): the intended
+  "enforce look, persist user GUI settings" split is feasible but a moderate refactor with
+  seed-once drift; instead **go fully declarative** — removed `homeManager.themes.xfceOverride`
+  entirely and made `wipeXfconfForWin7` unconditional so every rebuild re-asserts the Nix-declared
+  theme (pins/tray/wallpaper/monitors/power via `customConfig`). Byte-identical system derivation
+  on gaming-pc (was already `xfceOverride=true`), so behavior is unchanged from the verified ON.
+  Committed on `feat/xfce-windows7`.
 
 - [x] **Theme the xscreensaver unlock dialog like Windows 7** — Aero light-blue/white palette
   applied. **Key gotcha:** xscreensaver 6's unlock dialog is raw Xlib and reads its theme ONLY

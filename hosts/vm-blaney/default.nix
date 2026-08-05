@@ -66,7 +66,6 @@
         # XFCE windows7 taskbar — mirror blaney-pc EXACTLY so the pre-PR VM check shows his
         # real taskbar (pick "Xfce Session" at Ly). Keep this identical to hosts/blaney-pc.
         xfce = "windows7";
-        xfceOverride = true;
         wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
         # Mirror blaney-pc: XFCE gets the aviation wallpaper (no desktop.monitors → f-15 on all),
         # KDE keeps Win7.

@@ -110,9 +110,8 @@
         kde = "windows7-alt";
         hyprland = "century-series";
         # Win7 XFCE session (X11) as a coexisting login choice — pick "Xfce Session" at Ly.
-        # Enforced (xfceOverride) so the declared taskbar/theme is authoritative on rebuild.
+        # Fully declarative: every rebuild re-asserts the declared taskbar/theme.
         xfce = "windows7";
-        xfceOverride = true;
         wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
         # XFCE session gets the aviation wallpaper (matches his Hyprland/century-series, which
         # also falls back to f-15 since he has no desktop.monitors yet) while KDE keeps the Win7
