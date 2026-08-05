@@ -10,6 +10,17 @@ let
   win7XfceCondition = lib.elem "xfce" customConfig.desktop.environments
     && customConfig.homeManager.themes.xfce == "windows7";
 
+  # The jingle with 5s of leading silence prepended (sox `pad <start> <end>`). The default
+  # sink here is DP/HDMI audio (pro-output-8 → monitor → 3.5mm), and a cold monitor takes
+  # several seconds to lock the DP audio stream before any sound reaches the jack. Priming
+  # with a *separate* short play didn't work — the gap between two paplay streams let the
+  # monitor drop the lock, so the jingle re-locked from scratch and only its final chord
+  # survived. Prepending the silence into ONE continuous stream keeps the device fed while
+  # it warms up; the inaudible lead absorbs the whole cold-lock window.
+  primedJingle = pkgs.runCommand "win7-login-primed.wav" { buildInputs = [ pkgs.sox ]; } ''
+    ${pkgs.sox}/bin/sox "${pkgs.windows7-xfce-sounds}/share/sounds/Windows 7/stereo/desktop-login.wav" $out pad 5 0
+  '';
+
   # Play the startup jingle to the default sink on login. Two robustness measures learned
   # the hard way on gaming-pc:
   #  1. Autostart can fire before audio is up / while the default is a stale virtual sink,
@@ -20,7 +31,7 @@ let
   #     saved-mute quirk, e.g. blaney-pc.)
   loginSound = pkgs.writeShellScript "win7-login-sound" ''
     pactl=${pkgs.pulseaudio}/bin/pactl
-    wav="$HOME/.local/share/sounds/Windows 7/stereo/desktop-login.wav"
+    wav="${primedJingle}"
 
     for _ in $(seq 1 30); do
       sink=$("$pactl" get-default-sink 2>/dev/null)
@@ -30,6 +41,8 @@ let
       esac
     done
 
+    # Single continuous stream: the 5s of silence baked into $wav warms the cold DP/HDMI
+    # sink (see primedJingle above) so the jingle proper is never clipped.
     ${pkgs.pulseaudio}/bin/paplay "$wav" &
     pid=$!
     for _ in $(seq 1 20); do
