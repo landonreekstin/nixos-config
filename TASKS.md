@@ -178,12 +178,21 @@ Format: `- [ ] **Title** — description`
   on gaming-pc: flyout works + themed on a fresh re-login on both active panels.
   **Root cause corrected via an inotify capture:** the deletion is **xfce4-panel's own
   session-lifecycle pruning of whiskermenu rc files**, NOT the bind script's `xfce4-panel -r` —
-  removing the `-r` did NOT stop the deletion (the rc's were still pruned at the logout/login
-  transition, e.g. 1/201/301 deleted, 101 surviving), and left no safety net. So the repair-at-login
-  is the correct robust approach and the "drop the `-r`" idea is a dead end. A genuinely cleaner
-  refinement (optional, unverified): seed the rc from a **pre-panel** hook (xprofile / session-start,
-  before xfce4-panel loads) so whiskermenu reads it at init with no reload needed. Related commit:
-  b64d07a.
+  removing the `-r` did NOT stop the deletion (rc's still pruned at the logout/login transition),
+  so "drop the `-r`" is a dead end. Related commit: b64d07a.
+  **Simplified to a pre-seed (2026-08-06, verified live over RDP — supersedes the reactive repair):**
+  `bindPy.main()` now unconditionally seeds each panel's canonical store rc (`seed_whisker_rcs`)
+  *before* a **single** `xfce4-panel -r`, dropping the detect + second `-r`. The crucial insight from
+  the inotify capture: the flyout depends on the **running whiskermenu plugin holding `command-logout`
+  in memory**, NOT on the on-disk `~/.config/…/whiskermenu-<id>.rc` persisting. The plugin acquires it
+  by *reading* the rc when the panel (re)starts; xfce4-panel then prunes the on-disk copy a few seconds
+  later, which is harmless because the source of truth is the `/nix/store` rc re-applied every login.
+  So seeding right before the single restart loads `command-logout` into the plugin each login with one
+  restart instead of two. Proven with the actual failure scenario: a re-login that *started* with
+  `whiskermenu-1.rc` absent (pruned by the prior session) — the seed `CREATE`d it, the single `-r`
+  loaded it, DELETE pruned it ~2s later, and the Win7 flyout still worked. (My first inotify pass
+  misread this as a failure by checking on-disk persistence rather than the flyout itself; the reactive
+  version deletes the file identically, so the on-disk copy was never the criterion.)
 - [x] **XFCE: Win7 GTK theme/icons/cursor clobbered by century-series (xfsettingsd sync)** — On
   multi-DE hosts the Hyprland theme (century-series) sets the *global* home-manager `gtk.*` options
   (Adwaita-dark / Papirus-Dark / Adwaita → `gtk-3.0/settings.ini`); `xfsettingsd` reads that once at

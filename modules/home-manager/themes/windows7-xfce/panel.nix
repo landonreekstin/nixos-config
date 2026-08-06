@@ -532,13 +532,14 @@ let
     selector = if e.m == null then "" else monSelector e.m;
     isDesc = e.m != null && (useEdid e.m || isDesc e.m.identifier);
     # whiskermenu (Start menu) plugin id for this panel + the canonical rc the bind script
-    # restores after the panel restart clobbers it (keeps the Win7 power flyout durable).
+    # seeds before its single panel restart, so the running plugin picks up command-logout and
+    # the Win7 power flyout stays live every login (see seed_whisker_rcs).
     whiskerId = panelBase e.i + 1;
     whiskerRc = toString (whiskerRcStoreFor (panelBase e.i + 1));
   }) indexedMons));
 
   bindPy = pkgs.writeText "xfce-bind-panels.py" ''
-    import json, os, re, shutil, subprocess, sys, time
+    import json, os, re, shutil, subprocess, sys
 
     XRANDR = "${pkgs.xorg.xrandr}/bin/xrandr"
     XQ = "${pkgs.xfce.xfconf}/bin/xfconf-query"
@@ -612,33 +613,28 @@ let
                         "-p", "/panels/panel-%d/output-name" % panel,
                         "--create", "-t", "string", "-s", value])
 
-    def repair_whisker_rcs(panels):
-        # xfce4-panel -r clobbers the *active* panels' whiskermenu-<id>.rc, dropping the
-        # command-logout line that drives the Win7 power flyout (the inactive-monitor panels'
-        # rc survive). Restore any rc that's missing / lacks command-logout from the canonical
-        # store copy so a plain re-login (no rebuild) keeps the flyout. Returns True if it
-        # repaired anything (caller reloads once so whiskermenu re-reads the good rc).
+    def seed_whisker_rcs(panels):
+        # Write each panel's canonical whiskermenu-<id>.rc (carrying the command-logout line that
+        # drives the Win7 power flyout) from the /nix/store copy, immediately BEFORE the single
+        # panel restart below. What the flyout actually needs is the *running* whiskermenu plugin
+        # to hold command-logout in memory; the plugin gets that by READING this rc when the panel
+        # (re)starts. So seeding here, then restarting once, loads command-logout into the plugin
+        # every login. xfce4-panel prunes the on-disk ~/.config copy again a few seconds later
+        # (its session-lifecycle behavior) — that's harmless: the source of truth is the store rc,
+        # re-applied on the next login. Unconditional copy (no detect): the theme is fully
+        # declarative, so favorites/recent aren't preserved across sessions anyway.
         home = os.path.expanduser("~")
-        repaired = False
         for p in panels:
             wid, src = p.get("whiskerId"), p.get("whiskerRc")
             if not wid or not src:
                 continue
             dst = os.path.join(home, ".config/xfce4/panel/whiskermenu-%d.rc" % wid)
             try:
-                with open(dst) as f:
-                    ok = "command-logout" in f.read()
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                shutil.copyfile(src, dst)
+                os.chmod(dst, 0o644)
             except OSError:
-                ok = False
-            if not ok:
-                try:
-                    os.makedirs(os.path.dirname(dst), exist_ok=True)
-                    shutil.copyfile(src, dst)
-                    os.chmod(dst, 0o644)
-                    repaired = True
-                except OSError:
-                    pass
-        return repaired
+                pass
 
     def main():
         panels = json.load(open(sys.argv[1]))
@@ -659,12 +655,12 @@ let
                 # Monitor absent → bind to a name that can't match so the panel stays hidden
                 # (rather than piling a duplicate onto the primary).
                 set_output(p["panel"], "__absent-panel-%d__" % p["panel"])
+        # Seed the canonical whiskermenu rc's, then restart the panel ONCE. The restart reads the
+        # freshly-seeded rc into each whiskermenu plugin, so the Win7 power flyout's command-logout
+        # is live for this session (see seed_whisker_rcs). No post-restart repair / second -r is
+        # needed — the panel pruning the on-disk copy afterward doesn't affect the running plugin.
+        seed_whisker_rcs(panels)
         subprocess.run([PANEL, "-r"])
-        # Restore the Start-menu flyout config the restart just clobbered, then reload once
-        # (this second -r doesn't change any output-name, so it doesn't re-clobber).
-        time.sleep(1)
-        if repair_whisker_rcs(panels):
-            subprocess.run([PANEL, "-r"])
 
     main()
   '';
