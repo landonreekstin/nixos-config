@@ -168,18 +168,22 @@ Format: `- [ ] **Title** — description`
   re-fire the retry on resume. All five flyout actions now fire first-click on gaming-pc. The
   underlying xfce4-session/ICE root cause is worked around, not fixed — reopen if it needs a
   proper session-manager/ICE fix, but the flyout UX is correct.
-- [x] **XFCE: active panels' whiskermenu rc destroyed at runtime (flyout durability)** — Confirmed:
-  the panel-bind script's `xfce4-panel -r` (`panel.nix` `bindPy`) IS the destroyer — it clobbers the
-  *active* panels' `whiskermenu-1.rc`/`-201.rc` (inactive 101/301 survive), dropping `command-logout`
-  so a later login (no rebuild between) fell back to the stock two-click `xfce4-session-logout`
-  dialog. Fix (447ae6d): `bindPy` now passes each panel's whiskermenu id + canonical store rc in
-  `panelBindJson`, and after the restart restores any rc missing `command-logout` from that store
-  copy, then reloads once so whiskermenu re-reads it. Verified live on gaming-pc: flyout works +
-  themed on a fresh re-login on both active panels. **Caveat:** the reload's `-r` re-deletes the
-  active rc *after* the plugin has read it, so the fix self-heals every login rather than persisting
-  the file on disk. Cleaner follow-up (unblocked but optional): drop the `xfce4-panel -r` entirely
-  and rely on live-xfconf `output-name` binding, so the rc is never deleted (test that panels still
-  bind without the restart first). Related commit: b64d07a.
+- [x] **XFCE: active panels' whiskermenu rc destroyed at runtime (flyout durability)** — The
+  active panels' `whiskermenu-<id>.rc` get deleted during the session, dropping the `command-logout`
+  that drives the Win7 power flyout so a later login (no rebuild between) fell back to the stock
+  two-click `xfce4-session-logout` dialog. Fix (447ae6d): the login panel-bind script (`panel.nix`
+  `bindPy`) now carries each panel's whiskermenu id + canonical store rc in `panelBindJson`, and
+  after the panel restart restores any rc missing `command-logout` from the store copy, then reloads
+  once so whiskermenu re-reads it — so the flyout is re-established on **every** login. Verified live
+  on gaming-pc: flyout works + themed on a fresh re-login on both active panels.
+  **Root cause corrected via an inotify capture:** the deletion is **xfce4-panel's own
+  session-lifecycle pruning of whiskermenu rc files**, NOT the bind script's `xfce4-panel -r` —
+  removing the `-r` did NOT stop the deletion (the rc's were still pruned at the logout/login
+  transition, e.g. 1/201/301 deleted, 101 surviving), and left no safety net. So the repair-at-login
+  is the correct robust approach and the "drop the `-r`" idea is a dead end. A genuinely cleaner
+  refinement (optional, unverified): seed the rc from a **pre-panel** hook (xprofile / session-start,
+  before xfce4-panel loads) so whiskermenu reads it at init with no reload needed. Related commit:
+  b64d07a.
 - [x] **XFCE: Win7 GTK theme/icons/cursor clobbered by century-series (xfsettingsd sync)** — On
   multi-DE hosts the Hyprland theme (century-series) sets the *global* home-manager `gtk.*` options
   (Adwaita-dark / Papirus-Dark / Adwaita → `gtk-3.0/settings.ini`); `xfsettingsd` reads that once at
