@@ -202,6 +202,18 @@ Format: `- [ ] **Title** — description`
   re-asserts `/Net/ThemeName`, `/Net/IconThemeName`, `/Gtk/CursorThemeName` across the first ~8s of
   login; writes only the `xsettings` channel (not gsettings), so the global/Hyprland look is
   untouched. Verified live on gaming-pc (fresh login → Win7 GTK + icons + cursor, held).
+- [ ] **XFCE-over-xrdp: black regions on login until the area is redrawn** — On a fresh RDP login the
+  desktop paints for ~a second then goes partially/fully black; moving the mouse over a region repaints
+  it, and a disconnect+reconnect forces a full redraw and clears it entirely. Observed 2026-08-06 on
+  gaming-pc's `feat/xfce-windows7` session over xrdp. **Cosmetic and xrdp-specific** — the session is
+  fully alive (xfce4-session/panel/xfdesktop/xfwm4 all running, no crash), and the physical console
+  doesn't show it. Cause is xorgxrdp damage-tracking not flushing invalidated framebuffer regions to
+  the client, triggered by the login repaint storm (the `xfce4-panel -r` from the panel-bind autostart
+  + the heavy app-autostart burst — Discord/Spotify/Heroic). NOT caused by the whiskermenu pre-seed
+  change (a panel restart happens every login regardless; the prior reactive version restarted twice).
+  Directions to try: disable/adjust xfwm4 compositing under xrdp; xorgxrdp/xrdp damage or
+  `use_damage`/backing-store options; force a full-screen invalidate shortly after session start
+  (e.g. an autostart `xrefresh` once the panel + autostarts settle). Low priority — reconnect clears it.
 - [ ] **Plasma X11: KWin/logout power-menu "Restart" needs two clicks** — Same first-click symptom
   in the Plasma **X11** session (separate mechanism from the XFCE fix above). Investigate the KDE
   logout/shutdown path — `ksmserver` / `org.kde.LogoutPrompt` / `org.kde.Shutdown` DBus + journal
