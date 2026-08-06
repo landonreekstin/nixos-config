@@ -8,6 +8,30 @@
 let
   win7XfceCondition = lib.elem "xfce" config.customConfig.desktop.environments
     && config.customConfig.homeManager.themes.xfce == "windows7";
+
+  # Real Segoe UI TTFs (the family the theme actually declares — xfconf Gtk/FontName and the
+  # xscreensaver dialog fonts below). vista-fonts does NOT ship Segoe UI, so without this the
+  # whole Win7 look silently falls back to Noto Sans. Vendored from a pinned commit; the
+  # regular file's internal family name is literally "Segoe UI", so fc-match resolves it exactly
+  # (no fontconfig alias needed). Proprietary MS font — same posture as corefonts/vista-fonts.
+  segoe-ui = pkgs.stdenvNoCC.mkDerivation {
+    pname = "segoe-ui";
+    version = "2024-05-16";
+    src = pkgs.fetchFromGitHub {
+      owner = "mrbvrz";
+      repo = "segoe-ui-linux";
+      rev = "a89213b7136da6dd5c3638db1f2c6e814c40fa84";
+      hash = "sha256-0KXfNu/J1/OUnj0jeQDnYgTdeAIHcV+M+vCPie6AZcU=";
+    };
+    dontConfigure = true;
+    dontBuild = true;
+    installPhase = ''
+      runHook preInstall
+      install -Dm644 font/*.ttf -t $out/share/fonts/truetype/segoe-ui
+      runHook postInstall
+    '';
+    meta.license = lib.licenses.unfree;
+  };
 in {
   config = lib.mkIf win7XfceCondition {
     nixpkgs.overlays = [
@@ -55,11 +79,14 @@ in {
       })
     ];
 
-    # Install the Segoe UI font stack (from vista-fonts) so XFCE's xsettings Gtk/FontName
-    # = "Segoe UI 9" resolves. Deliberately does NOT set fonts.defaultFonts — that would
-    # change the system-wide default sans for ALL desktops (KDE/Hyprland) whenever this
-    # theme is enabled. The font is selected per-session via xsettings instead, keeping
+    # Install the Segoe UI font stack so XFCE's xsettings Gtk/FontName = "Segoe UI 9"
+    # resolves. segoe-ui (vendored above) provides the actual Segoe UI family — vista-fonts
+    # ships only Calibri/Cambria/Consolas/etc., NOT Segoe UI, so without segoe-ui the whole
+    # Win7 look silently falls back to Noto Sans. corefonts/vista-fonts stay for the other
+    # ClearType families the theme references. Deliberately does NOT set fonts.defaultFonts —
+    # that would change the system-wide default sans for ALL desktops (KDE/Hyprland) whenever
+    # this theme is enabled. The font is selected per-session via xsettings instead, keeping
     # XFCE enablement non-disruptive on multi-DE hosts.
-    fonts.packages = with pkgs; [ corefonts vista-fonts ];
+    fonts.packages = with pkgs; [ corefonts vista-fonts segoe-ui ];
   };
 }
