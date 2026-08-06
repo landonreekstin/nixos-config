@@ -47,5 +47,13 @@ in
       defaultWindowManager = "${sessionCmd}";
       openFirewall = cfg.openFirewall;
     };
+
+    # The RDP login authenticates through the xrdp-sesman PAM stack, which — unlike ly — does
+    # not unlock gnome-keyring. So the login keyring stays locked in the remote session and
+    # nm-applet's WiFi-secret lookup pops "the login keyring did not get entered…". Load the
+    # gnome-keyring PAM module into xrdp-sesman so the password typed at the RDP prompt unlocks
+    # it, mirroring security.pam.services.ly.enableGnomeKeyring for the physical login.
+    services.gnome.gnome-keyring.enable = true;                 # already true via ly on gaming-pc; keeps the module self-contained
+    security.pam.services.xrdp-sesman.enableGnomeKeyring = true;
   };
 }
