@@ -168,21 +168,27 @@ Format: `- [ ] **Title** — description`
   re-fire the retry on resume. All five flyout actions now fire first-click on gaming-pc. The
   underlying xfce4-session/ICE root cause is worked around, not fixed — reopen if it needs a
   proper session-manager/ICE fix, but the flyout UX is correct.
-- [ ] **XFCE: active panels' whiskermenu rc destroyed at runtime (flyout durability)** — Found
-  while fixing the flyout first-click. On gaming-pc the two *active* panels' Start-menu rc files
-  (`whiskermenu-1.rc` = main, `whiskermenu-201.rc` = right Samsung) get destroyed during the
-  session, while the *inactive* panels' rc's (101 Dell-disconnected, 301 TV-off) survive — the
-  running whiskermenu plugins lose their rc (prime suspect: the panel-bind script's
-  `xfce4-panel -r`, `panel.nix` `bindPy`). `command-logout` lives only in that perishable rc, so
-  once it's gone the running plugin still shows the flyout (loaded into memory at init) but the
-  NEXT cold login re-seeds it only because `seedWin7WhiskerRc` writes "if absent" at
-  HM-activation — if a mangled/empty rc already exists it's skipped → primary Start falls back to
-  the stock two-click `xfce4-session-logout` dialog. Fix: move from "seed once if absent" to a
-  login-time repair (after the bind script's final `xfce4-panel -r`, re-assert `command-logout` +
-  `show-command-logout` into each active panel's `whiskermenu-<base+1>.rc` when missing, then a
-  single `-r` so whiskermenu re-reads them — confirm the `-r` isn't itself the destroyer first),
-  preserving runtime favorites. Low urgency (flyout works this session) but needed so the flyout
-  is the handler on every cold login. Related commit: b64d07a on `feat/xfce-windows7`.
+- [x] **XFCE: active panels' whiskermenu rc destroyed at runtime (flyout durability)** — Confirmed:
+  the panel-bind script's `xfce4-panel -r` (`panel.nix` `bindPy`) IS the destroyer — it clobbers the
+  *active* panels' `whiskermenu-1.rc`/`-201.rc` (inactive 101/301 survive), dropping `command-logout`
+  so a later login (no rebuild between) fell back to the stock two-click `xfce4-session-logout`
+  dialog. Fix (447ae6d): `bindPy` now passes each panel's whiskermenu id + canonical store rc in
+  `panelBindJson`, and after the restart restores any rc missing `command-logout` from that store
+  copy, then reloads once so whiskermenu re-reads it. Verified live on gaming-pc: flyout works +
+  themed on a fresh re-login on both active panels. **Caveat:** the reload's `-r` re-deletes the
+  active rc *after* the plugin has read it, so the fix self-heals every login rather than persisting
+  the file on disk. Cleaner follow-up (unblocked but optional): drop the `xfce4-panel -r` entirely
+  and rely on live-xfconf `output-name` binding, so the rc is never deleted (test that panels still
+  bind without the restart first). Related commit: b64d07a.
+- [x] **XFCE: Win7 GTK theme/icons/cursor clobbered by century-series (xfsettingsd sync)** — On
+  multi-DE hosts the Hyprland theme (century-series) sets the *global* home-manager `gtk.*` options
+  (Adwaita-dark / Papirus-Dark / Adwaita → `gtk-3.0/settings.ini`); `xfsettingsd` reads that once at
+  XFCE session start and syncs it into the `xsettings` channel, overwriting the seeded Win7 GTK
+  theme/icons/cursor (Sound/Font survive — not in the synced set). Decision (lando): keep century's
+  global (Hyprland priority), fix XFCE per-session. Fix (9f1d590, `xfconf.nix`): an XFCE autostart
+  re-asserts `/Net/ThemeName`, `/Net/IconThemeName`, `/Gtk/CursorThemeName` across the first ~8s of
+  login; writes only the `xsettings` channel (not gsettings), so the global/Hyprland look is
+  untouched. Verified live on gaming-pc (fresh login → Win7 GTK + icons + cursor, held).
 - [ ] **Plasma X11: KWin/logout power-menu "Restart" needs two clicks** — Same first-click symptom
   in the Plasma **X11** session (separate mechanism from the XFCE fix above). Investigate the KDE
   logout/shutdown path — `ksmserver` / `org.kde.LogoutPrompt` / `org.kde.Shutdown` DBus + journal
