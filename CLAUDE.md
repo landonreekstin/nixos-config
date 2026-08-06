@@ -425,13 +425,13 @@ xsettings needs `xfsettingsd --replace`.
 **`win7-xfce-refresh`** (module: `modules/home-manager/themes/windows7-xfce/refresh.nix`,
 installed on win7-xfce hosts) bundles those reloads into one command to apply a `rebuild`
 without logout/reboot: drop xfconfd's stale cache → `xfsettingsd --replace` → SIGHUP xfwm4 →
-relaunch the panel (display-scoped) → `xfdesktop --reload`. **Run it from a terminal *inside*
-the XFCE session** (it needs the full session env — launching the panel from an external
-shell without XAUTHORITY/XDG_* leaves it unmapped/invisible). **STATUS: not yet runtime-
-verified** — currently uncommitted/experimental; the panel kill+relaunch step may still need
-work (fall back to `xfce4-panel -r`, or drop the panel restart and keep only the
-xfconfd-drop + `xfsettingsd --replace` + xfwm4 SIGHUP that are proven). See the TASKS.md
-item before relying on it.
+re-run the login panel bind (`win7-bind-panels`) → `xfdesktop --reload`. **Run it from a
+terminal *inside* the XFCE session** (it needs the full session env — launching the panel from
+an external shell without XAUTHORITY/XDG_* leaves it unmapped/invisible). Runtime-verified live
+over RDP (2026-08-06). The panel step reuses `win7-bind-panels` (the same seed→`xfce4-panel -r`
+the login autostart runs), so the Win7 power flyout's `command-logout` survives a refresh — a
+naive panel kill+relaunch would skip the whiskermenu-rc seed and regress the Start power button
+to the two-click dialog.
 
 **Gotchas:**
 - The remote session runs on its own private D-Bus bus (`dbus-run-session -- startxfce4`)

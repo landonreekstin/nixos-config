@@ -18,10 +18,10 @@
 # from a terminal *inside* the XFCE session — it needs the full session env (XAUTHORITY /
 # XDG_*); launching the panel from an external shell leaves it unmapped/invisible.
 #
-# STATUS: NOT yet runtime-verified. The xfconfd-drop + xfsettingsd --replace + xfwm4 SIGHUP
-# pieces are proven (keybinds/icons/xsettings reload), but the panel kill+relaunch (step 4) is
-# unproven in a real in-session run — if it leaves the taskbar invisible, fall back to
-# `xfce4-panel -r` or drop the panel restart. See TASKS.md "Verify + finalize win7-xfce-refresh".
+# Runtime-verified live over RDP on gaming-pc (2026-08-06). Step 4 reuses the login panel bind
+# (win7-bind-panels from panel.nix) rather than a bespoke kill+relaunch, so the seed→`xfce4-panel -r`
+# sequence runs and the Win7 power flyout's command-logout stays live across a refresh — a naive
+# relaunch would skip the seed and regress the Start power button to the two-click dialog.
 let
   win7XfceCondition = lib.elem "xfce" customConfig.desktop.environments
     && customConfig.homeManager.themes.xfce == "windows7";
@@ -51,18 +51,14 @@ let
       pkill -HUP -f xfwm4 2>/dev/null || true
       sleep 1
 
-      # 4) Restart the panel for THIS display. A plain `xfce4-panel -r` can bring the panel
-      #    back without re-reserving its screen strut (an invisible taskbar), so kill this
-      #    session's panel and relaunch it fresh — its plugins exit with it, and the new
-      #    instance reads the freshly-seeded layout via the respawned xfconfd.
-      pgrep -u "$UID" -f xfce4-panel 2>/dev/null | while read -r pid; do
-        [ -r "/proc/$pid/environ" ] || continue
-        if tr '\0' '\n' < "/proc/$pid/environ" 2>/dev/null | grep -qx "DISPLAY=''${DISPLAY}"; then
-          kill "$pid" 2>/dev/null || true
-        fi
-      done
-      sleep 1
-      setsid ${pkgs.xfce.xfce4-panel}/bin/xfce4-panel >/dev/null 2>&1 &
+      # 4) Re-run the exact login panel bind (win7-bind-panels from panel.nix): re-resolve
+      #    monitors → panel outputs, re-seed each whiskermenu rc, then a single `xfce4-panel -r`.
+      #    Reusing the login path (not a bespoke kill+relaunch) is what keeps the Win7 power
+      #    flyout live — the flyout needs the running whiskermenu plugin to hold command-logout
+      #    in memory, which it only acquires by reading the freshly-seeded rc on panel restart.
+      #    A naive relaunch skips the seed → the pruned on-disk rc has no command-logout → the
+      #    Start power button regresses to the stock two-click dialog.
+      win7-bind-panels
 
       # 5) Reload the desktop (wallpaper + desktop icons).
       ${pkgs.xfce.xfdesktop}/bin/xfdesktop --reload 2>/dev/null || true

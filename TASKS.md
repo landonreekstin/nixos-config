@@ -359,15 +359,17 @@ Format: `- [ ] **Title** — description`
   drag-snap + numpad quadrants both work. **Snap *groups* dropped as agreed** — xfwm4 has no
   KWin/Win11 snap-group memory (linked pair / grouped restore / taskbar pairing) and no clean
   external tool; out of scope.
-- [ ] **Verify + finalize `win7-xfce-refresh`** — `refresh.nix` adds a command to apply a
-  `rebuild` to the live XFCE session without logout/reboot (drops xfconfd's stale cache,
-  `xfsettingsd --replace`, SIGHUP xfwm4, relaunch panel, `xfdesktop --reload`). Built and evals,
-  but **not runtime-verified**: it must be run from a terminal *inside* the session (needs full
-  session env) and tested against an actual pending change. The panel kill+relaunch step is the
-  weak point — if it leaves the taskbar invisible even in-session, fall back to `xfce4-panel -r`
-  or drop the panel restart (keep only the xfconfd-drop + `xfsettingsd --replace` + xfwm4 SIGHUP,
-  which are proven for keybinds/icons/xsettings). Then remove the "unverified" caveats in
-  `refresh.nix` and CLAUDE.md's Remote-XFCE section and check this off.
+- [x] **Verify + finalize `win7-xfce-refresh`** — `refresh.nix` applies a `rebuild` to the live
+  XFCE session without logout/reboot (drops xfconfd's stale cache, `xfsettingsd --replace`, SIGHUP
+  xfwm4, re-run login panel bind, `xfdesktop --reload`). **Runtime-verified live over RDP on
+  gaming-pc (2026-08-06):** panel returns visible, xsettings/keybinds/wallpaper reload, and the
+  Win7 power flyout survives. The fix was the panel step: the original bespoke kill+relaunch skipped
+  the whiskermenu-rc seed, so a mid-session refresh would bring the panel back without
+  `command-logout` and regress the Start power button to the two-click dialog. Replaced it with the
+  proven login path — `panel.nix`'s `bindScript` is now a named `win7-bind-panels` command (exposed
+  via `home.packages`) that seeds the rc's then does a single `xfce4-panel -r`; `refresh.nix` step 4
+  just calls it. "Unverified" caveats removed from `refresh.nix` + CLAUDE.md. Committed on
+  `feat/xfce-windows7`.
 - [x] **Win7 terminal icon for kitty (gaming-pc + blaney-pc)** — kitty ships `Icon=kitty`, which
   isn't in the "Windows 7 Aero" icon set, so it shows kitty's own logo in the Start menu / taskbar
   / titlebar. Alias `kitty` → the Aero terminal icon in the icon-alias step of

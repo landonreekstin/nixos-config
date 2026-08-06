@@ -665,7 +665,12 @@ let
     main()
   '';
 
-  bindScript = pkgs.writeShellScript "win7-bind-panels" ''
+  # Login autostart runs this to resolve monitors → panel outputs, seed the whiskermenu rc's
+  # (so the Win7 power flyout's command-logout is live) and restart the panel once. Exposed as
+  # a named `win7-bind-panels` binary (writeShellScriptBin) so it's a stable PATH command that
+  # win7-xfce-refresh can reuse for its panel-reload step instead of a bespoke kill+relaunch —
+  # a naive relaunch skips the seed and drops command-logout, breaking the flyout.
+  bindScript = pkgs.writeShellScriptBin "win7-bind-panels" ''
     exec ${pkgs.python3}/bin/python3 ${bindPy} ${panelBindJson}
   '';
 
@@ -731,12 +736,17 @@ in {
           [Desktop Entry]
           Type=Application
           Name=Windows 7 panel monitor binding
-          Exec=${bindScript}
+          Exec=${bindScript}/bin/win7-bind-panels
           OnlyShowIn=XFCE;
           X-XFCE-Autostart-enabled=true
         '';
       }
     ];
+
+    # Expose the panel monitor-bind/whiskermenu-seed script as a stable PATH command so
+    # win7-xfce-refresh (and manual use) can re-run the exact login panel bind — seed the
+    # whiskermenu rc's then a single `xfce4-panel -r` — keeping the Win7 power flyout live.
+    home.packages = [ bindScript ];
 
     # Seed each panel's whiskermenu rc as a WRITABLE copy after HM links the generation, rather
     # than as a read-only xdg.configFile symlink that whiskermenu clobbers when it rewrites its
