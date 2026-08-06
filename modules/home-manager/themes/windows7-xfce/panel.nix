@@ -531,10 +531,14 @@ let
     primary = e.i == primaryIndex;
     selector = if e.m == null then "" else monSelector e.m;
     isDesc = e.m != null && (useEdid e.m || isDesc e.m.identifier);
+    # whiskermenu (Start menu) plugin id for this panel + the canonical rc the bind script
+    # restores after the panel restart clobbers it (keeps the Win7 power flyout durable).
+    whiskerId = panelBase e.i + 1;
+    whiskerRc = toString (whiskerRcStoreFor (panelBase e.i + 1));
   }) indexedMons));
 
   bindPy = pkgs.writeText "xfce-bind-panels.py" ''
-    import json, re, subprocess, sys
+    import json, os, re, shutil, subprocess, sys, time
 
     XRANDR = "${pkgs.xorg.xrandr}/bin/xrandr"
     XQ = "${pkgs.xfce.xfconf}/bin/xfconf-query"
@@ -608,6 +612,34 @@ let
                         "-p", "/panels/panel-%d/output-name" % panel,
                         "--create", "-t", "string", "-s", value])
 
+    def repair_whisker_rcs(panels):
+        # xfce4-panel -r clobbers the *active* panels' whiskermenu-<id>.rc, dropping the
+        # command-logout line that drives the Win7 power flyout (the inactive-monitor panels'
+        # rc survive). Restore any rc that's missing / lacks command-logout from the canonical
+        # store copy so a plain re-login (no rebuild) keeps the flyout. Returns True if it
+        # repaired anything (caller reloads once so whiskermenu re-reads the good rc).
+        home = os.path.expanduser("~")
+        repaired = False
+        for p in panels:
+            wid, src = p.get("whiskerId"), p.get("whiskerRc")
+            if not wid or not src:
+                continue
+            dst = os.path.join(home, ".config/xfce4/panel/whiskermenu-%d.rc" % wid)
+            try:
+                with open(dst) as f:
+                    ok = "command-logout" in f.read()
+            except OSError:
+                ok = False
+            if not ok:
+                try:
+                    os.makedirs(os.path.dirname(dst), exist_ok=True)
+                    shutil.copyfile(src, dst)
+                    os.chmod(dst, 0o644)
+                    repaired = True
+                except OSError:
+                    pass
+        return repaired
+
     def main():
         panels = json.load(open(sys.argv[1]))
         outputs = get_outputs()
@@ -628,6 +660,11 @@ let
                 # (rather than piling a duplicate onto the primary).
                 set_output(p["panel"], "__absent-panel-%d__" % p["panel"])
         subprocess.run([PANEL, "-r"])
+        # Restore the Start-menu flyout config the restart just clobbered, then reload once
+        # (this second -r doesn't change any output-name, so it doesn't re-clobber).
+        time.sleep(1)
+        if repair_whisker_rcs(panels):
+            subprocess.run([PANEL, "-r"])
 
     main()
   '';
