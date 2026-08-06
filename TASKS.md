@@ -319,12 +319,22 @@ Format: `- [ ] **Title** — description`
   `modules/home-manager/xfce/functional.nix` (filters `desktops` for `"xfce"`) and lands XFCE
   autostart entries end-to-end (verified on gaming-pc). The tray applets + wallpaper/sound
   scripts use the same autostart mechanism.
-- [ ] **XFCE/KDE "Segoe UI" silently falls back to Noto Sans** — `fc-match "Segoe UI"` → Noto Sans:
-  `vista-fonts` (installed by `modules/nixos/themes/windows7-xfce/default.nix` + aerothemeplasma's
-  `plasma-system.nix`) does NOT ship Segoe UI, so the whole Win7 look (GTK `Gtk/FontName = "Segoe
-  UI 9"`, the xscreensaver dialog, KDE aerotheme) is rendering in Noto Sans. Fidelity gap affecting
-  all Win7 theming. Fix: source a Segoe UI (or the metric-compatible **Selawik**) font package and
-  add it to `fonts.packages` so the declared "Segoe UI" actually resolves.
+- [x] **XFCE "Segoe UI" silently falls back to Noto Sans** — `fc-match "Segoe UI"` → Noto Sans:
+  `vista-fonts` (installed by `modules/nixos/themes/windows7-xfce/default.nix`) ships only
+  Calibri/Cambria/Consolas/etc., NOT Segoe UI, so the whole Win7 look (GTK `Gtk/FontName = "Segoe
+  UI 9"`, the xscreensaver dialog) rendered in Noto Sans. **Fixed (abe7a5e):** vendored the real
+  Segoe UI family via a pinned `fetchFromGitHub` (`mrbvrz/segoe-ui-linux`, unfree — same posture as
+  corefonts/vista-fonts) into a `segoe-ui` derivation added to `fonts.packages` in
+  `windows7-xfce/default.nix`; the TTF's internal family name is literally "Segoe UI" so `fc-match`
+  resolves it exactly (no fontconfig alias needed). Verified on gaming-pc: `fc-match "Segoe UI"` →
+  `segoeui.ttf` (was Noto Sans), and the change is visible live in the XFCE session. **Follow-up
+  still open:** the KDE `aerothemeplasma` theme (`plasma-user.nix`/`plasma-system.nix` also declare
+  `Segoe UI`) has the identical gap — left untouched (XFCE-only scope). See below.
+- [ ] **KDE aerothemeplasma "Segoe UI" fallback** — the KDE Win7 theme (optiplex/blaney-pc) declares
+  `Segoe UI` in `plasma-user.nix` (`font`/`menuFont`/…) and `plasma-system.nix`
+  (`fonts.defaultFonts.sansSerif`) but nothing installs it → also falls back to Noto Sans. Port the
+  `segoe-ui` derivation from `windows7-xfce/default.nix` (or lift it into a small shared piece both
+  themes consume) into aerothemeplasma's `fonts.packages`. Verify on a KDE Win7 host.
 - [x] **XFCE keyboard shortcuts (Hyprland/Win11 parity)** — Done: whole-file
   `xfce4-keyboard-shortcuts.xml` seeded from a single `binds` data structure in
   `keybindings.nix` (mirrors Hyprland app-launch binds via `hyprland.applications`; Win11
