@@ -18,7 +18,8 @@ let
     "proton-ge-bin"
     "xpadneo" # The package for the kernel module
   ];
-in 
+
+in
 {
 
   # == Configuration ==
@@ -69,6 +70,10 @@ in
     };
     networking.firewall.allowedUDPPorts = [ 2757 2759 ]; # SuperTuxKarts networking ports
 
+    # gamemode provides CPU-governor/renice benefits for games. The XFCE compositor stutter is
+    # handled separately and launcher-agnostically by the win7-xfce gaming-compositor watcher
+    # (modules/home-manager/themes/windows7-xfce/gaming-compositor.nix), which disables xfwm4
+    # compositing while a fullscreen game is focused — no gamemode start/end hook needed.
     programs.gamemode = {
       enable = true;
       enableRenice = true;

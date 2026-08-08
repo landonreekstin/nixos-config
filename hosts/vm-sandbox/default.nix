@@ -29,7 +29,7 @@
     bootloader.quietBoot = false;
 
     desktop = {
-      environments = [ "kde" "hyprland" ];
+      environments = [ "kde" "hyprland" "xfce" ];
       kde.kwallet.enable = false;
       displayManager = {
         enable = true;
@@ -43,6 +43,7 @@
         plasmaOverride = true;
         kde = "windows7-alt";      # aerothemeplasma (source-built)
         hyprland = "century-series";
+        xfce = "windows7";         # B00merang GTK/xfwm4 + aero cursor/sounds
         wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
       };
       librewolf = {
@@ -79,8 +80,9 @@
 
   # === Host-specific NixOS configuration ===
 
-  # Default to a Plasma (Wayland) session so autologin is unambiguous with two DEs present.
-  services.displayManager.defaultSession = lib.mkDefault "plasma";
+  # Autologin into XFCE while the windows7-xfce theme is under development (M1–M4).
+  # Revert to "plasma" (or pick at the SDDM chooser) once XFCE work is verified.
+  services.displayManager.defaultSession = lib.mkForce "xfce";
 
   # Throwaway login password (autologin covers the GUI; this is for sudo / TTY).
   users.users.${config.customConfig.user.name}.initialPassword = "vm";

@@ -214,7 +214,7 @@ in
           description = "Whether to enable a desktop environment.";
         };
       environments = mkOption {
-        type = types.listOf (types.enum [ "hyprland" "cosmic" "kde" "none" ]);
+        type = types.listOf (types.enum [ "hyprland" "cosmic" "kde" "xfce" "none" ]);
         default = []; # Default to an empty list
         example = [ "kde" "hyprland" ];
         description = "A list of desktop environments or window managers to make available on the system.";
@@ -240,6 +240,31 @@ in
               type = types.str;
               description = "The monitor identifier. Can be a manufacturer description (desc:...) or output name (DP-1, HDMI-A-1, etc.).";
               example = "Dell Inc. DELL S2721HGF DZR2123";
+            };
+            edid = mkOption {
+              type = types.nullOr types.str;
+              default = null;
+              description = ''
+                Optional EDID description substring (make / model / serial) used ONLY by the
+                XFCE X11 monitor resolver to identify this monitor stably regardless of
+                connector-name reordering. Hyprland ignores this and matches on `identifier`.
+                Needed because X11 (NVIDIA) and Wayland report DIFFERENT connector names for
+                the same physical port (e.g. an output that is DP-1 under Wayland is DP-0 under
+                X11), so a shared connector name can't drive both sessions. When null, the XFCE
+                resolver falls back to `identifier`.
+              '';
+              example = "LG ULTRAGEAR";
+            };
+            wallpaper = mkOption {
+              type = types.nullOr types.path;
+              default = null;
+              description = ''
+                Optional per-monitor wallpaper image. Used by the XFCE windows7 wallpaper script
+                to override this monitor's orientation default (portrait → vertical image,
+                landscape → Win7 image) — e.g. to mirror the per-monitor wallpapers the Hyprland
+                theme shows on the same host. null = use the orientation default.
+              '';
+              example = literalExpression "../../assets/wallpapers/f-15-satellite.jpg";
             };
             resolution = mkOption {
               type = types.str;
@@ -328,6 +353,16 @@ in
         '';
       };
       idle = {
+        screensaverTimeout = mkOption {
+          type = types.nullOr types.int;
+          default = null;
+          description = ''
+            Seconds of idle before the screensaver activates (AC power). Currently consumed
+            by XFCE (xfce4-screensaver); locking then follows at idle.lockTimeout. Null =
+            no separate screensaver stage (saver == lock).
+          '';
+          example = 900;
+        };
         lockTimeout = mkOption {
           type = types.nullOr types.int;
           default = 600;
@@ -366,6 +401,28 @@ in
           default = null;
           description = "Name of the monitor to use for wayvnc. Corresponds to monitor.name in desktop.monitors.";
           example = "tv";
+        };
+      };
+      xrdp = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable the xrdp remote-desktop server so a desktop session (e.g. XFCE) can be reached over RDP. Keep openFirewall off and tunnel over SSH for a private setup.";
+        };
+        windowManager = mkOption {
+          type = types.str;
+          default = "startxfce4";
+          description = ''
+            Session command xrdp launches for each remote login. Use the DE's session
+            *launcher* (e.g. "startxfce4", "gnome-session"), not the bare session binary —
+            launchers set up the D-Bus session bus and XDG_* env that xrdp doesn't provide,
+            without which the session exits immediately on login.
+          '';
+        };
+        openFirewall = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Open TCP 3389 on the firewall. Leave false to require an SSH tunnel (ssh -L 3389:localhost:3389).";
         };
       };
       hyprland = {
@@ -846,11 +903,83 @@ in
           default = "none";
           description = "Set the Hyprland theme for Home Manager.";
         };
+        xfce = mkOption {
+          type = types.enum [ "windows7" "none" ];
+          default = "none";
+          description = "Set the XFCE theme for Home Manager.";
+        };
+        xfcePanel = {
+          pinnedApps = mkOption {
+            type = with types; listOf (submodule {
+              options = {
+                name = mkOption { type = str; description = "Launcher label (shown as tooltip)."; };
+                exec = mkOption { type = str; description = "Command to launch."; };
+                icon = mkOption { type = str; description = "Icon name or absolute path."; };
+              };
+            });
+            default = [];
+            description = ''
+              Icon-only app launchers pinned to the XFCE (windows7) taskbar, ordered
+              left→right (the Win7 analog of homeManager.themes.pinnedApps for KDE).
+            '';
+            example = lib.literalExpression ''
+              [ { name = "Files"; exec = "thunar"; icon = "system-file-manager"; } ]
+            '';
+          };
+          trayApplets = mkOption {
+            type = with types; listOf (enum [ "network" "bluetooth" "power" "clipboard" "nightlight" ]);
+            default = [ "network" ];
+            description = ''
+              Status-notifier applets autostarted into the XFCE systray, left→right:
+              network (nm-applet), bluetooth (blueman), power (xfce4-power-manager),
+              clipboard (xfce4-clipman), nightlight (redshift-gtk — day/night color temp).
+            '';
+          };
+          iconSize = mkOption {
+            type = types.ints.between 16 48;
+            default = 28;
+            description = "Panel icon size (px) for the XFCE windows7 taskbar.";
+          };
+          nightlight = {
+            tempDay = mkOption {
+              type = types.ints.between 1000 25000;
+              default = 6500;
+              description = "Daytime color temperature (K) for the nightlight (redshift) applet.";
+            };
+            tempNight = mkOption {
+              type = types.ints.between 1000 25000;
+              default = 3500;
+              description = "Nighttime color temperature (K); lower = warmer.";
+            };
+            latitude = mkOption {
+              type = types.float;
+              default = 41.88;
+              description = "Latitude for redshift's manual day/night transition (default: Chicago).";
+            };
+            longitude = mkOption {
+              type = types.float;
+              default = -87.63;
+              description = "Longitude for redshift's manual day/night transition.";
+            };
+          };
+        };
         wallpaper = mkOption {
           type = types.nullOr types.path;
           default = null;
           description = "Absolute path to the desktop wallpaper. If null, a default will be used.";
           example = "/path/to/my/wallpaper.png";
+        };
+        xfceWallpaper = mkOption {
+          type = types.nullOr types.path;
+          default = null;
+          description = ''
+            Landscape wallpaper for the XFCE windows7 session only, overriding the global
+            `wallpaper` there. Lets a host give XFCE a different (e.g. aviation) wallpaper than
+            its KDE aerotheme without changing the shared `wallpaper`. Portrait monitors still
+            use the vertical default (carrier-top); per-monitor `desktop.monitors.*.wallpaper`
+            overrides both. If null, XFCE falls back to `wallpaper`.
+          '';
+          example = literalExpression "../../assets/wallpapers/f-15-satellite.jpg";
         };
         pinnedApps = mkOption {
           type = with types; listOf str;

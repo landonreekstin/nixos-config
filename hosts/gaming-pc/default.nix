@@ -54,26 +54,43 @@ in
     };
 
     desktop = {
-      environments = [ "kde" "hyprland" ];
+      environments = [ "kde" "hyprland" "xfce" ];
+      # Remote XFCE session over RDP for remote theme work. Port 3389 stays firewalled;
+      # reach it via `ssh -L 3389:localhost:3389 lando@gaming-pc` then RDP to localhost.
+      xrdp.enable = true;
       monitors = [
+        # `identifier` = Wayland/DRM connector name (what Hyprland matches on — desc: matching
+        # is unreliable in this Hyprland build). `edid` = EDID description substring used ONLY
+        # by the XFCE X11 resolver, because X11 (NVIDIA) reports DIFFERENT connector names than
+        # Wayland for the same port (LG: DP-1 Wayland / DP-0 X11; Samsung: DP-2 / DP-3;
+        # TV: HDMI-A-1 / HDMI-0), so one connector name can't drive both. Hyprland ignores edid.
         {
           name = "main";
           identifier = "DP-1";
+          edid = "LG ULTRAGEAR";
+          # XFCE wallpaper matches Hyprland/century-series (primary horizontal). Portraits keep
+          # the carrier-top orientation default (also what century-series uses on verticals).
+          wallpaper = ../../assets/wallpapers/f-15-satellite.jpg;
           resolution = "2560x1440@180";
           position = "0x0";
           scale = "1.0667";
         }
         {
+          # Left portrait = Dell (rarely connected). edid is a placeholder — capture the exact
+          # EDID product name from `xrandr --verbose` next time it's plugged in and tighten it.
           name = "left";
           identifier = "DP-3";
+          edid = "DELL";
           resolution = "preferred";
           position = "-1080x-410";
           scale = "1";
           transform = "1";
         }
         {
+          # Right portrait = Samsung S27R65x (serial H4TW800293) — the everyday vertical.
           name = "right";
           identifier = "DP-2";
+          edid = "S27R65x";
           resolution = "preferred";
           position = "2400x-390";
           scale = "1";
@@ -82,16 +99,25 @@ in
         {
           name = "tv";
           identifier = "HDMI-A-1";
+          edid = "4Series43";
+          # Matches Hyprland/century-series (secondary horizontal).
+          wallpaper = ../../assets/wallpapers/f-4-cockpit.png;
           resolution = "preferred";
           position = "0x-1080";
           scale = "1";
           transform = "0";
         }
       ];
-      autostart = [];
+      autostart = [
+        # Steam + Heroic autostart via their own app settings; add these for the session.
+        { command = "discord";  desktops = [ "xfce" ]; }
+        { command = "ckb-next"; desktops = [ "xfce" ]; }
+      ];
 
       idle = {
-        lockTimeout = 1500; # 25 minutes
+        screensaverTimeout = 900;   # screensaver at 15 min (respects media/game inhibitors)
+        lockTimeout = 1200;         # lock at 20 min
+        sleepTimeout = 1800;        # display off (DPMS) at 30 min
       };
 
       hyprland = {
@@ -224,6 +250,7 @@ in
 
     apps = {
       defaultSet = "kde";
+      defaults.kde.browser = "librewolf.desktop";
     };
 
     programs = {
@@ -252,6 +279,27 @@ in
       services.updateNotification.enable = true;
       themes = {
         hyprland = "century-series";
+        xfce = "windows7";   # X11 desktop option; pick "Xfce Session" at the Ly greeter
+        wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
+        xfcePanel.trayApplets = [ "network" "bluetooth" "power" "clipboard" "nightlight" ];
+        xfcePanel.nightlight = { tempDay = 6500; tempNight = 1500; };
+        # gaming-pc's own pinned set (icon-only, left→right). Librewolf uses the Win7 Aero
+        # "internet-web-browser" icon (the Internet Explorer blue-e in this theme). Spotify
+        # forces X11 ozone since XFCE is an X11 session (its default .desktop has a Wayland
+        # ozone flag that fails under X11).
+        xfcePanel.pinnedApps = [
+          { name = "Terminal";        exec = "kitty";                  icon = "kitty"; }
+          { name = "System Settings"; exec = "xfce4-settings-manager"; icon = "preferences-system"; }
+          { name = "Files";           exec = "thunar";                 icon = "system-file-manager"; }
+          { name = "Librewolf";       exec = "librewolf";              icon = "internet-web-browser"; }
+          { name = "Chromium";        exec = "chromium";               icon = "chromium"; }
+          { name = "Heroic";          exec = "heroic";                 icon = "com.heroicgameslauncher.hgl"; }
+          { name = "Steam";           exec = "steam";                  icon = "steam"; }
+          { name = "Discord";         exec = "discord";                icon = "discord"; }
+          { name = "Signal";          exec = "signal-desktop";         icon = "signal-desktop"; }
+          { name = "Spotify";         exec = "env NIXOS_OZONE_WL=0 spotify"; icon = "spotify-client"; }
+          { name = "VS Code";         exec = "code";                   icon = "vscode"; }
+        ];
       };
     };
 

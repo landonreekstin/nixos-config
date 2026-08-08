@@ -7,6 +7,8 @@
     ./cosmic.nix
     ./hyprland.nix
     ./kde.nix
+    ./xfce.nix
+    ./xrdp.nix
     ./sddm-astronaut-theme.nix
     ./sddm-windows7-theme.nix
     ./custom-sddm-theme.nix
