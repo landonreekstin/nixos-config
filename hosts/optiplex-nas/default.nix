@@ -208,7 +208,16 @@
       reverseProxy.enable = true;
       landingPage.enable = true;
 
-      flakeUpdater.enable = true;
+      flakeUpdater = {
+        enable = true;
+        # 45min (the option default) wasn't enough for asus-m15: it sets
+        # unstable-override = [ "vscode" ], so it pulls unstablePkgs.vscode ->
+        # electron-unwrapped and builds it from source, because this runs right
+        # after `nix flake update` picks a fresh nixpkgs-unstable rev — ahead of
+        # Hydra publishing it. Electron is a multi-hour build on this box, so
+        # 180 is a first data point, not a guaranteed ceiling.
+        buildTimeoutMinutes = 180;
+      };
       localCA.trustCA = true;
 
       article2pod = {
