@@ -80,9 +80,9 @@
 
   # === Host-specific NixOS configuration ===
 
-  # Autologin into XFCE while the windows7-xfce theme is under development (M1–M4).
-  # Revert to "plasma" (or pick at the SDDM chooser) once XFCE work is verified.
-  services.displayManager.defaultSession = lib.mkForce "xfce";
+  # Autologins into the KDE aerotheme (windows7-alt) session by default — apps.defaultSet=kde.
+  # XFCE ("Xfce Session") stays pickable at the SDDM chooser for on-VM theme checks, but the
+  # real windows7-xfce test surface is physical gaming-pc (the VM's virgl scaling artifacts).
 
   # Throwaway login password (autologin covers the GUI; this is for sudo / TTY).
   users.users.${config.customConfig.user.name}.initialPassword = "vm";
