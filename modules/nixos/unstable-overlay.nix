@@ -22,13 +22,7 @@ in
           unstable = import inputs.nixpkgs-unstable {
             system = prev.stdenv.hostPlatform.system;
             config = prev.config;
-            overlays = [
-              # electron_39 (39.8.2) has a broken nixpkgs patch — heroic depends on it.
-              # Re-check after a flake update: if heroic no longer pulls electron_39 this can be removed.
-              (selfU: superU: {
-                electron_39 = superU.electron_40;
-              })
-            ];
+            overlays = [ ];
           };
         })
         # Conditionally replaces the kernel.
