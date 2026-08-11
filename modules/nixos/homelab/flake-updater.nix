@@ -36,30 +36,63 @@ let
 
     # ---------------------------------------------------------------
     # build_host <name>: builds with timeout; sets BUILD_STATUS[name]
+    #
+    # A failed build is retried once. The overwhelmingly common cause of a
+    # one-off FAIL is a transient DNS/network blip on this machine knocking
+    # out a single fixed-output derivation (unbound forwards DoT through the
+    # Mullvad tunnel, so a relay reconnect briefly kills name resolution) —
+    # week 2026-W33 lost gaming-pc and optiplex to exactly that, blocking an
+    # otherwise-good update for a week. The retry is near-free: everything
+    # that already built is in the store, so only the failed fetch reruns.
+    # A TIMEOUT is never retried — that would just double an already-capped run.
     # ---------------------------------------------------------------
     declare -A BUILD_STATUS
 
     build_host() {
       local host="$1"
-      log "Building ''${host}..."
       local logfile="/tmp/flake-updater-build-''${host}.log"
-      if timeout "''${BUILD_TIMEOUT}" \
-          nix build ".#nixosConfigurations.''${host}.config.system.build.toplevel" \
-          --no-link --max-jobs auto --cores 0 \
-          > "''${logfile}" 2>&1; then
-        BUILD_STATUS["''${host}"]="PASS"
-        log "✓ ''${host}: PASS"
-      else
-        local ec=$?
-        if [ "''${ec}" -eq 124 ]; then
-          BUILD_STATUS["''${host}"]="TIMEOUT"
-          log "⏱ ''${host}: TIMEOUT (exceeded ${toString cfg.buildTimeoutMinutes}min)"
+      local attempt ec
+
+      for attempt in 1 2; do
+        if [ "''${attempt}" -eq 1 ]; then
+          log "Building ''${host}..."
         else
-          BUILD_STATUS["''${host}"]="FAIL"
-          log "✗ ''${host}: FAIL"
-          tail -5 "''${logfile}" | sed 's/^/    /' >&2
+          log "Retrying ''${host} (attempt ''${attempt}/2)..."
         fi
-      fi
+
+        # NOTE: `ec=$?` must stay inside the else branch. A bare `if …; fi` with
+        # no else returns 0 when the condition is false, so reading $? after the
+        # `fi` would silently capture 0 instead of the build's exit code.
+        if timeout "''${BUILD_TIMEOUT}" \
+            nix build ".#nixosConfigurations.''${host}.config.system.build.toplevel" \
+            --no-link --max-jobs auto --cores 0 \
+            > "''${logfile}" 2>&1; then
+          BUILD_STATUS["''${host}"]="PASS"
+          if [ "''${attempt}" -eq 1 ]; then
+            log "✓ ''${host}: PASS"
+          else
+            log "✓ ''${host}: PASS (on retry)"
+          fi
+          return
+        else
+          ec=$?
+          if [ "''${ec}" -eq 124 ]; then
+            BUILD_STATUS["''${host}"]="TIMEOUT"
+            log "⏱ ''${host}: TIMEOUT (exceeded ${toString cfg.buildTimeoutMinutes}min)"
+            return
+          fi
+
+          if [ "''${attempt}" -eq 1 ]; then
+            log "''${host} build failed (exit ''${ec}) — retrying once in 60s (transient DNS/network is the usual cause)"
+            tail -5 "''${logfile}" | sed 's/^/    /' >&2
+            sleep 60
+          fi
+        fi
+      done
+
+      BUILD_STATUS["''${host}"]="FAIL"
+      log "✗ ''${host}: FAIL (failed twice)"
+      tail -5 "''${logfile}" | sed 's/^/    /' >&2
     }
 
     # ---------------------------------------------------------------
@@ -296,7 +329,10 @@ in
         User = cfg.gitUser;
         Group = "users";
         ExecStart = updaterScript;
-        TimeoutStartSec = "8h";
+        # Headroom for the whole run: 9 hosts, each now able to retry once,
+        # with a per-host cap of buildTimeoutMinutes. Must stay comfortably
+        # above that product or a slow week gets killed mid-flight.
+        TimeoutStartSec = "12h";
         StandardOutput = "journal";
         StandardError = "journal";
         SyslogIdentifier = "flake-updater";
