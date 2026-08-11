@@ -315,6 +315,63 @@ in
         cifs-utils
         samba
 
+        # Webcam (Logitech C920e on /dev/video0). guvcview is the GUI app — resolution/format
+        # picker plus exposure/focus/white-balance sliders; v4l-utils provides v4l2-ctl for
+        # enumerating what the camera actually supports (`v4l2-ctl --list-formats-ext`).
+        guvcview
+        v4l-utils
+
+        # Quick low-latency webcam preview. Usage: webcam [WxH] [fps]  (default 1280x720 30)
+        #
+        # Tuned for the XFCE-over-xrdp session (see CLAUDE.md "Remote XFCE via RDP"):
+        #   --vo=x11    xorgxrdp has NO hardware GL, so mpv's default vo=gpu would silently
+        #               fall back to llvmpipe software GL. Force the software X11 path instead
+        #               so the render pipeline is predictable rather than accidental.
+        #   input_format=mjpeg
+        #               The C920e only reaches 720p/1080p at 30fps in MJPEG; the driver default
+        #               is raw YUYV, which caps out low and pushes a far larger USB stream.
+        #   --untimed --profile=low-latency
+        #               Live source — don't buffer for A/V sync.
+        #   --no-audio  There is no audio over xrdp on this host (needs pulseaudio-module-xrdp,
+        #               not wired up), so the webcam mic is never audible. Don't stall on it.
+        # mpv is referenced by absolute store path: it comes from the per-user profile, which a
+        # systemPackages script must not depend on being present.
+        (writeShellScriptBin "webcam" ''
+          set -euo pipefail
+          RES="''${1:-1280x720}"
+          FPS="''${2:-30}"
+          DEV="''${WEBCAM_DEV:-/dev/video0}"
+
+          if [ ! -e "$DEV" ]; then
+            echo "webcam: no capture device at $DEV" >&2
+            echo "Plugged in? Check: ls /dev/video*  and  v4l2-ctl --list-devices" >&2
+            exit 1
+          fi
+          if [ ! -r "$DEV" ]; then
+            echo "webcam: $DEV exists but is not readable by $(id -un)" >&2
+            echo "The 'video' group grants access — check: id -nG" >&2
+            exit 1
+          fi
+
+          # A v4l2 capture device is exclusive; a browser tab or the other desktop session
+          # holding it makes mpv fail with an opaque ioctl error. Name the real cause.
+          if ${pkgs.psmisc}/bin/fuser "$DEV" >/dev/null 2>&1; then
+            echo "webcam: $DEV is already in use by another program:" >&2
+            ${pkgs.psmisc}/bin/fuser -v "$DEV" >&2 || true
+            echo "Close it (browser tab, other desktop session) and retry." >&2
+            exit 1
+          fi
+
+          exec ${pkgs.mpv}/bin/mpv \
+            --title="Webcam" \
+            --vo=x11 \
+            --profile=low-latency \
+            --untimed \
+            --no-audio \
+            --demuxer-lavf-o=input_format=mjpeg,video_size="$RES",framerate="$FPS" \
+            "av://v4l2:$DEV"
+        '')
+
         # Build all host configs and push their store paths to the NAS binary cache.
         # Run after a big nixpkgs update to warm the cache for all machines.
         # Usage: cache-push-all
@@ -521,6 +578,32 @@ in
         terminal = false;
         categories = [ "Audio" "Music" "Player" "AudioVideo" ];
         mimeType = [ "x-scheme-handler/spotify" ];
+      };
+      # Start-menu entry for the `webcam` wrapper (packages.nixos). Lands under Multimedia in
+      # the Whisker menu. accessories-camera is a real icon in the Windows 7 Aero set (present
+      # in every size tier), so it resolves at all menu/panel sizes.
+      xdg.desktopEntries.webcam = {
+        name = "Webcam";
+        genericName = "Webcam Viewer";
+        exec = "webcam";
+        icon = "accessories-camera";
+        terminal = false;
+        categories = [ "AudioVideo" "Video" ];
+      };
+      # Override guvcview's own .desktop purely to fix its Start-menu icon. Upstream ships
+      # `Icon=/nix/store/…/pixmaps/guvcview.png` — an ABSOLUTE PATH, which bypasses icon-theme
+      # lookup entirely, so the alias_icon entry in windows7-xfce-gtk.nix cannot reach it (that
+      # alias still earns its keep for the WM_CLASS-based taskbar button and titlebar icon).
+      # Naming this entry `guvcview` shadows the system copy: /etc/profiles/per-user/lando/share
+      # precedes /run/current-system/sw/share in XDG_DATA_DIRS, so this one wins.
+      xdg.desktopEntries.guvcview = {
+        name = "Webcam Controls";
+        genericName = "Webcam Viewer";
+        comment = "Capture and adjust exposure, focus and white balance";
+        exec = "guvcview";
+        icon = "accessories-camera";
+        terminal = false;
+        categories = [ "AudioVideo" "Video" ];
       };
       systemd.user.services.audio-spkr-balance = {
         Unit = {

@@ -82,6 +82,10 @@ EOF
     alias_icon "kitty"                     "utilities-terminal"
     alias_icon "org.xfce.taskmanager"      "utilities-system-monitor"
     alias_icon "org.xfce.screenshooter"    "accessories-camera"
+    # guvcview's .desktop hardcodes an absolute Icon= path, so this alias does NOT drive its
+    # menu entry (gaming-pc overrides that .desktop instead) — it covers the WM_CLASS lookup
+    # used for the taskbar button and titlebar icon, same as the kitty/mpv aliases above.
+    alias_icon "guvcview"                  "accessories-camera"
     alias_icon "org.xfce.powermanager"     "utilities-energy-monitor"
     alias_icon "org.xfce.settings.manager" "system-settings"
 
