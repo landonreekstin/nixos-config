@@ -2,6 +2,19 @@
 { config, pkgs, lib, ... }:
 
 let
+  cfg = config.customConfig;
+
+  # Everything below is derived from the host's primary user — this module is enabled
+  # on hosts owned by lando *and* by insideabush (blaney-pc), and both run Claude via
+  # `sudo claude`, so root's settings.json is the one that actually applies.
+  userName = cfg.user.name;
+  userGroup = config.users.users.${userName}.group;
+
+  # The config clone is universal; hosts add their own extra working clones via
+  # customConfig.programs.claudeCode.extraChownPaths.
+  chownDirs = [ "${cfg.user.home}/nixos-config" ] ++ cfg.programs.claudeCode.extraChownPaths;
+  chownCmd = "sudo chown -R ${userName}:${userGroup} ${lib.concatStringsSep " " chownDirs} 2>/dev/null || true";
+
   claudeState = pkgs.writeShellApplication {
     name = "claude-state";
     runtimeInputs = with pkgs; [ kitty jq procps coreutils util-linux ];
@@ -28,7 +41,7 @@ let
         reset) tab_bg="none";    state="idle" ;;
       esac
 
-      user_id="$(id -u lando 2>/dev/null || echo 1002)"
+      user_id="$(id -u ${userName} 2>/dev/null || echo 1000)"
       export XDG_RUNTIME_DIR="/run/user/$user_id"
 
       pid="$PPID"
@@ -88,7 +101,7 @@ let
         fi
       ) 9>"$lock"
 
-      pkill -RTMIN+16 -u lando waybar >/dev/null 2>&1 || true
+      pkill -RTMIN+16 -u ${userName} waybar >/dev/null 2>&1 || true
     '';
   };
 
@@ -98,14 +111,14 @@ let
     hooks = {
       Stop = [{
         hooks = [
-          { type = "command"; command = "sudo chown -R lando:users /home/lando/hyprland-keys /home/lando/nixos-config 2>/dev/null || true"; }
+          { type = "command"; command = chownCmd; }
           { type = "command"; command = "claude-state green"; }
         ];
       }];
       PostToolUse = [{
         matcher = "Edit|Write";
         hooks = [
-          { type = "command"; command = "sudo chown -R lando:users /home/lando/hyprland-keys /home/lando/nixos-config 2>/dev/null || true"; }
+          { type = "command"; command = chownCmd; }
         ];
       }];
       Notification = [{

@@ -2167,6 +2167,16 @@ in
           default = false;
           description = "Enable claude-code with uv (for uvx) and mcp-nixos MCP server.";
         };
+        extraChownPaths = mkOption {
+          type = types.listOf types.str;
+          default = [ ];
+          example = [ "/home/lando/hyprland-keys" ];
+          description = ''
+            Extra directories the Claude hooks chown back to the primary user after
+            edits. The user's nixos-config clone is always included; list additional
+            working clones here.
+          '';
+        };
       };
     };
 

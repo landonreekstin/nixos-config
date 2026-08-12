@@ -335,7 +335,11 @@ in
       };
     };
 
-    programs.claudeCode.enable = true;
+    programs.claudeCode = {
+      enable = true;
+      # lando's hyprland-keys working clone lives alongside nixos-config on this host.
+      extraChownPaths = [ "/home/lando/hyprland-keys" ];
+    };
 
     profiles = {
       gaming.enable = true;
