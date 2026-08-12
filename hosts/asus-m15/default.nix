@@ -53,17 +53,17 @@
           pinnedApps = [
             {
               label = "TERM";
-              command = "${pkgs.kitty}/bin/kitty";
+              command = config.customConfig.apps.programs.terminal.command;
               tooltip = "Terminal Emulator";
             }
             {
               label = "NAV";
-              command = "${pkgs.chromium}/bin/chromium";
+              command = config.customConfig.apps.programs.browserAlt.command;
               tooltip = "Web Browser";
             }
             {
               label = "CODE";
-              command = "${pkgs.vscode}/bin/code";
+              command = config.customConfig.apps.programs.ide.command;
               tooltip = "IDE";
             }
             {
@@ -175,8 +175,8 @@
         "firefox"
         "claude-code"
       ];
+      # vscode comes from customConfig.apps.programs.ide.
       homeManager = with pkgs; [
-        vscode
         chromium
         firefox
         claude-code

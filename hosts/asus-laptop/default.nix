@@ -56,17 +56,17 @@
           pinnedApps = [
             {
               label = "TERM";
-              command = "${pkgs.kitty}/bin/kitty";
+              command = config.customConfig.apps.programs.terminal.command;
               tooltip = "Terminal Emulator";
             }
             {
               label = "NAV";
-              command = "${pkgs.librewolf}/bin/librewolf";
+              command = config.customConfig.apps.programs.browser.command;
               tooltip = "Web Browser";
             }
             {
               label = "CODE";
-              command = "${pkgs.vscode}/bin/code";
+              command = config.customConfig.apps.programs.ide.command;
               tooltip = "IDE";
             }
             {
@@ -148,15 +148,13 @@
         "brave"
         "claude-code"
       ];
+      # vscode, librewolf, brave and signal-desktop come from
+      # customConfig.apps.programs (ide, browser, browserAlt, chatAlt).
       homeManager = with pkgs; [
         jamesdsp
         remmina
-        vscode
-        librewolf
-        brave
         vesktop
         claude-code
-        signal-desktop
         (callPackage ../../pkgs/worldmonitor { })
         (callPackage ../../pkgs/spotatui { })
         (callPackage ../../pkgs/tuisic { })

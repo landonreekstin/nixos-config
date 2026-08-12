@@ -3,6 +3,7 @@
 
 let
   isDesktop = customConfig.desktop.enable;
+  apps = customConfig.apps.programs;
   d = customConfig.apps.defaults.${customConfig.apps.defaultSet};
 in
 {
@@ -66,7 +67,7 @@ in
       name = "Files (Yazi)";
       genericName = "File Manager";
       comment = "Terminal file manager (yazi in kitty)";
-      exec = "${pkgs.kitty}/bin/kitty --class yazi-kitty -e ${pkgs.yazi}/bin/yazi %u";
+      exec = "${apps.terminal.command} --class yazi-kitty -e ${apps.fileManagerTUI.command} %u";
       icon = "system-file-manager";
       terminal = false;
       categories = [ "FileManager" "System" ];
@@ -77,7 +78,7 @@ in
       name = "Text Editor (Neovim)";
       genericName = "Text Editor";
       comment = "Neovim text editor in kitty terminal";
-      exec = "${pkgs.kitty}/bin/kitty --class nvim-kitty -e ${pkgs.neovim}/bin/nvim %F";
+      exec = "${apps.terminal.command} --class nvim-kitty -e ${apps.editorTUI.command} %F";
       icon = "text-editor";
       terminal = false;
       categories = [ "TextEditor" "Development" "Utility" ];
