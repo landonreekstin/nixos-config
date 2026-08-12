@@ -432,7 +432,11 @@ in
       #!${pkgs.stdenv.shell}
       set -uo pipefail
       REPO="${nixosConfigDir}"
-      cd "$REPO"
+      if [ ! -d "$REPO/.git" ]; then
+        echo "Can't find your config folder at $REPO — tell Lando."
+        exit 1
+      fi
+      cd "$REPO" || exit 1
 
       RUNBOOK_DIR="docs/runbooks/blaney"
 
