@@ -25,6 +25,77 @@ let
 
 in
 {
+options.customConfig.desktop.displayManager = with lib; {
+  enable = mkOption {
+    type = types.bool;
+    default = true; # Usually true if a graphical environment is selected, can be overridden
+    # Consider defaulting based on desktop.environment != "none"
+    # default = (config.customConfig.desktop.environment != "none");
+    description = "Whether to enable a display manager.";
+  };
+  type = mkOption {
+    type = types.enum [ "sddm" "cosmic" "gdm" "greetd" "ly" "none" ]; # Add more as needed
+    default = "sddm"; # A common default, adjust as preferred
+    description = "Which display manager to use if displayManager.enable is true. 'none' means no DM managed by this option.";
+  };
+  sddm = {
+    theme = mkOption {
+      type = types.str;
+      default = "none";
+      description = "The SDDM theme to use (e.g., 'sddm-astronaut', 'sddm-windows7').";
+    };
+    embeddedTheme = mkOption {
+      type = types.nullOr types.str;
+      default = null;
+      description = "The embedded theme for sddm-astronaut (e.g., 'pixel_sakura').";
+    };
+    screensaver = {
+      enable = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Whether to use the SDDM theme as a screensaver after a timeout.";
+      };
+      timeout = mkOption {
+        type = types.int;
+        default = 15;
+        description = "The idle time in minutes before the SDDM screensaver starts.";
+      };
+    };
+  };
+  ly = {
+    theme = mkOption {
+      type = types.str;
+      default = "none";
+      description = "The Ly theme to apply. 'none' uses Ly defaults. Available themes: 'doom', 'matrix', 'century-series'.";
+    };
+    animationFile = mkOption {
+      type = types.nullOr types.path;
+      default = null;
+      description = "Override the .dur animation file used by the century-series theme. Null uses the default 320x90 file (suited for 2560x1440). Set to a host-specific file for different resolutions.";
+    };
+    ttyRows = mkOption {
+      type = types.nullOr types.ints.positive;
+      default = null;
+      description = "TTY row count to pass to stty before Ly starts. When set (together with ttyCols), enables NVIDIA fbdev kernel params and a pre-start systemd service that sizes tty1 correctly so Ly and its animation fill the screen.";
+    };
+    ttyCols = mkOption {
+      type = types.nullOr types.ints.positive;
+      default = null;
+      description = "TTY column count to pass to stty before Ly starts.";
+    };
+    nativeFbResolution = mkOption {
+      type = types.nullOr (types.submodule {
+        options = {
+          width  = mkOption { type = types.ints.positive; description = "Native framebuffer width in pixels."; };
+          height = mkOption { type = types.ints.positive; description = "Native framebuffer height in pixels."; };
+        };
+      });
+      default = null;
+      description = "When set, fbset resets the framebuffer to this resolution before stty. Only needed when Plymouth leaves the framebuffer at a different resolution than native (e.g. 2560x1440 displays where EFI GOP uses 1920x1080).";
+    };
+  };
+};
+
 config = lib.mkIf cfg.enable {
     
     # == Cosmic Greeter Configuration ==

@@ -22,6 +22,14 @@ let
 in
 {
 
+  options.customConfig.profiles.gaming = with lib; {
+    enable = mkOption {
+      type = types.bool;
+      default = false; # Default to false, enable explicitly for gaming PCs
+      description = "Enable a comprehensive set of configurations and programs for an optimal gaming experience.";
+    };
+  };
+
   # == Configuration ==
   config = lib.mkIf config.customConfig.profiles.gaming.enable {
 

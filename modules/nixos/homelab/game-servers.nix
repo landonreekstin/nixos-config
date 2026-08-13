@@ -9,6 +9,56 @@ let
     || cfg.minecraftBedrock.enable;
 in
 {
+  options.customConfig.homelab.gameServers = with lib; {
+    dataDir = mkOption {
+      type = types.str;
+      default = "/var/lib/game-servers";
+      description = "Parent directory for all game server OCI container volume mounts.";
+    };
+    astroneer = {
+      enable = mkEnableOption "Astroneer dedicated server (OCI container, autoStart = false)";
+      port = mkOption {
+        type = types.port;
+        default = 7777;
+        description = "Astroneer game port (UDP).";
+      };
+      queryPort = mkOption {
+        type = types.port;
+        default = 27777;
+        description = "Astroneer server query port (UDP).";
+      };
+    };
+    minecraftSurvival = {
+      enable = mkEnableOption "Minecraft Survival server (Paper, OCI container, autoStart = false)";
+      port = mkOption {
+        type = types.port;
+        default = 25565;
+        description = "Minecraft Java edition TCP port.";
+      };
+    };
+    minecraftMinigames = {
+      enable = mkEnableOption "Minecraft Minigames server (Paper, OCI container, autoStart = false)";
+      port = mkOption {
+        type = types.port;
+        default = 25566;
+        description = "Minecraft Java edition TCP port.";
+      };
+    };
+    minecraftBedrock = {
+      enable = mkEnableOption "Minecraft Bedrock server (OCI container, autoStart = false)";
+      port = mkOption {
+        type = types.port;
+        default = 19132;
+        description = "Minecraft Bedrock IPv4 UDP port.";
+      };
+      portV6 = mkOption {
+        type = types.port;
+        default = 19133;
+        description = "Minecraft Bedrock IPv6 UDP port.";
+      };
+    };
+  };
+
   config = lib.mkIf anyEnabled {
     virtualisation.docker.enable = true;
     virtualisation.docker.package = pkgs.docker_29;

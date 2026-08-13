@@ -100,7 +100,7 @@ let
   # XFCE identifies a monitor by its `edid` substring when set (matched against the EDID from
   # xrandr --verbose); otherwise it falls back to `identifier` (a desc: string → EDID match, or
   # a plain connector name → literal match). `edid` exists because X11 connector names differ
-  # from Hyprland's — see the option docs in common-options.nix.
+  # from Hyprland's — see the option docs in modules/nixos/desktop/options.nix.
   useEdid = m: m.edid != null && m.edid != "";
   toEntry = m: {
     name = m.name; # stable identity for the runtime on/off state file (below)

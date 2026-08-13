@@ -296,6 +296,65 @@ BODY
 
 in
 {
+  options.customConfig.homelab.flakeUpdater = with lib; {
+    enable = mkEnableOption "weekly automated flake update orchestrator";
+    repoDir = mkOption {
+      type = types.str;
+      default = "/home/lando/nixos-config";
+      description = "Absolute path to the nixos-config git repository on this machine.";
+    };
+    repoOwner = mkOption {
+      type = types.str;
+      default = "landonreekstin";
+      description = "GitHub repository owner (user or org).";
+    };
+    repoName = mkOption {
+      type = types.str;
+      default = "nixos-config";
+      description = "GitHub repository name.";
+    };
+    gitUser = mkOption {
+      type = types.str;
+      default = "lando";
+      description = "Local unix user to run git operations as (must have SSH access to GitHub).";
+    };
+    allHosts = mkOption {
+      type = types.listOf types.str;
+      default = [ "gaming-pc" "optiplex" "blaney-pc" "justus-pc" "asus-laptop" "asus-m15" "atl-mini-pc" "optiplex-nas" "mini-server" ];
+      description = "All host names to build and include in the PR build matrix.";
+    };
+    blockLabel = mkOption {
+      type = types.str;
+      default = "update-blocked";
+      description = "GitHub PR label that prevents auto-merge.";
+    };
+    autoMergeDays = mkOption {
+      type = types.int;
+      default = 6;
+      description = ''
+        Days after PR creation before auto-merging (if not blocked). Set to 6, not 7,
+        because the updater runs Mondays 03:00 UTC but PRs open Mondays 04-09 UTC (after
+        the beta-host build finishes), so the next Monday's check sees ~6d20h — integer 6.
+        A threshold of 7 would defer the merge another full week for a 13-day soak.
+      '';
+    };
+    betaHost = mkOption {
+      type = types.str;
+      default = "gaming-pc";
+      description = "Host built first; PR is opened immediately after it completes so the beta soak starts ASAP.";
+    };
+    buildTimeoutMinutes = mkOption {
+      type = types.int;
+      default = 45;
+      description = "Per-host build timeout in minutes. Hosts exceeding this are marked TIMEOUT in the PR table.";
+    };
+    githubTokenFile = mkOption {
+      type = types.path;
+      default = "/run/secrets/github-token";
+      description = "Path to file containing a GitHub fine-grained PAT with contents:write and pull_requests:write.";
+    };
+  };
+
   config = lib.mkIf cfg.enable {
 
     environment.systemPackages = [ pkgs.gh ];

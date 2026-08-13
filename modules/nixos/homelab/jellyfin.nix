@@ -5,6 +5,19 @@ let
   cfg = config.customConfig.homelab.jellyfin;
 in
 {
+  options.customConfig.homelab.jellyfin = with lib; {
+    enable = mkOption {
+      type = types.bool;
+      default = false; # Default to false, enable explicitly for Jellyfin
+      description = "Enable Jellyfin media server.";
+    };
+    hwTranscoding = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Enable hardware video transcoding.";
+    };
+  };
+
   # Configure the system if Jellyfin is enabled.
   config = lib.mkIf cfg.enable {
     

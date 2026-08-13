@@ -9,6 +9,15 @@ in
   imports = [
     inputs.nixos-vscode-server.nixosModules.default
   ];
+  options.customConfig.services.vscodeServer = with lib; {
+    enable = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Enable vscode server.";
+    };
+    # port = mkOption { type = types.port; default = 22; };
+  };
+
   # Conditionally configure the VSCode server service
   config = lib.mkIf vscodeCfg.enable {
     services.vscode-server = {

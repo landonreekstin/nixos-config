@@ -5,6 +5,20 @@ let
   cfg = config.customConfig.homelab.homeAssistant;
 in
 {
+  options.customConfig.homelab.homeAssistant = with lib; {
+    enable = mkEnableOption "Home Assistant Core smart home server";
+    port = mkOption {
+      type = types.port;
+      default = 8123;
+      description = "Port for Home Assistant to listen on.";
+    };
+    package = mkOption {
+      type = types.nullOr types.package;
+      default = null;
+      description = "Override the Home Assistant package (e.g. to pin a newer version for backup restore compatibility).";
+    };
+  };
+
   config = lib.mkIf cfg.enable {
     services.home-assistant = {
       enable = true;

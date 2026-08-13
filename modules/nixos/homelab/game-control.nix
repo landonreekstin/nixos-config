@@ -111,6 +111,30 @@ let
   '';
 in
 {
+  options.customConfig.homelab.gameControl = with lib; {
+    enable = mkEnableOption "Game Control dashboard (FastAPI + uvicorn)";
+    port = mkOption {
+      type = types.port;
+      default = 8080;
+      description = "Port for the Game Control web dashboard.";
+    };
+    tokenFile = mkOption {
+      type = types.path;
+      default = "/run/secrets/game-control-token";
+      description = "Path to file containing the GAME_CONTROL_TOKEN secret.";
+    };
+    stateDir = mkOption {
+      type = types.str;
+      default = "/var/lib/game-control";
+      description = "Directory for watchdog idle-timer state files (*.last_active).";
+    };
+    idleThresholdSecs = mkOption {
+      type = types.int;
+      default = 3600;
+      description = "Seconds of zero players before the watchdog shuts down a server (default: 60 min).";
+    };
+  };
+
   config = lib.mkIf cfg.enable {
     sops.secrets."game-control-token" = {
       sopsFile = ../../../secrets/mini-server.yaml;

@@ -5,6 +5,15 @@ let
   cfg = config.customConfig.homelab.vaultwarden;
 in
 {
+  options.customConfig.homelab.vaultwarden = with lib; {
+    enable = mkEnableOption "Vaultwarden password manager server";
+    port = mkOption {
+      type = types.port;
+      default = 8222;
+      description = "Port for Vaultwarden to listen on.";
+    };
+  };
+
   config = lib.mkIf cfg.enable {
     sops.secrets."vaultwarden-admin-token" = {
       sopsFile = ../../../secrets/mini-server.yaml;

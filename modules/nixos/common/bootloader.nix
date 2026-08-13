@@ -14,27 +14,55 @@ let
   '';
 in
 {
-  boot.loader = {
-    systemd-boot = {
-      enable = true;
-      configurationLimit = config.customConfig.bootloader.configurationLimit;
+  options.customConfig.bootloader = with lib; {
+    configurationLimit = mkOption {
+      type = types.int;
+      default = 10;
+      description = "Maximum number of NixOS generations to keep in the boot menu. Lower for smaller /boot partitions.";
+      example = 3;
     };
-    efi.canTouchEfiVariables = true;
+    quietBoot = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Whether to enable quiet boot (suppress boot messages).";
+    };
+    plymouth = {
+      enable = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Whether to enable Plymouth boot splash screen.";
+      };
+      theme = mkOption {
+        type = types.str;
+        default = "spinner";
+        description = "Plymouth theme to use. Bundled options: spinner, bgrt, breeze, spinfinity.";
+      };
+    };
   };
 
-  boot.plymouth = lib.mkIf plymouthEnabled {
-    enable = true;
-    theme = plymouthTheme;
-    themePackages = [ selectedThemePkg ];
-  };
+  config = {
+    boot.loader = {
+      systemd-boot = {
+        enable = true;
+        configurationLimit = config.customConfig.bootloader.configurationLimit;
+      };
+      efi.canTouchEfiVariables = true;
+    };
 
-  boot.initrd.verbose = !quietOrPlymouth;
-  boot.loader.timeout = if quietBootEnabled then 0 else 5;
-  boot.consoleLogLevel = if quietOrPlymouth then 0 else 4;
-  boot.kernelParams = lib.mkIf quietOrPlymouth [
-    "quiet"
-    "splash"
-    "udev.log_level=3"
-    "rd.udev.log_level=3"
-  ];
+    boot.plymouth = lib.mkIf plymouthEnabled {
+      enable = true;
+      theme = plymouthTheme;
+      themePackages = [ selectedThemePkg ];
+    };
+
+    boot.initrd.verbose = !quietOrPlymouth;
+    boot.loader.timeout = if quietBootEnabled then 0 else 5;
+    boot.consoleLogLevel = if quietOrPlymouth then 0 else 4;
+    boot.kernelParams = lib.mkIf quietOrPlymouth [
+      "quiet"
+      "splash"
+      "udev.log_level=3"
+      "rd.udev.log_level=3"
+    ];
+  };
 }

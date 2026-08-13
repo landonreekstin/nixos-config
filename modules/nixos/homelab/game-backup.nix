@@ -5,6 +5,20 @@ let
   cfg = config.customConfig.homelab.gameBackup;
 in
 {
+  options.customConfig.homelab.gameBackup = with lib; {
+    enable = mkEnableOption "game server and vaultwarden backups to NAS via restic (daily at 4am)";
+    repository = mkOption {
+      type = types.str;
+      default = "/mnt/nas/backups/mini-server";
+      description = "Restic repository path or URI. Defaults to the NAS CIFS mount.";
+    };
+    passwordFile = mkOption {
+      type = types.path;
+      default = "/run/secrets/restic-password";
+      description = "Path to file containing the restic repository password.";
+    };
+  };
+
   config = lib.mkIf cfg.enable {
     sops.secrets."restic-password" = {
       sopsFile = ../../../secrets/mini-server.yaml;

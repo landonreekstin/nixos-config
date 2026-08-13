@@ -78,6 +78,12 @@ in
     description = "A unified dev shell for embedded Linux development.";
   };
 
+  options.customConfig.profiles.development.embedded-linux.enable = with lib; mkOption {
+    type = types.bool;
+    default = false;
+    description = "Enable embedded Linux development tools and cross-compilers.";
+  };
+
   # === MODULE CONFIGURATION ===
   config = lib.mkIf cfg.enable {
     # Add user to dialout group for serial console access

@@ -6,6 +6,14 @@ let
   mediaCfg = config.customConfig.homelab.mediaSetup;
 in
 {
+  options.customConfig.homelab.transmission = with lib; {
+    enable = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Enable Transmission, a lightweight torrent client.";
+    };
+  };
+
   config = lib.mkIf cfg.enable {
 
     services.transmission = {

@@ -5,6 +5,14 @@ let
   cfg = config.customConfig.homelab.dns;
 in
 {
+  options.customConfig.homelab.dns = with lib; {
+    enable = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Enable Unbound DNS server with a local .lan zone for homelab service names. Intended for optiplex-nas only.";
+    };
+  };
+
   config = lib.mkIf cfg.enable {
     services.unbound = {
       enable = true;

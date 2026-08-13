@@ -14,6 +14,12 @@ in
     description = "The development shell for iCE40 FPGA projects.";
   };
 
+  options.customConfig.profiles.development.fpga-ice40.enable = with lib; mkOption {
+    type = types.bool;
+    default = false; # Default to false, enable explicitly for FPGA development
+    description = "Enable FPGA development tools and configurations for ice40 series.";
+  };
+
   config = lib.mkIf cfg.enable {
     # We assign the shell derivation to the option we just created.
     customConfig.profiles.development.fpga-ice40.devShell = pkgs.mkShell {

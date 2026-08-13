@@ -218,6 +218,14 @@ let
 
 in
 {
+  options.customConfig.programs.partydeck = with lib; {
+    enable = mkOption {
+      type = types.bool;
+      default = false; # Default to false, enable explicitly for PartyDeck
+      description = "Enable PartyDeck, a splitscreen gaming application for KDE.";
+    };
+  };
+
   config = lib.mkIf partydeckCondition {
     # We only need to install our final package. The wrapper will provide
     # gamescope and bubblewrap, so they don't need to be in systemPackages.

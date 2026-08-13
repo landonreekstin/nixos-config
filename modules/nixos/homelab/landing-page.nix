@@ -168,6 +168,14 @@ let
   '';
 in
 {
+  options.customConfig.homelab.landingPage = with lib; {
+    enable = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Serve a homelab dashboard at home.lan listing all service links.";
+    };
+  };
+
   config = lib.mkIf cfg.landingPage.enable {
     services.nginx.virtualHosts."home.lan" = {
       root = "${landingPage}";
