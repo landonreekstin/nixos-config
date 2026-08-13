@@ -95,9 +95,51 @@ nix develop .#gbdk-dev        # Game Boy development
 
 ### Flake Structure
 - `flake.nix` - Main entry point defining inputs, outputs, and host configurations
-- `hosts/` - Host-specific configurations, each containing `default.nix` and `hardware-configuration.nix`
+- `hosts/` - Host-specific configurations: a `default.nix` importer, `hardware-configuration.nix`, and one file per config domain (see [Host File Layout](#host-file-layout))
 - `modules/nixos/` - System-level NixOS modules
 - `modules/home-manager/` - User-level Home Manager modules
+
+### Host File Layout
+
+A host directory mirrors `modules/nixos/`: one file per domain, and `default.nix` is an
+**importer only** (like `modules/nixos/default.nix`). Each top-level `customConfig`
+attribute is owned by exactly one file per host, so "where is X set?" is a mechanical
+lookup. A host only creates the files it needs.
+
+| File | Owns `customConfig.*` | Host-specific raw NixOS config it carries |
+|---|---|---|
+| `default.nix` | *(nothing)* | `imports` only |
+| `vars.nix` | *(not a module)* | plain attrset of host flags, `import`ed by the others |
+| `system.nix` | `user`, `system`, `bootloader` | `boot.loader.*`, `boot.kernelPackages`, `users.users.<u>.initialPassword`, host-wide `sops.*` |
+| `desktop.nix` | `desktop` | `services.xserver`/`displayManager`/`xrdp`, console rotation |
+| `hardware.nix` | `hardware` | `hardware.nvidia.open`, `boot.initrd.kernelModules`, blacklists, `services.keyd` |
+| `apps.nix` | `apps`, `programs`, `packages` | `programs.*`, `services.flatpak` |
+| `home.nix` | `homeManager` | the `home-manager = lib.mkIf … { users.… }` block |
+| `networking.nix` | `networking`, `services` | `networking.firewall/extraHosts/hosts/routes/wg-quick`, WG sops secret |
+| `homelab.nix` | `homelab` | homelab-adjacent units (HA yaml, game-server tmpfiles) |
+| `profiles.nix` | `profiles` | — |
+
+Rules:
+- **Keep the directory flat.** Host files use repo-relative paths (`../../assets/…`,
+  `../../secrets/<host>.yaml`, `../../pkgs/…`); a subdirectory would silently repoint them.
+- **Extra domain files are fine** where a host warrants one — `optiplex-nas/storage.nix`
+  (filesystems/LUKS/swap) and `optiplex-nas/ci.nix` (self-hosted runner) follow the same
+  naming logic.
+- **Feature-specific `sops.secrets.<x>` live next to the feature that consumes it**;
+  only host-wide sops settings go in `system.nix`.
+- **A `let` binding cannot span files.** Flags needed by more than one file go in
+  `vars.nix` as a plain attrset, consumed via `let vars = import ./vars.nix; in …`
+  (see `hosts/gaming-pc/vars.nix`).
+- **Watch list-valued options.** Two files defining the same scalar path error out, but
+  the same *list* path silently concatenates. Also note a host's sub-modules merge *after*
+  top-level flake modules (disko, nixos-hardware), so where the old inline config won an
+  ordering race you may need `lib.mkBefore` — see `hosts/optiplex-nas/storage.nix`.
+
+When refactoring host files, prove the change is a no-op by comparing
+`nix eval --impure --raw .#nixosConfigurations.<host>.config.system.build.toplevel.drvPath`
+before and after. Hosts whose Plasma wallpaper is a repo path embed the flake-source hash
+in one derivation, so theirs changes on any commit; use `nix-diff` on the two drvs to
+confirm the only delta is that `…-source/assets/…` prefix.
 
 ### Configuration System
 All configuration is managed through the `customConfig` option set defined in `modules/nixos/common-options.nix`. This provides:

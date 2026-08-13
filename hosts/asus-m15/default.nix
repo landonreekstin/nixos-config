@@ -1,5 +1,7 @@
 # ~/nixos-config/hosts/asus-m15/default.nix
-{ inputs, pkgs, lib, config, unstablePkgs, ... }:
+# Importer only — this host's settings live in the per-domain files below, mirroring
+# the layout of modules/nixos/.
+{ inputs, ... }:
 
 {
   imports = [
@@ -11,216 +13,17 @@
     ./hardware-configuration.nix
 
     ./disko-config.nix
-    
+
     # Top level nixos modules import.
     ../../modules/nixos/default.nix
+
+    # Host configuration, one file per domain
+    ./system.nix
+    ./desktop.nix
+    ./hardware.nix
+    ./apps.nix
+    ./home.nix
+    ./networking.nix
+    ./profiles.nix
   ];
-
-  # === Zephyrus G14 Specific Values for `customConfig` ===
-  customConfig = {
-    
-    user = {
-      name = "em";
-      email = "landonreekstin@gmail.com";
-      sudoPassword = true;
-    };
-    
-    system = {
-      hostName = "asus-m15";
-      stateVersion = "25.05"; # DO NOT CHANGE
-      timeZone = "America/Los_Angeles";
-      locale = "en_US.UTF-8";
-    };
-
-    bootloader = {
-      quietBoot = true;
-    };
-    
-    desktop = {
-      environments = [ "kde" "hyprland" ];
-      autostart = [];
-      idle = {
-        lockTimeout  = 900;   # 15 min (AC)
-        sleepTimeout = 1200;  # 20 min (AC)
-        battery = {
-          lockTimeout  = 600; # 10 min
-          sleepTimeout = 900; # 15 min
-        };
-      };
-      hyprland = {
-        launcher = {
-          enable = true;
-          pinnedApps = [
-            {
-              label = "TERM";
-              command = config.customConfig.apps.programs.terminal.command;
-              tooltip = "Terminal Emulator";
-            }
-            {
-              label = "NAV";
-              command = config.customConfig.apps.programs.browserAlt.command;
-              tooltip = "Web Browser";
-            }
-            {
-              label = "CODE";
-              command = config.customConfig.apps.programs.ide.command;
-              tooltip = "IDE";
-            }
-            {
-              label = "AUDIO";
-              command = "flatpak run com.spotify.Client";
-              tooltip = "Music Player";
-            }
-            {
-              label = "COMM";
-              command = "flatpak run com.discordapp.Discord";
-              tooltip = "Communications";
-            }
-            {
-              label = "GAME";
-              command = "steam";
-              tooltip = "Gaming Platform";
-            }
-          ];
-        };
-      };
-      displayManager = {
-        enable = true;
-        type = "ly";
-        ly = {
-          theme = "century-series";
-          animationFile = ../../assets/ly/f15-animation-240x67.dur; # 1080p: 240x67 chars
-          ttyRows = 67;
-          ttyCols = 240;
-        };
-        # sddm = {
-        #   theme = "sddm-astronaut";
-        #   customTheme = {
-        #     enable = true;
-        #     wallpaper = ../../assets/wallpapers/spooky-sddm.mp4;
-        #     blur = 2.0;
-        #     roundCorners = 20;
-        #     colors = {
-        #       formBackground = "#1e1e2e";
-        #       dimBackground = "#1e1e2e";
-        #       headerText = "#cdd6f4";
-        #       dateText = "#cdd6f4";
-        #       timeText = "#cdd6f4";
-        #       placeholderText = "#a6adc8";
-        #       loginButtonBackground = "#89b4fa";
-        #       loginButtonText = "#1e1e2e";
-        #       highlightBackground = "#89b4fa";
-        #       systemButtonsIcons = "#cdd6f4";
-        #     };
-        #   };
-        #   screensaver = {
-        #     enable = false;
-        #   };
-        # };
-      };
-    };
-
-    hardware = {
-      unstable = false; # Older hardware — use stable 6.12 LTS kernel + stable NVIDIA
-      nvidia = {
-        enable = true;
-        laptop = {
-          enable = true;
-          intelBusID = "PCI:0:2:0";
-          nvidiaID = "PCI:1:0:0"; 
-        };
-      };
-      peripherals = {
-        enable = true;
-        asus.enable = true;
-      };
-      display.backlight.enable = true;
-      kbdBacklight.enable = true;
-      battery.enable = true;
-    };
-
-    programs = {
-      partydeck.enable = true;
-      flatpak.enable = true;
-    };
-
-    homeManager = {
-      enable = true;
-      themes = {
-        kde = "bigsur";
-        hyprland = "century-series";
-        plasmaOverride = false;
-        wallpaper = ../../assets/wallpapers/big-sur.jpg;
-        pinnedApps = [
-          "applications:org.kde.konsole.desktop"
-          "applications:systemsettings.desktop"
-          "applications:org.kde.dolphin.desktop"
-          "applications:chromium-browser.desktop"
-          "applications:net.lutris.Lutris.desktop"
-          "applications:com.heroicgameslauncher.hgl.desktop"
-          "applications:steam.desktop"
-          "applications:com.discordapp.Discord.desktop"
-          "applications:com.spotify.Client.desktop"
-        ];
-      };
-    };
-
-    packages = {
-      nixos = with pkgs; [
-
-      ];
-      unstable-override = [
-        "vscode"
-        # "chromium" — do NOT re-add without checking the electron fallout.
-        # unstable-overlay.nix replaces pkgs.<name> globally, and nixpkgs builds
-        # electron out of chromium's infrastructure. Overriding chromium here
-        # rebuilt stable signal-desktop's electron-unwrapped against unstable's
-        # dep tree (glib 2.88 / rustc 1.97 / python 3.14 vs stable's 2.86 / 1.91
-        # / 3.13), producing a hybrid derivation Hydra has never built — so it
-        # compiled electron from source and TIMEOUTed the weekly flake-updater
-        # build for asus-m15 (2026-W33). With chromium on stable, the electron
-        # drv matches asus-laptop's cached one exactly.
-        "firefox"
-        "claude-code"
-      ];
-      # vscode comes from customConfig.apps.programs.ide.
-      homeManager = with pkgs; [
-        chromium
-        firefox
-        claude-code
-      ];
-      flatpak = {
-        enable = true;
-        packages = [
-          "com.spotify.Client"
-          "com.discordapp.Discord"
-        ];
-      };
-    };
-
-    apps = {
-      defaultSet = "kde";
-      defaults.kde.browser = "chromium.desktop";
-    };
-
-    programs.claudeCode.enable = true;
-
-    profiles = {
-      gaming.enable = true;
-      development.gbdk.enable = true;
-    };
-
-    services = {
-      ssh.enable = true;
-      vscodeServer.enable = true;
-    };
-
-  };
-
-  # Home Manager configuration for this Host
-  home-manager = lib.mkIf config.customConfig.homeManager.enable {
-    extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
-    users.${config.customConfig.user.name} = {};
-  };
-  
 }
