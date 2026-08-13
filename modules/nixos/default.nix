@@ -10,6 +10,7 @@
     ./services/default.nix
     ./profiles/default.nix
     ./programs/default.nix
+    ./apps/default.nix
     ./hardware/default.nix
     ./desktop/default.nix
     ./development/default.nix
