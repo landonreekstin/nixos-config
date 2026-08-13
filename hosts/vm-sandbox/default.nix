@@ -1,96 +1,24 @@
 # ~/nixos-config/hosts/vm-sandbox/default.nix
-{ inputs, pkgs, lib, config, unstablePkgs, ... }:
+{ ... }:
 
 # Kitchen-sink ricing sandbox — a throwaway QEMU VM that turns on the fragile paradigms
 # (aerothemeplasma KDE + Hyprland/century-series + browser/app config) all at once, so
 # desktop/theme/app work can be iterated without touching gaming-pc. See ../vm-common.nix
 # for VM sizing, guest tooling, and the nvidia/peripherals force-off.
+#
+# Importer only — this host's settings live in the per-domain files below, mirroring
+# the layout of modules/nixos/.
 {
   imports = [
     ../../modules/nixos/default.nix
     ../vm-common.nix
+
+    # Host configuration, one file per domain
+    ./system.nix
+    ./desktop.nix
+    ./apps.nix
+    ./home.nix
+    ./networking.nix
+    ./profiles.nix
   ];
-
-  customConfig = {
-
-    user = {
-      name = "lando";
-      email = "landonreekstin@gmail.com";
-      updateCmdPermission = false;
-    };
-
-    system = {
-      hostName = "vm-sandbox";
-      stateVersion = "25.11";
-      timeZone = "America/New_York";
-      locale = "en_US.UTF-8";
-    };
-
-    bootloader.quietBoot = false;
-
-    desktop = {
-      environments = [ "kde" "hyprland" "xfce" ];
-      kde.kwallet.enable = false;
-      displayManager = {
-        enable = true;
-        type = "sddm"; # sddm → autologin wired in vm-common
-      };
-    };
-
-    homeManager = {
-      enable = true;
-      themes = {
-        plasmaOverride = true;
-        kde = "windows7-alt";      # aerothemeplasma (source-built)
-        hyprland = "century-series";
-        xfce = "windows7";         # B00merang GTK/xfwm4 + aero cursor/sounds
-        wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
-      };
-      librewolf = {
-        enable = true;             # browser config surface
-        overrideConfig = false;
-      };
-    };
-
-    packages = {
-      nixos = with pkgs; [ ];
-      unstable-override = [ ];
-      homeManager = with pkgs; [
-        kitty
-        notes
-        vesktop  # screen-share / ScreenCast portal testing in a real Plasma Wayland session
-      ];
-      flatpak.enable = false;
-    };
-
-    apps = {
-      defaultSet = "kde";
-    };
-
-    profiles = {
-      gaming.enable = false; # keep the VM light — not testing the gaming stack here
-    };
-
-    services = {
-      ssh.enable = false;
-      vscodeServer.enable = false;
-    };
-
-  };
-
-  # === Host-specific NixOS configuration ===
-
-  # Autologins into the KDE aerotheme (windows7-alt) session by default — apps.defaultSet=kde.
-  # XFCE ("Xfce Session") stays pickable at the SDDM chooser for on-VM theme checks, but the
-  # real windows7-xfce test surface is physical gaming-pc (the VM's virgl scaling artifacts).
-
-  # Throwaway login password (autologin covers the GUI; this is for sudo / TTY).
-  users.users.${config.customConfig.user.name}.initialPassword = "vm";
-
-  # Home Manager configuration for this Host
-  home-manager = lib.mkIf config.customConfig.homeManager.enable {
-    extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
-    users.${config.customConfig.user.name} = {};
-  };
-
 }
