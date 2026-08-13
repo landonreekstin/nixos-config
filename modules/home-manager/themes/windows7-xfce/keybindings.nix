@@ -17,7 +17,7 @@
 # The keymap mirrors the user's Hyprland binds where they translate to a stacking WM, and
 # falls back to Windows 11 conventions where they don't: Super+Arrows = Aero snap, Super+L =
 # lock, Ctrl+Shift+Esc = Task Manager, Super+D = show desktop. App-launch commands come from
-# customConfig.desktop.hyprland.applications (the same source Hyprland reads) so the two
+# customConfig.apps.programs (the same registry Hyprland reads) so the two
 # desktops stay in lockstep — except Files (Super+F → thunar, theme-native), editor (Super+T →
 # mousepad, XFCE's native editor rather than the Hyprland kate), and music (plain spotify; the
 # Hyprland value's --ozone-platform=wayland flags are wrong under X11).
@@ -33,7 +33,11 @@ let
   win7XfceCondition = lib.elem "xfce" customConfig.desktop.environments
     && customConfig.homeManager.themes.xfce == "windows7";
 
-  apps = customConfig.desktop.hyprland.applications;
+  # App-launch commands come from the customConfig.apps.programs registry — the same
+  # source Hyprland reads — so the two desktops stay in lockstep. A role with
+  # package = null has an empty command (it is unset); those binds are filtered out
+  # below rather than emitted as an empty xfconf value.
+  apps = lib.mapAttrs (_: role: role.command) customConfig.apps.programs;
   xfconfDir = "xfce4/xfconf/xfce-perchannel-xml";
 
   # Per-monitor display toggles, Hyprland parity (Ctrl+Super+1..4 → xfce-toggle-monitor <name>).
@@ -46,7 +50,7 @@ let
     desc = "Toggle ${mon.name} display";
   }) monitors;
 
-  groups = [
+  groupsRaw = [
     { title = "Windows & snapping"; binds = [
         { key = "<Super>Left";         value = "tile_left_key";                 wm = true; desc = "Snap window left"; }
         { key = "<Super>Right";        value = "tile_right_key";                wm = true; desc = "Snap window right"; }
@@ -109,6 +113,13 @@ let
         { key = "<Primary><Shift>Escape"; value = "xfce4-taskmanager";       desc = "Task Manager"; }
       ]; }
   ] ++ lib.optional (monitors != []) { title = "Displays"; binds = displayBinds; };
+
+  # Drop command binds whose app role is unset (command = "", i.e. package = null on this
+  # host) so neither the xfconf XML nor the cheatsheet advertises a shortcut that does
+  # nothing. WM action binds always have a literal value and are never filtered.
+  groups = map (g: g // {
+    binds = lib.filter (b: (b.wm or false) || b.value != "") g.binds;
+  }) groupsRaw;
 
   allBinds = lib.concatMap (g: g.binds) groups;
   esc = lib.replaceStrings [ "<" ">" ] [ "&lt;" "&gt;" ];
