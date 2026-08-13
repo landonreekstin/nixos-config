@@ -41,6 +41,29 @@ let
   '';
 in
 {
+  options.customConfig.desktop.xrdp = with lib; {
+    enable = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Enable the xrdp remote-desktop server so a desktop session (e.g. XFCE) can be reached over RDP. Keep openFirewall off and tunnel over SSH for a private setup.";
+    };
+    windowManager = mkOption {
+      type = types.str;
+      default = "startxfce4";
+      description = ''
+        Session command xrdp launches for each remote login. Use the DE's session
+        *launcher* (e.g. "startxfce4", "gnome-session"), not the bare session binary —
+        launchers set up the D-Bus session bus and XDG_* env that xrdp doesn't provide,
+        without which the session exits immediately on login.
+      '';
+    };
+    openFirewall = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Open TCP 3389 on the firewall. Leave false to require an SSH tunnel (ssh -L 3389:localhost:3389).";
+    };
+  };
+
   config = lib.mkIf cfg.enable {
     services.xrdp = {
       enable = true;
