@@ -3,7 +3,6 @@
 { inputs, ... }: # No specific args needed here usually, they are passed to the individual modules
 {
   imports = [
-    ./common-options.nix
     (import ../../modules/nixos/unstable-overlay.nix inputs)
     ./sops.nix
     ./common/default.nix
