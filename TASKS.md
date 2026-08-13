@@ -95,7 +95,7 @@ Format: `- [ ] **Title** — description`
 
 - [x] **Hyprland lid close lock bug** — *(PR [#25](https://github.com/landonreekstin/nixos-config/pull/25))* Replaced swaylock+swayidle with hyprlock+hypridle. Root cause of lock crash: hyprlock's `screenshot` background path crashed when launched via `before_sleep_cmd` because the compositor was already tearing down outputs. Fixed by switching to a static wallpaper. Also set `no_fade_in = true` so input is immediately ready on manual lock.
 
-- [ ] **Refactor exec shortcuts to customConfig variables** — Add `customConfig.hyprland.apps.terminal`, `.editor`, `.browser`, `.music`, `.fileManager` with sane defaults (kitty, neovim, librewolf, spotify, yazi). Keybindings reference these instead of hardcoded commands.
+- [x] **Refactor exec shortcuts to customConfig variables** — Superseded and completed by `customConfig.apps.programs.<role>`, which declares each user application once as a linked `package` + `command` (+ `exe`/`args`). Keybindings, the waybar launcher, the weather widget and the TUI `.desktop` wrappers all derive from it, and the Hyprland module no longer installs user applications — setting a role's `package = null` drops the install, the closure reference and the keybind together.
 
 - [x] **All keybind functionality** — Audit and fill out missing keybindings in hyprland/functional.nix: window focus/move/resize (vim keys), workspace management, screenshot (grim+slurp), clipboard (cliphist), screen lock (swaylock), brightness, volume.
 

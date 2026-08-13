@@ -33,13 +33,12 @@
     desktop = {
       environments = [ "kde" "hyprland" ];
       hyprland = {
-        applications.browser = "flatpak run org.chromium.Chromium"; # mirrors blaney-pc
         launcher = {
           enable = true;
           pinnedApps = [
-            { label = "TERM"; command = "${pkgs.kitty}/bin/kitty"; tooltip = "Terminal Emulator"; }
-            { label = "NAV";  command = "flatpak run org.chromium.Chromium"; tooltip = "Web Browser"; }
-            { label = "CODE"; command = "${pkgs.vscode}/bin/code"; tooltip = "IDE"; }
+            { label = "TERM"; command = config.customConfig.apps.programs.terminal.command; tooltip = "Terminal Emulator"; }
+            { label = "NAV";  command = config.customConfig.apps.programs.browser.command; tooltip = "Web Browser"; }
+            { label = "CODE"; command = config.customConfig.apps.programs.ide.command; tooltip = "IDE"; }
           ];
         };
       };
@@ -89,6 +88,12 @@
     apps = {
       defaultSet = "kde";
       defaults.kde.browser = "chromium.desktop";
+
+      # Mirrors blaney-pc: Chromium via Flatpak, no native browser installed.
+      programs.browser = {
+        package = null;
+        command = "flatpak run org.chromium.Chromium";
+      };
     };
 
     profiles = {

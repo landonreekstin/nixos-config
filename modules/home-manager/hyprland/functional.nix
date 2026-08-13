@@ -3,8 +3,38 @@
 { config, pkgs, lib, customConfig, ... }:
 
 let
+  apps = customConfig.apps.programs;
+
+  # Generates the keybinds for one user application from customConfig.apps.programs.
+  #
+  # Every app gets "<mods>, <key>" to launch it, plus (unless newWs = false) a
+  # "<mods> SHIFT, <key>" variant that jumps to an empty workspace first.
+  #
+  # An app whose command is empty is skipped entirely, so removing an application
+  # from customConfig removes its keybind too rather than leaving a bind that
+  # fails silently.
+  mkAppBinds =
+    { key
+    , role
+    , mods ? "$mainMod"
+    , shiftMods ? "${mods} SHIFT"
+    , inTerminal ? false
+    , newWs ? true
+    }:
+    let
+      app = apps.${role};
+      cmd = if inTerminal then "$terminal -e ${app.command}" else app.command;
+    in
+      lib.optionals (app.command != "") (
+        [ "${mods}, ${key}, exec, ${cmd}" ]
+        ++ lib.optionals newWs [
+          "${shiftMods}, ${key}, workspace, emptym"
+          "${shiftMods}, ${key}, exec, ${cmd}"
+        ]
+      );
+
   # Helper function to generate Hyprland monitor configuration
-  generateMonitorConfig = monitor: 
+  generateMonitorConfig = monitor:
     let
       # Determine if identifier should use desc: prefix
       identifierString = 
@@ -143,8 +173,8 @@ in
         "$mainMod" = "SUPER";
         "$altMod" = "ALT";
         "$ctrlMod" = "CONTROL";
-        "$terminal" = lib.mkDefault customConfig.desktop.hyprland.applications.terminal;
-        "$fileManager" = lib.mkDefault customConfig.desktop.hyprland.applications.fileManager;
+        "$terminal" = lib.mkDefault apps.terminal.command;
+        "$fileManager" = lib.mkDefault apps.fileManager.command;
         "$menu" = "${pkgs.rofi}/bin/rofi -show drun";
 
         # Monitor configuration from customConfig
@@ -255,46 +285,32 @@ in
 
         # Keybindings
         bind = [
-          # Applications
+          # Launcher and rebuild — infrastructure, not user applications.
           "$mainMod, SPACE, exec, $menu"
-          "$mainMod, RETURN, exec, $terminal"
           "$ctrlMod $mainMod, R, exec, $terminal -e rebuild"
-          "$mainMod SHIFT, RETURN, workspace, emptym"
-          "$mainMod SHIFT, RETURN, exec, $terminal"
-          "$ctrlMod SHIFT, ESCAPE, exec, $terminal -e ${customConfig.desktop.hyprland.applications.taskManager}"
-          "$mainMod, I, exec, ${customConfig.desktop.hyprland.applications.ide}"
-          "$mainMod SHIFT, I, workspace, emptym"
-          "$mainMod SHIFT, I, exec, ${customConfig.desktop.hyprland.applications.ide}"
-          "$mainMod, T, exec, ${customConfig.desktop.hyprland.applications.editor}"
-          "$mainMod SHIFT, T, workspace, emptym"
-          "$mainMod SHIFT, T, exec, ${customConfig.desktop.hyprland.applications.editor}"
-          "$mainMod, F, exec, $terminal -e ${customConfig.desktop.hyprland.applications.fileManagerTUI}"
-          "$mainMod SHIFT, F, workspace, emptym"
-          "$mainMod SHIFT, F, exec, $terminal -e ${customConfig.desktop.hyprland.applications.fileManagerTUI}"
-          "$mainMod $altMod, F, exec, $fileManager"
-          "$mainMod SHIFT $altMod, F, workspace, emptym"
-          "$mainMod SHIFT $altMod, F, exec, $fileManager"
-          "$mainMod, B, exec, ${customConfig.desktop.hyprland.applications.browser}"
-          "$mainMod SHIFT, B, workspace, emptym"
-          "$mainMod SHIFT, B, exec, ${customConfig.desktop.hyprland.applications.browser}"
-          "$mainMod $altMod, B, exec, ${customConfig.desktop.hyprland.applications.browserAlt}"
-          "$mainMod SHIFT $altMod, B, workspace, emptym"
-          "$mainMod SHIFT $altMod, B, exec, ${customConfig.desktop.hyprland.applications.browserAlt}"
-          "$mainMod, M, exec, ${customConfig.desktop.hyprland.applications.music}"
-          "$mainMod SHIFT, M, workspace, emptym"
-          "$mainMod SHIFT, M, exec, ${customConfig.desktop.hyprland.applications.music}"
-          "$mainMod, C, exec, ${customConfig.desktop.hyprland.applications.chat}"
-          "$mainMod SHIFT, C, workspace, emptym"
-          "$mainMod SHIFT, C, exec, ${customConfig.desktop.hyprland.applications.chat}"
-          "$mainMod $altMod, C, exec, ${pkgs.signal-desktop}/bin/signal-desktop"
-          "$mainMod $altMod, M, exec, $terminal -e ${pkgs.cava}/bin/cava"
-          "$mainMod, P, exec, ${pkgs.bitwarden-desktop}/bin/bitwarden"
-          "$mainMod, G, exec, ${customConfig.desktop.hyprland.applications.gaming}"
-          "$mainMod SHIFT, G, workspace, emptym"
-          "$mainMod SHIFT, G, exec, ${customConfig.desktop.hyprland.applications.gaming}"
-          "$mainMod $altMod, G, exec, ${customConfig.desktop.hyprland.applications.gamingAlt}"
-          "$mainMod SHIFT $altMod, G, workspace, emptym"
-          "$mainMod SHIFT $altMod, G, exec, ${customConfig.desktop.hyprland.applications.gamingAlt}"
+        ]
+        # User application binds, generated from customConfig.apps.programs so
+        # that dropping an app from a host also drops its keybind.
+        ++ lib.concatMap mkAppBinds [
+          { key = "RETURN"; role = "terminal"; }
+          { key = "I";      role = "ide"; }
+          { key = "T";      role = "editor"; }
+          { key = "F";      role = "fileManagerTUI"; inTerminal = true; }
+          { key = "F";      role = "fileManager";    mods = "$mainMod $altMod"; shiftMods = "$mainMod SHIFT $altMod"; }
+          { key = "B";      role = "browser"; }
+          { key = "B";      role = "browserAlt";     mods = "$mainMod $altMod"; shiftMods = "$mainMod SHIFT $altMod"; }
+          { key = "M";      role = "music"; }
+          { key = "C";      role = "chat"; }
+          { key = "G";      role = "gaming"; }
+          { key = "G";      role = "gamingAlt";      mods = "$mainMod $altMod"; shiftMods = "$mainMod SHIFT $altMod"; }
+
+          # No new-workspace variant for these.
+          { key = "ESCAPE"; role = "taskManager";     mods = "$ctrlMod SHIFT";   inTerminal = true; newWs = false; }
+          { key = "C";      role = "chatAlt";         mods = "$mainMod $altMod"; newWs = false; }
+          { key = "M";      role = "audioVisualizer"; mods = "$mainMod $altMod"; inTerminal = true; newWs = false; }
+          { key = "P";      role = "passwordManager"; newWs = false; }
+        ]
+        ++ [
 
           # Window Management
           "$mainMod, Q, killactive,"
@@ -509,45 +525,23 @@ in
 
     # -------------------------------------------------------------------------- #
     # Home Manager Packages for Functional Elements
+    #
+    # Compositor infrastructure only. User applications (browser, editors, file
+    # manager, media players, chat, ...) are declared in customConfig.apps.programs
+    # and installed by modules/home-manager/system/apps.nix, so a host can see and
+    # override its own application set instead of inheriting a hidden bundle from
+    # whichever window manager it happens to enable.
     # -------------------------------------------------------------------------- #
     home.packages = with pkgs; [
       moveToNewWsOnMonitor
-      # Terminals, Launchers, File Managers (if not specified elsewhere and used in binds)
-      kitty
-      cosmic-files # if you decide to use this
-      rofi
+      rofi         # backs the $menu variable and the cliphist picker
 
-      # Core utilities from your original list, if not pulled by services:
-      kdePackages.kate
-      kdePackages.konsole # Often a dependency for Kate or other KDE apps
-      brave
-      discord
-      cava            # audio visualizer — Super+Alt+M
-      bitwarden-desktop # password manager — Super+P
-
-      # From Hyprland exec/binds not covered by services:
-      (if pkgs ? vscode then vscode else null) # Conditional if package might not exist
       # swaylock provided by programs.swaylock (theme or default)
       grim
       slurp
       wl-clipboard # For cliphist/rofi integration
       playerctl
       pulseaudio # For pactl
-
-      # TUI default application packages (for XDG MIME defaults in xdg.nix)
-      neovim      # text editor — nvim-kitty.desktop wrapper
-      mpv         # video and audio player
-      imv         # keyboard-driven image viewer
-      zathura     # vim-like PDF reader
-      file-roller # archive manager
-
-    # Only add plain librewolf if the homeManager.librewolf module is not managing it;
-    # that module installs its own patched derivation and having both causes a policies.json conflict.
-    # Also skip it on hosts whose Super+B browser is something else entirely (blaney-pc uses
-    # flatpak Chromium) — otherwise disabling the module silently reinstalls librewolf.
-    ] ++ lib.optionals (!customConfig.homeManager.librewolf.enable
-                        && lib.hasInfix "librewolf" customConfig.desktop.hyprland.applications.browser) [
-      pkgs.librewolf
     ] ++ lib.optionals customConfig.desktop.wayvnc.enable [
       wayvnc
     ];
