@@ -52,13 +52,15 @@
     };
     displayManager = {
       enable = true;
-      type = "ly";
-      ly = {
-        theme = "century-series";
-        animationFile = ../../assets/ly/f15-animation-240x67.dur; # 1080p: 240x67 chars
-        ttyRows = 67;
-        ttyCols = 240;
-      };
+      # HTPC auto-login requires SDDM (Ly does not support autoLogin/defaultSession).
+      # Previous Ly F-15 login is preserved below — swap back if not running HTPC mode.
+      type = "sddm";
+      # ly = {
+      #   theme = "century-series";
+      #   animationFile = ../../assets/ly/f15-animation-240x67.dur; # 1080p: 240x67 chars
+      #   ttyRows = 67;
+      #   ttyCols = 240;
+      # };
       # sddm = {
       #   theme = "sddm-astronaut";
       #   customTheme = {
