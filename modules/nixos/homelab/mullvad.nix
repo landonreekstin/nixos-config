@@ -5,6 +5,14 @@ let
   cfg = config.customConfig.homelab.mullvad;
 in
 {
+  options.customConfig.homelab.mullvad = with lib; {
+    enable = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Enable Mullvad VPN daemon for system-wide VPN.";
+    };
+  };
+
   config = lib.mkIf cfg.enable {
 
     services.mullvad-vpn.enable = true;

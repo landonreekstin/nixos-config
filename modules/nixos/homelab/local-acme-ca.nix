@@ -10,6 +10,16 @@ let
   rootCACert = ./ca/root_ca.crt;
 in
 {
+  options.customConfig.homelab.localCA = with lib; {
+    enable = mkEnableOption "local step-ca ACME certificate authority for .lan services";
+    port = mkOption {
+      type = types.port;
+      default = 9000;
+      description = "Port for the step-ca ACME server to listen on (localhost only).";
+    };
+    trustCA = mkEnableOption "add the homelab root CA to the system trust store";
+  };
+
   config = lib.mkMerge [
 
   (lib.mkIf cfg.localCA.trustCA {

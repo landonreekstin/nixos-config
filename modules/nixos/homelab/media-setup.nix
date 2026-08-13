@@ -17,6 +17,22 @@ let
   ]) linkerCfg.mediaUsers;
 in
 {
+  options.customConfig.homelab.mediaSetup = with lib; {
+    enable = lib.mkEnableOption "Enable the shared media setup";
+    user = lib.mkOption {
+      type = lib.types.str;
+      description = "The primary user account for media ownership.";
+    };
+    storagePath = lib.mkOption {
+      type = lib.types.str;
+      description = "The path to the main storage pool.";
+    };
+    cachePath = lib.mkOption {
+      type = lib.types.str;
+      description = "The path to the fast cache drive.";
+    };
+  };
+
   # This is the actual NixOS configuration that will be applied when the module is enabled.
   config = lib.mkIf cfg.enable {
 

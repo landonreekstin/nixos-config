@@ -5,6 +5,83 @@ let
   cfg = config.customConfig.homelab.wyoming;
 in
 {
+  options.customConfig.homelab.wyoming = with lib; {
+    enable = mkEnableOption "Wyoming voice pipeline (Whisper + Piper + openWakeWord + satellite)";
+    satellite = {
+      name = mkOption {
+        type = types.str;
+        default = "home";
+        description = "Friendly name for the Wyoming satellite shown in Home Assistant.";
+      };
+      micDevice = mkOption {
+        type = types.str;
+        default = "hw:1,0";
+        description = "ALSA device string for the microphone. Verify with `arecord -l` after install.";
+      };
+      sndDevice = mkOption {
+        type = types.str;
+        default = "hw:0,0";
+        description = "ALSA device string for speaker output. Verify with `aplay -l` after install.";
+      };
+      awakeWav = mkOption {
+        type = types.nullOr types.path;
+        default = null;
+        description = "Path to WAV played when the wake word fires. Null uses wyoming-satellite's built-in sound.";
+      };
+      doneWav = mkOption {
+        type = types.nullOr types.path;
+        default = null;
+        description = "Path to WAV played when TTS finishes. Null uses wyoming-satellite's built-in sound.";
+      };
+      wakeWord = mkOption {
+        type = types.str;
+        default = "hey_jarvis";
+        description = "openWakeWord model name passed to wyoming-satellite (e.g. hey_jarvis, ok_nabu).";
+      };
+      noiseSuppression = mkOption {
+        type = types.ints.between 0 4;
+        default = 0;
+        description = "WebRTC noise-suppression level on the mic (0 = off, 4 = max — may distort).";
+      };
+      autoGain = mkOption {
+        type = types.ints.between 0 31;
+        default = 0;
+        description = "Automatic gain control in dbFS (0 = off, 31 = loudest). Off is usually best in noisy rooms.";
+      };
+    };
+    openwakeword = {
+      threshold = mkOption {
+        type = types.numbers.between 0.0 1.0;
+        default = 0.5;
+        description = "openWakeWord activation threshold (0.0-1.0). Higher = fewer false triggers.";
+      };
+      triggerLevel = mkOption {
+        type = types.ints.unsigned;
+        default = 1;
+        description = "Consecutive activations required before a wake event fires. Higher = fewer detections.";
+      };
+    };
+    whisper = {
+      model = mkOption {
+        type = types.str;
+        default = "tiny-int8";
+        description = "Whisper model variant (tiny, base, small, medium; append -int8 for quantized).";
+      };
+      language = mkOption {
+        type = types.str;
+        default = "en";
+        description = "Language code for Whisper STT.";
+      };
+    };
+    piper = {
+      voice = mkOption {
+        type = types.str;
+        default = "en_US-lessac-medium";
+        description = "Piper TTS voice identifier (e.g. en_US-lessac-medium).";
+      };
+    };
+  };
+
   config = lib.mkIf cfg.enable {
     # wyoming-satellite's systemd service only puts alsa-utils in PATH by default;
     # extend it with sox for the TTS sound output conversion pipe.
