@@ -1,184 +1,20 @@
 # ~/nixos-config/hosts/mini-server/default.nix
-{ inputs, pkgs, lib, config, unstablePkgs, ... }:
+# Importer only — this host's settings live in the per-domain files below, mirroring
+# the layout of modules/nixos/.
+{ ... }:
 {
   imports = [
     ./hardware-configuration.nix
     ../../modules/nixos/default.nix
     ./disko-config.nix
+
+    # Host configuration, one file per domain
+    ./system.nix
+    ./desktop.nix
+    ./apps.nix
+    ./home.nix
+    ./networking.nix
+    ./homelab.nix
+    ./profiles.nix
   ];
-
-  # Kernel 6.17 caused a kernel panic on this hardware; 6.14 reached EOL in nixpkgs.
-  # Pin to 6.12 LTS (maintained through Dec 2026) — re-test with newer kernels periodically.
-  boot.kernelPackages = pkgs.linuxKernel.packages.linux_6_12;
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-
-  # GNOME desktop — keep for TV use; flip to headless when a dedicated TV device exists.
-  # customConfig.desktop doesn't model GNOME yet; configure directly here.
-  services.xserver.enable = true;
-  services.desktopManager.gnome.enable = true;
-  services.displayManager.gdm.enable = true;
-  services.xrdp.enable = true;
-  services.xrdp.defaultWindowManager = "gnome-session";
-  services.xrdp.openFirewall = true;
-
-  # Prevent GNOME/logind from suspending or hibernating — this is a server.
-  systemd.sleep.extraConfig = ''
-    AllowSuspend=no
-    AllowHibernation=no
-    AllowHybridSleep=no
-    AllowSuspendThenHibernate=no
-  '';
-  services.logind.settings.Login = {
-    IdleAction = "ignore";
-    HandleSuspendKey = "ignore";
-    HandleHibernateKey = "ignore";
-    HandleLidSwitch = "ignore";
-  };
-
-  # State dirs for game-control watchdog idle timers and game server volumes
-  systemd.tmpfiles.rules = [
-    "d /var/lib/game-control 0755 root root - -"
-    "d /var/lib/game-servers 0755 root root - -"
-  ];
-
-  customConfig = {
-
-    user = {
-      name = "lando";
-      email = "landonreekstin@gmail.com";
-      shell.bash.color = "yellow";
-      sopsPassword = true;
-    };
-
-    system = {
-      hostName = "mini-server";
-      stateVersion = "25.05";
-      timeZone = "America/Chicago";
-      locale = "en_US.UTF-8";
-    };
-
-    networking = {
-      networkmanager.enable = false;
-      staticIP = {
-        enable = true;
-        interface = "enp1s0";
-        address = "192.168.100.103";
-        gateway = "192.168.100.1";
-      };
-      firewall.enable = false;
-      # NAS (Unbound resolver) lives on this same server subnet post-migration;
-      # reach it directly rather than via the firewall's legacy 192.168.1.76 alias.
-      localDns.server = "192.168.100.76";
-    };
-
-    # Headless from customConfig perspective; GNOME is configured via raw NixOS options above
-    desktop = {
-      environments = [ "none" ];
-      displayManager = {
-        enable = false;
-        type = "none";
-      };
-    };
-
-    homeManager = {
-      enable = true;
-      themes = {
-        kde = "none";
-        hyprland = "none";
-      };
-    };
-
-    packages = {
-      nixos = with pkgs; [ wget git vim htop claude-code restic ];
-      homeManager = [];
-    };
-
-    programs.claudeCode.enable = true;
-
-    profiles = {
-      gaming.enable = false;
-      development.kernel.enable = false;
-      development.fpga-ice40.enable = false;
-    };
-
-    services = {
-      ssh.enable = true;
-      vscodeServer.enable = true;
-      autoUpdate.enable = true;
-    };
-
-    homelab = {
-      nasClient = {
-        enable = true;
-        # NAS is on this same server subnet post-migration; mount Samba directly
-        # rather than via the firewall's legacy 192.168.1.76 alias (which doesn't
-        # forward 445/139). Traffic stays within the trusted server segment.
-        serverAddress = "192.168.100.76";
-      };
-
-      # Reach the NAS nix binary cache directly on the server subnet (the legacy
-      # 192.168.1.76 alias isn't reachable from behind the firewall).
-      nixCache.clientHost = "192.168.100.76";
-
-      vaultwarden.enable = true;
-
-      homeAssistant = {
-        enable = true;
-        # nixpkgs 25.11 ships HA 2025.11.x; backup requires >= 2026.2.1 — use unstable
-        package = unstablePkgs.home-assistant;
-      };
-
-      wyoming = {
-        enable = true;
-        satellite.name = "mini-server";
-        # Reference cards by ALSA card *name* (stable) rather than numeric index —
-        # USB re-enumeration on reboot has swapped card 0/1 twice now.
-        # MIC = Generalplus USB mic, PCH = onboard HDA Intel (analog line-out).
-        satellite.micDevice = "plughw:MIC,0";
-        satellite.sndDevice = "plughw:PCH,0";
-        satellite.awakeWav = "${../../modules/nixos/homelab/wyoming-sounds/awake.wav}";
-        satellite.doneWav = "${../../modules/nixos/homelab/wyoming-sounds/done.wav}";
-        # ok_nabu is a more robust openWakeWord model than hey_jarvis and handles most
-        # false-trigger rejection on its own; WebRTC noise suppression covers TV/background,
-        # and threshold/trigger-level are kept near defaults for good far-field response.
-        satellite.wakeWord = "ok_nabu";
-        satellite.noiseSuppression = 2;
-        satellite.autoGain = 0;
-        openwakeword.threshold = 0.6;
-        openwakeword.triggerLevel = 1;
-        whisper.model = "small-int8";
-        whisper.language = "en";
-        piper.voice = "en_US-lessac-medium";
-      };
-
-      gameServers = {
-        astroneer.enable = true;
-        minecraftSurvival.enable = true;
-        minecraftMinigames.enable = true;
-        minecraftBedrock.enable = true;
-      };
-
-      gameControl.enable = true;
-
-      gameBackup.enable = true;
-
-      localCA.enable = true;
-      localCA.trustCA = true;
-
-      reverseProxy.enable = true;
-    };
-  };
-
-  # Version-control HA config files alongside this host config.
-  # The NixOS HA module manages configuration.yaml the same way.
-  environment.etc."home-assistant/automations.yaml".source = ./home-assistant/automations.yaml;
-  systemd.services.home-assistant.preStart = lib.mkAfter ''
-    ln -sf /etc/home-assistant/automations.yaml /var/lib/hass/automations.yaml
-  '';
-
-  home-manager = lib.mkIf config.customConfig.homeManager.enable {
-    extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
-    users.${config.customConfig.user.name} = {};
-  };
 }
