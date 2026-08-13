@@ -44,6 +44,12 @@ in
     description = "The derivation for the GBDK development shell.";
   };
 
+  options.customConfig.profiles.development.gbdk.enable = with lib; mkOption {
+    type = types.bool;
+    default = false;
+    description = "Enable Game Boy development tools and the GBDK dev shell.";
+  };
+
   config = lib.mkIf config.customConfig.profiles.development.gbdk.enable {
     customConfig.profiles.development.gbdk.devShell = pkgs.mkShell {
       packages = [

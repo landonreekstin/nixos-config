@@ -304,6 +304,12 @@ in
     description = "The attribute set for the kernel development shell.";
   };
 
+  options.customConfig.profiles.development.kernel.enable = with lib; mkOption {
+    type = types.bool;
+    default = false; # Default to false, enable explicitly for kernel development
+    description = "Enable Linux kernel development tools and configurations.";
+  };
+
   # === MODULE CONFIGURATION ===
   config = lib.mkIf cfg.enable {
     customConfig.profiles.development.kernel.devShell = {

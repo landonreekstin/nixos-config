@@ -11,6 +11,12 @@ in
     description = "C++ practice dev shell derivation.";
   };
 
+  options.customConfig.profiles.development.cpp-practice.enable = with lib; mkOption {
+    type = types.bool;
+    default = false;
+    description = "Enable C++ practice dev environment with compiler and build tools.";
+  };
+
   config = lib.mkIf cfg.enable {
     customConfig.profiles.development.cpp-practice.devShell = pkgs.mkShell {
       name = "cpp-practice";
