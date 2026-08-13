@@ -141,8 +141,75 @@ before and after. Hosts whose Plasma wallpaper is a repo path embed the flake-so
 in one derivation, so theirs changes on any commit; use `nix-diff` on the two drvs to
 confirm the only delta is that `…-source/assets/…` prefix.
 
+### Module Option Layout
+
+`customConfig` option *declarations* follow the same file-per-concern rule as everything
+else. There is no central options file — `modules/nixos/common-options.nix` was dissolved.
+
+> **The rule:** an option block is declared by the module that **owns the feature it
+> configures** — normally the same-named module. `homelab/jellyfin.nix` declares
+> `customConfig.homelab.jellyfin` *and* the `config` implementing it. If no single module
+> owns it, it goes in that domain's `options.nix`.
+
+An option lands in a domain `options.nix` when it is:
+- **cross-cutting** — every module in the domain selects on it (`desktop.environments`)
+- **home-manager-only** — nothing on the NixOS side reads it (`desktop.monitors`,
+  `hardware.battery`, all of `apps.*`). These *cannot* move to `modules/home-manager/`:
+  home-manager receives `customConfig` as a plain attrset via `extraSpecialArgs`, not as
+  its own option tree, so only the NixOS module system can declare them.
+- **split across several modules** — `homelab.reverseProxy` (nas + mini), `packages`
+
+Where things live:
+
+| Domain | Declared by |
+|---|---|
+| `homelab.*` | the matching `homelab/<service>.nix`; only `reverseProxy` in `homelab/options.nix` |
+| `desktop.*` | `desktop/{kde,hyprland,xrdp,display-manager,custom-sddm-theme}.nix`; the rest in `desktop/options.nix` |
+| `hardware.*` | `hardware/{nvidia,peripherals}.nix`; the rest in `hardware/options.nix` |
+| `services.*` | `services/{ssh,vscode-server,wireguard-client,wireguard-server}.nix`; `autoUpdate` in `common/auto-update.nix` |
+| `profiles.*` | `profiles/gaming.nix` and each `development/*.nix` — no `options.nix` |
+| `programs.*` | `programs/{partydeck,claude-code}.nix`; `firefox`/`flatpak` in `programs/options.nix` |
+| `apps.*` | `apps/programs.nix` (registry + `mkAppRole`), `apps/xdg-defaults.nix` (MIME) |
+| `bootloader`, `networking`, `homeManager` | `common/{bootloader,networking,home-manager}.nix` |
+| `user`, `system`, `packages` | `common/options.nix` |
+
+Fallback for a namespace with no owning module: `customConfig.<X>` → `modules/nixos/<X>/`
+if that directory exists, else `common/`. That is why `apps/` exists as an options-only
+directory. Add every new `options.nix` to its domain's `default.nix` imports.
+
+Gotchas when moving declarations:
+- **Nix merges duplicate attrset literals silently.** `{ a = {b=1;}; a = {c=2;}; }` merges,
+  which is how `customConfig.programs` and `customConfig.desktop.kde` each ended up declared
+  twice in the old file without anyone noticing. But a literal will *not* merge with a path
+  already extended elsewhere in the same file — `{ a.b = 1; a = {c=2;}; }` errors. Use the
+  nested-path form there (see `development/*.nix`, which already declare `.devShell`).
+- **A module that declares `options` cannot also use shorthand config.** Bare `boot.loader = …`
+  at top level must move under an explicit `config = { … }`.
+- **Check the argument list.** Defaults referencing `pkgs` or `config` need those in the
+  module's arguments; the old file had them all in scope for free.
+
+To prove a declaration move is a no-op, compare the **merged `customConfig` fixpoint**, not
+just drvPaths — it catches a changed default or priority directly:
+
+```bash
+nix eval --impure --json --expr '
+  let f = builtins.getFlake "/home/lando/nixos-config"; cfg = f.nixosConfigurations.<host>;
+      lib = cfg.pkgs.lib;
+      san = v: let r = builtins.tryEval (            # tryEval: no-default options throw
+        if builtins.isFunction v then "<function>"
+        else if lib.isDerivation v then "drv:" + (v.drvPath or "?")
+        else if builtins.isPath v then "path:" + (baseNameOf (toString v))
+        else if builtins.isList v then map san v
+        else if builtins.isAttrs v then lib.mapAttrs (_: san) v
+        else v); in if r.success then r.value else "<unset>";
+  in san cfg.config.customConfig' | jq -S .
+```
+
+Note `config.system.build.manual.optionsJSON` is **not** useful here — it documents upstream
+nixpkgs options only and never contains `customConfig`.
+
 ### Configuration System
-All configuration is managed through the `customConfig` option set defined in `modules/nixos/common-options.nix`. This provides:
+All configuration is managed through the `customConfig` option set, declared per-module (see [Module Option Layout](#module-option-layout)). This provides:
 - Type-safe configuration options with validation
 - Centralized defaults and documentation
 - Consistent interface across all hosts
@@ -892,7 +959,7 @@ eval-check all hosts, rebuild on gaming-pc to verify, then commit and push.
 
 - **CRITICAL**: Always use the `rebuild` command, never manually specify `--flake .#<hostname>`. Each host has different users and hardware - applying the wrong host config can remove user accounts, break authentication, and cause boot failures.
 - Always use the `--impure` flag with nixos-rebuild for this configuration
-- The `customConfig` system requires understanding the options defined in `common-options.nix`
+- The `customConfig` system requires understanding the options declared per-module (see [Module Option Layout](#module-option-layout))
 - Host configurations should primarily set `customConfig` values rather than raw NixOS options
 - Unstable packages can be selectively enabled via `customConfig.packages.unstable-override`
 - Functional vs theme paradigm for wayland components

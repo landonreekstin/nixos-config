@@ -100,7 +100,7 @@ Blocking a bad update is a single label: `gh pr edit <PR> --add-label update-blo
 
 ## Architecture
 
-Configuration is driven by a custom option system (`customConfig`) defined in [`modules/nixos/common-options.nix`](modules/nixos/common-options.nix). Host configs set typed, validated options rather than raw NixOS attributes — this keeps host files small and pushes complexity into well-tested shared modules.
+Configuration is driven by a custom option system (`customConfig`), declared per-module: each module owns the options it implements (e.g. [`modules/nixos/homelab/jellyfin.nix`](modules/nixos/homelab/jellyfin.nix)), with cross-cutting ones in the domain's `options.nix`. Host configs set typed, validated options rather than raw NixOS attributes — this keeps host files small and pushes complexity into well-tested shared modules.
 
 ```
 flake.nix
