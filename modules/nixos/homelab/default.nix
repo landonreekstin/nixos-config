@@ -23,6 +23,7 @@
     ./game-servers.nix
     ./game-control.nix
     ./game-backup.nix
+    ./astroneer-snapshots.nix
     ./private-backup.nix
     ./dns.nix
     ./reverse-proxy-nas.nix
