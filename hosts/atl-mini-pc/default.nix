@@ -1,119 +1,26 @@
 # ~/nixos-config/hosts/atl-mini-pc/default.nix
-{ inputs, pkgs, lib, config, unstablePkgs, ... }: # Standard module arguments. `config` is the final NixOS config.
+# Importer only — this host's settings live in the per-domain files below, mirroring
+# the layout of modules/nixos/.
+{ ... }:
 
 {
   imports = [
     # Hardware-specific configuration for this host
     ./hardware-configuration.nix
-    
+
     # Top level nixos modules import. All other nixos modules and option definitions are nested.
     ../../modules/nixos/default.nix
 
     # Host specific disk configuration
     ./disko-config.nix
 
+    # Host configuration, one file per domain
+    ./system.nix
+    ./desktop.nix
+    ./hardware.nix
+    ./apps.nix
+    ./home.nix
+    ./networking.nix
+    ./profiles.nix
   ];
-
-  # These values are for the options defined in `../../modules/nixos/common-options.nix`.
-  customConfig = {
-    
-    user = {
-      name = "heather";
-      email = "landonreekstin@gmail.com";
-      updateCmdPermission = false; 
-    };
-    
-    system = {
-      hostName = "atl-mini-pc"; # Actual hostname for this machine
-      stateVersion = "25.05"; # DO NOT CHANGE
-      timeZone = "America/New_York";
-      locale = "en_US.UTF-8"; 
-    };
-
-    bootloader = {
-      quietBoot = true;
-    };
-    
-    desktop = {
-      environments = [ "kde" ];
-      kde.kwallet.enable = true;
-      displayManager = {
-        enable = true; # false will go to TTY but not autolaunch a DE
-        type = "sddm";
-      };
-    };
-
-    hardware = {
-      nvidia = {
-        enable = false;
-      };
-    };
-
-    programs = {
-      partydeck.enable = false;
-    };
-
-    homeManager = {
-      enable = true; # Enable Home Manager for this host
-      themes = {
-        kde = "default";
-        wallpaper = ../../assets/wallpapers/soviet-retro-future.jpg;
-      };
-    };
-
-    packages = {
-      nixos = with pkgs; [
-
-      ];
-      unstable-override = [
-        "firefox"
-        "chromium"
-      ];
-      homeManager = with pkgs; [
-        notes
-        chromium
-        firefox
-        libreoffice
-      ];
-      flatpak.enable = true;
-    };
-
-    apps = {
-      defaultSet = "kde";
-      defaults.kde.browser = "firefox.desktop";
-    };
-
-    profiles = {
-      gaming.enable = false;
-    };
-
-    services = {
-      ssh.enable = true;
-      vscodeServer.enable = true;
-      wireguard.server = {
-        enable = false;
-        address = "10.100.100.1/24";
-        listenPort = 51824;
-        privateKeyFile = "/etc/nixos/secrets/wireguard/server-privatekey"; # IMPORTANT: Use a secret path
-        peers = [
-          {
-            # Example Peer 1: A Phone
-            publicKey = "PKvb7VKgYKXobS0MjVg68NbkObZVO9Bdakjv7Hi5NGw=";
-            allowedIPs = [ "10.200.200.2/32" ];
-          }
-        ];
-      };
-    };
-
-  };
-
-  # === Host-specific NixOS configuration ===
-  services.xserver.videoDrivers = [ "i810" ];
-
-  # Home Manager configuration for this Host
-  home-manager = lib.mkIf config.customConfig.homeManager.enable {
-    extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
-    users.${config.customConfig.user.name} = {};
-  };
-  
 }
