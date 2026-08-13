@@ -15,6 +15,7 @@
     ./system.nix
     ./desktop.nix
     ./hardware.nix
+    ./storage.nix
     ./apps.nix
     ./home.nix
     ./networking.nix
