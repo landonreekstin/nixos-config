@@ -71,6 +71,57 @@ let
   '';
 in
 {
+  options.customConfig.services.autoUpdate = with lib; {
+    enable = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Enable weekly automated git sync + nixos-rebuild on this host.";
+    };
+    day = mkOption {
+      type = types.enum [ "Mon" "Tue" "Wed" "Thu" "Fri" "Sat" "Sun" ];
+      default = "Mon";
+      description = "Day of the week to run (systemd OnCalendar weekday).";
+      example = "Sun";
+    };
+    time = mkOption {
+      type = types.str;
+      default = "03:00";
+      description = "Time of day in HH:MM 24-hour format.";
+      example = "04:30";
+    };
+    randomizedDelaySec = mkOption {
+      type = types.str;
+      default = "30min";
+      description = "Max random delay to stagger multiple hosts.";
+      example = "1h";
+    };
+    persistent = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Run the update after a missed schedule (e.g. on next boot). Set false on desktops to avoid a mid-session rebuild firing unexpectedly.";
+    };
+    skipIfActiveSession = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Skip the update if a user session is actively in use (logind IdleHint=no). An idle session (locked screen / no recent input) still allows the update. Recommended for desktop hosts. Note: IdleHint reliability depends on the desktop environment reporting idle to logind.";
+    };
+    lowPriority = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Run nixos-rebuild with nice/ionice to reduce impact on foreground work. Recommended for desktop hosts.";
+    };
+    onlyOnAC = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Only run the update when on AC power (ConditionACPower). Recommended for laptops.";
+    };
+    shutdownAfterRebuild = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Power the system off after a successful automated rebuild. Only fires when a rebuild actually occurred (new commits pulled and rebuild succeeded).";
+    };
+  };
+
   config = lib.mkIf cfg.enable {
     systemd.services.nixos-auto-update = {
       description = "Weekly automated NixOS config sync and rebuild";

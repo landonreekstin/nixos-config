@@ -58,6 +58,58 @@ let
 
 in
 {
+  options.customConfig.hardware.peripherals = with lib; {
+    enable = mkOption {
+      type = types.bool;
+      default = false; # Default to false, enable explicitly for peripheral configurations
+      description = "Enable configurations for hardware peripherals like keyboards, mice, etc.";
+    };
+    openrgb = {
+      enable = mkOption {
+        type = types.bool;
+        default = false; # Default to false, enable explicitly for OpenRGB support
+        description = "Enable OpenRGB for RGB lighting control.";
+      };
+    };
+    openrazer = {
+      enable = mkOption {
+        type = types.bool;
+        default = false; # Default to false, enable explicitly for Razer device support
+        description = "Enable OpenRazer for Razer device support.";
+      };
+    };
+    ckb-next = {
+      enable = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Enable ckb-next for Corsair device support.";
+      };
+      # Color and brightness are managed at runtime via ~/.cache/ckb-color-state
+      # and cycled through the century-series waybar widget / keybinds.
+    };
+    input-remapper = {
+      enable = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Enable input-remapper for key/mouse remapping.";
+      };
+    };
+    solaar = {
+       enable = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Enable Solaar for Logitech device management.";
+       };
+    };
+    asus = {
+      enable = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Enable ASUS laptop specific services and tools (asusctl).";
+      };
+    };
+  };
+
   config = lib.mkIf cfg.enable {
 
     # === OpenRGB for RGB Lighting Control ===

@@ -3,6 +3,7 @@
 { ... }: # No specific args needed here usually, they are passed to the individual modules
 {
   imports = [
+    ./options.nix
     ./nvidia.nix
     ./peripherals.nix
   ];
