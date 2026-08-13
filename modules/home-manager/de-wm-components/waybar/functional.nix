@@ -608,7 +608,7 @@ in
             interval = 300; # Refresh every 5 minutes
             signal = 10;
             format = lib.mkDefault "{}";
-            on-click = "${customConfig.desktop.hyprland.applications.terminal} -e ${weatherClickScript}";
+            on-click = "${customConfig.apps.programs.terminal.command} -e ${weatherClickScript}";
           };
 
           "custom/power" = {

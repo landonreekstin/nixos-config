@@ -428,6 +428,86 @@ in
       fi
     '')
 
+    (pkgs.writeShellScriptBin "blaney-todo" ''
+      #!${pkgs.stdenv.shell}
+      set -uo pipefail
+      REPO="${nixosConfigDir}"
+      if [ ! -d "$REPO/.git" ]; then
+        echo "Can't find your config folder at $REPO — tell Lando."
+        exit 1
+      fi
+      cd "$REPO" || exit 1
+
+      RUNBOOK_DIR="docs/runbooks/blaney"
+
+      echo "Checking for new tasks from Lando..."
+      git fetch --quiet origin main 2>/dev/null \
+        || echo "(couldn't reach GitHub — showing the tasks I already know about)"
+
+      # Pending tasks are the markdown files Lando has pushed to main. The README
+      # in that folder is the how-to for writing them, not a task.
+      mapfile -t FILES < <(git ls-tree --name-only origin/main "$RUNBOOK_DIR/" 2>/dev/null \
+        | grep '\.md$' | grep -v '/README\.md$')
+
+      if [ "''${#FILES[@]}" -eq 0 ]; then
+        echo
+        echo "No tasks right now — Lando hasn't left you anything to do."
+        exit 0
+      fi
+
+      # Menu entry = the file's first markdown heading, minus any "Runbook:" prefix.
+      TITLES=()
+      for f in "''${FILES[@]}"; do
+        t=$(git show "origin/main:$f" 2>/dev/null | grep -m1 '^# ' \
+          | sed -e 's/^# *//' -e 's/^[Rr]unbook: *//')
+        [ -z "$t" ] && t=$(basename "$f" .md)
+        TITLES+=("$t")
+      done
+
+      echo
+      echo "What do you want Claude to work on?"
+      for i in "''${!TITLES[@]}"; do
+        printf "  %d) %s\n" $((i + 1)) "''${TITLES[$i]}"
+      done
+      echo
+
+      read -rp "Enter a number (or q to cancel): " CHOICE
+      [ "$CHOICE" = q ] && { echo "Cancelled — nothing started."; exit 0; }
+      if ! [[ "$CHOICE" =~ ^[0-9]+$ ]] || [ "$CHOICE" -lt 1 ] \
+           || [ "$CHOICE" -gt "''${#FILES[@]}" ]; then
+        echo "That wasn't a valid choice. Nothing started."
+        exit 1
+      fi
+      TARGET="''${FILES[$((CHOICE - 1))]}"
+      TITLE="''${TITLES[$((CHOICE - 1))]}"
+
+      echo
+      echo "Starting Claude on: $TITLE"
+      echo
+
+      # Preface prompt — keep in sync with the blaney-pc rules in CLAUDE.md.
+      # No backticks in here: the heredoc is unquoted so $TARGET expands.
+      PROMPT=$(cat <<EOF
+      Work on the runbook at $TARGET. Read it first with: git show origin/main:$TARGET
+      (it may not exist on the branch you are currently on). Then carry out the task it
+      describes end to end. This is a blaney-pc session — follow all blaney-pc rules in
+      CLAUDE.md: branch prefix blaney/, never push to main, never merge into a branch that
+      does not start with blaney/. Keep every explanation brief and simple; the user is
+      non-technical and does not know Nix, Linux, or code, so never ask him to make a
+      technical decision and never ask him to run a command you can run yourself. Take full
+      ownership of every technical choice. He DOES decide how things look and behave — if
+      the runbook leaves the visual or user-facing direction open, ask him about that first.
+      Do not edit, move, or delete the runbook file itself; Lando removes it when he merges.
+      Branch off the latest main, make the change, chown the repo, rebuild, and have the
+      user confirm it actually works before you commit. Then open a PR with gh pr create.
+      If anything in the runbook conflicts with the blaney-pc rules in CLAUDE.md, the rules
+      win. Lando reviews and approves all PRs, so make the best call and proceed.
+      EOF
+      )
+
+      exec sudo claude "$PROMPT"
+    '')
+
     (pkgs.writeShellScriptBin "blaney-help" ''
       #!${pkgs.stdenv.shell}
       cat <<'EOF'
@@ -443,6 +523,7 @@ in
         c                 Clear the screen
 
       FIX THINGS WITH CLAUDE
+        blaney-todo            See tasks Lando left you and have Claude do one
         ccn                    Open Claude in the config folder
         ccnc                   Open Claude and continue your last chat
         ccnr                   Open Claude and pick a past chat to resume

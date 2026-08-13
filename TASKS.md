@@ -27,7 +27,7 @@ Format: `- [ ] **Title** — description`
 
 - [x] **nh clean: home-manager generation GC** — Current `nix.gc` (weekly, `--delete-older-than 7d`) handles the system store but does NOT collect old home-manager profile generations, which accumulate as GC roots and can grow large over time. Add `nh` package and configure `nh clean all` (or equivalent `home-manager expire-generations`) on the same weekly schedule to clean old HM generations. Low priority but prevents slow disk growth on active machines.
 
-- [ ] **Remove electron_39 → electron_40 alias** — Added in `modules/nixos/unstable-overlay.nix` as a workaround for a broken nixpkgs patch on `electron 39.8.2`. After any `flake update`, test removal by deleting the alias overlay and running `NIXPKGS_ALLOW_UNFREE=1 nix eval --impure .#nixosConfigurations.asus-laptop.config.system.build.toplevel.drvPath`. If eval passes, the upstream fix is in and the alias can be deleted.
+- [x] **Remove electron_39 → electron_40 alias** — Done (PR #104). `electron_39` is 39.8.10 on both the main and W33 unstable revs, so the broken 39.8.2 patch is long gone. Note the old test in this entry was wrong: it named `asus-laptop`, which is one of the hosts the alias does *not* affect. The alias touched optiplex, blaney-pc, asus-m15, atl-mini-pc, vm-sandbox and vm-blaney (via bitwarden-desktop / heroic-unwrapped); all six were built to verify.
 
 - [x] **Nix SOPS secrets management** — Core infrastructure added: sops-nix flake input, `modules/nixos/sops.nix` imported by all hosts (age identity derived from SSH host key at runtime), `sops`, `age`, `ssh-to-age` in system packages, `.sops.yaml` key config, `secrets/` directory. See sops section below for migration tasks.
 
@@ -501,7 +501,7 @@ Format: `- [ ] **Title** — description`
 
 - [x] **Hyprland lid close lock bug** — *(PR [#25](https://github.com/landonreekstin/nixos-config/pull/25))* Replaced swaylock+swayidle with hyprlock+hypridle. Root cause of lock crash: hyprlock's `screenshot` background path crashed when launched via `before_sleep_cmd` because the compositor was already tearing down outputs. Fixed by switching to a static wallpaper. Also set `no_fade_in = true` so input is immediately ready on manual lock.
 
-- [ ] **Refactor exec shortcuts to customConfig variables** — Add `customConfig.hyprland.apps.terminal`, `.editor`, `.browser`, `.music`, `.fileManager` with sane defaults (kitty, neovim, librewolf, spotify, yazi). Keybindings reference these instead of hardcoded commands.
+- [x] **Refactor exec shortcuts to customConfig variables** — Superseded and completed by `customConfig.apps.programs.<role>`, which declares each user application once as a linked `package` + `command` (+ `exe`/`args`). Keybindings, the waybar launcher, the weather widget and the TUI `.desktop` wrappers all derive from it, and the Hyprland module no longer installs user applications — setting a role's `package = null` drops the install, the closure reference and the keybind together.
 
 - [x] **All keybind functionality** — Audit and fill out missing keybindings in hyprland/functional.nix: window focus/move/resize (vim keys), workspace management, screenshot (grim+slurp), clipboard (cliphist), screen lock (swaylock), brightness, volume.
 

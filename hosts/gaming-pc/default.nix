@@ -158,22 +158,22 @@ in
           pinnedApps = [
             {
               label = "TERM";
-              command = "${pkgs.kitty}/bin/kitty";
+              command = config.customConfig.apps.programs.terminal.command;
               tooltip = "Terminal Emulator";
             }
             {
               label = "NAV";
-              command = "${pkgs.librewolf}/bin/librewolf";
+              command = config.customConfig.apps.programs.browser.command;
               tooltip = "Web Browser";
             }
             {
               label = "CODE";
-              command = "${pkgs.vscode}/bin/code";
+              command = config.customConfig.apps.programs.ide.command;
               tooltip = "IDE";
             }
             {
               label = "AUDIO";
-              command = "${pkgs.unstable.spotify}/bin/spotify --enable-features=UseOzonePlatform --ozone-platform=wayland";
+              command = config.customConfig.apps.programs.music.command;
               tooltip = "Music Player";
             }
             {
@@ -251,6 +251,10 @@ in
     apps = {
       defaultSet = "kde";
       defaults.kde.browser = "librewolf.desktop";
+
+      # Spotify tracks unstable here; the desktop entry with the Ozone/Wayland
+      # flags is defined in the home-manager block at the bottom of this file.
+      programs.music.package = pkgs.unstable.spotify;
     };
 
     programs = {
@@ -413,13 +417,12 @@ in
         "vlc"
         "signal-desktop"
       ];
+      # vscode, librewolf, brave and signal-desktop now come from
+      # customConfig.apps.programs (ide, browser, browserAlt, chatAlt).
       homeManager = with pkgs; [
         jamesdsp
         remmina
-        vscode
         md-tui
-        librewolf
-        brave
         ungoogled-chromium
         vesktop
         qbittorrent
@@ -431,7 +434,6 @@ in
         zoom-us
         gurk-rs
         vlc
-        signal-desktop
         keepassxc
       ];
       flatpak = {
@@ -440,7 +442,11 @@ in
       };
     };
 
-    programs.claudeCode.enable = true;
+    programs.claudeCode = {
+      enable = true;
+      # lando's hyprland-keys working clone lives alongside nixos-config on this host.
+      extraChownPaths = [ "/home/lando/hyprland-keys" ];
+    };
 
     profiles = {
       gaming.enable = true;
@@ -569,7 +575,8 @@ in
   home-manager = lib.mkIf config.customConfig.homeManager.enable {
     extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
     users.${config.customConfig.user.name} = {
-      home.packages = [ pkgs.unstable.spotify ];
+      # Spotify itself comes from customConfig.apps.programs.music; this entry only
+      # adds the Wayland/Ozone flags to its desktop launcher.
       xdg.desktopEntries.spotify = {
         name = "Spotify";
         genericName = "Music Player";

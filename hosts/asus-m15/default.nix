@@ -53,17 +53,17 @@
           pinnedApps = [
             {
               label = "TERM";
-              command = "${pkgs.kitty}/bin/kitty";
+              command = config.customConfig.apps.programs.terminal.command;
               tooltip = "Terminal Emulator";
             }
             {
               label = "NAV";
-              command = "${pkgs.chromium}/bin/chromium";
+              command = config.customConfig.apps.programs.browserAlt.command;
               tooltip = "Web Browser";
             }
             {
               label = "CODE";
-              command = "${pkgs.vscode}/bin/code";
+              command = config.customConfig.apps.programs.ide.command;
               tooltip = "IDE";
             }
             {
@@ -171,12 +171,20 @@
       ];
       unstable-override = [
         "vscode"
-        "chromium"
+        # "chromium" — do NOT re-add without checking the electron fallout.
+        # unstable-overlay.nix replaces pkgs.<name> globally, and nixpkgs builds
+        # electron out of chromium's infrastructure. Overriding chromium here
+        # rebuilt stable signal-desktop's electron-unwrapped against unstable's
+        # dep tree (glib 2.88 / rustc 1.97 / python 3.14 vs stable's 2.86 / 1.91
+        # / 3.13), producing a hybrid derivation Hydra has never built — so it
+        # compiled electron from source and TIMEOUTed the weekly flake-updater
+        # build for asus-m15 (2026-W33). With chromium on stable, the electron
+        # drv matches asus-laptop's cached one exactly.
         "firefox"
         "claude-code"
       ];
+      # vscode comes from customConfig.apps.programs.ide.
       homeManager = with pkgs; [
-        vscode
         chromium
         firefox
         claude-code

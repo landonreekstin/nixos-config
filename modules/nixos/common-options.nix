@@ -13,6 +13,68 @@ let
     "bright-cyan" = "1;36"; "bright-white" = "1;37";
   };
 
+  # Builds one entry of customConfig.apps.programs.<role>.
+  #
+  # Each user application is declared once, as a package plus the command used to
+  # launch it, and the command is *derived* from the package. That linkage is the
+  # whole point: setting `package = null` both drops the install and empties the
+  # command, so no store path is left dangling in a keybind (an interpolated
+  # "${pkgs.foo}/bin/foo" default pulls foo into the closure even when foo is not
+  # in home.packages — the trap that made removing librewolf so awkward).
+  #
+  # `exe` is given explicitly rather than using lib.getExe because several
+  # packages' binary names differ from their attribute name (bitwarden-desktop ->
+  # bitwarden, vscode -> code, btop-rocm -> btop, neovim -> nvim) and
+  # meta.mainProgram is not reliably set for all of them.
+  mkAppRole =
+    { package ? null
+    , exe ? null
+    , args ? ""
+    , command ? null   # for roles installed elsewhere (e.g. the gaming profile)
+    , description
+    }:
+    lib.mkOption {
+      inherit description;
+      default = {};
+      type = lib.types.submodule ({ config, ... }: {
+        options = {
+          package = lib.mkOption {
+            type = lib.types.nullOr lib.types.package;
+            default = package;
+            description = "Package to install for this role. null means do not install it.";
+          };
+          exe = lib.mkOption {
+            type = lib.types.nullOr lib.types.str;
+            default = exe;
+            description = ''
+              Name of the binary inside `package`, used to derive `command`.
+              Override this alongside `package` when swapping in an application
+              whose binary is named differently (e.g. vesktop for the chat role).
+            '';
+          };
+          args = lib.mkOption {
+            type = lib.types.str;
+            default = args;
+            description = "Arguments appended to the derived `command`.";
+          };
+          command = lib.mkOption {
+            type = lib.types.str;
+            description = ''
+              Command used to launch this application. Derived from `package` and
+              `exe` by default. An empty string means the role is unset: no
+              keybind is emitted for it.
+            '';
+          };
+        };
+        # mkDefault so a host can override the command on its own (e.g. to launch
+        # a Flatpak) without having to restate the package.
+        config.command = lib.mkDefault (
+          if config.package == null then (if command != null then command else "")
+          else "${config.package}/bin/${config.exe}${config.args}"
+        );
+      });
+    };
+
 in
 {
   options.customConfig = with lib; { # Define the 'customConfig' option set
@@ -426,80 +488,6 @@ in
         };
       };
       hyprland = {
-        applications = {
-          taskManager = mkOption {
-            type = types.str;
-            default = "${pkgs.btop-rocm}/bin/btop";
-            description = "Command to launch task manager (Ctrl+Shift+Escape in terminal).";
-            example = "\${pkgs.htop}/bin/htop";
-          };
-          ide = mkOption {
-            type = types.str;
-            default = "${pkgs.vscode}/bin/code";
-            description = "Command to launch IDE (Super+I).";
-            example = "\${pkgs.neovim}/bin/nvim";
-          };
-          editor = mkOption {
-            type = types.str;
-            default = "${pkgs.kdePackages.kate}/bin/kate";
-            description = "Command to launch text editor (Super+T).";
-            example = "\${pkgs.vim}/bin/vim";
-          };
-          fileManagerTUI = mkOption {
-            type = types.str;
-            default = "${pkgs.yazi}/bin/yazi";
-            description = "Command to launch terminal file manager (Super+F in terminal).";
-            example = "\${pkgs.ranger}/bin/ranger";
-          };
-          browser = mkOption {
-            type = types.str;
-            default = "${pkgs.librewolf}/bin/librewolf";
-            description = "Command to launch primary browser (Super+B).";
-            example = "\${pkgs.firefox}/bin/firefox";
-          };
-          browserAlt = mkOption {
-            type = types.str;
-            default = "${pkgs.brave}/bin/brave";
-            description = "Command to launch alternative browser (Super+Shift+B).";
-            example = "\${pkgs.chromium}/bin/chromium";
-          };
-          music = mkOption {
-            type = types.str;
-            default = "${pkgs.spotify}/bin/spotify --enable-features=UseOzonePlatform --ozone-platform=wayland";
-            description = "Command to launch music player (Super+M).";
-            example = "\${pkgs.rhythmbox}/bin/rhythmbox";
-          };
-          chat = mkOption {
-            type = types.str;
-            default = "${pkgs.discord}/bin/discord";
-            description = "Command to launch chat application (Super+D).";
-            example = "\${pkgs.element-desktop}/bin/element-desktop";
-          };
-          gaming = mkOption {
-            type = types.str;
-            default = "steam";
-            description = "Command to launch primary gaming platform (Super+G).";
-            example = "\${pkgs.steam}/bin/steam";
-          };
-          gamingAlt = mkOption {
-            type = types.str;
-            default = "${pkgs.lutris}/bin/lutris";
-            description = "Command to launch alternative gaming platform (Super+Shift+G).";
-            example = "\${pkgs.heroic}/bin/heroic";
-          };
-          terminal = mkOption {
-            type = types.str;
-            default = "${pkgs.kitty}/bin/kitty";
-            description = "Command for the \$terminal Hyprland variable (Super+Return and other terminal binds).";
-            example = "\${pkgs.alacritty}/bin/alacritty";
-          };
-          fileManager = mkOption {
-            type = types.str;
-            default = "${pkgs.kdePackages.dolphin}/bin/dolphin";
-            description = "Command for the \$fileManager Hyprland variable (Super+Alt+F).";
-            example = "\${pkgs.nemo}/bin/nemo";
-          };
-        };
         launcher = {
           enable = mkOption {
             type = types.bool;
@@ -1068,6 +1056,137 @@ in
     };
 
     apps = {
+      # ------------------------------------------------------------------------ #
+      # User applications
+      #
+      # The set of user-facing programs a machine installs. These used to be
+      # hardcoded in modules/home-manager/hyprland/functional.nix, which made the
+      # app set invisible from the host file and impossible to override. Desktop
+      # *environment* infrastructure (waybar, rofi, hyprsunset, swaylock, fonts,
+      # portals) still belongs to the Hyprland module — only user applications
+      # live here.
+      #
+      # The defaults reproduce the full "complete DE" experience, so a host that
+      # says nothing gets everything. To drop an app, set its package to null:
+      #
+      #   apps.programs.browser = {
+      #     package = null;                                 # not installed
+      #     command = "flatpak run org.chromium.Chromium";  # keybind still works
+      #   };
+      #
+      # Leaving `command` unset alongside `package = null` also removes the
+      # application's Hyprland keybind.
+      # ------------------------------------------------------------------------ #
+      programs = {
+        enable = mkOption {
+          type = types.bool;
+          default = lib.elem "hyprland" config.customConfig.desktop.environments;
+          defaultText = literalExpression ''lib.elem "hyprland" config.customConfig.desktop.environments'';
+          description = ''
+            Install the customConfig user application set. Defaults to enabled on
+            Hyprland hosts, which is where this set was previously hardcoded;
+            KDE-only hosts opt in explicitly.
+          '';
+        };
+
+        # ── Browsers ──────────────────────────────────────────────────────────
+        browser = mkAppRole {
+          package = pkgs.librewolf; exe = "librewolf";
+          description = "Primary web browser (Super+B).";
+        };
+        browserAlt = mkAppRole {
+          package = pkgs.brave; exe = "brave";
+          description = "Alternative web browser (Super+Alt+B).";
+        };
+
+        # ── Terminal and file management ──────────────────────────────────────
+        terminal = mkAppRole {
+          package = pkgs.kitty; exe = "kitty";
+          description = "Terminal emulator; backs the \$terminal Hyprland variable (Super+Return).";
+        };
+        fileManager = mkAppRole {
+          package = pkgs.kdePackages.dolphin; exe = "dolphin";
+          description = "Graphical file manager; backs the \$fileManager Hyprland variable (Super+Alt+F).";
+        };
+        fileManagerTUI = mkAppRole {
+          package = pkgs.yazi; exe = "yazi";
+          description = "Terminal file manager (Super+F, opened inside \$terminal).";
+        };
+
+        # ── Editors ───────────────────────────────────────────────────────────
+        editor = mkAppRole {
+          package = pkgs.kdePackages.kate; exe = "kate";
+          description = "Graphical text editor (Super+T).";
+        };
+        editorTUI = mkAppRole {
+          package = pkgs.neovim; exe = "nvim";
+          description = "Terminal text editor; backs the nvim-kitty.desktop MIME wrapper.";
+        };
+        ide = mkAppRole {
+          package = pkgs.vscode; exe = "code";
+          description = "IDE / code editor (Super+I).";
+        };
+
+        # ── System ────────────────────────────────────────────────────────────
+        taskManager = mkAppRole {
+          package = pkgs.btop-rocm; exe = "btop";
+          description = "Task manager (Ctrl+Shift+Escape, opened inside \$terminal).";
+        };
+        passwordManager = mkAppRole {
+          package = pkgs.bitwarden-desktop; exe = "bitwarden";
+          description = "Password manager (Super+P).";
+        };
+
+        # ── Communication ─────────────────────────────────────────────────────
+        chat = mkAppRole {
+          package = pkgs.discord; exe = "discord";
+          description = "Primary chat application (Super+C).";
+        };
+        chatAlt = mkAppRole {
+          package = pkgs.signal-desktop; exe = "signal-desktop";
+          description = "Alternative chat application (Super+Alt+C).";
+        };
+
+        # ── Media ─────────────────────────────────────────────────────────────
+        music = mkAppRole {
+          package = pkgs.spotify; exe = "spotify";
+          args = " --enable-features=UseOzonePlatform --ozone-platform=wayland";
+          description = "Music player (Super+M).";
+        };
+        audioVisualizer = mkAppRole {
+          package = pkgs.cava; exe = "cava";
+          description = "Audio visualizer (Super+Alt+M, opened inside \$terminal).";
+        };
+        videoPlayer = mkAppRole {
+          package = pkgs.mpv; exe = "mpv";
+          description = "Video and audio player; the MIME default for video/* and audio/*.";
+        };
+        imageViewer = mkAppRole {
+          package = pkgs.imv; exe = "imv";
+          description = "Image viewer; the MIME default for image/*.";
+        };
+        pdfReader = mkAppRole {
+          package = pkgs.zathura; exe = "zathura";
+          description = "PDF reader; the MIME default for application/pdf.";
+        };
+        archiveManager = mkAppRole {
+          package = pkgs.file-roller; exe = "file-roller";
+          description = "Archive manager; the MIME default for archive types.";
+        };
+
+        # ── Gaming ────────────────────────────────────────────────────────────
+        # Installed by customConfig.profiles.gaming (a profile, not an app set),
+        # so these carry no package and resolve from PATH.
+        gaming = mkAppRole {
+          command = "steam";
+          description = "Primary gaming platform (Super+G). Installed by the gaming profile.";
+        };
+        gamingAlt = mkAppRole {
+          command = "lutris";
+          description = "Alternative gaming platform (Super+Alt+G). Installed by the gaming profile.";
+        };
+      };
+
       # Selects which DE's default app preset feeds into xdg.mimeApps.
       # "hyprland" = TUI-first defaults (yazi, neovim, imv, zathura, mpv).
       # "kde"      = GUI-native defaults (dolphin, kate, gwenview, okular, ark).
@@ -2295,6 +2414,16 @@ in
           type = types.bool;
           default = false;
           description = "Enable claude-code with uv (for uvx) and mcp-nixos MCP server.";
+        };
+        extraChownPaths = mkOption {
+          type = types.listOf types.str;
+          default = [ ];
+          example = [ "/home/lando/hyprland-keys" ];
+          description = ''
+            Extra directories the Claude hooks chown back to the primary user after
+            edits. The user's nixos-config clone is always included; list additional
+            working clones here.
+          '';
         };
       };
     };

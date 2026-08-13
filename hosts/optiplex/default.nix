@@ -87,7 +87,7 @@
           pinnedApps = [
             {
               label = "TERM";
-              command = "${pkgs.kitty}/bin/kitty";
+              command = config.customConfig.apps.programs.terminal.command;
               tooltip = "Terminal Emulator";
             }
             {
@@ -97,27 +97,27 @@
             }
             {
               label = "NAV";
-              command = "${pkgs.librewolf}/bin/librewolf";
+              command = config.customConfig.apps.programs.browser.command;
               tooltip = "Web Browser";
             }
             {
               label = "CODE";
-              command = "${pkgs.vscode}/bin/code";
+              command = config.customConfig.apps.programs.ide.command;
               tooltip = "IDE";
             }
             {
               label = "EDIT";
-              command = "${pkgs.kdePackages.kate}/bin/kate";
+              command = config.customConfig.apps.programs.editor.command;
               tooltip = "Text Editor";
             }
             {
               label = "AUDIO";
-              command = "${pkgs.spotify}/bin/spotify --enable-features=UseOzonePlatform --ozone-platform=wayland";
+              command = config.customConfig.apps.programs.music.command;
               tooltip = "Music Player";
             }
             {
               label = "COMM";
-              command = "${pkgs.discord}/bin/discord";
+              command = config.customConfig.apps.programs.chat.command;
               tooltip = "Communications";
             }
             {
@@ -126,9 +126,6 @@
               tooltip = "Gaming Platform";
             }
           ];
-        };
-        applications = {
-          browserAlt = "${pkgs.chromium}/bin/chromium";
         };
         weather = {
           location = "";        # auto-detect by IP
@@ -162,6 +159,8 @@
     programs = {
       partydeck.enable = false;
     };
+
+    apps.programs.browserAlt = { package = pkgs.chromium; exe = "chromium"; };
 
     homeManager = {
       enable = true;
@@ -208,10 +207,10 @@
         "ungoogled-chromium"
         "claude-code"
       ];
-      homeManager = with pkgs; [ 
+      # vscode comes from customConfig.apps.programs.ide.
+      homeManager = with pkgs; [
         jamesdsp
         remmina
-        vscode
         ungoogled-chromium
         notes
       ];

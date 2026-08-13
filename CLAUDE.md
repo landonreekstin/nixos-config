@@ -60,6 +60,7 @@ git config user.email  # should be: landonreekstin@gmail.com
 #### blaney-pc-only commands (gated to the `insideabush` user)
 Defined in `modules/nixos/common/commands.nix` under `lib.optionals (cfg.user.name == "insideabush")`:
 - `branch-switch` - Numbered-menu branch picker: fetches, lists all branches (main first), stashes current changes (tagged with their source branch), checks out the chosen branch, offers to restore a stash saved for that branch, then rebuilds. On rebuild failure it points the user at `smart-rebuild` / `claude-rebuild-failed`.
+- `blaney-todo` - Numbered-menu task picker: fetches `origin/main`, lists the runbooks in `docs/runbooks/blaney/`, and launches `claude` on the chosen one with a blaney-pc preface prompt. See [Runbooks as blaney-pc tasks](#runbooks-as-blaney-pc-tasks).
 - `blaney-help` - Prints a curated one-line cheat-sheet of the commands insideabush uses. **This is the user-facing command index — keep it in sync when adding/removing blaney commands.**
 
 ### NixOS Rebuild Commands
@@ -773,6 +774,27 @@ When running on the `blaney-pc` host, apply these additional guidelines:
 **Safety**:
 - Always use `nixos-rebuild test` before `rebuild` for significant changes, so insideabush can verify before permanently switching
 - Keep changes focused and minimal
+
+#### Runbooks as blaney-pc tasks
+
+`docs/runbooks/blaney/*.md` is the task queue lando leaves for blaney-pc. Each markdown
+file is one task; its first `# ` heading is the menu entry insideabush sees.
+
+The loop:
+1. lando adds `docs/runbooks/blaney/<name>.md` on `main` and pushes
+2. insideabush runs `blaney-todo`, which fetches `origin/main`, lists the runbooks by
+   number, and launches `claude` on the chosen one with the blaney-pc preface prompt
+   (defined in `modules/nixos/common/commands.nix` — keep it in sync with the rules above)
+3. Claude does the work on a `blaney/` branch and opens a PR
+4. **lando merges the PR and deletes the runbook file** — deleting it is the only thing
+   that removes the task from the menu
+
+Notes:
+- Only `docs/runbooks/blaney/` feeds the menu; other runbooks under `docs/runbooks/` are
+  ordinary docs and never appear. `README.md` in that folder is the authoring guide and is
+  filtered out.
+- This is separate from `TASKS.md`, which remains lando's own list.
+- When working *on* a blaney runbook: never edit, move, or delete the runbook file itself.
 
 ## Task Workflow (TASKS.md)
 

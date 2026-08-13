@@ -208,7 +208,17 @@
       reverseProxy.enable = true;
       landingPage.enable = true;
 
-      flakeUpdater.enable = true;
+      flakeUpdater = {
+        enable = true;
+        # Headroom, not a fix for any one host. 45min (the option default) was
+        # blown by asus-m15 in 2026-W33 compiling electron from source; that
+        # specific cause is fixed properly in the asus-m15 host config (its
+        # unstable-override of chromium was poisoning stable signal-desktop's
+        # electron off-cache). 180 stays because the same shape recurs whenever
+        # this runs ahead of Hydra on a fresh nixpkgs-unstable rev, and because
+        # a host can now build twice under the retry.
+        buildTimeoutMinutes = 180;
+      };
       localCA.trustCA = true;
 
       article2pod = {

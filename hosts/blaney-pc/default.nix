@@ -34,27 +34,22 @@
     desktop = {
       environments = [ "kde" "hyprland" "xfce" ];
       hyprland = {
-        applications = {
-          # Super+B — matches the NAV launcher entry and the KDE default browser.
-          browser = "flatpak run org.chromium.Chromium";
-          chat = "${pkgs.vesktop}/bin/vesktop";
-        };
         launcher = {
           enable = true;
           pinnedApps = [
             {
               label = "TERM";
-              command = "${pkgs.kitty}/bin/kitty";
+              command = config.customConfig.apps.programs.terminal.command;
               tooltip = "Terminal Emulator";
             }
             {
               label = "NAV";
-              command = "flatpak run org.chromium.Chromium";
+              command = config.customConfig.apps.programs.browser.command;
               tooltip = "Web Browser";
             }
             {
               label = "CODE";
-              command = "${pkgs.vscode}/bin/code";
+              command = config.customConfig.apps.programs.ide.command;
               tooltip = "IDE";
             }
             {
@@ -177,15 +172,9 @@
         "claude-code"
         "signal-desktop"     
       ];
+      # kitty, vscode, vesktop and signal-desktop come from
+      # customConfig.apps.programs (terminal, ide, chat, chatAlt).
       homeManager = with pkgs; [
-        kitty
-        vscode
-        #librewolf
-        #brave
-        #chromium
-        #discord-canary
-        #discord
-        vesktop
         obs-studio
         notes
         CuboCore.corepaint
@@ -194,7 +183,6 @@
         mgba
         claude-code
         wireguard-ui
-        signal-desktop
         (callPackage ../../pkgs/worldmonitor { })
       ];
       flatpak = {
@@ -210,6 +198,17 @@
     apps = {
       defaultSet = "kde";
       defaults.kde.browser = "org.chromium.Chromium.desktop";
+
+      programs = {
+        # Chromium comes from Flatpak here, so no native browser is installed.
+        # Super+B still works and matches the NAV launcher entry.
+        browser = {
+          package = null;
+          command = "flatpak run org.chromium.Chromium";
+        };
+        # Discord also comes from Flatpak; vesktop is the native client used.
+        chat = { package = pkgs.vesktop; exe = "vesktop"; };
+      };
     };
 
     programs.claudeCode.enable = true;
