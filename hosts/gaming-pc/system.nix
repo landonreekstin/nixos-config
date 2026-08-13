@@ -22,7 +22,9 @@
 
     bootloader = {
       quietBoot = false;
-      configurationLimit = 3; # Boot partition is ~1GB; NVIDIA early-KMS initrds are large
+      # Boot partition is ~1GB and NVIDIA early-KMS initrds are large (~130MB/gen),
+      # but clearing the leftover Arch kernels freed 211MB, so 10 fits comfortably.
+      configurationLimit = 10;
       plymouth = {
         enable = true;
         theme = "circuit";
