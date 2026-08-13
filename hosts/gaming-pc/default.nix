@@ -54,26 +54,43 @@ in
     };
 
     desktop = {
-      environments = [ "kde" "hyprland" ];
+      environments = [ "kde" "hyprland" "xfce" ];
+      # Remote XFCE session over RDP for remote theme work. Port 3389 stays firewalled;
+      # reach it via `ssh -L 3389:localhost:3389 lando@gaming-pc` then RDP to localhost.
+      xrdp.enable = true;
       monitors = [
+        # `identifier` = Wayland/DRM connector name (what Hyprland matches on — desc: matching
+        # is unreliable in this Hyprland build). `edid` = EDID description substring used ONLY
+        # by the XFCE X11 resolver, because X11 (NVIDIA) reports DIFFERENT connector names than
+        # Wayland for the same port (LG: DP-1 Wayland / DP-0 X11; Samsung: DP-2 / DP-3;
+        # TV: HDMI-A-1 / HDMI-0), so one connector name can't drive both. Hyprland ignores edid.
         {
           name = "main";
           identifier = "DP-1";
+          edid = "LG ULTRAGEAR";
+          # XFCE wallpaper matches Hyprland/century-series (primary horizontal). Portraits keep
+          # the carrier-top orientation default (also what century-series uses on verticals).
+          wallpaper = ../../assets/wallpapers/f-15-satellite.jpg;
           resolution = "2560x1440@180";
           position = "0x0";
           scale = "1.0667";
         }
         {
+          # Left portrait = Dell (rarely connected). edid is a placeholder — capture the exact
+          # EDID product name from `xrandr --verbose` next time it's plugged in and tighten it.
           name = "left";
           identifier = "DP-3";
+          edid = "DELL";
           resolution = "preferred";
           position = "-1080x-410";
           scale = "1";
           transform = "1";
         }
         {
+          # Right portrait = Samsung S27R65x (serial H4TW800293) — the everyday vertical.
           name = "right";
           identifier = "DP-2";
+          edid = "S27R65x";
           resolution = "preferred";
           position = "2400x-390";
           scale = "1";
@@ -82,16 +99,25 @@ in
         {
           name = "tv";
           identifier = "HDMI-A-1";
+          edid = "4Series43";
+          # Matches Hyprland/century-series (secondary horizontal).
+          wallpaper = ../../assets/wallpapers/f-4-cockpit.png;
           resolution = "preferred";
           position = "0x-1080";
           scale = "1";
           transform = "0";
         }
       ];
-      autostart = [];
+      autostart = [
+        # Steam + Heroic autostart via their own app settings; add these for the session.
+        { command = "discord";  desktops = [ "xfce" ]; }
+        { command = "ckb-next"; desktops = [ "xfce" ]; }
+      ];
 
       idle = {
-        lockTimeout = 1500; # 25 minutes
+        screensaverTimeout = 900;   # screensaver at 15 min (respects media/game inhibitors)
+        lockTimeout = 1200;         # lock at 20 min
+        sleepTimeout = 1800;        # display off (DPMS) at 30 min
       };
 
       hyprland = {
@@ -224,6 +250,7 @@ in
 
     apps = {
       defaultSet = "kde";
+      defaults.kde.browser = "librewolf.desktop";
 
       # Spotify tracks unstable here; the desktop entry with the Ozone/Wayland
       # flags is defined in the home-manager block at the bottom of this file.
@@ -256,6 +283,27 @@ in
       services.updateNotification.enable = true;
       themes = {
         hyprland = "century-series";
+        xfce = "windows7";   # X11 desktop option; pick "Xfce Session" at the Ly greeter
+        wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
+        xfcePanel.trayApplets = [ "network" "bluetooth" "power" "clipboard" "nightlight" ];
+        xfcePanel.nightlight = { tempDay = 6500; tempNight = 1500; };
+        # gaming-pc's own pinned set (icon-only, left→right). Librewolf uses the Win7 Aero
+        # "internet-web-browser" icon (the Internet Explorer blue-e in this theme). Spotify
+        # forces X11 ozone since XFCE is an X11 session (its default .desktop has a Wayland
+        # ozone flag that fails under X11).
+        xfcePanel.pinnedApps = [
+          { name = "Terminal";        exec = "kitty";                  icon = "kitty"; }
+          { name = "System Settings"; exec = "xfce4-settings-manager"; icon = "preferences-system"; }
+          { name = "Files";           exec = "thunar";                 icon = "system-file-manager"; }
+          { name = "Librewolf";       exec = "librewolf";              icon = "internet-web-browser"; }
+          { name = "Chromium";        exec = "chromium";               icon = "chromium"; }
+          { name = "Heroic";          exec = "heroic";                 icon = "com.heroicgameslauncher.hgl"; }
+          { name = "Steam";           exec = "steam";                  icon = "steam"; }
+          { name = "Discord";         exec = "discord";                icon = "discord"; }
+          { name = "Signal";          exec = "signal-desktop";         icon = "signal-desktop"; }
+          { name = "Spotify";         exec = "env NIXOS_OZONE_WL=0 spotify"; icon = "spotify-client"; }
+          { name = "VS Code";         exec = "code";                   icon = "vscode"; }
+        ];
       };
     };
 
@@ -270,6 +318,63 @@ in
         kdePackages.kio-extras
         cifs-utils
         samba
+
+        # Webcam (Logitech C920e on /dev/video0). guvcview is the GUI app — resolution/format
+        # picker plus exposure/focus/white-balance sliders; v4l-utils provides v4l2-ctl for
+        # enumerating what the camera actually supports (`v4l2-ctl --list-formats-ext`).
+        guvcview
+        v4l-utils
+
+        # Quick low-latency webcam preview. Usage: webcam [WxH] [fps]  (default 1280x720 30)
+        #
+        # Tuned for the XFCE-over-xrdp session (see CLAUDE.md "Remote XFCE via RDP"):
+        #   --vo=x11    xorgxrdp has NO hardware GL, so mpv's default vo=gpu would silently
+        #               fall back to llvmpipe software GL. Force the software X11 path instead
+        #               so the render pipeline is predictable rather than accidental.
+        #   input_format=mjpeg
+        #               The C920e only reaches 720p/1080p at 30fps in MJPEG; the driver default
+        #               is raw YUYV, which caps out low and pushes a far larger USB stream.
+        #   --untimed --profile=low-latency
+        #               Live source — don't buffer for A/V sync.
+        #   --no-audio  There is no audio over xrdp on this host (needs pulseaudio-module-xrdp,
+        #               not wired up), so the webcam mic is never audible. Don't stall on it.
+        # mpv is referenced by absolute store path: it comes from the per-user profile, which a
+        # systemPackages script must not depend on being present.
+        (writeShellScriptBin "webcam" ''
+          set -euo pipefail
+          RES="''${1:-1280x720}"
+          FPS="''${2:-30}"
+          DEV="''${WEBCAM_DEV:-/dev/video0}"
+
+          if [ ! -e "$DEV" ]; then
+            echo "webcam: no capture device at $DEV" >&2
+            echo "Plugged in? Check: ls /dev/video*  and  v4l2-ctl --list-devices" >&2
+            exit 1
+          fi
+          if [ ! -r "$DEV" ]; then
+            echo "webcam: $DEV exists but is not readable by $(id -un)" >&2
+            echo "The 'video' group grants access — check: id -nG" >&2
+            exit 1
+          fi
+
+          # A v4l2 capture device is exclusive; a browser tab or the other desktop session
+          # holding it makes mpv fail with an opaque ioctl error. Name the real cause.
+          if ${pkgs.psmisc}/bin/fuser "$DEV" >/dev/null 2>&1; then
+            echo "webcam: $DEV is already in use by another program:" >&2
+            ${pkgs.psmisc}/bin/fuser -v "$DEV" >&2 || true
+            echo "Close it (browser tab, other desktop session) and retry." >&2
+            exit 1
+          fi
+
+          exec ${pkgs.mpv}/bin/mpv \
+            --title="Webcam" \
+            --vo=x11 \
+            --profile=low-latency \
+            --untimed \
+            --no-audio \
+            --demuxer-lavf-o=input_format=mjpeg,video_size="$RES",framerate="$FPS" \
+            "av://v4l2:$DEV"
+        '')
 
         # Build all host configs and push their store paths to the NAS binary cache.
         # Run after a big nixpkgs update to warm the cache for all machines.
@@ -480,6 +585,32 @@ in
         terminal = false;
         categories = [ "Audio" "Music" "Player" "AudioVideo" ];
         mimeType = [ "x-scheme-handler/spotify" ];
+      };
+      # Start-menu entry for the `webcam` wrapper (packages.nixos). Lands under Multimedia in
+      # the Whisker menu. accessories-camera is a real icon in the Windows 7 Aero set (present
+      # in every size tier), so it resolves at all menu/panel sizes.
+      xdg.desktopEntries.webcam = {
+        name = "Webcam";
+        genericName = "Webcam Viewer";
+        exec = "webcam";
+        icon = "accessories-camera";
+        terminal = false;
+        categories = [ "AudioVideo" "Video" ];
+      };
+      # Override guvcview's own .desktop purely to fix its Start-menu icon. Upstream ships
+      # `Icon=/nix/store/…/pixmaps/guvcview.png` — an ABSOLUTE PATH, which bypasses icon-theme
+      # lookup entirely, so the alias_icon entry in windows7-xfce-gtk.nix cannot reach it (that
+      # alias still earns its keep for the WM_CLASS-based taskbar button and titlebar icon).
+      # Naming this entry `guvcview` shadows the system copy: /etc/profiles/per-user/lando/share
+      # precedes /run/current-system/sw/share in XDG_DATA_DIRS, so this one wins.
+      xdg.desktopEntries.guvcview = {
+        name = "Webcam Controls";
+        genericName = "Webcam Viewer";
+        comment = "Capture and adjust exposure, focus and white balance";
+        exec = "guvcview";
+        icon = "accessories-camera";
+        terminal = false;
+        categories = [ "AudioVideo" "Video" ];
       };
       systemd.user.services.audio-spkr-balance = {
         Unit = {

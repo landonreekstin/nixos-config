@@ -8,6 +8,7 @@
     ./development/default.nix
     ./hyprland/default.nix
     ./kde/default.nix
+    ./xfce/default.nix
     ./programs/default.nix
     ./services/default.nix
     ./system/default.nix

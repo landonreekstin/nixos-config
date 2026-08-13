@@ -38,15 +38,20 @@
     cores = 12;          # llvmpipe rendering is CPU-bound — more vCPUs = much smoother
     diskSize = 20480;    # MiB throwaway qcow2
     resolution = { x = 1920; y = 1080; };
-    # Host-GPU-accelerated GL via virgl: virtio-vga-gl + a GTK display with gl=on offloads
-    # the guest's OpenGL to gaming-pc's real GPU instead of llvmpipe software rendering —
-    # a big smoothness jump for Plasma/Hyprland compositing. Needs a host GL stack (fine on
-    # gaming-pc). If a host ever shows a black window, fall back to `[ "-vga virtio" ]`.
+    # Plain virtio-gpu (2D, no host-GL offload). The virgl path
+    # (`-vga none -device virtio-vga-gl -display gtk,gl=on`) offloads the guest's GL to the
+    # host GPU for smoother Plasma/Hyprland compositing, but it renders a **black window** on
+    # gaming-pc's NVIDIA-proprietary + X11 host: qemu can't composite the guest framebuffer
+    # through NVIDIA's GLX, and it fails silently (no qemu error, guest boots fine on serial).
+    # gaming-pc is the only KVM host these VMs run on, so use the reliable non-GL backend —
+    # the guest falls back to llvmpipe, which is plenty for the software-config testing these
+    # VMs exist for (they can't validate GPU behaviour anyway). Re-try virgl only if a future
+    # host has a Mesa GL stack.
     # grab-on-hover=on: QEMU grabs the keyboard (incl. Super/Meta) while focused, via the
     # Wayland keyboard-shortcuts-inhibit protocol — otherwise a Wayland host compositor
     # (Hyprland/KWin) eats Meta+* binds before they reach the guest, making Super-based
     # keybinds untestable. Press Ctrl+Alt+G in the window to force the grab on/off.
-    qemu.options = [ "-vga none" "-device virtio-vga-gl" "-display gtk,gl=on,grab-on-hover=on" ];
+    qemu.options = [ "-vga virtio" "-display gtk,grab-on-hover=on" ];
   };
 
   # --- Guest integration ------------------------------------------------------
