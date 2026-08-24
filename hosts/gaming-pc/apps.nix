@@ -46,6 +46,7 @@
         pavucontrol
         mullvad-vpn
         tmux
+        mgba
 
         # smbclient and kio-extras for Dolphin network shares
         kdePackages.kio-extras
