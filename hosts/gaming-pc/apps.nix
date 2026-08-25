@@ -47,6 +47,7 @@
         mullvad-vpn
         tmux
         mgba
+        pupdate
 
         # smbclient and kio-extras for Dolphin network shares
         kdePackages.kio-extras
@@ -150,6 +151,7 @@
         "gurk-rs"
         "vlc"
         "signal-desktop"
+        "pupdate"
       ];
       # vscode, librewolf, brave and signal-desktop now come from
       # customConfig.apps.programs (ide, browser, browserAlt, chatAlt).
