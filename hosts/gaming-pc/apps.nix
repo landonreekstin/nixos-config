@@ -49,6 +49,11 @@
         mgba
         pupdate
 
+        # rom archive handling for the analogue pocket workflow
+        zip
+        unzip
+        p7zip
+
         # smbclient and kio-extras for Dolphin network shares
         kdePackages.kio-extras
         cifs-utils
