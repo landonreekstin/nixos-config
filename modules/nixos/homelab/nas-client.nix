@@ -48,7 +48,14 @@ in
       fsType = "cifs";
       options = [
         "credentials=${config.sops.secrets.smb-credentials.path}"
-        "uid=1000"
+        # The share is served with `nounix`, so the server sends no ownership
+        # info and the client decides it locally. This must resolve to the user
+        # that actually reads/writes the mount, or every write fails with
+        # EACCES. `lando` is uid 1000 on some hosts and 1002 on gaming-pc
+        # (uid is auto-allocated -- users.users.<u>.uid is null repo-wide), so a
+        # numeric literal here is only ever right by luck; mount.cifs resolves a
+        # username, which is correct on every host.
+        "uid=${config.customConfig.user.name}"
         "gid=100"
         "iocharset=utf8"
         "x-systemd.automount"        # mount on first access, not at boot
