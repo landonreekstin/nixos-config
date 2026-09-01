@@ -26,12 +26,9 @@ in
       ];
     };
 
-    # Home Assistant rejects requests from untrusted proxies that include X-Forwarded-For.
-    # Tell HA that the local nginx (127.0.0.1) is a trusted proxy.
-    services.home-assistant.config.http = lib.mkIf cfg.homeAssistant.enable {
-      use_x_forwarded_for = true;
-      trusted_proxies = [ "127.0.0.1" "::1" ];
-    };
+    # HA http config (trusted_proxies, use_x_forwarded_for) is now managed in the UI
+    # under Settings > System > Network — HA 2026.x deprecated the YAML `http:` block
+    # and auto-imports the previous values into .storage/http on first migration.
 
     networking.firewall.allowedTCPPorts = [ 80 ] ++ lib.optionals cfg.localCA.enable [ 443 ];
   };
