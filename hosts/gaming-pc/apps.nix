@@ -11,6 +11,17 @@
       # Spotify tracks unstable here; the desktop entry with the Ozone/Wayland
       # flags is defined in the home-manager block in home.nix.
       programs.music.package = pkgs.unstable.spotify;
+
+      # Discord comes from Flatpak, not nixpkgs: it self-updates, so it never
+      # hits the "update required" wall that blocks the native package whenever
+      # upstream ships a client bump ahead of nixpkgs. package = null keeps
+      # pkgs.discord out of the closure while the command still drives Super+C,
+      # the COMM launcher button (desktop.nix), the XFCE panel pin and the XFCE
+      # autostart (home.nix) — this line is the single switch for all of them.
+      programs.chat = {
+        package = null;
+        command = "flatpak run com.discordapp.Discord";
+      };
     };
 
     programs = {
@@ -31,7 +42,6 @@
           { name = "GitHub";  url = "https://github.com"; }
         ];
       };
-      flatpak.enable = true;
 
       claudeCode = {
         enable = true;
@@ -158,14 +168,13 @@
         "signal-desktop"
         "pupdate"
       ];
-      # vscode, librewolf, brave and signal-desktop now come from
-      # customConfig.apps.programs (ide, browser, browserAlt, chatAlt).
+      # vscode, librewolf, brave, discord and signal-desktop now come from
+      # customConfig.apps.programs (ide, browser, browserAlt, chat, chatAlt).
       homeManager = with pkgs; [
         jamesdsp
         remmina
         md-tui
         ungoogled-chromium
-        vesktop
         qbittorrent
         obs-studio
         kdePackages.konversation
@@ -177,9 +186,11 @@
         vlc
         keepassxc
       ];
+      # Declared here rather than installed by hand, so nix-flatpak owns it and a
+      # fresh deploy reinstalls it. Discord is the only Flatpak on this host.
       flatpak = {
         enable = true;
-        packages = [];
+        packages = [ "com.discordapp.Discord" ];
       };
     };
 
