@@ -77,13 +77,19 @@ in
       # Create and manage main storage subdirectories
       "d ${cfg.storagePath}/downloads 2775 ${cfg.user} media -"
       "d ${cfg.storagePath}/downloads/torrents 2775 ${cfg.user} media -"
+      # In-flight torrents stage here — see the incomplete-dir note in
+      # homelab/transmission.nix for why this is not on cachePath.
+      "d ${cfg.storagePath}/downloads/incomplete 2775 ${cfg.user} media -"
       "d ${cfg.storagePath}/media 2775 ${cfg.user} media -"
       "d ${cfg.storagePath}/media/movies 2775 ${cfg.user} media -"
       "d ${cfg.storagePath}/media/tv 2775 ${cfg.user} media -"
 
-      # Create and manage cache subdirectories
+      # Create and manage cache subdirectories.
+      # No incomplete/ rule here any more: in-flight torrents moved to
+      # storagePath (see homelab/transmission.nix). The existing cache dir is
+      # left in place rather than removed — tmpfiles does not delete it, and
+      # the leftover partials there are the user's to keep or clear.
       "d ${cfg.cachePath}/torrents 2775 ${cfg.user} media -"
-      "d ${cfg.cachePath}/torrents/incomplete 2775 ${cfg.user} media -"
     ]
     # Per-user media directories for media-linker
     ++ lib.optionals linkerCfg.enable ([
