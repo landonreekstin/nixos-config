@@ -59,7 +59,7 @@
     ];
     autostart = [
       # Steam + Heroic autostart via their own app settings; add these for the session.
-      { command = "discord";  desktops = [ "xfce" ]; }
+      { command = config.customConfig.apps.programs.chat.command; desktops = [ "xfce" ]; }
       { command = "ckb-next"; desktops = [ "xfce" ]; }
     ];
 
@@ -127,7 +127,7 @@
           }
           {
             label = "COMM";
-            command = "${pkgs.vesktop}/bin/vesktop";
+            command = config.customConfig.apps.programs.chat.command;
             tooltip = "Communications";
           }
           {

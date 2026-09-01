@@ -5,6 +5,7 @@
   customConfig = {
 
     apps.programs.browserAlt = { package = pkgs.chromium; exe = "chromium"; };
+    apps.programs.chat = { package = pkgs.discord; exe = "discord"; };
 
     programs = {
       partydeck.enable = false;

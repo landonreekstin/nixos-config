@@ -155,9 +155,12 @@ in
       };
 
       # ── Communication ─────────────────────────────────────────────────────
+      # No default client: which Discord (native discord / vesktop / the flatpak)
+      # a machine runs is a per-host choice, so every host declares `chat` in its
+      # own apps.nix. package = null also empties `command`, which drops the
+      # Super+C bind entirely rather than emitting a broken one.
       chat = mkAppRole {
-        package = pkgs.discord; exe = "discord";
-        description = "Primary chat application (Super+C).";
+        description = "Primary chat application (Super+C). Declared per host.";
       };
       chatAlt = mkAppRole {
         package = pkgs.signal-desktop; exe = "signal-desktop";

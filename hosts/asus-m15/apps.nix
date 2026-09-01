@@ -7,6 +7,8 @@
     apps = {
       defaultSet = "kde";
       defaults.kde.browser = "chromium.desktop";
+
+      programs.chat = { package = pkgs.discord; exe = "discord"; };
     };
 
     programs = {

@@ -23,7 +23,9 @@
         { name = "Chromium";        exec = "chromium";               icon = "chromium"; }
         { name = "Heroic";          exec = "heroic";                 icon = "com.heroicgameslauncher.hgl"; }
         { name = "Steam";           exec = "steam";                  icon = "steam"; }
-        { name = "Discord";         exec = "discord";                icon = "discord"; }
+        # Flatpak app id as the icon name — the flatpak exports its icon under that
+        # name, not "discord" (same as blaney-pc's pins).
+        { name = "Discord";         exec = config.customConfig.apps.programs.chat.command; icon = "com.discordapp.Discord"; }
         { name = "Signal";          exec = "signal-desktop";         icon = "signal-desktop"; }
         { name = "Spotify";         exec = "env NIXOS_OZONE_WL=0 spotify"; icon = "spotify-client"; }
         { name = "VS Code";         exec = "code";                   icon = "vscode"; }
