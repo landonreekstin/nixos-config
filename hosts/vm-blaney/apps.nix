@@ -8,6 +8,10 @@
       defaultSet = "kde";
       defaults.kde.browser = "org.chromium.Chromium.desktop";
 
+      # blaney-pc itself runs vesktop for the chat role; this VM keeps native
+      # discord, as it has since before the role moved out of the module.
+      programs.chat = { package = pkgs.discord; exe = "discord"; };
+
       # Mirrors blaney-pc: Chromium via Flatpak, no native browser installed.
       programs.browser = {
         package = null;

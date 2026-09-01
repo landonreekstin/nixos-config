@@ -6,6 +6,8 @@
 
     apps = {
       defaultSet = "kde";
+
+      programs.chat = { package = pkgs.discord; exe = "discord"; };
     };
 
     packages = {
