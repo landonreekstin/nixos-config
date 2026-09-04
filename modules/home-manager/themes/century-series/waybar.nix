@@ -137,6 +137,7 @@ let
   hasScreenBacklight = customConfig.hardware.display.backlight.enable;
   hasKbdBacklight = customConfig.hardware.kbdBacklight.enable;
   hasBattery = customConfig.hardware.battery.enable;
+  hasWifiWidget = customConfig.hardware.wifi.waybar.enable;
 
 in {
   config = mkIf centurySeriesThemeCondition {
@@ -190,6 +191,15 @@ in {
 
           temperature = {
             format = "TMP {temperatureC}°C";  # EGT style
+          };
+
+          # WiFi link status — MFD-style readout. `format-ethernet` is intentionally
+          # absent: the functional module scopes this module to `wl*` only.
+          network = mkIf hasWifiWidget {
+            format-wifi = mkForce "LINK {signalStrength}%";
+            format-disconnected = mkForce "LINK DOWN";
+            tooltip-format = mkForce "NET: {ifname} via {gwaddr}";
+            tooltip-format-wifi = mkForce "NET: {essid} — {signalStrength}% — {ipaddr}/{cidr} via {gwaddr}";
           };
 
           backlight = mkIf hasScreenBacklight {
@@ -323,7 +333,7 @@ in {
 
         /* Module base styling - Instrument readouts */
         #cpu, #memory, #temperature, #battery, #custom-audio-sink,
-        #backlight, #custom-kbd-brightness, #custom-vpn, #custom-bluetooth {
+        #backlight, #custom-kbd-brightness, #custom-vpn, #custom-bluetooth, #network {
           padding: 0 8px;
           margin: 2px;
           background-color: ${c.bg-tertiary};
@@ -410,6 +420,27 @@ in {
         }
 
         #custom-vpn:hover {
+          background-color: ${c.bg-secondary};
+          color: ${c.accent-green};
+          border-color: ${c.accent-green};
+        }
+
+        /* WiFi — data-link status indicator */
+        #network {
+          font-weight: bold;
+          letter-spacing: 1px;
+          border-color: ${c.accent-green-dim};
+          color: ${c.accent-green};
+          transition: all 0.3s ease;
+        }
+
+        #network.disconnected {
+          color: ${c.text-tertiary};
+          border-color: ${c.border-primary};
+          opacity: 0.4;
+        }
+
+        #network:hover {
           background-color: ${c.bg-secondary};
           color: ${c.accent-green};
           border-color: ${c.accent-green};
