@@ -16,6 +16,7 @@ let
   hyprsunsetNightStart = toString customConfig.homeManager.services.hyprsunset.nightStartHour;
   hasCkbNext = customConfig.hardware.peripherals.ckb-next.enable;
   hasBluetoothWidget = customConfig.hardware.bluetooth.waybar.enable;
+  hasWifiWidget = customConfig.hardware.wifi.waybar.enable;
   ckbScripts = import ../../themes/century-series/ckb-scripts.nix { inherit pkgs; };
   weatherLocation = customConfig.desktop.hyprland.weather.location;
   weatherUseFahrenheit = customConfig.desktop.hyprland.weather.useFahrenheit;
@@ -502,6 +503,7 @@ in
             ];
             modules-right = lib.optionals hasScreenBacklight [ "backlight" ]
               ++ lib.optionals hasKbdBacklight [ "custom/kbd-brightness" ]
+              ++ lib.optionals hasWifiWidget [ "network" ]
               ++ lib.optionals hasVpnClient [ "custom/vpn" ]
               ++ lib.optionals hasBluetoothWidget [ "custom/bluetooth" ]
               ++ lib.optionals hasBattery [ "battery" ]
@@ -646,6 +648,24 @@ in
             on-click-right = "${bluetoothToggleScript}";
           };
 
+          # Waybar's built-in network module, scoped to the wireless interface only.
+          # `interface = "wl*"` is deliberate: without it the module reports ethernet
+          # state on wired hosts, duplicating the nm-applet tray icon — the reason the
+          # earlier version of this widget was removed in d815714.
+          network = lib.mkIf hasWifiWidget {
+            interface = "wl*";
+            # Functional formats without icons; rice can override with icons
+            format-wifi = "{essid} ({signalStrength}%)";
+            format-disconnected = "Disconnected";
+            tooltip-format = "{ifname} via {gwaddr}";
+            tooltip-format-wifi = "{essid} ({signalStrength}%) — {ipaddr}/{cidr} via {gwaddr}";
+            # Left-click: rofi network picker (scan, connect, saved connections, rescan).
+            on-click = "${pkgs.networkmanager_dmenu}/bin/networkmanager_dmenu";
+            # Right-click: full NM TUI for what the picker can't do — hidden SSIDs,
+            # enterprise auth, editing saved connections.
+            on-click-right = "${customConfig.apps.programs.terminal.command} -e ${pkgs.networkmanager}/bin/nmtui";
+          };
+
           "hyprland/workspaces" = {
             # Most settings like format-icons are pure rice.
             # persistent_workspaces could be functional if you always want a fixed number.
@@ -671,6 +691,32 @@ in
       ]; # End settings mkMerge
     }; # End programs.waybar
 
+    # networkmanager_dmenu backs the network module's left-click picker.
+    # This is functional config, not rice: the rofi *styling* already comes from
+    # programs.rofi (themes/century-series/rofi.nix), which `rofi -dmenu` picks up
+    # from ~/.config/rofi/config.rasi automatically.
+    #
+    # `obscure = True` is required, not cosmetic — it is what makes the passphrase
+    # prompt pass rofi's `-password` flag. Without it the WiFi password is typed in
+    # cleartext on screen. Note the key is `highlight`, not the `rofi_highlight` of
+    # older releases (2.6.x renamed it; the old name parses but does nothing).
+    xdg.configFile."networkmanager-dmenu/config.ini" = lib.mkIf hasWifiWidget {
+      text = ''
+        [dmenu]
+        dmenu_command = ${pkgs.rofi}/bin/rofi -dmenu
+        highlight = True
+        list_saved = True
+        wifi_chars = ▂▄▆█
+
+        [dmenu_passphrase]
+        obscure = True
+
+        [editor]
+        terminal = ${customConfig.apps.programs.terminal.command}
+        gui_if_available = True
+      '';
+    };
+
     home.packages = with pkgs; [
       # Dependencies for functional aspects of Waybar modules
       networkmanagerapplet  # For nm-applet system tray (exec-once in hyprland)
@@ -679,7 +725,8 @@ in
       curl                 # For weather module HTTP requests
       jq                   # For weather module JSON parsing
       # audio-switcher script dependencies should be handled by its own module if it has any non-pkgs ones
-    ] ++ lib.optionals hasBluetoothWidget [ pkgs.blueman ];
+    ] ++ lib.optionals hasBluetoothWidget [ pkgs.blueman ]
+      ++ lib.optionals hasWifiWidget [ pkgs.networkmanager_dmenu ];
 
     systemd.user.services.waybar = {
       # These options are added to the [Unit] section of the systemd service file.

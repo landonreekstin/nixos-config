@@ -19,5 +19,6 @@
     display.backlight.enable = true;
     kbdBacklight.enable = true;
     battery.enable = true;
+    wifi.waybar.enable = true;  # Roaming host — WiFi picker in the Hyprland bar
   };
 }

@@ -15,5 +15,6 @@
       input-remapper.enable = true;
       solaar.enable = true;
     };
+    wifi.waybar.enable = true;  # USB WiFi dongle (wlp38s0f3u1) — picker in the Hyprland bar
   };
 }

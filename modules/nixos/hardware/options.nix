@@ -103,6 +103,15 @@
         };
       };
     };
+    wifi = {
+      waybar = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Show the WiFi status widget in Waybar (Hyprland). Click opens a rofi network picker, right-click opens nmtui. Enable for hosts with a usable wireless adapter.";
+        };
+      };
+    };
     touchpad = {
       naturalScroll = mkOption {
         type = types.bool;
