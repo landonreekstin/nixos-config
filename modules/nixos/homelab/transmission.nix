@@ -42,8 +42,21 @@ in
         rpc-host-whitelist-enabled = false;
         umask = 2;
 
-        # Upload cap prevents bufferbloat from saturating the ~20 Mbps WAN uplink.
-        # Download is left uncapped — turtle mode handles the gaming case.
+        # Both directions are capped to keep the WAN out of bufferbloat.
+        #
+        # Download was originally left uncapped, relying on turtle mode being
+        # flipped by hand. On 2026-09-04 that failed the obvious way: 13 torrents
+        # ran unattended at ~45 Mbps — more than the entire ~44 Mbps downlink —
+        # so the ISP's queue stayed permanently full. Hop-1 (the Spectrum router)
+        # went from 3.5 ms to a 133 ms average, and every device on both subnets,
+        # wired and wireless, saw 2.5 Mbps and ~2 s DNS lookups. Nothing was wrong
+        # with the LAN; the pipe was simply full.
+        #
+        # The router has no SQM/AQM, so the only lever on this side is to not
+        # offer more traffic than the line can carry. 15 Mbps leaves ~29 Mbps of
+        # headroom, which keeps the queue drained and latency at ~16 ms.
+        speed-limit-down = 1875;         # 15 Mbps
+        speed-limit-down-enabled = true;
         speed-limit-up = 1875;           # 15 Mbps
         speed-limit-up-enabled = true;
 
