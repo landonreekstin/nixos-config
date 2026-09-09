@@ -179,7 +179,18 @@
         jamesdsp
         remmina
         md-tui
-        ungoogled-chromium
+
+        # Widevine CDM, without which DRM streaming (Amazon Prime Video, Netflix,
+        # Spotify web) fails — Prime reports "Video Unavailable ... error/7031".
+        # nixpkgs ships no CDM in chromium by default and ungoogled-chromium is no
+        # exception; enableWideVine does NOT rebuild chromium from source, it only
+        # adds a runCommand that copies the cached unwrapped browser and drops
+        # widevine-cdm into libexec (chromiumWV in nixpkgs' chromium/default.nix).
+        # Scoped as an .override here rather than via nixpkgs.config.chromium so it
+        # cannot leak into pkgs.chromium and drag electron consumers off the binary
+        # cache (the asus-m15 signal-desktop fallout — see hosts/asus-m15/apps.nix).
+        (ungoogled-chromium.override { enableWideVine = true; })
+
         qbittorrent
         obs-studio
         kdePackages.konversation
