@@ -31,7 +31,7 @@ let
 
     cd "${cfg.repoDir}"
 
-    # Always return to main when the script exits so sync works correctly afterward
+    # Always return to main when the script exits so `update` works correctly afterward
     trap 'git checkout main 2>/dev/null || true' EXIT
 
     # ---------------------------------------------------------------
@@ -121,7 +121,7 @@ let
 
 ### Beta Rollout
 
-**''${BETA_HOST}** tracks this branch immediately as the beta host and will receive the update on its next \`sync\`. All other hosts remain on \`main\` until this PR merges.
+**''${BETA_HOST}** tracks this branch immediately as the beta host and will receive the update on its next \`update\`. All other hosts remain on \`main\` until this PR merges.
 
 ### Auto-merge
 
