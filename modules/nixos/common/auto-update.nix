@@ -75,7 +75,7 @@ in
     enable = mkOption {
       type = types.bool;
       default = false;
-      description = "Enable weekly automated git sync + nixos-rebuild on this host.";
+      description = "Enable weekly automated git pull + nixos-rebuild on this host.";
     };
     day = mkOption {
       type = types.enum [ "Mon" "Tue" "Wed" "Thu" "Fri" "Sat" "Sun" ];
@@ -124,7 +124,7 @@ in
 
   config = lib.mkIf cfg.enable {
     systemd.services.nixos-auto-update = {
-      description = "Weekly automated NixOS config sync and rebuild";
+      description = "Weekly automated NixOS config update and rebuild";
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
       path = [ config.system.build.nixos-rebuild ]
@@ -142,7 +142,7 @@ in
     };
 
     systemd.timers.nixos-auto-update = {
-      description = "Timer for weekly automated NixOS sync and rebuild";
+      description = "Timer for weekly automated NixOS update and rebuild";
       wantedBy = [ "timers.target" ];
       timerConfig = {
         OnCalendar = "${cfg.day} *-*-* ${cfg.time}:00";

@@ -4,7 +4,7 @@ let
   cfg = customConfig.homeManager.services.updateNotification;
   configDir = "${config.home.homeDirectory}/nixos-config";
 
-  syncRebuildScript = pkgs.writeShellScript "nixos-sync-rebuild" ''
+  updateRebuildScript = pkgs.writeShellScript "nixos-update-rebuild" ''
     export PATH=/run/current-system/sw/bin:/run/wrappers/bin:${pkgs.libnotify}/bin:${pkgs.git}/bin:$PATH
 
     # Send a notification and print its ID (non-blocking).
@@ -16,15 +16,15 @@ let
       notify-send "''${args[@]}" "$title" "$body" 2>/dev/null || true
     }
 
-    # Step 1: Sync
+    # Step 1: Update
     notif_id=$(send_notif normal emblem-synchronizing \
-      "NixOS Config" "Syncing repository...")
+      "NixOS Config" "Updating repository...")
 
-    sync_log=$(mktemp /tmp/nixos-sync-XXXXXX.log)
-    if ! sync >"$sync_log" 2>&1; then
+    update_log=$(mktemp /tmp/nixos-update-XXXXXX.log)
+    if ! update >"$update_log" 2>&1; then
       send_notif critical dialog-error \
-        "NixOS Config — Sync Failed" \
-        "Could not sync the repository. See $sync_log for details." \
+        "NixOS Config — Update Failed" \
+        "Could not update the repository. See $update_log for details." \
         "$notif_id"
       exit 1
     fi
@@ -61,12 +61,12 @@ let
       action=$(${pkgs.libnotify}/bin/notify-send \
         --urgency=normal \
         --icon=software-update-available \
-        --action="sync_rebuild=Sync & Rebuild" \
+        --action="update_rebuild=Update & Rebuild" \
         "NixOS config updates available" \
         "$behind commit(s) ahead on origin/main" || true)
 
-      if [ "$action" = "sync_rebuild" ]; then
-        systemctl --user start nixos-sync-rebuild.service
+      if [ "$action" = "update_rebuild" ]; then
+        systemctl --user start nixos-update-rebuild.service
       fi
     fi
   '';
@@ -81,11 +81,11 @@ in
       };
     };
 
-    systemd.user.services.nixos-sync-rebuild = {
-      Unit.Description = "Sync and rebuild NixOS configuration";
+    systemd.user.services.nixos-update-rebuild = {
+      Unit.Description = "Update and rebuild NixOS configuration";
       Service = {
         Type = "oneshot";
-        ExecStart = "${syncRebuildScript}";
+        ExecStart = "${updateRebuildScript}";
       };
     };
 

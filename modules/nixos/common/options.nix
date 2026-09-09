@@ -61,7 +61,7 @@ in
       updateCmdPermission = mkOption {
         type = types.bool;
         default = true;
-        description = "Whether to allow the user to run the custom update/upgrade commands.";
+        description = "Whether to allow the user to run the custom flake-update/upgrade commands.";
       };
       sudoPassword = mkOption {
         type = types.bool;
@@ -99,7 +99,7 @@ in
       betaTesterHost = mkOption {
         type = types.bool;
         default = false;
-        description = "When true, the sync command follows the latest open update/* branch instead of main.";
+        description = "When true, the update command follows the latest open update/* branch instead of main.";
       };
     };
     packages = {

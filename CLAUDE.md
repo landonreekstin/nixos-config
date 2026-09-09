@@ -69,8 +69,8 @@ git config user.email  # should be: landonreekstin@gmail.com
 
 ### System Management
 - `rebuild` - Rebuild the current host configuration using the local flake
-- `sync` - Pull latest changes from the remote repository (handles merge conflicts)
-- `update` - Update flake inputs (requires `updateCmdPermission` enabled)
+- `update` - Pull latest changes from the remote repository (handles merge conflicts)
+- `flake-update` - Update flake inputs (requires `updateCmdPermission` enabled)
 - `upgrade` - Update flake inputs and rebuild system in one command
 - `post-install` - Complete initial setup after fresh NixOS installation
 
@@ -79,6 +79,7 @@ Defined in `modules/nixos/common/commands.nix` under `lib.optionals (cfg.user.na
 - `branch-switch` - Numbered-menu branch picker: fetches, lists all branches (main first), stashes current changes (tagged with their source branch), checks out the chosen branch, offers to restore a stash saved for that branch, then rebuilds. On rebuild failure it points the user at `smart-rebuild` / `claude-rebuild-failed`.
 - `blaney-todo` - Numbered-menu task picker: fetches `origin/main`, lists the runbooks in `docs/runbooks/blaney/`, and launches `claude` on the chosen one with a blaney-pc preface prompt. See [Runbooks as blaney-pc tasks](docs/hosts/blaney-pc.md#runbooks-as-blaney-pc-tasks).
 - `blaney-help` - Prints a curated one-line cheat-sheet of the commands insideabush uses. **This is the user-facing command index — keep it in sync when adding/removing blaney commands.**
+- `sync` - **Deprecated alias for `update`**, blaney-pc only. Prints a notice pointing at the new name, then runs `update`. Everywhere else `sync` is coreutils' disk-flush again. Remove once the new name has stuck.
 
 ### NixOS Rebuild Commands
 
@@ -268,7 +269,7 @@ docs(claude): add blaney-pc guidelines
 
 `optiplex-nas` runs a flake-updater every Monday at 03:00: it creates `update/YYYY-WNN`,
 builds all hosts, and opens a PR. **gaming-pc** (`betaTesterHost = true`) auto-tracks the
-latest `update/*` branch on `sync`, soaking the update a week early; the following
+latest `update/*` branch on `update`, soaking the update a week early; the following
 Monday's run auto-merges the prior PR unless it carries the `update-blocked` label.
 
 For Claude, the two common requests:
