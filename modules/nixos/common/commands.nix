@@ -114,15 +114,15 @@ in
   # Add the custom command scripts to the system's PATH
   environment.systemPackages = (with pkgs; [
     # --- Unconditional Commands ---
-    git # Ensure git is available for the 'sync' command
+    git # Ensure git is available for the 'update' command
 
     post-install-script
 
-    (writeShellScriptBin "sync" ''
+    (writeShellScriptBin "update" ''
       #!${stdenv.shell}
       set -e # Exit immediately if a command exits with a non-zero status
 
-      echo "--- Syncing NixOS Configuration ---"
+      echo "--- Updating NixOS Configuration ---"
       NIXOS_CONFIG_DIR="${nixosConfigDir}" # This value is injected by Nix at build time
 
       if [ ! -d "$NIXOS_CONFIG_DIR" ]; then
@@ -149,7 +149,7 @@ in
           else
             git pull origin "$BETA_BRANCH" --rebase
           fi
-          echo "Sync complete (beta branch: $BETA_BRANCH)."
+          echo "Update complete (beta branch: $BETA_BRANCH)."
           exit 0
         fi
         echo "--- No update branch found, falling back to main ---"
@@ -160,7 +160,7 @@ in
       if ! git pull; then
         echo "Git pull failed. This might be due to local changes."
         echo "Attempting to stash local changes and pull again..."
-        if git stash push -m "Autostash before sync command"; then
+        if git stash push -m "Autostash before update command"; then
           if git pull; then
             echo "Pull successful after stashing."
             echo "Stashed changes can be restored by running 'git stash pop' in $NIXOS_CONFIG_DIR"
@@ -172,11 +172,11 @@ in
             exit 1
           fi
         else
-          echo "Error: Git stash failed. Please resolve local changes in $NIXOS_CONFIG_DIR manually and try syncing again."
+          echo "Error: Git stash failed. Please resolve local changes in $NIXOS_CONFIG_DIR manually and try updating again."
           exit 1
         fi
       fi
-      echo "Sync complete."
+      echo "Update complete."
     '')
 
     (writeShellScriptBin "rebuild" ''
@@ -301,7 +301,7 @@ in
     # --- Conditional Commands ---
     # These will be included only if cfg.user.updateCmdPermission is true.
     
-    (pkgs.writeShellScriptBin "update" ''
+    (pkgs.writeShellScriptBin "flake-update" ''
       #!${pkgs.stdenv.shell}
       set -e
       echo "--- Updating Flake Inputs ---"
@@ -343,6 +343,18 @@ in
     # --- Blaney (insideabush) helper commands ---
     # Deterministic, non-technical-friendly tools. Gated to insideabush; do NOT
     # use updateCmdPermission here (it is false on blaney-pc).
+
+    # Deprecated alias: `sync` was renamed to `update` (it shadowed coreutils' sync).
+    # Kept only here so insideabush's muscle memory and older runbooks keep working —
+    # it points at the new name, then does the update anyway rather than leaving him
+    # stuck. Delete once the new name has stuck.
+    (pkgs.writeShellScriptBin "sync" ''
+      #!${pkgs.stdenv.shell}
+      echo "Heads up: 'sync' is now called 'update'. Use 'update' from now on."
+      echo "Running 'update' for you..."
+      echo
+      exec update
+    '')
 
     (pkgs.writeShellScriptBin "branch-switch" ''
       #!${pkgs.stdenv.shell}
@@ -515,8 +527,8 @@ in
 
       EVERYDAY
         rebuild           Apply your config changes to the system
-        rebuild-shutdown  Update the system, then shut down (run and walk away)
-        sync              Download the latest config from GitHub
+        rebuild-shutdown  Rebuild the system, then shut down (run and walk away)
+        update            Download the latest config from GitHub
         branch-switch     Pick a branch by number, switch to it, and rebuild
         smart-rebuild     Safely get back to the latest main and rebuild
         rb                Rebuild, then reboot
@@ -533,6 +545,7 @@ in
         rebuild-test   Try a rebuild temporarily (undone on reboot)
         ipr            Open the input-remapper (button remap) app
         blaney-help    Show this list again
+        sync           Old name for "update" — still works, but use update
       EOF
     '')
   ]);

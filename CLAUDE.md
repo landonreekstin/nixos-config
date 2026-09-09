@@ -6,6 +6,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a modular NixOS configuration flake that manages multiple hosts with shared modules. The configuration uses a custom options system (`customConfig`) to provide type-safe, declarative configuration across all hosts.
 
+## Reference Docs
+
+`CLAUDE.md` holds the rules and lookups needed for *everyday* work. Deeper material lives
+in `docs/` — read the matching file when the task calls for it:
+
+| Doc | Read it when |
+|---|---|
+| [docs/architecture.md](docs/architecture.md) | adding a host file, deciding where an option is *declared*, or refactoring/moving config (incl. the no-op proof recipes) |
+| [docs/theming.md](docs/theming.md) | Plasma / SDDM / Hyprland themes, or any `modules/home-manager/themes/*` work |
+| [docs/networking.md](docs/networking.md) | the OpenBSD firewall, WireGuard peers, port forwards, `.lan` DNS, NAS addressing, wake-on-LAN |
+| [docs/flake-updates.md](docs/flake-updates.md) | blocking / fixing / explaining a weekly `update/*` PR, or beta-host tracking |
+| [docs/test-vms-and-ci.md](docs/test-vms-and-ci.md) | using `vm-sandbox` / `vm-blaney`, or changing the CI workflow / NAS runner |
+| [docs/remote-xfce-rdp.md](docs/remote-xfce-rdp.md) | XFCE-over-xrdp work, or a `rebuild` that didn't visibly change a live XFCE session |
+| [docs/installation.md](docs/installation.md) | deploying a new host or re-installing an existing one |
+| [docs/hosts/blaney-pc.md](docs/hosts/blaney-pc.md) | the session is on `blaney-pc` (user `insideabush`), or writing a `docs/runbooks/blaney/` task |
+| [docs/companion-repos.md](docs/companion-repos.md) | bumping the pin of a package sourced from another of our repos |
+
 ## Choosing the Right Host to Work On
 
 **At the start of a session, before diving in, check whether the task is better handled natively on a different host** — many features/fixes can only be rebuilt, tested, and verified on the machine that actually runs the affected component. If the current host isn't the ideal one, say so and recommend switching before doing the work, rather than making a change that can't be verified here.
@@ -52,16 +69,17 @@ git config user.email  # should be: landonreekstin@gmail.com
 
 ### System Management
 - `rebuild` - Rebuild the current host configuration using the local flake
-- `sync` - Pull latest changes from the remote repository (handles merge conflicts)
-- `update` - Update flake inputs (requires `updateCmdPermission` enabled)
+- `update` - Pull latest changes from the remote repository (handles merge conflicts)
+- `flake-update` - Update flake inputs (requires `updateCmdPermission` enabled)
 - `upgrade` - Update flake inputs and rebuild system in one command
 - `post-install` - Complete initial setup after fresh NixOS installation
 
 #### blaney-pc-only commands (gated to the `insideabush` user)
 Defined in `modules/nixos/common/commands.nix` under `lib.optionals (cfg.user.name == "insideabush")`:
 - `branch-switch` - Numbered-menu branch picker: fetches, lists all branches (main first), stashes current changes (tagged with their source branch), checks out the chosen branch, offers to restore a stash saved for that branch, then rebuilds. On rebuild failure it points the user at `smart-rebuild` / `claude-rebuild-failed`.
-- `blaney-todo` - Numbered-menu task picker: fetches `origin/main`, lists the runbooks in `docs/runbooks/blaney/`, and launches `claude` on the chosen one with a blaney-pc preface prompt. See [Runbooks as blaney-pc tasks](#runbooks-as-blaney-pc-tasks).
+- `blaney-todo` - Numbered-menu task picker: fetches `origin/main`, lists the runbooks in `docs/runbooks/blaney/`, and launches `claude` on the chosen one with a blaney-pc preface prompt. See [Runbooks as blaney-pc tasks](docs/hosts/blaney-pc.md#runbooks-as-blaney-pc-tasks).
 - `blaney-help` - Prints a curated one-line cheat-sheet of the commands insideabush uses. **This is the user-facing command index — keep it in sync when adding/removing blaney commands.**
+- `sync` - **Deprecated alias for `update`**, blaney-pc only. Prints a notice pointing at the new name, then runs `update`. Everywhere else `sync` is coreutils' disk-flush again. Remove once the new name has stuck.
 
 ### NixOS Rebuild Commands
 
@@ -99,67 +117,40 @@ nix develop .#gbdk-dev        # Game Boy development
 - `modules/nixos/` - System-level NixOS modules
 - `modules/home-manager/` - User-level Home Manager modules
 
+
 ### Host File Layout
 
-A host directory mirrors `modules/nixos/`: one file per domain, and `default.nix` is an
-**importer only** (like `modules/nixos/default.nix`). Each top-level `customConfig`
-attribute is owned by exactly one file per host, so "where is X set?" is a mechanical
-lookup. A host only creates the files it needs.
+A host directory mirrors `modules/nixos/`: one file per domain, `default.nix` is an
+**importer only**, and each top-level `customConfig` attribute is owned by exactly one
+file per host. A host only creates the files it needs.
 
-| File | Owns `customConfig.*` | Host-specific raw NixOS config it carries |
-|---|---|---|
-| `default.nix` | *(nothing)* | `imports` only |
-| `vars.nix` | *(not a module)* | plain attrset of host flags, `import`ed by the others |
-| `system.nix` | `user`, `system`, `bootloader` | `boot.loader.*`, `boot.kernelPackages`, `users.users.<u>.initialPassword`, host-wide `sops.*` |
-| `desktop.nix` | `desktop` | `services.xserver`/`displayManager`/`xrdp`, console rotation |
-| `hardware.nix` | `hardware` | `hardware.nvidia.open`, `boot.initrd.kernelModules`, blacklists, `services.keyd` |
-| `apps.nix` | `apps`, `programs`, `packages` | `programs.*`, `services.flatpak` |
-| `home.nix` | `homeManager` | the `home-manager = lib.mkIf … { users.… }` block |
-| `networking.nix` | `networking`, `services` | `networking.firewall/extraHosts/hosts/routes/wg-quick`, WG sops secret |
-| `homelab.nix` | `homelab` | homelab-adjacent units (HA yaml, game-server tmpfiles) |
-| `profiles.nix` | `profiles` | — |
+| File | Owns `customConfig.*` |
+|---|---|
+| `vars.nix` | *(not a module — a plain attrset of host flags `import`ed by the others)* |
+| `system.nix` | `user`, `system`, `bootloader` (+ `boot.loader.*`, host-wide `sops.*`) |
+| `desktop.nix` | `desktop` (+ `services.xserver`/`displayManager`/`xrdp`) |
+| `hardware.nix` | `hardware` (+ `hardware.nvidia.open`, initrd modules, blacklists, `keyd`) |
+| `apps.nix` | `apps`, `programs`, `packages` (+ `programs.*`, `services.flatpak`) |
+| `home.nix` | `homeManager` (+ the `home-manager = lib.mkIf …` block) |
+| `networking.nix` | `networking`, `services` (+ firewall/hosts/routes/wg-quick) |
+| `homelab.nix` | `homelab` (+ homelab-adjacent units) |
+| `profiles.nix` | `profiles` |
 
-Rules:
-- **Keep the directory flat.** Host files use repo-relative paths (`../../assets/…`,
-  `../../secrets/<host>.yaml`, `../../pkgs/…`); a subdirectory would silently repoint them.
-- **Extra domain files are fine** where a host warrants one — `optiplex-nas/storage.nix`
-  (filesystems/LUKS/swap) and `optiplex-nas/ci.nix` (self-hosted runner) follow the same
-  naming logic.
-- **Feature-specific `sops.secrets.<x>` live next to the feature that consumes it**;
-  only host-wide sops settings go in `system.nix`.
-- **A `let` binding cannot span files.** Flags needed by more than one file go in
-  `vars.nix` as a plain attrset, consumed via `let vars = import ./vars.nix; in …`
-  (see `hosts/gaming-pc/vars.nix`).
-- **Watch list-valued options.** Two files defining the same scalar path error out, but
-  the same *list* path silently concatenates. Also note a host's sub-modules merge *after*
-  top-level flake modules (disko, nixos-hardware), so where the old inline config won an
-  ordering race you may need `lib.mkBefore` — see `hosts/optiplex-nas/storage.nix`.
+Keep the directory **flat** (host files use repo-relative paths), put feature-specific
+`sops.secrets.<x>` next to the feature that consumes it, and remember a `let` binding
+cannot span files — shared flags go in `vars.nix`.
 
-When refactoring host files, prove the change is a no-op by comparing
-`nix eval --impure --raw .#nixosConfigurations.<host>.config.system.build.toplevel.drvPath`
-before and after. Hosts whose Plasma wallpaper is a repo path embed the flake-source hash
-in one derivation, so theirs changes on any commit; use `nix-diff` on the two drvs to
-confirm the only delta is that `…-source/assets/…` prefix.
+**Before moving anything between these files, read
+[docs/architecture.md](docs/architecture.md)** — it carries the full table with the raw
+NixOS config each file also holds, the list-merging/ordering gotchas, and the drvPath
+proof that a refactor is a no-op.
 
 ### Module Option Layout
 
-`customConfig` option *declarations* follow the same file-per-concern rule as everything
-else. There is no central options file — `modules/nixos/common-options.nix` was dissolved.
-
-> **The rule:** an option block is declared by the module that **owns the feature it
-> configures** — normally the same-named module. `homelab/jellyfin.nix` declares
-> `customConfig.homelab.jellyfin` *and* the `config` implementing it. If no single module
-> owns it, it goes in that domain's `options.nix`.
-
-An option lands in a domain `options.nix` when it is:
-- **cross-cutting** — every module in the domain selects on it (`desktop.environments`)
-- **home-manager-only** — nothing on the NixOS side reads it (`desktop.monitors`,
-  `hardware.battery`, all of `apps.*`). These *cannot* move to `modules/home-manager/`:
-  home-manager receives `customConfig` as a plain attrset via `extraSpecialArgs`, not as
-  its own option tree, so only the NixOS module system can declare them.
-- **split across several modules** — `homelab.reverseProxy` (nas + mini), `packages`
-
-Where things live:
+There is no central options file. **An option block is declared by the module that owns
+the feature it configures** — `homelab/jellyfin.nix` declares `customConfig.homelab.jellyfin`
+*and* the `config` implementing it. Options that are cross-cutting, home-manager-only, or
+split across several modules go in that domain's `options.nix` instead.
 
 | Domain | Declared by |
 |---|---|
@@ -174,42 +165,16 @@ Where things live:
 | `user`, `system`, `packages` | `common/options.nix` |
 
 Fallback for a namespace with no owning module: `customConfig.<X>` → `modules/nixos/<X>/`
-if that directory exists, else `common/`. That is why `apps/` exists as an options-only
-directory. Add every new `options.nix` to its domain's `default.nix` imports.
+if that directory exists, else `common/`. Add every new `options.nix` to its domain's
+`default.nix` imports.
 
-Gotchas when moving declarations:
-- **Nix merges duplicate attrset literals silently.** `{ a = {b=1;}; a = {c=2;}; }` merges,
-  which is how `customConfig.programs` and `customConfig.desktop.kde` each ended up declared
-  twice in the old file without anyone noticing. But a literal will *not* merge with a path
-  already extended elsewhere in the same file — `{ a.b = 1; a = {c=2;}; }` errors. Use the
-  nested-path form there (see `development/*.nix`, which already declare `.devShell`).
-- **A module that declares `options` cannot also use shorthand config.** Bare `boot.loader = …`
-  at top level must move under an explicit `config = { … }`.
-- **Check the argument list.** Defaults referencing `pkgs` or `config` need those in the
-  module's arguments; the old file had them all in scope for free.
-
-To prove a declaration move is a no-op, compare the **merged `customConfig` fixpoint**, not
-just drvPaths — it catches a changed default or priority directly:
-
-```bash
-nix eval --impure --json --expr '
-  let f = builtins.getFlake "/home/lando/nixos-config"; cfg = f.nixosConfigurations.<host>;
-      lib = cfg.pkgs.lib;
-      san = v: let r = builtins.tryEval (            # tryEval: no-default options throw
-        if builtins.isFunction v then "<function>"
-        else if lib.isDerivation v then "drv:" + (v.drvPath or "?")
-        else if builtins.isPath v then "path:" + (baseNameOf (toString v))
-        else if builtins.isList v then map san v
-        else if builtins.isAttrs v then lib.mapAttrs (_: san) v
-        else v); in if r.success then r.value else "<unset>";
-  in san cfg.config.customConfig' | jq -S .
-```
-
-Note `config.system.build.manual.optionsJSON` is **not** useful here — it documents upstream
-nixpkgs options only and never contains `customConfig`.
+**Before moving a declaration, read [docs/architecture.md](docs/architecture.md)** — Nix
+merges duplicate attrset literals silently (that is how options ended up declared twice
+before), a module with `options` cannot use shorthand config, and the doc has the
+`customConfig`-fixpoint check that proves the move changed nothing.
 
 ### Configuration System
-All configuration is managed through the `customConfig` option set, declared per-module (see [Module Option Layout](#module-option-layout)). This provides:
+All configuration is managed through the `customConfig` option set, declared per-module (see [Module Option Layout](#module-option-layout) and [docs/architecture.md](docs/architecture.md)). This provides:
 - Type-safe configuration options with validation
 - Centralized defaults and documentation
 - Consistent interface across all hosts
@@ -231,73 +196,16 @@ All configuration is managed through the `customConfig` option set, declared per
 
 ## Working with Themes
 
-### Plasma Themes
-- `windows7` / `windows7-alt` - Complete Windows 7 recreation with custom plasmoids
-- `bigsur` - macOS Big Sur appearance
-- `aerothemeplasma` - Base Aero theme system
+Theme selection is `customConfig.homeManager.themes.{kde,hyprland}`; custom SDDM styling
+is `customConfig.desktop.displayManager.sddm.customTheme`.
 
-Theme configuration is set via `customConfig.homeManager.themes.kde`.
+**Wayland components follow a strict functional-vs-theme split**: `*/functional.nix` is
+always active and owns keybinds, monitor/input config, services and packages (with
+`mkDefault`); `themes/*/` is conditional and owns *only* visual styling (with `mkForce`).
+Themes never duplicate functional settings.
 
-### Custom SDDM Themes
-Configure via `customConfig.desktop.displayManager.sddm.customTheme` with wallpaper, colors, and styling options.
-
-### Hyprland Themes
-- `future-aviation` - Sleek aerospace aesthetic with modern fighter jet inspiration
-- `century-series` - Cold War aviation cockpit theme (F-100 through F-106, MiG-17/19/21)
-
-Theme configuration is set via `customConfig.homeManager.themes.hyprland`.
-
-### Functional vs Theme Paradigm for Wayland Components
-
-The Wayland component architecture follows a strict separation of concerns between **functional** and **theme** modules:
-
-#### Functional Modules (`modules/home-manager/*/functional.nix`)
-**Always active** when the component is enabled. Provide:
-- **Essential functionality**: Keybindings, startup commands, base settings
-- **Hardware configuration**: Monitor layouts, input settings
-- **Service management**: Process startup, systemd services
-- **Package dependencies**: Required binaries and tools
-- **Default configurations**: Base module settings with `mkDefault` priority
-
-Examples:
-- `hyprland/functional.nix` - Keybindings, exec-once, monitor config, variables
-- `waybar/functional.nix` - Module layout, click actions, base formatting
-
-#### Theme Modules (`modules/home-manager/themes/*/`)
-**Conditionally active** when theme is selected. Provide only:
-- **Visual styling**: Colors, fonts, borders, animations
-- **Theme-specific overrides**: Custom formats, icons, CSS styling
-- **Wallpapers and assets**: Theme-specific media files
-- **Aesthetic configuration**: Gaps, rounding, shadows, effects
-- **Priority overrides**: Use `mkForce` for conflicting visual settings
-
-Examples:
-- `themes/century-series/hyprland.nix` - MFD borders, cockpit colors, tactical animations
-- `themes/century-series/waybar.nix` - Aviation terminology, instrument panel styling
-
-#### Key Principles
-1. **Themes never duplicate functional settings** - Always inherit base functionality
-2. **Functional modules use `mkDefault`** - Allow themes to override with `mkForce`
-3. **Settings merge cleanly** - No conflicts between functional base and theme overrides
-4. **Themes remain portable** - Can be applied to any host without breaking functionality
-5. **Functional modules stay stable** - Theme changes don't affect core functionality
-
-#### Example Architecture
-```nix
-# functional.nix (always active)
-bind = mkDefault [
-  "$mainMod, SPACE, exec, $menu"
-  "$mainMod, RETURN, exec, $terminal"
-];
-
-# theme.nix (when theme active) 
-general = {
-  border_size = mkForce 3;  # Override for theme
-  "col.active_border" = "rgb(ff9e3b)";  # Theme colors
-};
-```
-
-This ensures themes provide visual identity while maintaining core Wayland functionality.
+Available themes, the full paradigm with examples, and the per-theme details are in
+**[docs/theming.md](docs/theming.md)** — read it before touching any theme module.
 
 ## Development Profiles
 
@@ -324,12 +232,8 @@ All modules should follow this standard header format:
 { config, pkgs, lib, ... }:
 ```
 
-### Making Changes
-1. Edit configuration files in your local `~/nixos-config` clone
-2. `sudo chown -R lando:users /home/lando/nixos-config`
-3. `rebuild` — **do not commit until this succeeds and changes are verified**
-4. Commit and push changes when satisfied
-5. Other machines can `sync` to pull updates
+### Hardware Configurations
+Hardware configs are auto-generated during installation and should not be manually edited. They're stored per-host in `hosts/<hostname>/hardware-configuration.nix`.
 
 ### Commit Message Style
 Follow the established commit message convention:
@@ -360,254 +264,36 @@ tweak(gaming-pc): enable ckb-next
 docs(claude): add blaney-pc guidelines
 ```
 
-## Automated Weekly Flake Updates (CI/CD Pipeline)
 
-Flake updates are automated via a systemd service on `optiplex-nas` that runs every Monday at 03:00.
+## Automated Weekly Flake Updates
 
-### How it works
+`optiplex-nas` runs a flake-updater every Monday at 03:00: it creates `update/YYYY-WNN`,
+builds all hosts, and opens a PR. **gaming-pc** (`betaTesterHost = true`) auto-tracks the
+latest `update/*` branch on `update`, soaking the update a week early; the following
+Monday's run auto-merges the prior PR unless it carries the `update-blocked` label.
 
-1. NAS creates branch `update/YYYY-WNN`, runs `nix flake update`, builds all 9 hosts, opens a GitHub PR
-2. **gaming-pc** (`betaTesterHost = true`) automatically tracks the latest `update/*` branch on the next `sync` — it receives the update one week before everyone else
-3. On the **following Monday's run** (about 6 days later, since the check runs before the new PR is opened), the NAS auto-merges the prior week's PR if no `update-blocked` label is present. Auto-merge uses `--admin` so it bypasses the `protect-main-merges` ruleset.
-4. All other hosts pick up the update on their next `sync` after the merge
+For Claude, the two common requests:
+- **"approve the update" / "let it merge"** — do nothing. The NAS auto-merges on the next
+  Monday run. Manually running `gh pr merge` is wrong and bypasses the soak period.
+- **"block the update"** — `gh pr edit <PR> --repo landonreekstin/nixos-config --add-label "update-blocked"`
+  (find it with `gh pr list --label flake-update`).
 
-### Blocking a bad update
+Fixing an update branch, rolling back gaming-pc, and manual triggering are in
+**[docs/flake-updates.md](docs/flake-updates.md)**.
 
-If a flake update causes a runtime issue (e.g., broken NVIDIA driver, broken audio) that passes eval but breaks the live system:
+## Test VMs, Installation, and Remote XFCE
 
-1. Go to the open `chore(flake): weekly update YYYY-WNN` PR on GitHub
-2. Add the **`update-blocked`** label
-3. The NAS will NOT auto-merge while this label is present
-4. To roll back gaming-pc immediately: `git checkout main && rebuild`
-5. When you have a fix, push it to the `update/*` branch, remove the label — the next Monday run will auto-merge
+Three topics that only matter when you are actively doing them:
 
-### Manual trigger
-
-To manually run the updater on optiplex-nas:
-```bash
-sudo systemctl start flake-updater
-journalctl -u flake-updater -f
-```
-
-### Beta host behavior
-
-On gaming-pc, running `sync` when a `update/*` branch exists on remote will automatically switch to it. When no update branch exists (post-merge), `sync` falls back to main. This is transparent — no user action needed.
-
-### For Claude: how to handle common requests
-
-**"Approve the update" / "let it merge"** — do nothing. The NAS auto-merges on the following Monday's run automatically. There is no action needed; manually merging via `gh pr merge` is wrong and bypasses the soak period.
-
-**"Block the update" / "don't merge this"**
-```bash
-# Find the open update PR
-gh pr list --repo landonreekstin/nixos-config --label flake-update
-# Add the block label (use the PR number from above)
-gh pr edit <PR_NUMBER> --repo landonreekstin/nixos-config --add-label "update-blocked"
-```
-
-**"Fix the update" / "push a fix to the update branch"**
-```bash
-# Find the current update branch
-git branch -r --list 'origin/update/*' | sort -V | tail -1
-# On gaming-pc, the branch is already checked out; on other machines, check it out:
-git checkout -B update/YYYY-WNN origin/update/YYYY-WNN
-# Make the fix, rebuild/verify, then:
-git push origin update/YYYY-WNN
-# After confirming the fix works, remove the block label if present:
-gh pr edit <PR_NUMBER> --repo landonreekstin/nixos-config --remove-label "update-blocked"
-```
-
-**"Roll back gaming-pc"** — gaming-pc is the only host that auto-tracks the update branch:
-```bash
-git checkout main && rebuild
-```
-
----
-
-### Git Workflow
-
-**CRITICAL: Always test before committing.** If the current machine can test the change, it MUST be rebuilt and verified before any commit is made. Never commit untested configuration changes — not even "obviously correct" ones.
-
-**Branching strategy**:
-- **Direct to main**: Documentation changes (`docs`), minor tweaks (`tweak`), and simple additions like adding a package can be committed directly to main after verification
-- **Feature/PR branches**: Use branches for changes that are being developed on the local machine. Rebuild and verify on the branch first, then open a PR to merge into main. Also use branches for changes that can only be tested on a different machine — in that case, note in the PR that in-person testing is needed.
-- **Never commit broken changes to main**: Only merge to main once changes have been rebuilt, tested, and verified to work
-
-**Workflow by scenario**:
-1. **Locally testable feature/fix**: Branch → Edit → chown → Rebuild → Verify → Commit → PR → Merge
-2. **Cross-machine change**: Branch → Edit → Eval-check → Commit → PR (note needs in-person test on target machine) → Test on target → Merge when verified
-3. **Documentation/minor tweak**: Edit → Commit to main (no rebuild needed for docs-only changes)
-
-**The rule in plain terms**: commit comes *after* a successful rebuild and manual verification, never before. The only exception is changes that require a different machine to test — those go into a PR and are merged once verified on the target host.
-
-**Do not open a PR until the change has been tested on the machine currently being developed on.** If Claude Code is running on `asus-laptop` and the change targets `asus-laptop`, do a `rebuild` and verify it works *before* creating the PR — not after. PRs should represent verified, working changes, not speculative ones.
-
-### Hardware Configurations
-Hardware configs are auto-generated during installation and should not be manually edited. They're stored per-host in `hosts/<hostname>/hardware-configuration.nix`.
-
-## Test VMs & CI Build Job
-
-Two throwaway QEMU hosts exist for iterating on the fragile *software-config* surface
-(aerothemeplasma, plasma, Hyprland, browser/app config) without disrupting gaming-pc or a
-headless server. They are never installed to hardware — they share `hosts/vm-common.nix`
-(VM sizing, guest agents, boot/FS stub) and force `nvidia`/`peripherals` **off**.
-
-- **`vm-sandbox`** — kitchen-sink: KDE (windows7-alt aerotheme) + Hyprland (century-series),
-  SDDM autologin. General ricing/experimentation.
-- **`vm-blaney`** — mirrors blaney-pc's KDE/aerotheme + Hyprland *software* config (gaming
-  stack and heavy packages trimmed) so his theme/plasma issues can be reproduced and fixed
-  locally before pushing a `blaney/` PR to that remote machine.
-
-Launch (needs KVM — run on gaming-pc, log in as the host user / password `vm`). The
-`testvm` command (from `modules/nixos/common/commands.nix`) builds + launches in one step,
-keeping the disk in `~/.cache/nixos-testvms/`:
-```bash
-testvm sandbox           # or: testvm blaney
-testvm sandbox --clean   # discard the VM disk first for a fresh boot
-```
-Equivalent raw invocation:
-```bash
-nixos-rebuild build-vm --flake /home/lando/nixos-config#vm-sandbox --impure
-./result/bin/run-*-vm
-```
-
-**Limitation — VMs cannot validate GPU/driver behaviour.** QEMU falls back to `llvmpipe`
-software rendering, so the NVIDIA KMS/boot-hang, TTY-framebuffer, and WiFi-driver classes
-are *not* reproducible in a VM. Those still rely on the real-hardware beta-host soak. The
-VMs + build-CI target build-time and software-config regressions only.
-
-### CI build job
-
-`.github/workflows/check.yml` has two jobs:
-- **`evaluate`** (GitHub-hosted `ubuntu-latest`) — fast `nix eval …drvPath` for **all**
-  hosts incl. the two VMs. Catches type/option errors and stale fetch hashes.
-- **`build`** (self-hosted runner on **optiplex-nas**) — `nix build`s only the fragile
-  *source-built* derivations, **not** full toplevels: aerothemeplasma's ~13 KWin/Plasma
-  C++ derivations (via `vm-sandbox.pkgs.*`) and the openrazer out-of-tree kernel module
-  (`blaney-pc.config.boot.kernelPackages.openrazer`). These are the things that break on
-  nixpkgs bumps (PR #74/#83 class). Full toplevels are deliberately avoided — they drag in
-  browsers/steam/kernels that are usually cached but OOM this modest NAS when momentarily
-  uncached, for no benefit to what we test. The NAS store is warm from the nightly
-  flake-updater, so these builds are cheap and incremental.
-
-**Security posture:** self-hosted runners must not execute untrusted code. The `build` job
-is gated (`if:`) to run only on `push` to repo branches and **same-repo** PRs — never fork
-PRs (fork PRs still get the `evaluate` gate). Keep the repo setting "Require approval for
-all outside collaborators". The runner is defined in `hosts/optiplex-nas/default.nix`
-(`services.github-runners.nixos-config-ci`) and needs the `github-runner-token` sops secret
-(a PAT with repo Administration read/write) in `secrets/optiplex-nas.yaml` before it can
-register — verify it registers on the NAS before merging any change that enables it.
-
-## Remote XFCE via RDP (gaming-pc)
-
-For desktop/theme work that needs a visible session (e.g. the `feat/xfce-windows7`
-branch) while working remotely from the Windows 11 box. Enabled by
-`customConfig.desktop.xrdp.enable` on gaming-pc (`modules/nixos/desktop/xrdp.nix`).
-Port **3389 is firewalled** — access is SSH-tunnel only, never exposed.
-
-**Windows flow:**
-
-1. Open the tunnel (leave it running):
-   ```
-   ssh -L 3389:localhost:3389 lando@192.168.1.62
-   ```
-   `192.168.1.62` is gaming-pc on the LAN — substitute its reachable address when off-LAN.
-2. Launch **Remote Desktop** (`mstsc`) and connect to **`127.0.0.2`** — NOT `localhost`
-   / `127.0.0.1`. Windows throws error `0x708` ("console session in progress") when the
-   RDP target looks like the local machine; `127.0.0.2` dodges that self-connect check.
-3. Session type **Xorg**, user `lando`, your password → you land in the XFCE session.
-
-**Iteration loop** (no reboot): edit the theme → `rebuild` over SSH → **log out the RDP
-session and reconnect**. A fresh session re-seeds the xfconf theme and re-runs the
-autostarts, which is exactly the boundary the win7 theme needs.
-
-**Why a plain reconnect/logout often isn't enough — the XFCE daemon-cache problem.** The
-XFCE settings stack caches aggressively: `xfconfd` reads the per-channel XML *only at
-startup* and never re-reads it, and the consumer daemons apply their state once and hold it
-in memory — `xfsettingsd` (GTK theme / Segoe UI / Aero icons / cursor / sounds), `xfwm4`
-(window decorations **and** keyboard shortcuts) and `xfce4-panel` (layout + launcher icons).
-So a `rebuild` reseeds the XML on disk while the live session keeps the old look/binds.
-`xfconfd` is D-Bus-activated and can linger on the user bus across logout, which is why a
-change sometimes only takes after a **reboot**. Concrete reload levers (all confirmed): a
-new keybind needs `kill -HUP <xfwm4-pid>`; panel launcher icons need the panel restarted;
-xsettings needs `xfsettingsd --replace`.
-
-**`win7-xfce-refresh`** (module: `modules/home-manager/themes/windows7-xfce/refresh.nix`,
-installed on win7-xfce hosts) bundles those reloads into one command to apply a `rebuild`
-without logout/reboot: drop xfconfd's stale cache → `xfsettingsd --replace` → SIGHUP xfwm4 →
-re-run the login panel bind (`win7-bind-panels`) → `xfdesktop --reload`. **Run it from a
-terminal *inside* the XFCE session** (it needs the full session env — launching the panel from
-an external shell without XAUTHORITY/XDG_* leaves it unmapped/invisible). Runtime-verified live
-over RDP (2026-08-06). The panel step reuses `win7-bind-panels` (the same seed→`xfce4-panel -r`
-the login autostart runs), so the Win7 power flyout's `command-logout` survives a refresh — a
-naive panel kill+relaunch would skip the whiskermenu-rc seed and regress the Start power button
-to the two-click dialog.
-
-**Gotchas:**
-- The remote session runs on its own private D-Bus bus (`dbus-run-session -- startxfce4`)
-  so it coexists with the physical KDE/Hyprland login. Use `startxfce4` (the launcher),
-  not `xfce4-session` (the bare binary), or the session exits instantly.
-- NixOS does **not** auto-restart `xrdp-sesman` on a `rebuild` (restarting it kills live
-  sessions), so changes *to the xrdp module itself* only take effect after
-  `sudo systemctl restart xrdp-sesman`. Theme changes don't need this — just reconnect.
-- No audio (login jingle/event sounds) — needs `pulseaudio-module-xrdp` redirection, not
-  wired up.
-
-## Installation
-
-### Preferred: Remote deploy via nixos-anywhere (LAN or VPN)
-
-**One-time USB creation** (reusable for all future installs):
-```bash
-nix build .#nixosConfigurations.installer.config.system.build.isoImage
-sudo dd if=$(readlink -f result)/iso/*.iso of=/dev/sdX bs=4M status=progress conv=fsync
-```
-
-**Deploy workflow** (run from gaming-pc):
-1. Boot target from the installer USB — SSH starts automatically with lando's key
-2. Find the target IP (`nmap -sn 192.168.1.0/24` or check router DHCP)
-3. From gaming-pc:
-   ```bash
-   ./scripts/deploy-host.sh <hostname> <target-ip>
-   # For VPN/WireGuard: ./scripts/deploy-host.sh <hostname> <wg-ip> 22
-   ```
-4. Script handles: age key derivation, `.sops.yaml` update, secrets encryption,
-   disk wipe/partition (disko), NixOS install, hardware config capture
-5. After target reboots into NixOS, commit from gaming-pc:
-   ```bash
-   git add hosts/<hostname>/hardware-configuration.nix secrets/<hostname>.yaml .sops.yaml
-   git commit -m "feat(<hostname>): deploy — hardware config and age key"
-   git push
-   ```
-6. On lando's machines only: SSH in and run `post-install` to set up GitHub SSH access
-
-### Fallback: On-target install (no LAN access to gaming-pc)
-
-The installer USB also provides a helper that clones the repo and runs the
-on-target installer automatically:
-```bash
-sudo nixos-install-local <hostname> <username>
-```
-
-Or manually (from a live NixOS ISO):
-```bash
-git clone https://github.com/landonreekstin/nixos-config.git /tmp/nixos-config
-sudo /tmp/nixos-config/scripts/install-new-host.sh <hostname> <username>
-```
-
-### New host checklist
-
-Before deploying, the host config must exist in git:
-- `hosts/<hostname>/default.nix` — with `sopsPassword = true` in the user block
-- `hosts/<hostname>/disko-config.nix` — disk layout
-- `hosts/<hostname>/hardware-configuration.nix` — placeholder (`{}`) or generated
-- `.sops.yaml` — anchor `&<hostname>` with `age1PLACEHOLDER_<hostname>` and a
-  creation rule for `secrets/<hostname>.yaml`
-
-After first deploy, `scripts/deploy-host.sh` fills in the real age key and
-generates the hardware config automatically.
-
-After first boot, run `post-install` to complete setup and establish Git access.
+- **Test VMs & CI** — `testvm sandbox` / `testvm blaney` build throwaway QEMU hosts for
+  desktop/theme software-config work (they cannot validate GPU/driver behaviour). CI has
+  an `evaluate` job for all hosts plus a gated `build` job on the NAS runner.
+  → **[docs/test-vms-and-ci.md](docs/test-vms-and-ci.md)**
+- **Installation** — remote deploy via `scripts/deploy-host.sh` (nixos-anywhere), the
+  on-target fallback, and the new-host checklist. → **[docs/installation.md](docs/installation.md)**
+- **Remote XFCE via RDP (gaming-pc)** — SSH-tunnelled xrdp for desktop work from Windows,
+  plus the XFCE daemon-cache traps (`win7-xfce-refresh`).
+  → **[docs/remote-xfce-rdp.md](docs/remote-xfce-rdp.md)**
 
 ## Homelab Services
 
@@ -616,192 +302,26 @@ Available via `customConfig.homelab`:
 - Samba file sharing
 - *arr stack (Radarr, Sonarr, Prowlarr, Bazarr)
 
-## OpenBSD Firewall (optiplex-fw)
+## Networking, Firewall, and VPN
 
-The only non-NixOS host in the homelab. Works perfectly and is not managed by NixOS — it just needs to be understood when NixOS service changes also require firewall/VPN changes (new port forward, new WireGuard peer, etc.).
+The homelab sits behind **optiplex-fw**, an OpenBSD 7.9 box that is the only non-NixOS
+host here (config tracked in the private `openbsd-dotfiles` repo, live files are the
+source of truth). Main LAN `192.168.1.0/24` → firewall `re0 192.168.1.189` → server LAN
+`192.168.100.0/24` (`optiplex-nas` `.76`, `mini-server` `.103`). WireGuard listens on
+UDP 51822, VPN subnet `10.10.0.0/24`.
 
-**Config files**: tracked in the private `github.com:landonreekstin/openbsd-dotfiles` repo, cloned at `~/openbsd-dotfiles/` on optiplex-fw. The live files on the box are always the source of truth.
+Two things that bite constantly and are worth knowing up front:
+- **The NAS's legacy `192.168.1.76`** is a `/32` alias on the firewall, `rdr-to`'d to
+  `192.168.100.76`. SSH is *not* forwarded on it — reach the NAS with
+  `ssh -J lando@192.168.1.189 lando@192.168.100.76`.
+- **The NAS runs Mullvad as a full tunnel**, so any subnet missing from its main routing
+  table disappears into the VPN. Explicit routes for `192.168.1.0/24` and `10.10.0.0/24`
+  in `hosts/optiplex-nas/networking.nix` are what keep DNS/Jellyfin/Samba working for
+  everything off the server subnet.
 
-### Network Topology
-
-```
-Internet
-    │
-    ▼
-Spectrum Router (SAX2V1S)
-WAN: 68.184.198.204  /  LAN: 192.168.1.1
-    │
-    ├── 192.168.1.x  (Main LAN)
-    │   ├── gaming-pc       192.168.1.62
-    │   └── optiplex-fw     192.168.1.189
-    │         └─ re0 alias  192.168.1.76  (legacy NAS IP; rdr'd to 192.168.100.76)
-    │
-    ▼
-┌──────────────────────────────────────────┐
-│  OpenBSD Firewall (optiplex-fw)          │
-│  Hardware: Dell Optiplex 3040 MT         │
-│  OS: OpenBSD 7.9                         │
-│  ext_if re0: 192.168.1.189 (Main LAN)   │
-│           +  192.168.1.76/32 alias       │
-│  int_if em0: 192.168.100.1 (Server LAN) │
-└──────────────────────────────────────────┘
-    │
-    ├── 192.168.100.x  (Server LAN)
-    │   ├── optiplex-nas    192.168.100.76
-    │   └── mini-server     192.168.100.103
-```
-
-**optiplex-nas is behind the firewall** (moved off the Main LAN 2026-07-15). Its old
-address `192.168.1.76` lives on as a `/32` alias on the firewall's `re0`, with pf
-`rdr-to` rules forwarding the exposed services to `192.168.100.76` so LAN/VPN clients
-that still know the NAS as `.76` keep working with no client changes. See
-[NAS-behind-firewall specifics](#nas-behind-firewall-specifics) below.
-
-### SSH Access
-
-```bash
-ssh lando@192.168.1.189   # direct
-ssh fw                     # via ~/.ssh/config alias on gaming-pc
-```
-
-### Key PF Commands
-
-```bash
-doas pfctl -f /etc/pf.conf   # reload rules after editing
-doas pfctl -sr                # show active rules
-doas pfctl -ss                # show state table
-doas pfctl -si                # statistics
-```
-
-### Adding a Port Forward
-
-1. **Router**: add forward in mySpectrum app → 192.168.1.189
-2. **optiplex-fw** `/etc/pf.conf`: add rdr-to rule, then `doas pfctl -f /etc/pf.conf`
-3. Commit change to openbsd-dotfiles repo
-
-### WireGuard VPN
-
-- **Listen port**: 51822 (UDP) — forwarded directly by the Spectrum router to 192.168.1.189
-- **VPN subnet**: 10.10.0.0/24 — server is 10.10.0.1
-- **Server public key**: `Z1ZtZiXE59cBZvmjkvcWr5nlEtmHVJJ16P0pb4QtFiY=`
-- **Server private key**: `/etc/wireguard/server_private.key` — NOT tracked in any repo
-- **Interface config**: `/etc/hostname.wg0`
-
-#### Peers
-
-| Name | VPN IP | Access | Notes |
-|------|--------|--------|-------|
-| Lando (gaming-pc) | 10.10.0.2 | Full | |
-| Lando (Android) | 10.10.0.3 | Full | full tunnel (0.0.0.0/0) |
-| Chris | 10.10.0.4 | Restricted | NAS only (192.168.1.76) |
-| Blaney | 10.10.0.5 | Restricted | NAS only |
-| Emily | 10.10.0.6 | Restricted | NAS only |
-| Russell | 10.10.0.7 | Restricted | NAS only |
-| Cmoore | 10.10.0.8 | Restricted | NAS only |
-| Alex | 10.10.0.10 | Restricted | NAS only |
-| Lando (gaming-pc wg-nas) | 10.10.0.11 | NAS Samba only | Dedicated LAN tunnel for encrypted SMB; allowed-ips 192.168.100.76/32. See `nasViaLanWg` in `hosts/gaming-pc/default.nix`. |
-
-Restricted peers can reach (all via the legacy 192.168.1.76 alias, rdr'd to the NAS at 192.168.100.76): Jellyfin (8096), Jellyseerr (5055), article2pod/reader (8100) on the NAS, and game-control dashboard (8080) + Vaultwarden (8222) on mini-server. Transmission is no longer exposed to restricted peers. All other traffic blocked via `<restricted_peers>` PF table.
-
-### NAS-behind-firewall specifics
-
-optiplex-nas is on the server subnet at **192.168.100.76**. Its NixOS static IP is set
-in `hosts/optiplex-nas/default.nix` (`192.168.100.76` / gw `192.168.100.1`).
-
-**Legacy `192.168.1.76` alias + rdr** (in `/etc/pf.conf` on optiplex-fw): the firewall
-holds `192.168.1.76/32` as an alias on `re0` and redirects to the NAS:
-- **From the Main LAN (`re0`)**: TCP `80` (nginx reverse proxy — serves all the
-  `*.lan` domains by Host header), `8096` (Jellyfin), `5055` (Jellyseerr), `5000`
-  (nix binary cache), and `53` (DNS, tcp+udp) → `192.168.100.76`.
-- **From WireGuard (`wg0`)**: full peers get the same `53` (DNS) and `80` (reverse
-  proxy → `*.lan`) as the LAN, plus `445`/`139` (Samba), `9091` (Transmission), and the
-  service ports; `8100` (article2pod) is redirected for all peers. Restricted peers are
-  then filtered by the `<restricted_peers>` allow-list (they use `1.1.1.1` for DNS and
-  reach services by direct IP, so they don't need 53/80).
-- **SSH to the NAS is NOT forwarded on `.76`** — port 22 to `192.168.1.76` hits the
-  firewall itself. Reach the NAS via jump host: `ssh -J lando@192.168.1.189 lando@192.168.100.76`
-  (or over the wg-nas tunnel from gaming-pc).
-
-**VPN peer addressing (which NAS address a client should use)** — the legacy `.76`
-redirect only helps a peer if that peer's WireGuard **`AllowedIPs`** actually routes
-`192.168.1.76` into the tunnel:
-- **Restricted peers** (Chris, Blaney, …) are generated with `AllowedIPs = 192.168.1.76/32`
-  (see `add-vpn-client.sh`), so they route only `.76` and reach NAS services via the
-  legacy alias + rdr. Correct address for them: **`192.168.1.76`**.
-- **Full peers** whose tunnel routes the **server subnet** (`192.168.100.0/24`) but *not*
-  the old Main LAN (`192.168.1.0/24`) — e.g. Lando's phone — must use the NAS's real
-  address **`192.168.100.76`** (the `.76` alias won't route for them). To make the legacy
-  `.76` work for such a peer instead, add `192.168.1.0/24` to that peer's client-side
-  `AllowedIPs`. gaming-pc sidesteps this entirely via the dedicated `wg-nas` tunnel.
-
-**DNS**: the NAS runs Unbound (`homelab.dns.enable`) as the LAN resolver — a split-horizon
-setup that serves the `.lan` zone locally and forwards everything else to Cloudflare/Quad9
-over DoT. The `.76`→NAS port-53 rdr routes queries aimed at the legacy IP to it.
-
-**The Spectrum router does NOT hand out `192.168.1.76` as the DHCP DNS server** — it points
-DHCP clients at itself (`192.168.1.1`), which knows nothing about `.lan`. NixOS hosts resolve
-`.lan` only because their resolver is hardcoded to `192.168.1.76` in config (`localDns.server`
-/ `networking.nameservers`); `mini-server` (server subnet) points directly at `192.168.100.76`.
-Plain DHCP devices (phones, guests, IoT) therefore **cannot resolve `.lan` out of the box**.
-The fix used is **per-device static DNS = `192.168.1.76` with NO public secondary** (a public
-DNS2 like `8.8.8.8` poisons `.lan`, since clients race the two resolvers and accept the public
-NXDOMAIN). A LAN-wide fix (router DHCP → `.76`) was rejected: it makes the NAS a single point
-of failure for all internet DNS and routes every device's lookups through the NAS's Mullvad
-full-tunnel exit.
-
-**Mullvad return-route gotcha** (`hosts/optiplex-nas/default.nix`): the NAS runs Mullvad
-as a full-tunnel VPN, whose policy routing sends any subnet **not in the main routing
-table** into the tunnel. Replies to Main-LAN clients (`192.168.1.0/24`) and WireGuard
-peers (`10.10.0.0/24`) would vanish into Mullvad, so explicit main-table routes send
-that return traffic back through the firewall:
-```nix
-networking.interfaces.enp0s31f6.ipv4.routes = [
-  { address = "192.168.1.0"; prefixLength = 24; via = "192.168.100.1"; }
-  { address = "10.10.0.0";   prefixLength = 24; via = "192.168.100.1"; }
-];
-```
-Without these, DNS/Jellyfin/Samba/nix-cache all break for anything not on the server
-subnet — the SYN arrives at the NAS but the reply disappears into the VPN.
-
-**gaming-pc Samba over wg-nas**: gaming-pc mounts the NAS Samba share (`/mnt/nas`) over a
-dedicated LAN WireGuard tunnel (`wg-nas`, peer `10.10.0.11`, allowed-ips
-`192.168.100.76/32`) so SMB is never in cleartext on the LAN. Gated by `nasViaLanWg` in
-`hosts/gaming-pc/default.nix`; the private key is in `secrets/gaming-pc.yaml` as
-`wg-nas-private-key`. The `rebuild` cache-push (`modules/nixos/common/commands.nix`)
-pushes to the NAS at `192.168.100.76` (reachable via this tunnel / directly from the
-server subnet).
-
-#### Adding a New Peer
-
-Run `~/openbsd-dotfiles/scripts/add-vpn-client.sh <name> [--jellyfin]` from optiplex-fw. The script:
-- Auto-detects next available VPN IP
-- Generates keypair, adds to live wg0 and hostname.wg0, updates pf.conf restricted_peers table
-- Optionally creates a Jellyfin user
-- Generates a QR code (if `qrencode` installed) and saves client config to `~/openbsd-dotfiles/wireguard-clients/`
-
-After running: commit the updated configs in openbsd-dotfiles, then add the new row to the Peers table above.
-
-#### WireGuard Management Commands
-
-```bash
-ssh fw
-doas wg show              # status and peer handshake times
-doas wg show wg0 dump     # detailed peer info
-```
-
-#### Hairpin NAT Limitation
-
-The Spectrum router does not support hairpin NAT. Gaming-pc works around this with a static route: `68.184.198.204/32 via 192.168.1.189` (configured in `hosts/gaming-pc/default.nix` via `networking.networkmanager.dispatcherScripts`). OpenBSD has matching rdr-to rules for this traffic.
-
-### Wake-on-LAN
-
-```bash
-ssh fw
-wake-gaming    # wakes gaming-pc (10:ff:e0:36:db:4b on 192.168.1.255)
-wake-optiplex  # wakes optiplex (e4:b9:7a:ed:67:8c on 192.168.100.255)
-```
-
-Aliases are in `~/.kshrc` on optiplex-fw. Requires `customConfig.networking.wakeOnLan` enabled in each NixOS host config.
+Everything else — the full topology, pf commands, port forwards, the peer table and
+`add-vpn-client.sh`, `.lan` split-horizon DNS, VPN peer addressing rules, hairpin NAT,
+and wake-on-LAN — is in **[docs/networking.md](docs/networking.md)**.
 
 ## PRIMARY RULES: Making and Committing Changes
 
@@ -815,95 +335,58 @@ Aliases are in `~/.kshrc` on optiplex-fw. Requires `customConfig.networking.wake
 6. **Commit** — only after steps 4 and 5 succeed
 7. **PR** — only after step 6; do not open a PR before the change is verified working on the current host
 
-**Exception**: Changes that can only be tested on a different host (different machine, hardware, or display required) skip steps 4–5 locally. Instead: eval-check → commit → PR (note in-person testing needed) → merge after confirmed on target.
+**Exception**: changes that can only be tested on a different host (different machine,
+hardware, or display required) skip steps 4–5 locally. Instead: eval-check → commit → PR
+(note in-person testing needed) → merge after confirmed on target.
 
-Never commit to main before rebuilding and verifying. This applies even to "obviously correct" changes.
-
-The `rebuild` command automatically detects the current host. **Never manually specify the hostname.**
-
-For testing changes without permanently switching:
+**Never commit to main before rebuilding and verifying**, even for "obviously correct"
+changes. `rebuild` detects the current host — **never manually specify the hostname**. To
+activate without making it the boot default:
 
 ```bash
 sudo nixos-rebuild test --flake /home/lando/nixos-config#$(hostname) --impure
 ```
 
-## File Permissions
+### Branching strategy
 
-After making edits, files may end up with incorrect ownership. Fix with:
+- **Direct to main**: documentation (`docs`), minor tweaks (`tweak`), and simple additions
+  like a package — after verification.
+- **Feature/PR branches**: anything being developed on this machine (rebuild and verify on
+  the branch, then PR), and anything only testable elsewhere (note in the PR that in-person
+  testing on the target is needed).
+- **Never commit broken changes to main.** Merge only once rebuilt, tested, and verified.
+
+**Do not open a PR until the change has been tested on the machine currently being
+developed on.** If Claude Code is running on `asus-laptop` and the change targets
+`asus-laptop`, `rebuild` and verify *before* creating the PR — not after. PRs represent
+verified, working changes, not speculative ones.
+
+### File permissions
+
+After edits, files may end up owned by root. Fix with the explicit path:
 
 ```bash
 sudo chown -R lando:users /home/lando/nixos-config
 ```
 
-Note: Do NOT use `sudo chown -R $USER:users ~/nixos-config` — when running as sudo, `$USER` and `~` both expand to `root`.
+Do NOT use `sudo chown -R $USER:users ~/nixos-config` — under sudo, `$USER` and `~` both
+expand to `root`, making it a no-op or targeting the wrong path.
 
 ## Host-Specific Guidelines
 
 ### blaney-pc
 
-When running on the `blaney-pc` host, apply these additional guidelines:
+When the session is running on `blaney-pc` (user `insideabush`), **read
+[docs/hosts/blaney-pc.md](docs/hosts/blaney-pc.md) and follow it** — it overrides the
+general workflow above. The rules in brief, none of which are optional:
 
-**User Context**: insideabush has no Linux or Nix technical knowledge. He is not able to make technical or architectural decisions.
-- If he asks to learn something, explain it simply and concisely — go deeper only if he probes
-- Otherwise: fix the issue or implement the feature — keep communication brief, clear, and directive
-- He CAN and SHOULD make UX/visual decisions: colors, layout, what something looks like, what a feature does from a user perspective
-
-**Decision Authority**:
-- **Claude decides autonomously**: module structure, NixOS options, which files to edit, how to architect changes, naming conventions — anything technical. Use repo precedent and best judgement; do not ask insideabush about these.
-- **insideabush decides**: visual appearance, user-facing behavior, feature scope and direction
-- **Bug fixes** → act immediately with minimal explanation; only ask insideabush if the problem is genuinely ambiguous
-- **Feature requests** → ask what he wants it to look/feel like to establish UX direction, then execute independently
-
-**Autonomy — Do Everything Possible**:
-- Run `rebuild`, copy files, run commands — anything within Claude's capability that doesn't require physical user action
-- **Never ask insideabush to run a command Claude can run itself**
-- Do not ask for confirmation on technical choices; make them and briefly note what was done
-- Always `chown` and `rebuild` as part of your workflow; don't hand these off to insideabush
-
-**Communication**:
-- For features: ask about UX direction, then execute silently
-- For bugs: diagnose and fix; give insideabush clear "does this look right?" checkpoints
-- Give next steps as plain, one-sentence instructions (e.g. "Tell me if the wallpaper changed after it rebuilds")
-- Never use technical jargon without immediately explaining it in plain terms
-
-**Branch Naming Convention (STRICT)**:
-- All branches for insideabush's work MUST use the prefix `blaney/`
-  - Examples: `blaney/feat-party-mode`, `blaney/fix-wifi-issue`
-- This prefix distinguishes insideabush's branches from lando's branches — do not deviate from it
-- When continuing prior work, reuse the existing `blaney/` branch if still relevant; check `git branch -a` first
-
-**Git Workflow (STRICT)**:
-- **NEVER push or commit directly to `main`** — always use a `blaney/` branch
-- **NEVER merge into any branch that does not start with `blaney/`** — this includes `main` and all branches created by lando or his Claude sessions
-- insideabush's Claude sessions CAN: create new `blaney/` branches, push to those branches, merge other existing branches INTO a `blaney/` branch
-- insideabush's Claude sessions CANNOT: push to `main`, push to any non-`blaney/` branch, merge a `blaney/` branch into a non-`blaney/` branch
-- When insideabush confirms a feature is working and acceptable: open a PR from the `blaney/` branch to `main` via `gh pr create`
-- **Never merge the PR** — lando (`landonreekstin`) merges all PRs from blaney-pc
-
-**Safety**:
-- Always use `nixos-rebuild test` before `rebuild` for significant changes, so insideabush can verify before permanently switching
-- Keep changes focused and minimal
-
-#### Runbooks as blaney-pc tasks
-
-`docs/runbooks/blaney/*.md` is the task queue lando leaves for blaney-pc. Each markdown
-file is one task; its first `# ` heading is the menu entry insideabush sees.
-
-The loop:
-1. lando adds `docs/runbooks/blaney/<name>.md` on `main` and pushes
-2. insideabush runs `blaney-todo`, which fetches `origin/main`, lists the runbooks by
-   number, and launches `claude` on the chosen one with the blaney-pc preface prompt
-   (defined in `modules/nixos/common/commands.nix` — keep it in sync with the rules above)
-3. Claude does the work on a `blaney/` branch and opens a PR
-4. **lando merges the PR and deletes the runbook file** — deleting it is the only thing
-   that removes the task from the menu
-
-Notes:
-- Only `docs/runbooks/blaney/` feeds the menu; other runbooks under `docs/runbooks/` are
-  ordinary docs and never appear. `README.md` in that folder is the authoring guide and is
-  filtered out.
-- This is separate from `TASKS.md`, which remains lando's own list.
-- When working *on* a blaney runbook: never edit, move, or delete the runbook file itself.
+- insideabush is non-technical: Claude makes every technical/architectural decision;
+  he decides visual appearance and user-facing behaviour.
+- Do everything yourself (`chown`, `rebuild`, commands) — never hand a command to him.
+- **All branches use the `blaney/` prefix.** Never commit or push to `main` or to any
+  non-`blaney/` branch, and never merge a `blaney/` branch anywhere — open a PR and let
+  lando merge it.
+- `docs/runbooks/blaney/*.md` is his task queue, surfaced by the `blaney-todo` command.
 
 ## Task Workflow (TASKS.md)
 
@@ -934,32 +417,14 @@ Tasks that require physical machine testing (reboot, display, hardware) should b
 
 ## Companion Repositories
 
-### hyprland-keys
-
-Source: `github:landonreekstin/hyprland-keys`
-Package: `modules/home-manager/scripts/hyprland-keys.nix`
-
-The package is pinned via `fetchFromGitHub`. After pushing changes to the
-hyprland-keys repo, update the pin here:
-
-```bash
-# Run from inside nixos-config
-SHA=$(cd /home/lando/hyprland-keys && git rev-parse HEAD)
-HASH=$(nix-prefetch-url --unpack \
-  https://github.com/landonreekstin/hyprland-keys/archive/${SHA}.tar.gz 2>/dev/null \
-  | xargs -I{} nix hash convert --hash-algo sha256 --to sri {})
-echo "rev = \"$SHA\";"
-echo "hash = \"$HASH\";"
-```
-
-Then update `rev` and `hash` in `modules/home-manager/scripts/hyprland-keys.nix`,
-eval-check all hosts, rebuild on gaming-pc to verify, then commit and push.
+Some packages here are pinned to other repos of ours (e.g. `hyprland-keys`, pinned via
+`fetchFromGitHub` in `modules/home-manager/scripts/hyprland-keys.nix`). The rev/hash
+bump procedure is in **[docs/companion-repos.md](docs/companion-repos.md)**.
 
 ## Notes
 
 - **CRITICAL**: Always use the `rebuild` command, never manually specify `--flake .#<hostname>`. Each host has different users and hardware - applying the wrong host config can remove user accounts, break authentication, and cause boot failures.
 - Always use the `--impure` flag with nixos-rebuild for this configuration
-- The `customConfig` system requires understanding the options declared per-module (see [Module Option Layout](#module-option-layout))
+- The `customConfig` system requires understanding the options declared per-module (see [Module Option Layout](#module-option-layout) and [docs/architecture.md](docs/architecture.md))
 - Host configurations should primarily set `customConfig` values rather than raw NixOS options
 - Unstable packages can be selectively enabled via `customConfig.packages.unstable-override`
-- Functional vs theme paradigm for wayland components

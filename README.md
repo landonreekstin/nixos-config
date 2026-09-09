@@ -87,8 +87,8 @@ A systemd service on `optiplex-nas` runs every Monday at 03:00 and implements th
 1. Creates branch `update/YYYY-WNN`, runs `nix flake update`
 2. Builds all 9 hosts with per-host timeout tracking; results are posted as a Markdown table in the PR body
 3. Opens a GitHub PR via `gh pr create` with label `flake-update`
-4. `gaming-pc` (`betaTesterHost = true`) auto-tracks the `update/*` branch on next `sync` — receives the update one week early
-5. After 7 days, the NAS auto-merges if the `update-blocked` label is absent; all other hosts pick it up on their next `sync`
+4. `gaming-pc` (`betaTesterHost = true`) auto-tracks the `update/*` branch on next `update` — receives the update one week early
+5. After 7 days, the NAS auto-merges if the `update-blocked` label is absent; all other hosts pick it up on their next `update`
 
 Blocking a bad update is a single label: `gh pr edit <PR> --add-label update-blocked`. The NAS respects the label and skips the merge.
 

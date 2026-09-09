@@ -59,6 +59,11 @@
         mgba
         pupdate
 
+        # GBxCart RW cartridge reader (dumping GB/GBA carts and their saves).
+        # Access is via /dev/ttyUSB0, which needs no udev rule here: the CH340 lands in
+        # group dialout, which lando is already in.
+        flashgbx
+
         # rom archive handling for the analogue pocket workflow
         zip
         unzip

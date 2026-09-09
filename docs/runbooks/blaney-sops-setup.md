@@ -64,7 +64,7 @@ Inputs: blaney-pc's `age1…` public key (from Part A).
 ---
 
 ## Part C — after the sops PR merges (brings the VPN up)
-1. On blaney-pc: `sync` over the internet to pull the merged secret.
+1. On blaney-pc: `update` over the internet to pull the merged secret.
 2. Roll out PR #80: rebase it on main, set `blaneyWgVpn = true`, `rebuild` blaney-pc.
 3. In the KDE network applet, toggle **homelab-vpn** on; confirm the NAS (`192.168.1.76`) is
    reachable and `.lan` resolves. Firewall already has the `10.10.0.5` peer — no change.

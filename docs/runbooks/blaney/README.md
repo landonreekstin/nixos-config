@@ -3,7 +3,7 @@
 Markdown files in this folder are the task queue for `blaney-todo` on **blaney-pc**.
 
 Blaney runs `blaney-todo`, gets a numbered list of everything in here, picks one, and
-Claude launches on blaney-pc with that runbook plus the blaney-pc rules from `CLAUDE.md`
+Claude launches on blaney-pc with that runbook plus the blaney-pc rules from `docs/hosts/blaney-pc.md`
 as its opening prompt. This file (`README.md`) is filtered out of that menu.
 
 This is separate from `TASKS.md` in the repo root — that stays lando's own list.
