@@ -157,7 +157,7 @@ split across several modules go in that domain's `options.nix` instead.
 | `homelab.*` | the matching `homelab/<service>.nix`; only `reverseProxy` in `homelab/options.nix` |
 | `desktop.*` | `desktop/{kde,hyprland,xrdp,display-manager,custom-sddm-theme}.nix`; the rest in `desktop/options.nix` |
 | `hardware.*` | `hardware/{nvidia,peripherals}.nix`; the rest in `hardware/options.nix` |
-| `services.*` | `services/{ssh,vscode-server,wireguard-client,wireguard-server}.nix`; `autoUpdate` in `common/auto-update.nix` |
+| `services.*` | `services/{ssh,vscode-server,wireguard-client,wireguard-server,airplay-receiver}.nix`; `autoUpdate` in `common/auto-update.nix` |
 | `profiles.*` | `profiles/gaming.nix` and each `development/*.nix` — no `options.nix` |
 | `programs.*` | `programs/{partydeck,claude-code}.nix`; `firefox`/`flatpak` in `programs/options.nix` |
 | `apps.*` | `apps/programs.nix` (registry + `mkAppRole`), `apps/xdg-defaults.nix` (MIME) |
