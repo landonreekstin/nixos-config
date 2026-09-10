@@ -107,6 +107,8 @@ nix develop .#kernel-dev      # Linux kernel development
 nix develop .#fpga-dev        # FPGA development (ice40)
 nix develop .#embedded-linux  # Embedded Linux cross-compilation
 nix develop .#gbdk-dev        # Game Boy development
+nix develop .#cpp-practice    # C++ practice
+nix develop .#emulation       # ~/emulation FPGA-console workspace (SD cards, saves, openFPGA)
 ```
 
 ## Architecture
