@@ -8,5 +8,6 @@
     ./embedded-linux.nix
     ./gbdk.nix
     ./cpp-practice.nix
+    ./emulation.nix
   ];
 }

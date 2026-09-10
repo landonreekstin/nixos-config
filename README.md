@@ -4,7 +4,7 @@ A modular, multi-host NixOS flake managing 8 machines — development workstatio
 
 ## Development Shells
 
-Four hermetic `nix develop` environments, each self-contained with toolchains, build scripts, and helper utilities. The shells are defined as NixOS module options and exposed as flake outputs — the shell derivations live inside `customConfig.profiles.development.*` and are referenced directly in `flake.nix`:
+Six hermetic `nix develop` environments, each self-contained with toolchains, build scripts, and helper utilities. The shells are defined as NixOS module options and exposed as flake outputs — the shell derivations live inside `customConfig.profiles.development.*` and are referenced directly in `flake.nix`:
 
 ```nix
 devShells.x86_64-linux = {
@@ -12,6 +12,8 @@ devShells.x86_64-linux = {
   fpga-dev      = referenceHostConfig.customConfig.profiles.development.fpga-ice40.devShell;
   embedded-linux = referenceHostConfig.customConfig.profiles.development.embedded-linux.devShell;
   gbdk-dev      = ...;
+  cpp-practice  = referenceHostConfig.customConfig.profiles.development.cpp-practice.devShell;
+  emulation     = referenceHostConfig.customConfig.profiles.development.emulation.devShell;
 };
 ```
 
@@ -62,6 +64,26 @@ Custom scripts composing the dev loop:
 ### `#gbdk-dev`
 
 Game Boy development: GBDK 2020 (v4.2.0), mGBA emulator, GDB for ROM debugging.
+
+### `#cpp-practice`
+
+C++ practice: gcc, clang, cmake, gdb, clangd. Templates `.vscode/c_cpp_properties.json` from the compiler's real include paths.
+
+### `#emulation`
+
+The `~/emulation` FPGA-console workspace (Analogue Pocket, SuperStation1, Analogue 3D): SD-card management, save-file analysis and openFPGA tooling. `pupdate` and `flashgbx` live here rather than in `hosts/gaming-pc/apps.nix`, alongside `exfatprogs`/`dosfstools`/`mtools` for card work, `flips`/`xdelta` for ROM patching, and `ffmpeg`/`flac`/`sox` for the Pocket music-player library.
+
+Ships `card-*` helper commands that encode the workspace's standing rules — cards are addressed by name or filesystem UUID and never by `/dev/sdX`, and writes use direct I/O verified on a cold read after unmount/remount, because a hash taken through the page cache cannot fail:
+
+| Command | Purpose |
+|---|---|
+| `card-status` | List every known card: present, mounted, where |
+| `card-mount` / `card-unmount` | Mount by UUID; unmount and confirm with `findmnt` before pulling |
+| `card-backup` | Back up a card's saves on insertion, plus the console's own archive tool |
+| `card-write` / `card-verify` | `dd oflag=direct conv=fsync`, then remount and hash cold |
+| `card-sweep` | The same cold verification across a whole directory |
+
+The card map is `cards.tsv` in the workspace root, not in this repo.
 
 ---
 
@@ -119,7 +141,7 @@ Key configuration sections in `customConfig`:
 | `system` | Hostname, timezone, state version |
 | `desktop` | Desktop environments, display manager, idle timeouts |
 | `hardware` | NVIDIA, monitors, touchpad, laptop flags |
-| `profiles.development` | Dev shell flags (kernel, FPGA, embedded Linux, GBDK) |
+| `profiles.development` | Dev shell flags (kernel, FPGA, embedded Linux, GBDK, C++, emulation) |
 | `services` | SSH, WireGuard (server + client roles) |
 | `homelab` | Jellyfin, arr stack, flake-updater, media-linker |
 
