@@ -22,6 +22,21 @@
         package = null;
         command = "flatpak run com.discordapp.Discord";
       };
+
+      # Alternative browser (Super+Alt+B) is Chromium here rather than the
+      # default Brave. ungoogled-chromium's binary is named `chromium`, so `exe`
+      # must be set alongside the package. It used to be installed via
+      # packages.homeManager; the role owns the install now, so it is not listed
+      # in both places.
+      programs.browserAlt = {
+        package = pkgs.ungoogled-chromium;
+        exe = "chromium";
+      };
+
+      # Alternative gaming platform (Super+Alt+G) is Heroic rather than Lutris.
+      # Both come from customConfig.profiles.gaming, so this role carries no
+      # package and resolves `heroic` from PATH.
+      programs.gamingAlt.command = "heroic";
     };
 
     programs = {
@@ -173,13 +188,14 @@
         "signal-desktop"
         "pupdate"
       ];
-      # vscode, librewolf, brave, discord and signal-desktop now come from
-      # customConfig.apps.programs (ide, browser, browserAlt, chat, chatAlt).
+      # vscode, librewolf, discord and signal-desktop now come from
+      # customConfig.apps.programs (ide, browser, chat, chatAlt). browserAlt is
+      # Chromium here, so brave is listed below to keep it installed.
       homeManager = with pkgs; [
         jamesdsp
         remmina
         md-tui
-        ungoogled-chromium
+        brave  # no longer installed by the browserAlt role (now Chromium)
         qbittorrent
         obs-studio
         kdePackages.konversation
