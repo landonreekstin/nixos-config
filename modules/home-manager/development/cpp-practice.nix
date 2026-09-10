@@ -11,26 +11,47 @@ let
   '';
 
   makefileContent = ''
+    # Single-file exercise builds.
+    #   make   c FILE=bit_drills     -> builds exercises/bit_drills.c   -> ./bit_drills
+    #   make run-c FILE=bit_drills   -> builds and runs it
+    #   make     FILE=two_sum        -> builds exercises/two_sum.cpp    -> ./two_sum
+    #   make run FILE=two_sum        -> builds and runs it
+
+    CC       = gcc
+    CFLAGS   = -std=c11 -Wall -Wextra -Wconversion -g
+
     CXX      = g++
     CXXFLAGS = -std=c++17 -Wall -Wextra -g
 
-    # Override with: make FILE=two_sum
     FILE ?= solution
+    SRCDIR ?= exercises
 
-    .PHONY: all run clean
+    .PHONY: all c run run-c clean
 
     all: $(FILE)
 
-    $(FILE): $(FILE).cpp
+    # ---- C++ ----
+    $(FILE): $(SRCDIR)/$(FILE).cpp
     	$(CXX) $(CXXFLAGS) -o $@ $<
 
     run: $(FILE)
     	./$(FILE)
 
+    # ---- C ----
+    # -Wconversion is deliberate: it flags the implicit narrowing that Phase E1 exists to eliminate.
+    # Do not remove it to silence a warning -- the warning is the lesson.
+    c:
+    	$(CC) $(CFLAGS) -o $(FILE) $(SRCDIR)/$(FILE).c
+
+    run-c: c
+    	./$(FILE)
+
     clean:
-    	rm -f $(FILE)
+    	rm -f $(FILE) *.o
   '';
 
+  # Binaries land at the repo root (the Makefile builds -o $(FILE) from $(SRCDIR)/$(FILE).<ext>),
+  # so FILE is the bare basename and the debugger looks for the binary at the workspace root.
   tasksJson = ''
     {
       "version": "2.0.0",
@@ -38,8 +59,7 @@ let
         {
           "label": "Build Active File",
           "type": "shell",
-          "command": "make",
-          "args": ["FILE=''${relativeFileDirname}/''${fileBasenameNoExtension}"],
+          "command": "if [ \"''${fileExtname}\" = \".c\" ]; then make c FILE=''${fileBasenameNoExtension}; else make FILE=''${fileBasenameNoExtension}; fi",
           "group": { "kind": "build", "isDefault": true },
           "presentation": { "reveal": "always", "panel": "shared", "clear": true },
           "problemMatcher": "$gcc"
@@ -56,7 +76,7 @@ let
           "name": "Build and Debug Active File",
           "type": "cppdbg",
           "request": "launch",
-          "program": "''${workspaceFolder}/''${relativeFileDirname}/''${fileBasenameNoExtension}",
+          "program": "''${workspaceFolder}/''${fileBasenameNoExtension}",
           "args": [],
           "stopAtEntry": false,
           "cwd": "''${workspaceFolder}",
@@ -76,7 +96,7 @@ let
     content=${lib.escapeShellArg content}
     if [ ! -f "${path}" ] || [ "$(cat "${path}")" != "$content" ]; then
       [ -L "${path}" ] && rm "${path}"
-      echo "$content" > "${path}"
+      printf '%s' "$content" > "${path}"
     fi
   '';
 in
