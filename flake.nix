@@ -300,6 +300,8 @@
       gbdk-dev = referenceHostConfig.customConfig.profiles.development.gbdk.devShell;
 
       cpp-practice = referenceHostConfig.customConfig.profiles.development.cpp-practice.devShell;
+
+      emulation = referenceHostConfig.customConfig.profiles.development.emulation.devShell;
     };
 
   };

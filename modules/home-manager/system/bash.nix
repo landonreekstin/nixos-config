@@ -86,6 +86,9 @@ in
             gbdk-dev)
               PS1='\[\033[1;35m\][gbdk-dev] \[\033[0;34m\]\w\[\033[0m\] ❯ '
               ;;
+            emulation)
+              PS1='\[\033[1;34m\][emulation] \[\033[0;34m\]\w\[\033[0m\] ❯ '
+              ;;
             *)
               PS1="${defaultPS1}"
               ;;

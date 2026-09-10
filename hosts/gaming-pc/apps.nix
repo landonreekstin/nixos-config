@@ -72,14 +72,13 @@
         mullvad-vpn
         tmux
         mgba
-        pupdate
 
-        # GBxCart RW cartridge reader (dumping GB/GBA carts and their saves).
-        # Access is via /dev/ttyUSB0, which needs no udev rule here: the CH340 lands in
-        # group dialout, which lando is already in.
-        flashgbx
+        # pupdate and flashgbx now live in the `emulation` devShell, not here:
+        #   nix develop ~/nixos-config#emulation   (or just cd ~/emulation, via direnv)
+        # See modules/nixos/development/emulation.nix. flashgbx still needs no udev
+        # rule — the CH340 lands in group dialout, which lando is already in.
 
-        # rom archive handling for the analogue pocket workflow
+        # rom archive handling; general-purpose enough to stay global
         zip
         unzip
         p7zip
@@ -186,7 +185,6 @@
         "gurk-rs"
         "vlc"
         "signal-desktop"
-        "pupdate"
       ];
       # vscode, librewolf, discord and signal-desktop now come from
       # customConfig.apps.programs (ide, browser, chat, chatAlt). browserAlt is
