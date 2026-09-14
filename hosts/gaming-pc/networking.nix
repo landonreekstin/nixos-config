@@ -56,10 +56,39 @@ in
   services.samba.nmbd.enable = true;
   networking.firewall.allowedTCPPorts = [ 139 445 4445 ];
   networking.firewall.allowedUDPPorts = [ 137 138 ];
-  networking.extraHosts = ''
-    192.168.1.76  optiplex-nas
-    192.168.1.76  reader.lan jellyfin.lan jellyseerr.lan transmission.lan radarr.lan sonarr.lan bazarr.lan prowlarr.lan nix-cache.lan
-  '';
+  # .lan names come from customConfig.networking.lanHosts (modules/nixos/common/lan-hosts.nix),
+  # which generates networking.extraHosts from the same record map Unbound is built from.
+
+  # === Wired connection profile (declarative) ===
+  # This replaces hand-run `nmcli` settings that lived only in
+  # /etc/NetworkManager/system-connections. The uuid is deliberately the one that
+  # already existed on disk so NetworkManager treats this as the same connection
+  # rather than creating a duplicate profile.
+  #
+  # The DNS split is the point: `dns-search = "~lan"` is a *routing-only* domain, so
+  # systemd-resolved sends ONLY *.lan to the NAS resolver on this link. Every other
+  # name goes to resolved's global DNS/FallbackDNS, which means a dead NAS cannot
+  # take out general name resolution the way it did before.
+  networking.networkmanager.ensureProfiles.profiles."enp8s0-wired" = {
+    connection = {
+      id = "enp8s0-wired";
+      uuid = "22d7f064-9060-45af-8dcb-4b4325148228";
+      type = "ethernet";
+      interface-name = "enp8s0";
+      autoconnect = true;
+    };
+    ipv4 = {
+      method = "auto";
+      ignore-auto-dns = true;
+      dns = "${config.customConfig.networking.localDns.server};";
+      dns-search = "~lan";
+    };
+    ipv6 = {
+      method = "auto";
+      addr-gen-mode = "stable-privacy";
+      ignore-auto-dns = true;
+    };
+  };
 
   # Enable TCP MTU probing / blackhole detection.
   # WireGuard tunnel MTU (~1420) is smaller than standard Ethernet (1500). If a packet
