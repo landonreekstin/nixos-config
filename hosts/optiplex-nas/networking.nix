@@ -25,6 +25,7 @@
       firewall = { enable = false; };
       # The NAS is the .lan server; its own /etc/hosts must use its real address, not
       # the firewall alias it sits behind.
+      lanHosts.enable = true;
       lanHosts.nasAddress = "192.168.100.76";
     };
 

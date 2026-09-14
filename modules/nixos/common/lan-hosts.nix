@@ -12,7 +12,7 @@ in
   options.customConfig.networking.lanHosts = with lib; {
     enable = mkOption {
       type = types.bool;
-      default = true;
+      default = false;
       description = ''
         Write the .lan zone into networking.extraHosts (i.e. /etc/hosts) on this host.
 
@@ -20,6 +20,11 @@ in
         NAS is down its own DNS is down with it, and without these entries every .lan
         name stops resolving on every client. /etc/hosts is consulted before DNS, so
         .lan keeps working regardless of the NAS's state.
+
+        Opt-in, because these are private addresses that are only correct on the home
+        LAN (or behind it). A remote host — blaney-pc reaches the homelab only through
+        the VPN — would get 192.168.1.76 pointing at whatever happens to sit at that
+        address on ITS network, which is worse than having no .lan entry at all.
       '';
     };
     nasAddress = mkOption {

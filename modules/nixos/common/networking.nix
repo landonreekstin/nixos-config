@@ -27,11 +27,17 @@ let
   # public fallbacks only — a dead LAN resolver then cannot affect general lookups
   # at all. Without resolved there is only one scope, so the LAN resolver leads and
   # the fallbacks sit behind it.
-  globalNameservers = lib.unique (
-    if cfg.useResolved && cfg.localDns.server != null
-    then cfg.fallbackDns
-    else primaryNameservers ++ cfg.fallbackDns
-  );
+  # A host that configures no resolver of its own keeps DHCP's, untouched — there is
+  # nothing to fall back *from*, and appending public servers to a host that relies on
+  # its router for local names is the "public secondary poisons the local zone" trap.
+  # Fallbacks are only added where this repo actually pins a resolver.
+  globalNameservers =
+    if primaryNameservers == [] then []
+    else lib.unique (
+      if cfg.useResolved && cfg.localDns.server != null
+      then cfg.fallbackDns
+      else primaryNameservers ++ cfg.fallbackDns
+    );
 in
 {
   options.customConfig.networking = with lib; {
@@ -119,19 +125,24 @@ in
     };
     useResolved = mkOption {
       type = types.bool;
-      default = cfg.networkmanager.enable;
-      defaultText = lib.literalExpression "config.customConfig.networking.networkmanager.enable";
+      default = false;
       description = ''
-        Use systemd-resolved rather than the plain resolvconf path.
+        Use systemd-resolved rather than the plain resolvconf path. Requires
+        NetworkManager — the per-domain scoping comes from the connection profile.
 
         Worth it on NetworkManager hosts: resolved gives real per-domain routing (the LAN
         resolver can own `lan` and nothing else), a FallbackDNS tier, and per-server
         failure tracking, so a dead resolver is noticed once instead of costing a timeout
         on every single lookup the way glibc's stub resolver does.
 
-        Defaults to networkmanager.enable, which keeps it OFF for the static-IP hosts.
+        Opt-in rather than defaulting to networkmanager.enable, so that switching a host's
+        resolver stack is a deliberate per-host decision made on a host that can actually
+        be tested. blaney-pc in particular is remote, has ssh.enable = false, and rebuilds
+        itself unattended — there is no way to recover it remotely from a DNS regression.
+
         It MUST stay off on optiplex-nas: Unbound binds 0.0.0.0:53, which would swallow
-        resolved's 127.0.0.53 stub listener.
+        resolved's 127.0.0.53 stub listener. It is also pointless on the other static-IP
+        hosts, which have no NetworkManager link to attach scoped DNS to.
       '';
     };
   };
@@ -202,7 +213,12 @@ in
 
     # glibc's stub resolver has no failure memory: with a dead first nameserver it pays
     # the full timeout on every lookup before trying the next. Default is timeout:5
-    # attempts:2 — up to 10s per name. Only relevant off the resolved path.
-    networking.resolvconf.extraOptions = lib.mkIf (!cfg.useResolved) [ "timeout:1" "attempts:1" ];
+    # attempts:2 — up to 10s per name.
+    #
+    # Only applied where this repo pins a multi-entry resolver list, i.e. where there is
+    # actually a dead first server to skip past. On a host left on DHCP's single
+    # nameserver it would buy nothing and only make lookups fragile on a slow link.
+    networking.resolvconf.extraOptions =
+      lib.mkIf (!cfg.useResolved && primaryNameservers != []) [ "timeout:1" "attempts:1" ];
   };
 }

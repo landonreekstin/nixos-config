@@ -17,6 +17,7 @@
       # reach it directly rather than via the firewall's legacy 192.168.1.76 alias.
       localDns.server = "192.168.100.76";
       # Same reason: the legacy 192.168.1.76 alias is not reachable from behind the fw.
+      lanHosts.enable = true;
       lanHosts.nasAddress = "192.168.100.76";
     };
 

@@ -17,6 +17,10 @@ in
         resolver = "cloudflare";
       };
       localDns.server = "192.168.1.76";
+      # Verified live on this host 2026-09-14: .lan from /etc/hosts, ~lan-scoped resolver
+      # on the enp8s0 link, public lookups at 29ms with the NAS down.
+      lanHosts.enable = true;
+      useResolved = true;
     };
 
     services = {
