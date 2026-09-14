@@ -9,6 +9,35 @@ let
     quad9      = [ "quad9-doh-ip4-filter-pri" ];
     mullvad    = [ "mullvad-doh" ];
   };
+
+  # The resolver this host would use if nothing else were available. Exactly one
+  # of these applies; the ladder replaces an earlier mkMerge/mkOverride stack whose
+  # highest-priority branch emitted a SINGLE-entry list. When optiplex-nas went down
+  # that left /etc/resolv.conf holding only `nameserver 192.168.1.76`, so every
+  # lookup on the host failed — including cache.nixos.org, which made it impossible
+  # to rebuild out of the problem. Fallbacks are now appended unconditionally.
+  primaryNameservers =
+    if cfg.localDns.server != null  then [ cfg.localDns.server ]
+    else if cfg.encryptedDns.enable then [ "127.0.0.1" ]
+    else if cfg.staticIP.enable     then [ cfg.staticIP.gateway ]
+    else [];
+
+  # On systemd-resolved hosts the LAN resolver is attached to the NetworkManager
+  # link and scoped to the `lan` routing domain, so the *global* scope carries the
+  # public fallbacks only — a dead LAN resolver then cannot affect general lookups
+  # at all. Without resolved there is only one scope, so the LAN resolver leads and
+  # the fallbacks sit behind it.
+  # A host that configures no resolver of its own keeps DHCP's, untouched — there is
+  # nothing to fall back *from*, and appending public servers to a host that relies on
+  # its router for local names is the "public secondary poisons the local zone" trap.
+  # Fallbacks are only added where this repo actually pins a resolver.
+  globalNameservers =
+    if primaryNameservers == [] then []
+    else lib.unique (
+      if cfg.useResolved && cfg.localDns.server != null
+      then cfg.fallbackDns
+      else primaryNameservers ++ cfg.fallbackDns
+    );
 in
 {
   options.customConfig.networking = with lib; {
@@ -77,9 +106,44 @@ in
       server = mkOption {
         type = types.nullOr types.str;
         default = null;
-        description = "IP of a local DNS server (e.g. optiplex-nas at 192.168.1.76) to use as the system resolver instead of upstream or dnscrypt-proxy. When set, dnscrypt-proxy is skipped and this IP is written to resolv.conf.";
+        description = ''
+          IP of a local DNS server (e.g. optiplex-nas at 192.168.1.76) to use as this
+          host's resolver for LAN names. Never the *only* resolver: fallbackDns is always
+          configured alongside it, and on useResolved hosts this server is scoped to the
+          `lan` domain so an outage cannot affect any other lookup.
+        '';
         example = "192.168.1.76";
       };
+    };
+    fallbackDns = mkOption {
+      type = types.listOf types.str;
+      default = [ "1.1.1.1" "9.9.9.9" ];
+      description = ''
+        Public resolvers always configured alongside the LAN/encrypted resolver, so that
+        losing the LAN resolver degrades name resolution instead of destroying it.
+      '';
+    };
+    useResolved = mkOption {
+      type = types.bool;
+      default = false;
+      description = ''
+        Use systemd-resolved rather than the plain resolvconf path. Requires
+        NetworkManager — the per-domain scoping comes from the connection profile.
+
+        Worth it on NetworkManager hosts: resolved gives real per-domain routing (the LAN
+        resolver can own `lan` and nothing else), a FallbackDNS tier, and per-server
+        failure tracking, so a dead resolver is noticed once instead of costing a timeout
+        on every single lookup the way glibc's stub resolver does.
+
+        Opt-in rather than defaulting to networkmanager.enable, so that switching a host's
+        resolver stack is a deliberate per-host decision made on a host that can actually
+        be tested. blaney-pc in particular is remote, has ssh.enable = false, and rebuilds
+        itself unattended — there is no way to recover it remotely from a DNS regression.
+
+        It MUST stay off on optiplex-nas: Unbound binds 0.0.0.0:53, which would swallow
+        resolved's 127.0.0.53 stub listener. It is also pointless on the other static-IP
+        hosts, which have no NetworkManager link to attach scoped DNS to.
+      '';
     };
   };
 
@@ -105,24 +169,30 @@ in
     ];
 
     networking.defaultGateway = if cfg.staticIP.enable then cfg.staticIP.gateway else null;
-    networking.nameservers = lib.mkMerge [
-      (lib.mkIf cfg.staticIP.enable [
-        cfg.staticIP.gateway
-        "1.1.1.1"
-        "8.8.8.8"
-      ])
-      # mkForce so this wins over the static IP entry if both are enabled
-      (lib.mkIf cfg.encryptedDns.enable (lib.mkForce [ "127.0.0.1" ]))
-      # localDns.server wins over everything (mkOverride 40 > mkForce's 50)
-      (lib.mkIf (cfg.localDns.server != null) (lib.mkOverride 40 [ cfg.localDns.server ]))
-    ];
+    networking.nameservers = lib.mkForce globalNameservers;
 
     networking.firewall.enable = cfg.firewall.enable;
 
-    # Encrypted DNS: dnscrypt-proxy on 127.0.0.1:53.
+    # === systemd-resolved (NetworkManager hosts) ===
+    # NOTE: this nixpkgs still has the classic options (fallbackDns/llmnr/dnssec/
+    # extraConfig). A future flake update migrates them to services.resolved.settings.Resolve.*
+    services.resolved = lib.mkIf cfg.useResolved {
+      enable = true;
+      fallbackDns = cfg.fallbackDns;
+      # Unbound does not sign the .lan zone; validation would only cause failures.
+      dnssec = "false";
+      # avahi owns local name discovery on these hosts (services.airplayReceiver and
+      # friends enable it with nssmdns4). Leaving LLMNR/mDNS to resolved as well means
+      # two daemons answering for the same names.
+      llmnr = "false";
+      extraConfig = ''
+        MulticastDNS=no
+      '';
+    };
+
+    # Encrypted DNS: dnscrypt-proxy on 127.0.0.1:53. Does not clash with resolved's
+    # stub listener, which is on 127.0.0.53:53.
     # Skipped when localDns.server is set — the remote Unbound server handles upstream DoH instead.
-    # NM dns=none stops it from overwriting /etc/resolv.conf with DHCP-provided DNS.
-    # networking.nameservers writes 127.0.0.1 to resolv.conf via NixOS activation.
     services.dnscrypt-proxy = lib.mkIf (cfg.encryptedDns.enable && cfg.localDns.server == null) {
       enable = true;
       settings = {
@@ -134,7 +204,21 @@ in
       };
     };
 
-    # Keep resolv.conf under our control when using either local encrypted DNS or a custom DNS server
-    networking.networkmanager.dns = lib.mkIf (cfg.encryptedDns.enable || cfg.localDns.server != null) (lib.mkForce "none");
+    # With resolved, NetworkManager must hand link DNS *to* resolved — dns="none" would
+    # cut it off and the per-domain scoping would never take effect. Without resolved,
+    # keep resolv.conf under our control so NM can't overwrite it with DHCP servers.
+    networking.networkmanager.dns =
+      if cfg.useResolved then lib.mkForce "systemd-resolved"
+      else lib.mkIf (cfg.encryptedDns.enable || cfg.localDns.server != null) (lib.mkForce "none");
+
+    # glibc's stub resolver has no failure memory: with a dead first nameserver it pays
+    # the full timeout on every lookup before trying the next. Default is timeout:5
+    # attempts:2 — up to 10s per name.
+    #
+    # Only applied where this repo pins a multi-entry resolver list, i.e. where there is
+    # actually a dead first server to skip past. On a host left on DHCP's single
+    # nameserver it would buy nothing and only make lookups fragile on a slow link.
+    networking.resolvconf.extraOptions =
+      lib.mkIf (!cfg.useResolved && primaryNameservers != []) [ "timeout:1" "attempts:1" ];
   };
 }

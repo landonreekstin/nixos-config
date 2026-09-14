@@ -14,7 +14,19 @@
         address = "192.168.100.76";
         gateway = "192.168.100.1";
       };
+      # Wake-on-LAN: the NAS had NO remote recovery path when it went down — no WoL, no
+      # IPMI, and the firewall ages its MAC out of ARP, so reviving it needed physical
+      # access. ethtool sets `wol g` on boot; the BIOS must also have WoL enabled for
+      # this to work. Wake with `wol -h 192.168.100.255 <mac>` from optiplex-fw.
+      wakeOnLan = {
+        enable = true;
+        interface = "enp0s31f6";
+      };
       firewall = { enable = false; };
+      # The NAS is the .lan server; its own /etc/hosts must use its real address, not
+      # the firewall alias it sits behind.
+      lanHosts.enable = true;
+      lanHosts.nasAddress = "192.168.100.76";
     };
 
     services = {

@@ -12,6 +12,7 @@
     ./system-tweaks.nix
     ./base-environment.nix
     ./networking.nix
+    ./lan-hosts.nix
     ./audio.nix
     ./commands.nix
     ./auto-update.nix

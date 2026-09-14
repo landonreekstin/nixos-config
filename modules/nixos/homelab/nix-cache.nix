@@ -11,6 +11,16 @@ in
       default = false;
       description = "Enable nix-serve to host a local Nix binary cache on port 5000.";
     };
+    clientEnable = mkOption {
+      type = types.bool;
+      default = true;
+      description = ''
+        Use the NAS binary cache as a substituter on this host. Rarely needs turning
+        off — nix.settings.fallback makes an unreachable cache degrade rather than
+        block — but gives a declarative escape hatch for a host that is permanently
+        off the LAN, without editing the shared nix-settings module.
+      '';
+    };
     clientHost = mkOption {
       type = types.str;
       default = "192.168.1.76";
