@@ -207,4 +207,54 @@ in
       };
     };
   };
+
+  # When modules/home-manager/programs/browser/ owns the browser role, point the
+  # role's command at the bare binary name instead of "${pkgs.<browser>}/bin/…".
+  #
+  # That module builds its own *wrapped* package — the one carrying policies.json
+  # and, when overrideConfig = false, the autoconfig prefs. The default command
+  # interpolates the unwrapped store path, so Super+B, the Waybar launcher button
+  # and the XFCE panel pin would all start a browser with none of that applied
+  # (verified on gaming-pc: the two firefox derivations differ, and only the
+  # wrapped one carries DisableTelemetry in its policies.json). Resolving from
+  # PATH picks the per-user profile's wrapped build instead.
+  #
+  # It also keeps the unwrapped package out of the closure: a command string
+  # referencing "${pkgs.x}/bin/x" realises x even when the collision guard in
+  # modules/home-manager/system/apps.nix has dropped it from home.packages.
+  #
+  # The condition deliberately reads only homeManager.browser.<name>.{enable,
+  # ownsAppRole}. Testing browser.package here instead would make defining
+  # browser.command depend on reading a sibling of the same submodule —
+  # infinite recursion. ownsAppRole is how a host says "configure this browser,
+  # but something else drives the role": gaming-pc manages Firefox while Super+B
+  # still opens its hand-configured LibreWolf.
+  config =
+    let
+      ownedBy = lib.findFirst
+        (name:
+          config.customConfig.homeManager.browser.${name}.enable
+          && config.customConfig.homeManager.browser.${name}.ownsAppRole)
+        null
+        [ "firefox" "librewolf" ];
+      rolePkg = config.customConfig.apps.programs.browser.package;
+    in
+    {
+      customConfig.apps.programs.browser.command = lib.mkIf (ownedBy != null) ownedBy;
+
+      assertions = lib.optional (ownedBy != null && rolePkg != null) {
+        assertion = lib.hasPrefix ownedBy (lib.getName rolePkg);
+        message = ''
+          customConfig.homeManager.browser.${ownedBy} is enabled, but the
+          browser role installs ${lib.getName rolePkg}. The role's command is
+          forced to "${ownedBy}" so the keybinds reach the configured build,
+          which would launch the wrong browser here.
+
+          Fix it one of three ways: set customConfig.apps.programs.browser.package
+          to pkgs.${ownedBy}; put the other browser on the browserAlt role; or,
+          if the role is meant to stay on the other browser, set
+          customConfig.homeManager.browser.${ownedBy}.ownsAppRole = false.
+        '';
+      };
+    };
 }

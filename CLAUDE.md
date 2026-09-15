@@ -22,6 +22,7 @@ in `docs/` — read the matching file when the task calls for it:
 | [docs/installation.md](docs/installation.md) | deploying a new host or re-installing an existing one |
 | [docs/hosts/blaney-pc.md](docs/hosts/blaney-pc.md) | the session is on `blaney-pc` (user `insideabush`), or writing a `docs/runbooks/blaney/` task |
 | [docs/companion-repos.md](docs/companion-repos.md) | bumping the pin of a package sourced from another of our repos |
+| [docs/browsers.md](docs/browsers.md) | Firefox / LibreWolf presets, `customConfig.homeManager.browser`, or the bookmark-secrets path |
 | [docs/subtitles.md](docs/subtitles.md) | subtitles for Jellyfin, Bazarr config/providers, or the `bazarr-provision` unit |
 
 ## Choosing the Right Host to Work On
@@ -162,9 +163,9 @@ split across several modules go in that domain's `options.nix` instead.
 | `hardware.*` | `hardware/{nvidia,peripherals}.nix`; the rest in `hardware/options.nix` |
 | `services.*` | `services/{ssh,vscode-server,wireguard-client,wireguard-server}.nix`; `autoUpdate` in `common/auto-update.nix` |
 | `profiles.*` | `profiles/gaming.nix` and each `development/*.nix` — no `options.nix` |
-| `programs.*` | `programs/{partydeck,claude-code}.nix`; `firefox`/`flatpak` in `programs/options.nix` |
+| `programs.*` | `programs/{partydeck,claude-code}.nix`; `flatpak` in `programs/options.nix` |
 | `apps.*` | `apps/programs.nix` (registry + `mkAppRole`), `apps/xdg-defaults.nix` (MIME) |
-| `bootloader`, `networking`, `homeManager` | `common/{bootloader,networking,home-manager}.nix` |
+| `bootloader`, `networking`, `homeManager` (incl. `homeManager.browser`) | `common/{bootloader,networking,home-manager}.nix` |
 | `user`, `system`, `packages` | `common/options.nix` |
 
 Fallback for a namespace with no owning module: `customConfig.<X>` → `modules/nixos/<X>/`

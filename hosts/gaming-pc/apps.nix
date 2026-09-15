@@ -6,7 +6,22 @@
 
     apps = {
       defaultSet = "kde";
-      defaults.kde.browser = "librewolf.desktop";
+      defaults.kde.browser = "firefox.desktop";
+
+      # Firefox is the primary browser (Super+B) as of the 2026-09-15 checklist
+      # pass in docs/browsers.md: chrome theme, Widevine/Prime playback, .lan,
+      # saved logins surviving a restart, search keywords and the sops-backed
+      # bookmarks were all verified on this machine.
+      #
+      # It is configured by customConfig.homeManager.browser.firefox in home.nix,
+      # which builds its own wrapped package — so the collision guard in
+      # modules/home-manager/system/apps.nix drops this package from
+      # home.packages and the role's command resolves `firefox` from PATH. See
+      # docs/browsers.md "ownsAppRole".
+      programs.browser = {
+        package = pkgs.firefox;
+        exe = "firefox";
+      };
 
       # Spotify tracks unstable here; the desktop entry with the Ozone/Wayland
       # flags is defined in the home-manager block in home.nix.
@@ -41,22 +56,6 @@
 
     programs = {
       partydeck.enable = true;
-      firefox = {
-        enable = true;
-        package = pkgs.firefox;
-
-        extensions = with pkgs.nur.repos.rycee.firefox-addons; [
-          ublock-origin
-          darkreader
-          facebook-container
-        ];
-
-        bookmarks = [
-          { name = "YouTube"; url = "https://www.youtube.com"; }
-          { name = "Netflix"; url = "https://www.netflix.com"; }
-          { name = "GitHub";  url = "https://github.com"; }
-        ];
-      };
 
       claudeCode = {
         enable = true;
@@ -186,10 +185,17 @@
         "vlc"
         "signal-desktop"
       ];
-      # vscode, librewolf, discord and signal-desktop now come from
+      # vscode, firefox, discord and signal-desktop now come from
       # customConfig.apps.programs (ide, browser, chat, chatAlt). browserAlt is
       # Chromium here, so brave is listed below to keep it installed.
       homeManager = with pkgs; [
+        # Kept installed alongside Firefox, but no longer on the browser role and
+        # deliberately NOT managed by customConfig.homeManager.browser — its
+        # hand-configured ~/.librewolf profile is untouched and stays as a
+        # fallback. Still needs the unstable-override above: stable 25.11 marks
+        # librewolf insecure, so Hydra never builds it.
+        librewolf
+
         jamesdsp
         remmina
         md-tui
@@ -213,6 +219,26 @@
       };
     };
 
+  };
+
+
+  # Two bookmarks in the shared tree embed a credential in their URL. Home
+  # Manager renders bookmarks.html into the Nix store, which is world-readable,
+  # and this repo is public — so the tokens live only here and are substituted
+  # into a copy under $HOME at activation. owner is required: the substitution
+  # runs in the user's Home Manager activation, not as root.
+  # Consumed by customConfig.homeManager.browser.firefox.personal.bookmarks.secrets.
+  sops.secrets = {
+    browser-dashboard-token = {
+      sopsFile = ../../secrets/gaming-pc.yaml;
+      owner = config.customConfig.user.name;
+      mode = "0400";
+    };
+    browser-reader-hash = {
+      sopsFile = ../../secrets/gaming-pc.yaml;
+      owner = config.customConfig.user.name;
+      mode = "0400";
+    };
   };
 
   programs.zoom-us.enable = true;

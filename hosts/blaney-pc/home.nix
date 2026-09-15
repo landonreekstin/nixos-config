@@ -62,6 +62,49 @@
         "applications:io.github.nuttyartist.notes.desktop"
       ];
     };
+
+    # Firefox, installed ALONGSIDE the Flatpak Chromium that still owns Super+B,
+    # the KDE/XFCE default and the panel pin. Nothing insideabush relies on
+    # moves under him — he reaches Firefox from the app menu until this has been
+    # looked at on the machine. Same soak approach that was used on gaming-pc.
+    #
+    # ownsAppRole = false keeps the browser role pointing at Chromium; without
+    # it the config block in modules/nixos/apps/programs.nix would force the
+    # role's command to "firefox".
+    browser.firefox = {
+      enable = true;
+      ownsAppRole = false;
+
+      # This host runs the Windows 7 theme in both KDE and XFCE.
+      personal.chromeTheme = "windows7";
+
+      personal.bookmarks = {
+        # The shared tree is lando's — his homelab, his mail, and two URLs whose
+        # tokens live in secrets/gaming-pc.yaml and would render here as a
+        # literal @DASHBOARD_TOKEN@. This host gets its own set instead.
+        sharedTree = false;
+
+        # A deliberately small starter set. insideabush is a restricted VPN peer,
+        # so the homelab entries use the legacy 192.168.1.76 alias and explicit
+        # ports: that is the only NAS address his AllowedIPs routes, and .lan
+        # names do not resolve for restricted peers (they use 1.1.1.1 for DNS).
+        # See docs/networking.md "VPN peer addressing".
+        #
+        # What actually belongs here is his call, not ours — see the runbook
+        # task in TASKS.md. Treat this as a placeholder that works, not a
+        # finished set.
+        extra = [
+          { name = "YouTube";  url = "https://www.youtube.com/"; }
+          { name = "Netflix";  url = "https://www.netflix.com/browse"; }
+          { name = "Jellyfin"; url = "http://192.168.1.76:8096/"; }
+          { name = "Requests"; url = "http://192.168.1.76:5055/"; }
+          { name = "Gaming"; bookmarks = [
+              { name = "ProtonDB"; url = "https://www.protondb.com/"; }
+              { name = "Steam";    url = "https://store.steampowered.com/"; }
+            ]; }
+        ];
+      };
+    };
   };
 
   # Home Manager configuration for this Host

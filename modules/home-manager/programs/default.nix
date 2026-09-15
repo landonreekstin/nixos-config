@@ -5,6 +5,6 @@
 {
   imports = [
     ./kitty.nix
-    ./librewolf.nix
+    ./browser
   ];
 }

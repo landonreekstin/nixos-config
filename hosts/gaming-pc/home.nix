@@ -20,6 +20,7 @@
         { name = "System Settings"; exec = "xfce4-settings-manager"; icon = "preferences-system"; }
         { name = "Files";           exec = "thunar";                 icon = "system-file-manager"; }
         { name = "Librewolf";       exec = "librewolf";              icon = "internet-web-browser"; }
+        { name = "Firefox";         exec = "firefox";                icon = "firefox"; }
         { name = "Chromium";        exec = "chromium";               icon = "chromium"; }
         { name = "Heroic";          exec = "heroic";                 icon = "com.heroicgameslauncher.hgl"; }
         { name = "Steam";           exec = "steam";                  icon = "steam"; }
@@ -30,6 +31,30 @@
         { name = "Spotify";         exec = "env NIXOS_OZONE_WL=0 spotify"; icon = "spotify-client"; }
         { name = "VS Code";         exec = "code";                   icon = "vscode"; }
       ];
+    };
+
+    # Firefox is the primary browser here (Super+B, and the default for
+    # text/html and every xdg-open). It replaced LibreWolf on 2026-09-15 after
+    # the docs/browsers.md checklist passed on this machine — chrome theme,
+    # Widevine/Prime playback, .lan, saved logins surviving a restart, search
+    # keywords, and the sops-backed bookmarks.
+    #
+    # LibreWolf stays installed as a fallback (apps.nix) but is NOT managed by
+    # this module: nothing here touches ~/.librewolf, so its hand-configured
+    # profile is still there untouched if Firefox ever disappoints.
+    #
+    # The profile is the existing ~/.mozilla/firefox/lando directory, left over
+    # from the old (never-imported, therefore inert)
+    # modules/home-manager/programs/firefox.nix.
+    browser.firefox = {
+      enable = true;
+
+      # century-series is this host's Hyprland rice; the chrome follows it.
+      personal.chromeTheme = "century-series";
+
+      # Substitute the two tokened bookmark URLs from the sops secrets declared
+      # in apps.nix.
+      personal.bookmarks.secrets.enable = true;
     };
   };
 
