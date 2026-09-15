@@ -26,6 +26,11 @@
       radarr.enable = true;
       sonarr.enable = true;
       bazarr.enable = true;
+      # Converge Bazarr's settings + English language profile over its REST API.
+      # Bazarr rewrites config.yaml and its DB at runtime, so this is the only way
+      # to keep it declarative. Set credentialsFile once the OpenSubtitles secret
+      # exists to add opensubtitles.com to the provider list.
+      bazarr.provision.enable = true;
     };
     transmission.enable = true;
     mullvad.enable = true;
