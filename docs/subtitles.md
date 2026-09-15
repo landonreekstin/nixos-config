@@ -84,6 +84,24 @@ sudo find /mnt/storage/media/movies /mnt/storage/media/tv -type d ! -perm -g+w -
   | sudo xargs -0 --no-run-if-empty chmod g+w
 ```
 
+A second, related trap: 20 TV directories were owned `sonarr:sonarr` rather than
+`sonarr:media`, predating the SGID bit on `/mnt/storage/media/tv`. `chmod g+w` made
+them writable *by the wrong group*, so Bazarr still failed. They were fixed with:
+
+```bash
+sudo find /mnt/storage/media/movies /mnt/storage/media/tv ! -group media -print0 \
+  | sudo xargs -0 --no-run-if-empty chgrp media
+sudo find /mnt/storage/media/movies /mnt/storage/media/tv -type d -print0 \
+  | sudo xargs -0 --no-run-if-empty chmod g+ws
+```
+
+The SGID bit on the library roots means new title directories inherit `media`, so
+neither fix should be needed again.
+
+**This one is worth catching early**: every failed save still counts against the
+OpenSubtitles daily download quota. The first TV search after enabling the account
+burned the entire free-tier allowance of ~20 on writes that could not land.
+
 This should not be needed again — a fresh install creates directories with the right
 umask from the start.
 
@@ -97,7 +115,7 @@ exit IP (currently Sweden). That matters:
 | `yifysubtitles` | works |
 | `tvsubtitles` | homepage loads, but `search.php` returns **403** from the VPN exit |
 | `podnapisi` | **dead domain** — `podnapisi.net` does not resolve, even via 1.1.1.1. Removed from the defaults. |
-| `opensubtitlescom` | best coverage, needs an account — not yet configured |
+| `opensubtitlescom` | works; the free-tier 20/day quota is the limiting factor |
 
 Check provider health any time with:
 
@@ -110,11 +128,21 @@ If OpenSubtitles also throttles from the VPN exit, the fix is to split-tunnel Ba
 `modules/nixos/homelab/mullvad.nix` so its traffic uses the WAN directly — at the cost of
 exposing the home IP to subtitle providers. Do not do this pre-emptively.
 
-## Adding OpenSubtitles (pending)
+## OpenSubtitles
 
-`opensubtitlescom` is by far the best source, especially for TV. It needs an account on
-<https://www.opensubtitles.com>. Free tier is ~20 downloads/day; VIP (~€5/yr) is 1000/day
-and is worth it for the one-time catch-up on the existing library.
+`opensubtitlescom` is configured and healthy. It is by far the best source,
+especially for TV. The account is at
+<https://www.opensubtitles.com>; credentials live in `secrets/optiplex-nas.yaml`
+as `opensubtitles-credentials`, wired up in `hosts/optiplex-nas/homelab.nix`.
+
+**The free tier is ~20 downloads/day and that is the current bottleneck.** The
+movie library cleared completely, but 532 episodes are still wanting subtitles and
+will trickle in at ~20/day — roughly a month. VIP (~€5/yr) raises it to 1000/day
+and would clear the backlog in a single pass. When the quota is spent, Bazarr
+reports `DownloadLimitExceeded` and backs off for 6 hours; this is expected, not a
+fault.
+
+The steps below are what was done, kept for a re-install:
 
 1. Create the account.
 2. Add the secret:
@@ -151,6 +179,24 @@ reinstall — redo these after any NAS re-install:
 - For each library: **Save subtitles into media folders** on, and
   **Download subtitles → English**, so plugin-fetched subs land as sidecars rather than in
   Jellyfin's metadata directory.
+
+## Editing the secrets file on the NAS
+
+Your personal admin age key lives on asus-laptop, not here, so a bare `sops
+secrets/optiplex-nas.yaml` fails with `identity did not match any of the
+recipients`. The NAS's own SSH host key is the other valid recipient; it was
+converted to an age identity at `~/.config/sops/age/keys.txt` so sops finds it
+automatically:
+
+```bash
+sudo sh -c 'umask 077; ssh-to-age -private-key \
+  -i /etc/ssh/ssh_host_ed25519_key -o /home/lando/.config/sops/age/keys.txt'
+sudo chown lando:users /home/lando/.config/sops/age/keys.txt
+```
+
+That file is a decryption identity for every NAS secret. It is not a privilege
+escalation (lando can `sudo cat` the host key anyway), but delete it if this host
+stops being a place you edit secrets from.
 
 ## Verifying
 
