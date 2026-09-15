@@ -129,7 +129,8 @@ and is worth it for the one-time catch-up on the existing library.
    ```
 3. In `hosts/optiplex-nas/homelab.nix`, declare the secret and point the module at it:
    ```nix
-   sops.secrets."opensubtitles-credentials".sopsFile = ../../secrets/optiplex-nas.yaml;
+   # defaultSopsFile already resolves to secrets/optiplex-nas.yaml on this host.
+   sops.secrets."opensubtitles-credentials" = { };
    # ...
    arr.bazarr.provision.credentialsFile =
      config.sops.secrets."opensubtitles-credentials".path;
