@@ -23,6 +23,11 @@
       ];
       unstable-override = [
         "vscode"
+        # librewolf: stable 25.11 ships 152.0.2-1, which nixpkgs marks insecure — so
+        # Hydra never builds it and it has no narinfo. Left on stable it compiles a
+        # whole Firefox fork from source, which is what OOM-killed the weekly
+        # flake-updater run on the NAS. unstable's build IS cached.
+        "librewolf"
         # "chromium" — do NOT re-add without checking the electron fallout.
         # unstable-overlay.nix replaces pkgs.<name> globally, and nixpkgs builds
         # electron out of chromium's infrastructure. Overriding chromium here
