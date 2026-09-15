@@ -6,7 +6,27 @@
 
     apps = {
       defaultSet = "kde";
-      defaults.kde.browser = "librewolf.desktop";
+
+      # Firefox owns http:// links, text/html and every xdg-open from another
+      # app (Discord, Steam, the editor). Super+B still opens LibreWolf — see
+      # programs.browser below. The split is deliberate: LibreWolf stays the
+      # browser launched on purpose, Firefox catches links from elsewhere, and
+      # the two run side by side until Firefox has proven itself a replacement.
+      defaults.kde.browser = "firefox.desktop";
+
+      # Super+B stays on LibreWolf, which is hand-configured on this host and
+      # deliberately NOT managed by the browser preset module. Do not switch
+      # this to Firefox until the declarative Firefox profile is verified as a
+      # full replacement — see customConfig.homeManager.browser.firefox in
+      # home.nix, which sets ownsAppRole = false precisely so this role keeps
+      # pointing at LibreWolf.
+      #
+      # This is the role default, restated so the intent survives the next
+      # person reading it.
+      programs.browser = {
+        package = pkgs.librewolf;
+        exe = "librewolf";
+      };
 
       # Spotify tracks unstable here; the desktop entry with the Ozone/Wayland
       # flags is defined in the home-manager block in home.nix.
@@ -41,22 +61,6 @@
 
     programs = {
       partydeck.enable = true;
-      firefox = {
-        enable = true;
-        package = pkgs.firefox;
-
-        extensions = with pkgs.nur.repos.rycee.firefox-addons; [
-          ublock-origin
-          darkreader
-          facebook-container
-        ];
-
-        bookmarks = [
-          { name = "YouTube"; url = "https://www.youtube.com"; }
-          { name = "Netflix"; url = "https://www.netflix.com"; }
-          { name = "GitHub";  url = "https://github.com"; }
-        ];
-      };
 
       claudeCode = {
         enable = true;
@@ -213,6 +217,26 @@
       };
     };
 
+  };
+
+
+  # Two bookmarks in the shared tree embed a credential in their URL. Home
+  # Manager renders bookmarks.html into the Nix store, which is world-readable,
+  # and this repo is public — so the tokens live only here and are substituted
+  # into a copy under $HOME at activation. owner is required: the substitution
+  # runs in the user's Home Manager activation, not as root.
+  # Consumed by customConfig.homeManager.browser.firefox.personal.bookmarks.secrets.
+  sops.secrets = {
+    browser-dashboard-token = {
+      sopsFile = ../../secrets/gaming-pc.yaml;
+      owner = config.customConfig.user.name;
+      mode = "0400";
+    };
+    browser-reader-hash = {
+      sopsFile = ../../secrets/gaming-pc.yaml;
+      owner = config.customConfig.user.name;
+      mode = "0400";
+    };
   };
 
   programs.zoom-us.enable = true;

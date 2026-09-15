@@ -534,9 +534,19 @@ Format: `- [ ] **Title** — description`
 
 ---
 
-## Librewolf
+## Browsers
 
-- [x] **Librewolf profile preset** — Add a named preset to `customConfig.programs.firefox` (e.g. `preset = "privacy"`). The preset applies a curated set of extensions (uBlock Origin, SponsorBlock, etc.), bookmarks, and `userSettings` (privacy hardening flags) from gaming-pc's current Librewolf setup. Uses the existing Firefox Home Manager module.
+- [x] **Librewolf profile preset** — Delivered as `customConfig.homeManager.librewolf`, not as the `preset = "privacy"` enum on `customConfig.programs.firefox` described here. Superseded by the browser preset work below.
+
+- [x] **Declarative Firefox as a Librewolf alternative** — `customConfig.homeManager.browser.{firefox,librewolf}` with two independent layers (`privacy`, `personal`) sharing one preset set in `modules/home-manager/programs/browser/`. Ports LibreWolf's `mozilla.cfg` and `policies.json` onto plain Firefox while keeping saved logins, Widevine and cookies-across-restarts. *(PR open — needs in-person verification.)*
+
+- [ ] **Prove Firefox is a full Librewolf replacement on gaming-pc** — Firefox runs alongside Librewolf there; Librewolf is untouched and still on Super+B, Firefox owns `http://` links. Walk the checklist in `docs/browsers.md`: chrome theme, DRM/Widevine playback, `.lan` resolution, saved logins surviving a restart, the `@np`/`@no`/`@hm` search keywords, and the DuckDuckGo No-AI default. Only once all pass, consider moving the browser role over — that is a deliberate, separate decision.
+
+- [ ] **Migrate saved logins to the Firefox profile** — 6 logins live only in `~/.librewolf/rbb3lgdy.default` (jellyfin/jellyseerr/radarr/sonarr `.lan`, Google, Southwest). Copy `logins.json` + `key4.db` with both browsers closed, or re-enter via Bitwarden. Not declarable.
+
+- [ ] **Move optiplex and asus-m15 off Librewolf** — the two hosts commit `2003524` had to firefight with `unstable-override`. Both can take `customConfig.homeManager.browser.firefox` once the gaming-pc soak proves it out. Needs in-person verification on each.
+
+- [ ] **Roll search + containers out to the Librewolf hosts** — optiplex and vm-sandbox set `personal.search.enable = false` and `personal.containers.enable = false` because `search.force`/`containersForce` rewrite an existing hand-made profile. They also pin `privacy.sanitizeOnShutdown = true` to preserve today's behaviour. Revisit each in person.
 
 ---
 

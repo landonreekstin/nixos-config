@@ -1,5 +1,321 @@
 # ~/nixos-config/modules/nixos/common/home-manager.nix
 { inputs, lib, config, ... }:
+
+let
+  # Option tree shared by customConfig.homeManager.browser.{firefox,librewolf}.
+  # The two Home Manager browser modules are generated from the same upstream
+  # mkFirefoxModule.nix and expose identical options, so the presets in
+  # modules/home-manager/programs/browser/ drive both from one definition and
+  # the host-facing options are declared once here.
+  #
+  # Declared on the NixOS side because Home Manager receives customConfig as a
+  # plain attrset through extraSpecialArgs rather than as its own option tree,
+  # so HM modules in this repo cannot declare options at all — see the header
+  # of modules/nixos/apps/programs.nix.
+  mkBrowserOptions = { browserName, defaultProfilePath }: with lib; {
+    enable = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Whether to enable the declarative ${browserName} profile presets.";
+    };
+
+    profilePath = mkOption {
+      type = types.str;
+      default = defaultProfilePath;
+      description = ''
+        Profile directory name under the browser's config dir. An existing
+        profile is adopted rather than replaced — run `ls ~/.mozilla/firefox/`
+        or `ls ~/.librewolf/` to find the current value.
+      '';
+    };
+
+    overrideConfig = mkOption {
+      type = types.bool;
+      default = true;
+      description = ''
+        When true, preset prefs are written to the profile's user.js and
+        re-enforced at every browser start, so a change made in the browser UI
+        reverts on restart.
+
+        When false, they are compiled into the package's autoconfig as
+        defaultPref(), so they act as defaults and a UI change persists. This
+        is the same mechanism LibreWolf uses for its own settings.
+
+        Extensions, userChrome.css, bookmarks, search and containers are
+        managed declaratively either way.
+      '';
+    };
+
+    ownsAppRole = mkOption {
+      type = types.bool;
+      default = true;
+      description = ''
+        Whether this browser is the one on customConfig.apps.programs.browser.
+
+        When true, the role's `command` is forced to the bare binary name so
+        Super+B and the launcher buttons reach the *wrapped* build this module
+        produces rather than the unwrapped store path (see the config block in
+        modules/nixos/apps/programs.nix).
+
+        Set false when a host configures this browser but drives the role with
+        a different one — gaming-pc manages Firefox declaratively while Super+B
+        still opens its hand-configured LibreWolf.
+
+        This cannot be detected automatically: deciding it from
+        apps.programs.browser.package would make defining browser.command
+        depend on reading a sibling of the same submodule, which is infinite
+        recursion.
+      '';
+    };
+
+    extraSettings = mkOption {
+      type = with types; attrsOf (oneOf [ bool int str ]);
+      default = { };
+      description = "Extra about:config prefs, merged over both presets.";
+      example = literalExpression ''{ "browser.tabs.inTitlebar" = 0; }'';
+    };
+
+    # ── Privacy layer ──────────────────────────────────────────────────────
+    privacy = {
+      enable = mkOption {
+        type = types.bool;
+        default = true;
+        description = ''
+          Apply the LibreWolf-equivalent hardening preset: telemetry and
+          studies off, strict tracking protection, Global Privacy Control, no
+          speculative connections, trimmed referers, TLS hardening,
+          geolocation off, no sponsored content, plus the privacy extensions.
+        '';
+      };
+
+      sanitizeOnShutdown = mkOption {
+        type = types.bool;
+        default = false;
+        description = ''
+          Clear cookies and site storage when the browser closes, as LibreWolf
+          does. Off by default: it is the single biggest usability cost, since
+          every login dies with the browser.
+        '';
+      };
+
+      disableSafeBrowsing = mkOption {
+        type = types.bool;
+        default = false;
+        description = ''
+          Strip Safe Browsing entirely, as LibreWolf does. Off by default — it
+          removes malware and phishing protection, not just the Google lookups.
+        '';
+      };
+
+      promptDownloadDir = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Ask where to save every download instead of using downloadDir.";
+      };
+
+      downloadDir = mkOption {
+        type = types.str;
+        default = "${config.customConfig.user.home}/Downloads";
+        defaultText = literalExpression ''"''${customConfig.user.home}/Downloads"'';
+        description = "Fixed download directory, used when promptDownloadDir is false.";
+      };
+
+      resistFingerprinting = mkOption {
+        type = types.bool;
+        default = false;
+        description = ''
+          Enable privacy.resistFingerprinting. Off by default: it forces a
+          light theme and a fixed window size, and breaks canvas and font
+          rendering on many sites.
+        '';
+      };
+
+      httpsOnlyMode = mkOption {
+        type = types.bool;
+        default = false;
+        description = ''
+          Enable HTTPS-only mode. Off by default because the homelab
+          (jellyfin.lan, radarr.lan, …) is served over plain HTTP.
+        '';
+      };
+
+      useSystemDNS = mkOption {
+        type = types.bool;
+        default = true;
+        description = ''
+          Set network.trr.mode = 5 — DoH explicitly off, use the system
+          resolver. Required for .lan: DoH bypasses the local Unbound resolver
+          and .lan stops resolving.
+        '';
+      };
+
+      rememberPasswords = mkOption {
+        type = types.bool;
+        default = true;
+        description = "Let the browser save and autofill logins. LibreWolf disables this.";
+      };
+
+      enableDRM = mkOption {
+        type = types.bool;
+        default = true;
+        description = ''
+          Enable EME/Widevine so Netflix, Prime Video and similar play.
+          LibreWolf blocks the GMP manager outright.
+        '';
+      };
+
+      allowAutoplay = mkOption {
+        type = types.bool;
+        default = true;
+        description = "Allow media autoplay. LibreWolf blocks it entirely.";
+      };
+
+      extraExtensions = mkOption {
+        type = with types; listOf package;
+        default = [ ];
+        description = "Extra add-on packages installed alongside the privacy set.";
+        example = literalExpression ''
+          with pkgs.nur.repos.rycee.firefox-addons; [ privacy-badger ]
+        '';
+      };
+    };
+
+    # ── Personal layer ─────────────────────────────────────────────────────
+    personal = {
+      enable = mkOption {
+        type = types.bool;
+        default = true;
+        description = ''
+          Apply the personal preset: bookmarks, chrome theme, search engines,
+          containers and startup behaviour. Independent of the privacy layer —
+          either can be enabled without the other.
+        '';
+      };
+
+      chromeTheme = mkOption {
+        type = types.enum [ "catppuccin-mocha" "century-series" "windows7" "none" ];
+        default = "catppuccin-mocha";
+        description = ''
+          userChrome.css theme for the toolbar, urlbar and tabs. The files live
+          in modules/home-manager/programs/browser/chrome/.
+        '';
+      };
+
+      bookmarks = {
+        enable = mkOption {
+          type = types.bool;
+          default = true;
+          description = "Manage the bookmarks toolbar declaratively.";
+        };
+
+        toolbarVisibility = mkOption {
+          type = types.enum [ "always" "never" "newtab" ];
+          default = "always";
+          description = "When to show the bookmarks toolbar.";
+        };
+
+        extra = mkOption {
+          type = types.anything;
+          default = [ ];
+          description = "Host-specific bookmarks appended to the shared tree.";
+        };
+
+        secrets = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = ''
+              Substitute the @PLACEHOLDER@ tokens in the shared bookmark tree
+              from sops secrets at activation.
+
+              Two bookmarks embed a credential in their URL. Home Manager
+              renders bookmarks.html into the Nix store, which is
+              world-readable — and this repo is public — so the tokens live
+              only in sops and are written into a copy under $HOME.
+
+              The host must declare the matching sops.secrets with
+              owner = <user> so the user-level activation can read them.
+            '';
+          };
+
+          directory = mkOption {
+            type = types.str;
+            default = "/run/secrets";
+            description = "Directory sops-nix renders the bookmark secrets into.";
+          };
+        };
+      };
+
+      containers = {
+        enable = mkOption {
+          type = types.bool;
+          default = true;
+          description = ''
+            Manage the container set declaratively. This writes
+            containers.json with force, replacing any containers created in
+            the browser, so it is worth turning off on a host whose profile
+            was set up by hand.
+          '';
+        };
+      };
+
+      search = {
+        enable = mkOption {
+          type = types.bool;
+          default = true;
+          description = "Manage search engines and the default engine declaratively.";
+        };
+
+        default = mkOption {
+          type = types.str;
+          default = "DuckDuckGo No-AI";
+          description = ''
+            Name of the default engine. Must be a key of the engine set in
+            modules/home-manager/programs/browser/personal.nix.
+          '';
+        };
+      };
+
+      startup = {
+        enable = mkOption {
+          type = types.bool;
+          default = true;
+          description = "Manage startup, new-tab and dark-theme prefs.";
+        };
+
+        restoreSession = mkOption {
+          type = types.bool;
+          default = true;
+          description = "Reopen the previous session's windows and tabs on start.";
+        };
+
+        homepage = mkOption {
+          type = types.str;
+          default = "about:home";
+          description = ''
+            Homepage URL. Used by the home button, and on start when
+            restoreSession is false.
+          '';
+        };
+
+        newTabPage = mkOption {
+          type = types.enum [ "firefox-home" "blank" ];
+          default = "firefox-home";
+          description = ''
+            What a new tab shows. Sponsored tiles and stories are off either
+            way — that is handled by the privacy layer.
+          '';
+        };
+      };
+
+      extraExtensions = mkOption {
+        type = with types; listOf package;
+        default = [ ];
+        description = "Extra add-on packages installed alongside the personal set.";
+      };
+    };
+  };
+in
 {
   options.customConfig.homeManager = with lib; {
     enable = mkOption {
@@ -165,26 +481,24 @@
         '';
       };
     };
-    # You can add more themes here later, e.g., 'cosmic', 'kde', etc.
-    librewolf = {
-      enable = mkOption {
-        type = types.bool;
-        default = false;
-        description = "Whether to enable the declarative Librewolf browser profile preset.";
+    # ── Browsers ───────────────────────────────────────────────────────────
+    # Both entries take the same preset submodules, built by mkBrowserOptions
+    # at the top of this file. Implemented by
+    # modules/home-manager/programs/browser/.
+    #
+    # Firefox exists as the escape hatch from LibreWolf's packaging: nixpkgs
+    # periodically marks LibreWolf insecure, Hydra then stops building it, and
+    # any host that has not pinned it to unstable source-builds a Firefox fork —
+    # which is what keeps stalling the weekly flake-update PRs.
+    browser = {
+      firefox = mkBrowserOptions {
+        browserName = "Firefox";
+        defaultProfilePath = config.customConfig.user.name;
       };
-      profilePath = mkOption {
-        type = types.str;
-        default = "rbb3lgdy.default";
-        description = "LibreWolf profile directory name under ~/.librewolf/. Run 'ls ~/.librewolf/' to find the correct value.";
-      };
-      overrideConfig = mkOption {
-        type = types.bool;
-        default = true;
-        description = ''
-          When true, user.js is managed by HM and enforced every browser restart.
-          When false, user.js is written only once (if absent) and user edits persist.
-          Extensions and userChrome.css are always managed regardless of this setting.
-        '';
+
+      librewolf = mkBrowserOptions {
+        browserName = "LibreWolf";
+        defaultProfilePath = "rbb3lgdy.default";
       };
     };
   };

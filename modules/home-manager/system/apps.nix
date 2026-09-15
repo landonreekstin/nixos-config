@@ -7,18 +7,21 @@ let
   # Every attribute of apps.programs except the enable flag is an application role.
   roles = lib.filterAttrs (name: _: name != "enable") cfg;
 
-  # modules/home-manager/programs/librewolf.nix installs its own configured
-  # librewolf via programs.librewolf when customConfig.homeManager.librewolf is
-  # enabled. Installing pkgs.librewolf alongside it puts two derivations that
-  # both ship policies.json into the profile, which collides. When that module
-  # is enabled it owns the browser role, so skip the package here — the role's
-  # `command` still points at librewolf, which is what the keybinds need.
-  librewolfModuleOwnsBrowser =
-    customConfig.homeManager.librewolf.enable
-    && cfg.browser.package != null
-    && lib.hasPrefix "librewolf" (lib.getName cfg.browser.package);
+  # modules/home-manager/programs/browser/ installs its own configured browser
+  # via programs.firefox / programs.librewolf when
+  # customConfig.homeManager.browser.<browser> is enabled. Installing
+  # pkgs.<browser> alongside it puts two derivations that both ship
+  # policies.json into the profile, which collides. When that module owns the
+  # browser role, skip the package here — the role's `command` still points at
+  # the binary, which is what the keybinds need.
+  browserCfg = customConfig.homeManager.browser;
+  browserModuleOwnsRole =
+    cfg.browser.package != null
+    && lib.any
+      (name: browserCfg.${name}.enable && lib.hasPrefix name (lib.getName cfg.browser.package))
+      [ "firefox" "librewolf" ];
 
-  wanted = if librewolfModuleOwnsBrowser then lib.filterAttrs (n: _: n != "browser") roles
+  wanted = if browserModuleOwnsRole then lib.filterAttrs (n: _: n != "browser") roles
            else roles;
 
   packages = lib.filter (p: p != null) (lib.mapAttrsToList (_: role: role.package) wanted);
