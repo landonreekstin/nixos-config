@@ -115,8 +115,9 @@
     "Facebook" = { id = 6; icon = "fence"; color = "toolbar"; };
   };
 
-  extensionNames = [
-    "darkreader"
-    "bitwarden"
+  # See privacy.nix for what `area` means.
+  extensions = [
+    { name = "darkreader"; area = "navbar"; }
+    { name = "bitwarden"; area = "navbar"; }
   ];
 }

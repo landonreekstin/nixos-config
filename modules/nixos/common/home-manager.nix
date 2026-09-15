@@ -214,10 +214,24 @@ let
           description = "When to show the bookmarks toolbar.";
         };
 
+        sharedTree = mkOption {
+          type = types.bool;
+          default = true;
+          description = ''
+            Include the shared bookmark tree from
+            modules/home-manager/programs/browser/bookmarks.nix.
+
+            That tree is lando's, read out of his LibreWolf profile — his
+            homelab, his mail, and two URLs whose tokens only exist in
+            secrets/gaming-pc.yaml. Set false on a host belonging to someone
+            else and supply their own set through `extra`.
+          '';
+        };
+
         extra = mkOption {
           type = types.anything;
           default = [ ];
-          description = "Host-specific bookmarks appended to the shared tree.";
+          description = "Host-specific bookmarks, appended to the shared tree when sharedTree is on.";
         };
 
         secrets = {

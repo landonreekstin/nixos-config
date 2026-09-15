@@ -33,23 +33,21 @@
       ];
     };
 
-    # Firefox, configured to behave like this host's LibreWolf but usable:
-    # saved logins, Widevine, and no cookie wipe on shutdown. It runs ALONGSIDE
-    # LibreWolf rather than replacing it — LibreWolf here is hand-configured,
-    # works, and is deliberately left alone until Firefox has proven itself a
-    # full replacement. Nothing in this block touches ~/.librewolf.
+    # Firefox is the primary browser here (Super+B, and the default for
+    # text/html and every xdg-open). It replaced LibreWolf on 2026-09-15 after
+    # the docs/browsers.md checklist passed on this machine — chrome theme,
+    # Widevine/Prime playback, .lan, saved logins surviving a restart, search
+    # keywords, and the sops-backed bookmarks.
+    #
+    # LibreWolf stays installed as a fallback (apps.nix) but is NOT managed by
+    # this module: nothing here touches ~/.librewolf, so its hand-configured
+    # profile is still there untouched if Firefox ever disappoints.
     #
     # The profile is the existing ~/.mozilla/firefox/lando directory, left over
     # from the old (never-imported, therefore inert)
     # modules/home-manager/programs/firefox.nix.
     browser.firefox = {
       enable = true;
-
-      # Super+B stays on LibreWolf (apps.nix). Without this, the config block in
-      # modules/nixos/apps/programs.nix would force the browser role's command
-      # to "firefox" and hijack the keybind — and its assertion would fail the
-      # build, since the role installs LibreWolf.
-      ownsAppRole = false;
 
       # century-series is this host's Hyprland rice; the chrome follows it.
       personal.chromeTheme = "century-series";

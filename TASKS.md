@@ -540,9 +540,13 @@ Format: `- [ ] **Title** — description`
 
 - [x] **Declarative Firefox as a Librewolf alternative** — `customConfig.homeManager.browser.{firefox,librewolf}` with two independent layers (`privacy`, `personal`) sharing one preset set in `modules/home-manager/programs/browser/`. Ports LibreWolf's `mozilla.cfg` and `policies.json` onto plain Firefox while keeping saved logins, Widevine and cookies-across-restarts. *(PR open — needs in-person verification.)*
 
-- [ ] **Prove Firefox is a full Librewolf replacement on gaming-pc** — Firefox runs alongside Librewolf there; Librewolf is untouched and still on Super+B, Firefox owns `http://` links. Walk the checklist in `docs/browsers.md`: chrome theme, DRM/Widevine playback, `.lan` resolution, saved logins surviving a restart, the `@np`/`@no`/`@hm` search keywords, and the DuckDuckGo No-AI default. Only once all pass, consider moving the browser role over — that is a deliberate, separate decision.
+- [x] **Prove Firefox is a full Librewolf replacement on gaming-pc** — all seven checks in `docs/browsers.md` passed on 2026-09-15 (chrome theme, Widevine/Prime playback, `.lan`, saved logins surviving a restart, DDG No-AI + `@np`/`@no`/`@hm`/`@gh`, the sops-backed bookmarks, and both launchers). Super+B moved to Firefox; Librewolf stays installed as an unmanaged fallback.
 
 - [ ] **Migrate saved logins to the Firefox profile** — 6 logins live only in `~/.librewolf/rbb3lgdy.default` (jellyfin/jellyseerr/radarr/sonarr `.lan`, Google, Southwest). Copy `logins.json` + `key4.db` with both browsers closed, or re-enter via Bitwarden. Not declarable.
+
+- [ ] **Let insideabush pick his own bookmarks** — `hosts/blaney-pc/home.nix` ships a placeholder starter set (`personal.bookmarks.extra`, `sharedTree = false`). Bookmarks are user-facing behaviour, which per `docs/hosts/blaney-pc.md` is his call, not Claude's. Write a `docs/runbooks/blaney/` task that asks him what he wants on the toolbar, then fold the answer in.
+
+- [ ] **Decide whether Firefox takes over on blaney-pc** — it is installed alongside Flatpak Chromium there, which still owns Super+B, the KDE/XFCE default and the panel pin. Switch only after it has been seen working on that machine.
 
 - [ ] **Move optiplex and asus-m15 off Librewolf** — the two hosts commit `2003524` had to firefight with `unstable-override`. Both can take `customConfig.homeManager.browser.firefox` once the gaming-pc soak proves it out. Needs in-person verification on each.
 

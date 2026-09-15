@@ -122,6 +122,50 @@ declaratively either way.
 > real profile was at `<profilePath>` — two different directories, so the seeded
 > file was never read. Don't reintroduce that shape.
 
+## Extensions: install, enable and pin
+
+Extensions go through the **`ExtensionSettings` policy**, not
+`profiles.<p>.extensions.packages`. That distinction is the whole reason they
+work without manual clicks.
+
+Dropping an XPI into the profile's `extensions/` directory leaves it
+*side-loaded*: Firefox lists it in `about:addons` but keeps it **disabled** until
+the user clicks through an approval prompt, and it lands in the puzzle-piece
+menu rather than the toolbar. That is exactly what happened on the first
+gaming-pc build — all five installed, none enabled, none pinned.
+
+The policy does all three at once:
+
+```nix
+"uBlock0@raymondhill.net" = {
+  installation_mode = "normal_installed";
+  install_url = "file:///nix/store/…/uBlock0@raymondhill.net.xpi";
+  default_area = "navbar";
+  private_browsing = true;
+};
+```
+
+- `installation_mode = "normal_installed"` — arrives **enabled**, but stays
+  removable from `about:addons`. `force_installed` would make the button
+  impossible to get rid of; that is too heavy-handed for a personal machine.
+- `install_url` points at the XPI **inside the Nix store**, so nothing is
+  fetched from AMO at runtime and the version is pinned by the flake lock.
+- `default_area` is the pin: `"navbar"` for the toolbar, `"menupanel"` for the
+  unified-extensions (puzzle-piece) menu.
+
+So each preset lists `{ name, area }` rather than a bare name. `name` is the
+attribute in `pkgs.nur.repos.rycee.firefox-addons`; the addon ID and XPI path
+are derived from `pkg.addonId`.
+
+`default_area` only applies on **first** install into a profile — it seeds the
+placement rather than enforcing it, so a button moved by hand afterwards stays
+where it was put. Changing `area` later will not shuffle an existing profile's
+toolbar.
+
+`privacy.extraExtensions` / `personal.extraExtensions` still take raw packages
+and still go through the profile's `extensions/` directory, since they carry no
+placement metadata — those will need the manual enable click.
+
 ## Bookmarks that carry credentials
 
 Two bookmarks embed a token in their URL. Home Manager renders `bookmarks.html`

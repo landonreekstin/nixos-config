@@ -312,12 +312,16 @@
     };
   };
 
-  # Attribute names in pkgs.nur.repos.rycee.firefox-addons. Resolved by
-  # default.nix inside its mkIf so pkgs.nur is never forced on a host that has
-  # not loaded the NUR module.
-  extensionNames = [
-    "ublock-origin"
-    "facebook-container"
-    "clearurls"
+  # Attribute name in pkgs.nur.repos.rycee.firefox-addons, plus where the button
+  # should sit. Resolved by default.nix inside its mkIf so pkgs.nur is never
+  # forced on a host that has not loaded the NUR module.
+  #
+  # `area` drives the ExtensionSettings policy's default_area:
+  #   "navbar"    pinned to the toolbar
+  #   "menupanel" tucked in the unified-extensions (puzzle-piece) menu
+  extensions = [
+    { name = "ublock-origin"; area = "navbar"; }
+    { name = "clearurls"; area = "menupanel"; }
+    { name = "facebook-container"; area = "menupanel"; }
   ];
 }

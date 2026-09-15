@@ -6,26 +6,21 @@
 
     apps = {
       defaultSet = "kde";
-
-      # Firefox owns http:// links, text/html and every xdg-open from another
-      # app (Discord, Steam, the editor). Super+B still opens LibreWolf — see
-      # programs.browser below. The split is deliberate: LibreWolf stays the
-      # browser launched on purpose, Firefox catches links from elsewhere, and
-      # the two run side by side until Firefox has proven itself a replacement.
       defaults.kde.browser = "firefox.desktop";
 
-      # Super+B stays on LibreWolf, which is hand-configured on this host and
-      # deliberately NOT managed by the browser preset module. Do not switch
-      # this to Firefox until the declarative Firefox profile is verified as a
-      # full replacement — see customConfig.homeManager.browser.firefox in
-      # home.nix, which sets ownsAppRole = false precisely so this role keeps
-      # pointing at LibreWolf.
+      # Firefox is the primary browser (Super+B) as of the 2026-09-15 checklist
+      # pass in docs/browsers.md: chrome theme, Widevine/Prime playback, .lan,
+      # saved logins surviving a restart, search keywords and the sops-backed
+      # bookmarks were all verified on this machine.
       #
-      # This is the role default, restated so the intent survives the next
-      # person reading it.
+      # It is configured by customConfig.homeManager.browser.firefox in home.nix,
+      # which builds its own wrapped package — so the collision guard in
+      # modules/home-manager/system/apps.nix drops this package from
+      # home.packages and the role's command resolves `firefox` from PATH. See
+      # docs/browsers.md "ownsAppRole".
       programs.browser = {
-        package = pkgs.librewolf;
-        exe = "librewolf";
+        package = pkgs.firefox;
+        exe = "firefox";
       };
 
       # Spotify tracks unstable here; the desktop entry with the Ozone/Wayland
@@ -190,10 +185,17 @@
         "vlc"
         "signal-desktop"
       ];
-      # vscode, librewolf, discord and signal-desktop now come from
+      # vscode, firefox, discord and signal-desktop now come from
       # customConfig.apps.programs (ide, browser, chat, chatAlt). browserAlt is
       # Chromium here, so brave is listed below to keep it installed.
       homeManager = with pkgs; [
+        # Kept installed alongside Firefox, but no longer on the browser role and
+        # deliberately NOT managed by customConfig.homeManager.browser — its
+        # hand-configured ~/.librewolf profile is untouched and stays as a
+        # fallback. Still needs the unstable-override above: stable 25.11 marks
+        # librewolf insecure, so Hydra never builds it.
+        librewolf
+
         jamesdsp
         remmina
         md-tui
