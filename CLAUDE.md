@@ -402,13 +402,18 @@ When asked to work on tasks, follow this workflow for each task:
    ```bash
    NIXPKGS_ALLOW_UNFREE=1 nix eval --impure .#nixosConfigurations.<host>.config.system.build.toplevel.drvPath
    ```
-   For changes to shared modules, check **all hosts**:
+   For changes to shared modules, check **all hosts**. Enumerate them from the flake
+   rather than hardcoding a list — the list here used to name only the nine "real"
+   hosts, so `vm-sandbox`, `vm-blaney` and `installer` were silently skipped and a PR
+   that evaluated clean locally still failed CI:
    ```bash
-   for host in gaming-pc optiplex blaney-pc justus-pc asus-laptop asus-m15 atl-mini-pc optiplex-nas mini-server; do
+   for host in $(NIXPKGS_ALLOW_UNFREE=1 nix eval --impure --raw \
+       --expr 'builtins.concatStringsSep " " (builtins.attrNames (builtins.getFlake (toString ./.)).nixosConfigurations)'); do
      echo -n "$host: " && NIXPKGS_ALLOW_UNFREE=1 nix eval --impure ".#nixosConfigurations.${host}.config.system.build.toplevel.drvPath" 2>&1 | tail -1
    done
    ```
-   CI (GitHub Actions) also runs this automatically on every PR.
+   CI (GitHub Actions) also runs this automatically on every PR, and it *does* cover
+   every configuration — so a green local run against a stale list proves nothing.
 4. **Commit and push** the branch
 5. **Open a PR** via `gh pr create`
 6. **Check off** the task in `TASKS.md` on `main` (or mark it as pending in-person testing if it needs a reboot/display to verify)
