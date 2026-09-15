@@ -23,6 +23,7 @@ in `docs/` — read the matching file when the task calls for it:
 | [docs/hosts/blaney-pc.md](docs/hosts/blaney-pc.md) | the session is on `blaney-pc` (user `insideabush`), or writing a `docs/runbooks/blaney/` task |
 | [docs/companion-repos.md](docs/companion-repos.md) | bumping the pin of a package sourced from another of our repos |
 | [docs/browsers.md](docs/browsers.md) | Firefox / LibreWolf presets, `customConfig.homeManager.browser`, or the bookmark-secrets path |
+| [docs/subtitles.md](docs/subtitles.md) | subtitles for Jellyfin, Bazarr config/providers, or the `bazarr-provision` unit |
 
 ## Choosing the Right Host to Work On
 
@@ -304,6 +305,7 @@ Available via `customConfig.homelab`:
 - Jellyfin media server
 - Samba file sharing
 - *arr stack (Radarr, Sonarr, Prowlarr, Bazarr)
+- Bazarr subtitle manager, provisioned declaratively — see [docs/subtitles.md](docs/subtitles.md)
 
 ## Networking, Firewall, and VPN
 

@@ -16,6 +16,9 @@
         htop
         claude-code
       ];
+      unstable-override = [
+        "claude-code"
+      ];
       homeManager = with pkgs; [
         vscode
       ];

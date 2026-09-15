@@ -55,6 +55,10 @@ in
         enable = true;
         openFirewall = true;
       };
+      # Radarr creates each title directory. At the default 0022 the group write
+      # bit is dropped, so Bazarr - though it is in the media group - cannot write
+      # .srt sidecars next to the video. 0002 keeps the media group writable.
+      systemd.services.radarr.serviceConfig.UMask = "0002";
     })
 
     (lib.mkIf arrCfg.sonarr.enable {
@@ -62,6 +66,8 @@ in
         enable = true;
         openFirewall = true;
       };
+      # Same as Radarr: keep series directories group-writable for Bazarr.
+      systemd.services.sonarr.serviceConfig.UMask = "0002";
     })
 
     (lib.mkIf arrCfg.bazarr.enable {
@@ -69,6 +75,9 @@ in
         enable = true;
         openFirewall = true;
       };
+      # Subtitles Bazarr writes must stay group-writable so media-linker can
+      # hardlink them into the per-user libraries.
+      systemd.services.bazarr.serviceConfig.UMask = "0002";
     })
 
   ];

@@ -26,6 +26,12 @@
       radarr.enable = true;
       sonarr.enable = true;
       bazarr.enable = true;
+      # Converge Bazarr's settings + English language profile over its REST API.
+      # Bazarr rewrites config.yaml and its DB at runtime, so this is the only way
+      # to keep it declarative. credentialsFile points at the sops secret below.
+      bazarr.provision.enable = true;
+      bazarr.provision.credentialsFile =
+        config.sops.secrets."opensubtitles-credentials".path;
     };
     transmission.enable = true;
     mullvad.enable = true;
@@ -88,4 +94,8 @@
       luksUuid = "PLACEHOLDER";  # replace after running blkid on the USB drive
     };
   };
+
+  # Consumed by the bazarr-provision unit to enable the opensubtitlescom
+  # provider. Sourced from defaultSopsFile (secrets/optiplex-nas.yaml).
+  sops.secrets."opensubtitles-credentials" = { };
 }
