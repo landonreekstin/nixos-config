@@ -14,6 +14,9 @@
   nasNames = [
     "home" "nas" "jellyfin" "jellyseerr" "transmission"
     "radarr" "sonarr" "bazarr" "prowlarr" "nix-cache" "reader"
+    # Music stack: music -> Navidrome (listen), ombi -> requests,
+    # lidarr -> album manager, slskd -> Soulseek client.
+    "lidarr" "music" "ombi" "slskd" "soularr"
   ];
 
   # Names whose address is the same from everywhere (mini-server, server subnet).

@@ -11,8 +11,13 @@
     ./transmission.nix
     ./arr.nix
     ./bazarr-provision.nix
+    ./lidarr-provision.nix
     ./mullvad.nix
     ./jellyseerr.nix
+    ./navidrome.nix
+    ./ombi.nix
+    ./slskd.nix
+    ./soularr.nix
     ./flaresolverr.nix
     ./media-linker.nix
     ./nix-cache.nix

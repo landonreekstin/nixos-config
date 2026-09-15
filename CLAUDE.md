@@ -23,6 +23,7 @@ in `docs/` — read the matching file when the task calls for it:
 | [docs/hosts/blaney-pc.md](docs/hosts/blaney-pc.md) | the session is on `blaney-pc` (user `insideabush`), or writing a `docs/runbooks/blaney/` task |
 | [docs/companion-repos.md](docs/companion-repos.md) | bumping the pin of a package sourced from another of our repos |
 | [docs/subtitles.md](docs/subtitles.md) | subtitles for Jellyfin, Bazarr config/providers, or the `bazarr-provision` unit |
+| [docs/music.md](docs/music.md) | anything music: Lidarr, Navidrome, Ombi requests, slskd/Soulseek, or the `soularr` bridge |
 
 ## Choosing the Right Host to Work On
 
@@ -303,8 +304,11 @@ Three topics that only matter when you are actively doing them:
 Available via `customConfig.homelab`:
 - Jellyfin media server
 - Samba file sharing
-- *arr stack (Radarr, Sonarr, Prowlarr, Bazarr)
+- *arr stack (Radarr, Sonarr, Prowlarr, Bazarr, Lidarr)
 - Bazarr subtitle manager, provisioned declaratively — see [docs/subtitles.md](docs/subtitles.md)
+- Music: Lidarr + Navidrome (listen) + Ombi (request) + slskd/soularr (Soulseek) — see
+  [docs/music.md](docs/music.md). Note Jellyseerr cannot do music requests, which is why
+  Ombi exists as a *second* request portal.
 
 ## Networking, Firewall, and VPN
 
