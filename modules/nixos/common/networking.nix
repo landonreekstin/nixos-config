@@ -220,5 +220,16 @@ in
     # nameserver it would buy nothing and only make lookups fragile on a slow link.
     networking.resolvconf.extraOptions =
       lib.mkIf (!cfg.useResolved && primaryNameservers != []) [ "timeout:1" "attempts:1" ];
+
+    # openresolv discards every non-loopback nameserver as soon as a loopback one is
+    # present — resolv_conf_local_only defaults to YES (see libexec/resolvconf/libc).
+    # On a host whose primary resolver is local, that silently dropped the public
+    # fallbacks we just configured: optiplex-nas runs Unbound on 127.0.0.1 and ended up
+    # with `nameserver 127.0.0.1` alone, so a dead Unbound still left it with no
+    # resolver at all — exactly the failure the fallbacks exist to prevent.
+    # Inert on hosts with no local resolver, since nothing sets `gotlocal` there.
+    networking.resolvconf.extraConfig =
+      lib.mkIf (!cfg.useResolved && primaryNameservers != [] && cfg.fallbackDns != [])
+        "resolv_conf_local_only=NO";
   };
 }
