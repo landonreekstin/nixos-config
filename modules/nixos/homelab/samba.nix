@@ -112,6 +112,19 @@ in
         description = "Private Samba SMB Daemon";
         after = [ "network.target" ];
         wants = [ "network.target" ];
+        # Never serve the share unless its path is a REAL mountpoint.
+        #
+        # The private share lives on a nofail LUKS drive. When that drive failed to
+        # enumerate (2026-09-14), the mount was skipped, the path was left as a bare
+        # directory on the root filesystem, and smbd happily exported it writable —
+        # so anything written to the "private" share would have landed unencrypted
+        # on /, and could have filled the root disk. RequiresMountsFor ties this unit
+        # to the mount; ConditionPathIsMountPoint makes it skip cleanly rather than
+        # serve the wrong directory.
+        unitConfig = {
+          RequiresMountsFor = cfg.private.path;
+          ConditionPathIsMountPoint = cfg.private.path;
+        };
         serviceConfig = {
           Type = "notify";
           # We point the smbd binary to our custom config file.
