@@ -10,6 +10,7 @@
     ./media-setup.nix
     ./transmission.nix
     ./arr.nix
+    ./bazarr-provision.nix
     ./mullvad.nix
     ./jellyseerr.nix
     ./flaresolverr.nix
