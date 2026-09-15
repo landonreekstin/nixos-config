@@ -111,18 +111,54 @@ half-configured client. There is no stamp file (unlike `bazarr-provision.nix`) b
 convergence is structural. The flip side: **deleting either from Lidarr's UI is not
 durable** — the next boot puts it back.
 
-Everything else is a one-time manual pass:
+Everything else is a one-time manual pass, done once on 2026-09-15 and recorded here for a
+rebuild-from-scratch:
 
 1. **Jellyfin** → Dashboard → Libraries → Add Media Library → *Music* → `/mnt/storage/media/music`.
+   (Scriptable: `POST /Library/VirtualFolders?name=Music&collectionType=music` with a
+   `PathInfos` body and an `X-Emby-Token` header.)
 2. **slskd** (`slskd.lan`) → log in with `SLSKD_USERNAME` / `SLSKD_PASSWORD` → confirm it
    shows *Connected* to the Soulseek network.
-3. **Prowlarr** (`prowlarr.lan`) → add music indexers → Settings → Apps → add Lidarr → Sync.
+3. **Prowlarr** (`prowlarr.lan`) → add music indexers, then Settings → Apps → add Lidarr.
+   (Scriptable: build the payload from `GET /api/v1/applications/schema`, same trick
+   `lidarr-provision.nix` uses for download clients, then `POST /api/v1/command`
+   `{"name":"ApplicationIndexerSync"}`.) Only indexers carrying categories in the 3000
+   range are music-capable — of the six public ones here, three are.
 4. **Ombi** (`ombi.lan`) → first-run wizard → Media Server = Jellyfin
-   (`http://127.0.0.1:8096` + API key) → import Jellyfin users → Settings → Lidarr
-   (`http://127.0.0.1:8686` + API key, pick the quality/metadata profile and the music root
-   folder) → enable Music requests.
+   (`localhost:8096` + a dedicated API key) → import Jellyfin users → Settings → Lidarr
+   (`localhost:8686` + API key, Base URL **empty**, then Load Profiles / Root Folders /
+   Metadata) → Submit.
 
 Ombi has no declarative settings surface, so this is the same situation as Jellyseerr.
+
+### Ombi gotchas
+
+All three of these cost real time the first time round:
+
+- **Hostname fields are Ombi-server-side, so `localhost` is correct** even though you are
+  filling the form from another machine's browser. The browser only submits the form; Ombi
+  makes the actual call, and it runs on the NAS next to Lidarr and Jellyfin.
+- **Base URL must be empty.** Lidarr's `<UrlBase>` is empty, so anything here makes Ombi
+  request `/yourbase/api/v1/...` and every call 404s — which surfaces as empty
+  Load Profiles / Load Root Folders dropdowns, not as an error.
+- **`Admin` does not imply request permissions.** They are separate claims, and the music
+  UI is gated on `RequestMusic`. A fresh admin account has *every* request claim set false,
+  so Settings → Users → your user → tick Request Music (and Auto Approve Music if you do
+  not want to approve your own). Check from the CLI with:
+
+  ```bash
+  curl -s -H "ApiKey: <ombi api key>" http://127.0.0.1:5010/api/v1/Identity/Users \
+    | jq -r '.[] | .userName, (.claims[] | select(.enabled) | "  ✓ \(.value)")'
+  ```
+
+  The Ombi API key is in `OmbiSettings.db` → `GlobalSettings` → `OmbiSettings`.
+
+- **Music is a tab on the search *results* page**, not a filter control — run a search
+  first, then it sits next to Movies and TV Shows. The tab is rendered only if
+  `GET /api/v1/Lidarr/enabled/` returns true, and that flag is fetched once per app load
+  and cached in memory (`shareReplay(1)`). A browser session opened *before* you saved the
+  Lidarr settings will therefore never show it: hard-refresh (`Ctrl+Shift+R`) or re-login.
+  Claims are likewise baked into the session token at login.
 
 ## Secrets
 
