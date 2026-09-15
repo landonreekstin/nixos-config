@@ -59,11 +59,34 @@
     };
   };
 
-  # === Declaratively set permissions for Samba mount points ===
-  # This ensures the 'lando' user, which Samba is forced to use,
-  # has the necessary permissions to read and write to the shares.
-  systemd.tmpfiles.rules = [
-    "d /mnt/storage 0775 lando users - -"
-    "d /mnt/private 0775 lando users - -"
-  ];
+  # === Samba mount point permissions ===
+  # Deliberately NOT done with systemd.tmpfiles `d` rules. Two problems with that,
+  # both observed on this host:
+  #
+  #   1. The rules race the mounts. tmpfiles wins on a mount that is slow or absent
+  #      (both of these are `nofail`), so it creates a look-alike directory on the
+  #      ROOT filesystem which the real mount then hides — or, worse, doesn't. When
+  #      the LUKS drive failed to enumerate on 2026-09-14, /mnt/private was exactly
+  #      that: an empty root-fs directory that Samba was still exporting writable.
+  #   2. The rules disagreed with reality anyway. They declared `lando:users 0775`,
+  #      while both filesystems are actually `lando:media 2775` — SGID with the media
+  #      group, which is what lets Jellyfin and the *arr stack share files. Had
+  #      tmpfiles ever won the race against the mount, it would have stripped the
+  #      SGID bit and the group.
+  #
+  # Ownership is a property of the filesystem and persists across boots, so it only
+  # needs setting once, on the mounted filesystem:
+  #   sudo chown lando:media /mnt/storage && sudo chmod 2775 /mnt/storage
+  #
+  # samba-private additionally refuses to start unless its path is a real mountpoint
+  # (see modules/nixos/homelab/samba.nix).
+
+  # === Don't wait 90s at boot for a missing private drive ===
+  # The LUKS drive is unlocked in the initrd, so the `nofail` and
+  # `x-systemd.device-timeout=10s` on the /mnt/private MOUNT above do not apply to
+  # the wait for its BACKING DEVICE — that is a separate device unit which gets
+  # systemd's 90s DefaultDeviceTimeout. Capping it here keeps a dead or unplugged
+  # private drive to a short pause instead of a minute and a half of boot hang.
+  # Kept generous enough for the NVMe root and the USB storage pool to appear.
+  boot.initrd.systemd.settings.Manager.DefaultDeviceTimeoutSec = "30s";
 }
