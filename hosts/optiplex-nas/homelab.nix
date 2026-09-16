@@ -32,8 +32,31 @@
       bazarr.provision.enable = true;
       bazarr.provision.credentialsFile =
         config.sops.secrets."opensubtitles-credentials".path;
+      lidarr.enable = true;
+      # Converge the music root folder and the Transmission download client over
+      # Lidarr's REST API, same reasoning as the Bazarr provisioner above.
+      lidarr.provision.enable = true;
     };
     transmission.enable = true;
+
+    # ── Music stack ──────────────────────────────────────────────────────────
+    # Jellyseerr handles film/TV requests but has no music support whatsoever,
+    # so music gets its own request portal (Ombi) and its own player
+    # (Navidrome). Both read the one shared library Lidarr fills; Jellyfin also
+    # has a Music library pointed at the same directory.
+    navidrome.enable = true;
+    ombi.enable = true;
+    # Second download source: public torrent indexers are thin on music, so
+    # Soulseek fills the gap. soularr drives it from Lidarr's wanted list.
+    # NOTE: the NAS is on a Mullvad full tunnel and Mullvad dropped port
+    # forwarding in 2023, so slskd takes no incoming peer connections. It can
+    # still download; uploads and share visibility are degraded. See docs/music.md.
+    slskd = {
+      enable = true;
+      credentialsFile = config.sops.secrets."slskd-credentials".path;
+      shareMusic = true;
+    };
+    soularr.enable = true;
     mullvad.enable = true;
     jellyseerr.enable = true;
     flaresolverr.enable = true;
@@ -98,4 +121,9 @@
   # Consumed by the bazarr-provision unit to enable the opensubtitlescom
   # provider. Sourced from defaultSopsFile (secrets/optiplex-nas.yaml).
   sops.secrets."opensubtitles-credentials" = { };
+
+  # Consumed by slskd as an EnvironmentFile. Holds SLSKD_SLSK_USERNAME /
+  # SLSKD_SLSK_PASSWORD (the slsknet.org account) and SLSKD_USERNAME /
+  # SLSKD_PASSWORD (the web UI login). Also from defaultSopsFile.
+  sops.secrets."slskd-credentials" = { };
 }

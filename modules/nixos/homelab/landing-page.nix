@@ -91,7 +91,17 @@ let
           <a class="card" href="http://jellyseerr.lan">
             <span class="card-icon">🔍</span>
             <span class="card-label">Jellyseerr</span>
-            <span class="card-desc">Requests</span>
+            <span class="card-desc">Film &amp; TV Requests</span>
+          </a>
+          <a class="card" href="http://music.lan">
+            <span class="card-icon">🎵</span>
+            <span class="card-label">Navidrome</span>
+            <span class="card-desc">Music Player</span>
+          </a>
+          <a class="card" href="http://ombi.lan">
+            <span class="card-icon">🎧</span>
+            <span class="card-label">Ombi</span>
+            <span class="card-desc">Music Requests</span>
           </a>
         </div>
       </div>
@@ -123,6 +133,16 @@ let
             <span class="card-icon">💬</span>
             <span class="card-label">Bazarr</span>
             <span class="card-desc">Subtitles</span>
+          </a>
+          <a class="card" href="http://lidarr.lan">
+            <span class="card-icon">🎶</span>
+            <span class="card-label">Lidarr</span>
+            <span class="card-desc">Music</span>
+          </a>
+          <a class="card" href="http://slskd.lan">
+            <span class="card-icon">🔊</span>
+            <span class="card-label">slskd</span>
+            <span class="card-desc">Soulseek</span>
           </a>
         </div>
       </div>

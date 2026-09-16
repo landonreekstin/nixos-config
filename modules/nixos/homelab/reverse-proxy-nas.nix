@@ -24,6 +24,11 @@ in
         (lib.mkIf cfg.arr.sonarr.enable   { "sonarr.lan"       = mkProxy 8989; })
         (lib.mkIf cfg.arr.bazarr.enable   { "bazarr.lan"       = mkProxy 6767; })
         (lib.mkIf cfg.arr.prowlarr.enable { "prowlarr.lan"     = mkProxy 9696; })
+        (lib.mkIf cfg.arr.lidarr.enable   { "lidarr.lan"       = mkProxy 8686; })
+        (lib.mkIf cfg.navidrome.enable    { "music.lan"        = mkProxy cfg.navidrome.port; })
+        (lib.mkIf cfg.ombi.enable         { "ombi.lan"         = mkProxy cfg.ombi.port; })
+        (lib.mkIf cfg.slskd.enable        { "slskd.lan"        = mkProxy cfg.slskd.webPort; })
+        (lib.mkIf cfg.soularr.enable      { "soularr.lan"      = mkProxy cfg.soularr.webPort; })
         (lib.mkIf cfg.nixCache.enable     { "nix-cache.lan"    = mkProxy 5000; })
       ];
     };

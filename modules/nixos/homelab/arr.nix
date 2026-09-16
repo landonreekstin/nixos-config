@@ -34,6 +34,13 @@ in
         description = "Enable Bazarr, a subtitle manager for Radarr and Sonarr.";
       };
     };
+    lidarr = {
+      enable = mkOption {
+        type = types.bool;
+        default = false; # Default to false, enable explicitly for Lidarr
+        description = "Enable Lidarr, a music collection manager.";
+      };
+    };
   };
 
   config = lib.mkMerge [
@@ -78,6 +85,18 @@ in
       # Subtitles Bazarr writes must stay group-writable so media-linker can
       # hardlink them into the per-user libraries.
       systemd.services.bazarr.serviceConfig.UMask = "0002";
+    })
+
+    (lib.mkIf arrCfg.lidarr.enable {
+      services.lidarr = {
+        enable = true;
+        openFirewall = true;
+      };
+      # Same as Radarr/Sonarr: Lidarr creates the artist/album directories, and at
+      # the default 0022 the group write bit is dropped. 0002 keeps them writable
+      # by the media group, which is what lets soularr hand imports over and lets
+      # Navidrome/Jellyfin read the result.
+      systemd.services.lidarr.serviceConfig.UMask = "0002";
     })
 
   ];

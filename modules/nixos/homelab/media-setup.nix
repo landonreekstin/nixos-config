@@ -63,6 +63,17 @@ in
       bazarr = lib.mkIf arrCfg.bazarr.enable {
         extraGroups = [ "media" ];
       };
+      lidarr = lib.mkIf arrCfg.lidarr.enable {
+        extraGroups = [ "media" ];
+      };
+      # Reads the music library; also the uid soularr's container runs as, so it
+      # needs write access to the shared download dirs.
+      slskd = lib.mkIf config.customConfig.homelab.slskd.enable {
+        extraGroups = [ "media" ];
+      };
+      navidrome = lib.mkIf config.customConfig.homelab.navidrome.enable {
+        extraGroups = [ "media" ];
+      };
     };
 
     # 3. Declaratively create directories and set their permissions.
@@ -80,9 +91,35 @@ in
       # In-flight torrents stage here — see the incomplete-dir note in
       # homelab/transmission.nix for why this is not on cachePath.
       "d ${cfg.storagePath}/downloads/incomplete 2775 ${cfg.user} media -"
+    ]
+    # Transmission creates its own category dirs on first grab, which is why
+    # radarr/ and tv-sonarr/ are not listed here. Lidarr is different: it health-
+    # checks its category dir at startup and reports a missing one as
+    # "cannot see this directory. You may need to adjust the folder's
+    # permissions" — a misleading message for a directory that simply does not
+    # exist yet. Create it up front so the warning never appears.
+    ++ lib.optionals (arrCfg.lidarr.enable && config.customConfig.homelab.transmission.enable) [
+      "d ${cfg.storagePath}/downloads/torrents/lidarr 2775 ${cfg.user} media -"
+    ]
+    # The Soulseek path. slskd downloads land in slskd/, soularr then assembles
+    # each finished album into a subfolder of that SAME directory and points
+    # Lidarr at it — there is no separate handover directory, see the
+    # download_dir note in homelab/soularr.nix. So slskd, soularr (running as
+    # slskd:media) and lidarr all read and write here, which is what the SGID
+    # group-write in 2775 is for.
+    ++ lib.optionals config.customConfig.homelab.slskd.enable [
+      "d ${cfg.storagePath}/downloads/slskd 2775 ${cfg.user} media -"
+      "d ${cfg.storagePath}/downloads/slskd-incomplete 2775 ${cfg.user} media -"
+    ]
+    ++ [
       "d ${cfg.storagePath}/media 2775 ${cfg.user} media -"
       "d ${cfg.storagePath}/media/movies 2775 ${cfg.user} media -"
       "d ${cfg.storagePath}/media/tv 2775 ${cfg.user} media -"
+      # One shared music library: Lidarr writes it, Navidrome and Jellyfin read
+      # it. Deliberately not split per-user like movies/tv — media-linker's
+      # per-user trees are driven by Jellyseerr requests, and Jellyseerr has no
+      # concept of music.
+      "d ${cfg.storagePath}/media/music 2775 ${cfg.user} media -"
 
       # Create and manage cache subdirectories.
       # No incomplete/ rule here any more: in-flight torrents moved to
