@@ -175,6 +175,59 @@ The slskd **API key** used by soularr is deliberately *not* a secret — it is a
 `homelab/slskd.nix`, pinned to `127.0.0.1/32`. It only grants API access from this machine,
 and anyone who can read the nix store already has a shell here.
 
+## Getting music in: two metadata backends, very different reliability
+
+This is the single most useful thing to know about the stack, and it is not obvious:
+
+| Path | Metadata source | Measured reliability |
+|---|---|---|
+| Ombi music search | **MusicBrainz** (`musicbrainz.org/ws/2/`) | ~40% — see below |
+| Lidarr search, Spotify import lists | **`api.lidarr.audio`** (Lidarr's own proxy) | 10/10 |
+
+Measured on 2026-09-15, paced ~1.5s apart, interleaved so both saw the same conditions:
+
+```
+MusicBrainz via Mullvad exit   7/15 ok
+MusicBrainz via house WAN IP   6/15 ok
+MusicBrainz, Ombi User-Agent   4/10 ok
+MusicBrainz, compliant U-A     4/10 ok
+api.lidarr.audio               10/10 ok
+```
+
+**Source IP makes no difference and neither does User-Agent** — the two paths fail at the
+same moments, and `musicbrainz.org` itself serves 200 while `/ws/2/` sheds requests. It is
+MusicBrainz's search API being overloaded, nothing about this host.
+
+Split-tunnelling Ombi out of Mullvad was investigated and **rejected on evidence** — the
+house-IP column above is exactly that experiment. Do not re-propose it for this reason.
+(`mullvad-exclude` does work, verified: excluded traffic exits `68.184.198.204` instead of
+the Mullvad relay. It is simply not a fix for *this*.)
+
+So: **prefer Lidarr for getting music in, and treat Ombi as the convenience portal for other
+people, knowing it sometimes needs a second click.**
+
+## Spotify import lists
+
+The reliable bulk path, because it uses `api.lidarr.audio` rather than MusicBrainz. Lidarr
+ships three: `SpotifySavedAlbums`, `SpotifyFollowedArtists`, `SpotifyPlaylist`.
+
+All three authenticate with **OAuth**, so the tokens are obtained interactively and
+**cannot be provisioned declaratively** — this is the one part of the stack that is
+inherently a UI step. `lidarr.lan` → Settings → Import Lists → `+` → pick a Spotify list →
+**Authenticate with Spotify** → set Root Folder to `/mnt/storage/media/music`.
+
+The schema defaults are deliberately safe and **should be left alone on the first sync**:
+
+```
+enableAutomaticAdd = false     shouldMonitor = none
+shouldSearch       = false     minRefreshInterval = 12:00:00
+```
+
+Let it sync once, look at what it pulled in, *then* decide what to monitor. Turning
+`enableAutomaticAdd` and `shouldMonitor` on against a large saved-albums library queues
+hundreds of albums in one go. soularr is capped at `albumsPerRun = 5` per pass so it cannot
+stampede, but a few hundred FLAC albums is ~100-150 GB and will trickle in over days.
+
 ## Troubleshooting
 
 ```bash
@@ -212,6 +265,28 @@ journalctl -u soularr -n 100               # container stdout lands here
 
   ```bash
   grep -i umask /proc/$(docker inspect soularr --format '{{.State.Pid}}')/status   # want 0002
+  ```
+
+- **You click Request in Ombi and nothing happens at all** — no error, no entry in Requests.
+  Ombi resolves music through MusicBrainz and **silently drops the request** when the call
+  fails; there is no retry and nothing surfaces in the UI. Confirm with:
+
+  ```bash
+  sqlite3 /var/lib/ombi/Ombi.db "select Title, ArtistName, Approved from AlbumRequests;"
+  grep -i WebServiceException /var/lib/ombi/Logs/log*.txt
+  ```
+
+  An empty table plus `Hqub.MusicBrainz.API.WebServiceException: The MusicBrainz web server
+  is currently busy` is this. Just click Request again — it succeeds within a couple of
+  tries. It is not a config fault and not fixable from this side; see the reliability table
+  above. To force one through from the CLI, retry against Ombi's own API:
+
+  ```bash
+  AK=$(sqlite3 /var/lib/ombi/OmbiSettings.db \
+    "select Content from GlobalSettings where SettingsName='OmbiSettings';" | jq -r .ApiKey)
+  curl -s -H "ApiKey: $AK" "http://127.0.0.1:5010/api/v1/Search/music/album/<album>"   # get foreignAlbumId
+  curl -s -H "ApiKey: $AK" -H "Content-Type: application/json" -X POST \
+    -d '{"foreignAlbumId":"<id>"}' http://127.0.0.1:5010/api/v1/request/music
   ```
 
 - **An album is monitored but never appears in Lidarr's wanted list.** Lidarr's
