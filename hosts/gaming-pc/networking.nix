@@ -31,6 +31,11 @@ in
       # desktop; pulls in a publishing avahi daemon so iOS can discover the host.
       airplayReceiver.enable = true;
 
+      # USB iPhone access: usbmuxd + the `iphone` command, which is the Linux
+      # stand-in for iTunes' "Device -> Apps -> File Sharing" pane (pick an app,
+      # mount its Documents folder, browse it in Dolphin).
+      iosDevice.enable = true;
+
       # Dedicated LAN WireGuard peer for private NAS access (post-migration).
       # Gated by the nasViaLanWg flag in vars.nix. When enabled, captures only
       # 192.168.100.76 traffic through the tunnel — the rest of the network stays

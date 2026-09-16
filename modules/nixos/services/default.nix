@@ -8,5 +8,6 @@
 ./wireguard-server.nix
     ./wireguard-client.nix
     ./airplay-receiver.nix
+    ./ios-device.nix
   ];
 }
