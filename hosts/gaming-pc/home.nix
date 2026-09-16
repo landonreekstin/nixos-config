@@ -52,6 +52,16 @@
       # century-series is this host's Hyprland rice; the chrome follows it.
       personal.chromeTheme = "century-series";
 
+      # The Homelab dashboard on the NAS, rather than Firefox Home. It is served
+      # over HTTP, so anything added to it (feeds, status widgets) works without
+      # a rebuild here and shows up on every device that opens it.
+      #
+      # Note this is the Home button and new windows, NOT startup: restoreSession
+      # keeps browser.startup.page = 3, so launching Firefox reopens the previous
+      # session. Not set as a module default — .lan does not resolve for
+      # restricted VPN peers, so blaney-pc must not inherit it.
+      personal.startup.homepage = "http://home.lan/";
+
       # Substitute the two tokened bookmark URLs from the sops secrets declared
       # in apps.nix.
       personal.bookmarks.secrets.enable = true;
