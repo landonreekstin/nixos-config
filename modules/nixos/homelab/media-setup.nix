@@ -92,6 +92,15 @@ in
       # homelab/transmission.nix for why this is not on cachePath.
       "d ${cfg.storagePath}/downloads/incomplete 2775 ${cfg.user} media -"
     ]
+    # Transmission creates its own category dirs on first grab, which is why
+    # radarr/ and tv-sonarr/ are not listed here. Lidarr is different: it health-
+    # checks its category dir at startup and reports a missing one as
+    # "cannot see this directory. You may need to adjust the folder's
+    # permissions" — a misleading message for a directory that simply does not
+    # exist yet. Create it up front so the warning never appears.
+    ++ lib.optionals (arrCfg.lidarr.enable && config.customConfig.homelab.transmission.enable) [
+      "d ${cfg.storagePath}/downloads/torrents/lidarr 2775 ${cfg.user} media -"
+    ]
     # The Soulseek path. slskd downloads land in slskd/, soularr then assembles
     # each finished album into a subfolder of that SAME directory and points
     # Lidarr at it — there is no separate handover directory, see the
