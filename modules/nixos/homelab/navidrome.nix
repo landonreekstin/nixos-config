@@ -36,9 +36,13 @@ in
     services.navidrome = {
       enable = true;
       settings = {
-        # Bound to loopback: reached through nginx (music.lan), like every other
-        # NAS service. openFirewall is deliberately not set for the same reason.
-        Address = "127.0.0.1";
+        # Bind on all interfaces, matching lidarr/ombi/slskd which all listen
+        # broadly. nginx still fronts it as music.lan, but the direct
+        # host:port must also work: VPN peers and anything without the .lan
+        # zone in its resolver reach these services by IP, and a loopback-only
+        # bind silently breaks exactly those clients while music.lan keeps
+        # working from the NAS itself.
+        Address = "0.0.0.0";
         Port = cfg.port;
         MusicFolder = cfg.musicFolder;
       };
