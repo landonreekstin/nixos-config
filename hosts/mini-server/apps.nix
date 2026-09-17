@@ -6,10 +6,17 @@
 
     packages = {
       nixos = with pkgs; [ wget git vim htop claude-code restic ];
+      unstable-override = [ "claude-code" ];
       homeManager = [];
     };
 
-    programs.claudeCode.enable = true;
+    programs.claudeCode = {
+      enable = true;
+      remoteControl = {
+        atStartup = true;
+        server.enable = true;
+      };
+    };
 
   };
 }

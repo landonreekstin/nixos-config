@@ -61,6 +61,20 @@
         enable = true;
         # lando's hyprland-keys working clone lives alongside nixos-config on this host.
         extraChownPaths = [ "/home/lando/hyprland-keys" ];
+        remoteControl = {
+          atStartup = true;
+          server = {
+            enable = true;
+            directories = [
+              # nixos-config stays root: `rebuild` needs it, and the settings.json
+              # hooks already chown its files back to lando.
+              "/home/lando/nixos-config"
+              # analogue-pocket needs no root, so serve it as its owner — files stay
+              # lando-owned and no chown hook is involved.
+              { path = "/home/lando/emulation/analogue-pocket"; user = "lando"; }
+            ];
+          };
+        };
       };
     };
 

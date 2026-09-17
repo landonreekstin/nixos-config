@@ -5,7 +5,13 @@
   customConfig = {
 
     programs = {
-      claudeCode.enable = true;
+      claudeCode = {
+        enable = true;
+        remoteControl = {
+          atStartup = true;
+          server.enable = true;
+        };
+      };
     };
 
     packages = {
