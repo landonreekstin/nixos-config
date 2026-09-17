@@ -5,6 +5,46 @@ let
   isDesktop = customConfig.desktop.enable;
   apps = customConfig.apps.programs;
   d = customConfig.apps.defaults.${customConfig.apps.defaultSet};
+
+  # Audio types we hand to the audio player, reused by the MIME map and by the
+  # elisa-folder desktop entry (which has to advertise them to be a valid handler).
+  audioMimes = [
+    "audio/mpeg" "audio/ogg" "audio/flac" "audio/x-flac" "audio/x-wav"
+    "audio/wav" "audio/aac" "audio/mp4" "audio/x-m4a" "audio/opus"
+  ];
+
+  # Elisa's own Exec is "elisa %U", which enqueues *only* the files it is handed.
+  # Opening one track from a file manager therefore yields a one-entry playlist
+  # and the next/previous buttons do nothing. This wrapper hands Elisa the whole
+  # containing directory instead, rotated so the clicked track plays first and
+  # "next" walks forward through the folder in name order.
+  #
+  # elisa is called off PATH on purpose: it comes from plasma6 system-wide on the
+  # hosts that select it (defaultSet = "kde"), and a store reference here would
+  # drag the whole package into the home-manager closure of hosts that don't.
+  elisaFolder = pkgs.writeShellScriptBin "elisa-folder" ''
+    set -eu
+
+    target="''${1:-}"
+    if [ -z "$target" ]; then exec elisa; fi
+
+    dir="$(${pkgs.coreutils}/bin/dirname -- "$target")"
+    base="$(${pkgs.coreutils}/bin/basename -- "$target")"
+    cd "$dir" || exec elisa "$target"
+
+    shopt -s nullglob nocaseglob
+    siblings=( *.mp3 *.flac *.ogg *.oga *.opus *.m4a *.aac *.wav *.wma *.mpc )
+    if [ ''${#siblings[@]} -eq 0 ]; then exec elisa "$target"; fi
+
+    mapfile -t sorted < <(printf '%s\n' "''${siblings[@]}" | LC_ALL=C ${pkgs.coreutils}/bin/sort -V)
+
+    idx=0
+    for i in "''${!sorted[@]}"; do
+      if [ "''${sorted[$i]}" = "$base" ]; then idx="$i"; break; fi
+    done
+
+    exec elisa "''${sorted[@]:$idx}" "''${sorted[@]:0:$idx}"
+  '';
 in
 {
   # Configure XDG user directories (Desktop, Documents, etc.)
@@ -85,6 +125,20 @@ in
       mimeType = [ "text/plain" "text/x-script" "text/x-shellscript" "application/x-shellscript" ];
     };
 
+    # Folder-aware Elisa (see elisaFolder above). NoDisplay keeps it out of the
+    # app menus — it is a MIME shim, not a second copy of Elisa to launch by hand.
+    elisa-folder = {
+      name = "Elisa (folder playlist)";
+      genericName = "Music Player";
+      comment = "Play an audio file with the rest of its folder queued up";
+      exec = "${elisaFolder}/bin/elisa-folder %f";
+      icon = "elisa";
+      terminal = false;
+      noDisplay = true;
+      categories = [ "Audio" "Player" "Music" ];
+      mimeType = audioMimes;
+    };
+
   };
 
   # -------------------------------------------------------------------------- #
@@ -151,15 +205,7 @@ in
       "video/ogg"                     = d.videoPlayer;
 
       # ── Audio player ────────────────────────────────────────────────────────
-      "audio/mpeg"                    = d.audioPlayer;
-      "audio/ogg"                     = d.audioPlayer;
-      "audio/flac"                    = d.audioPlayer;
-      "audio/x-wav"                   = d.audioPlayer;
-      "audio/wav"                     = d.audioPlayer;
-      "audio/aac"                     = d.audioPlayer;
-      "audio/mp4"                     = d.audioPlayer;
-      "audio/x-m4a"                   = d.audioPlayer;
-      "audio/opus"                    = d.audioPlayer;
+      # (merged in below from audioMimes, which the elisa-folder entry shares)
 
       # ── PDF reader ──────────────────────────────────────────────────────────
       "application/pdf"               = d.pdfReader;
@@ -180,10 +226,19 @@ in
       "application/x-bittorrent"      = d.torrentClient;
       "x-scheme-handler/magnet"       = d.torrentClient;
 
-    } // lib.optionalAttrs (d.emailClient != null) {
+    } // lib.genAttrs audioMimes (_: d.audioPlayer)
+      // lib.optionalAttrs (d.emailClient != null) {
       # ── Email client (optional — skipped when emailClient is null) ──────────
       "x-scheme-handler/mailto"       = d.emailClient;
       "message/rfc822"                = d.emailClient;
     };
+
+    # Mirror every default into [Added Associations]. A handler does not always
+    # claim every type we point at it — Elisa's own MimeType advertises
+    # audio/x-flac but not audio/flac — and an entry in [Default Applications]
+    # that the .desktop itself does not declare is ignored by some
+    # implementations. Declaring the association keeps the two in step.
+    # (read back post-coercion, so the values are already listOf str)
+    associations.added = config.xdg.mimeApps.defaultApplications;
   };
 }

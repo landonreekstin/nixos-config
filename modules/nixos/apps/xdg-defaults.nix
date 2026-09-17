@@ -135,9 +135,13 @@
         };
         audioPlayer = mkOption {
           type = types.str;
-          default = "mpv.desktop";
+          # Elisa ships with plasma6, so KDE hosts already have it. Routed through
+          # the elisa-folder wrapper (modules/home-manager/system/xdg.nix) because
+          # plain "elisa %U" enqueues only the clicked file, leaving the
+          # next/previous buttons dead.
+          default = "elisa-folder.desktop";
           description = "Default audio player for KDE hosts.";
-          example = "vlc.desktop";
+          example = "org.kde.elisa.desktop";
         };
         pdfReader = mkOption {
           type = types.str;
@@ -146,7 +150,10 @@
         };
         archiveManager = mkOption {
           type = types.str;
-          default = "ark.desktop";
+          # Ark's desktop file is org.kde.ark.desktop — a bare "ark.desktop" does
+          # not exist on any host here, so archives resolved to nothing and KDE
+          # answered the double-click with its "Open With" dialog.
+          default = "org.kde.ark.desktop";
           description = "Default archive manager for KDE hosts.";
         };
         emailClient = mkOption {

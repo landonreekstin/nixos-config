@@ -5,6 +5,25 @@
 let
   apps = customConfig.apps.programs;
 
+  # KDE apps resolve a file's default handler through ksycoca — KDE's binary
+  # service cache — and NOT through mimeapps.list. kbuildsycoca6 enumerates the
+  # installed applications by walking ''${XDG_MENU_PREFIX}applications.menu, so
+  # with no prefix set it looks for a plain "applications.menu", which neither
+  # plasma-workspace nor KF6 kservice ships. It then silently builds a cache
+  # holding ZERO applications, KApplicationTrader::preferredService() returns
+  # null for every MIME type, and Dolphin falls back to the "Open With" dialog on
+  # every double-click. (Links keep working because those leave through xdg-open
+  # / the GTK portal, which reads mimeapps.list directly and never uses ksycoca.)
+  #
+  # Plasma sessions set this to "plasma-" and XFCE to "xfce-"; Hyprland sets
+  # nothing. Point it at whichever menu file this host actually installs. A host
+  # with neither DE gets a generic /etc/xdg/menus/applications.menu from
+  # modules/nixos/desktop/hyprland.nix instead, and wants no prefix here.
+  xdgMenuPrefix =
+    if lib.elem "kde" customConfig.desktop.environments then "plasma-"
+    else if lib.elem "xfce" customConfig.desktop.environments then "xfce-"
+    else null;
+
   # Generates the keybinds for one user application from customConfig.apps.programs.
   #
   # Every app gets "<mods>, <key>" to launch it, plus (unless newWs = false) a
@@ -201,7 +220,7 @@ in
           ]
           ++ [
             # Import Wayland session vars into systemd/dbus so user services can use them
-            "dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP"
+            "dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_MENU_PREFIX"
             # Launch waybar via wrapper — splits main/launcher into separate processes
             "sleep 1 && $HOME/.local/bin/waybar-start > /tmp/waybar-start.log 2>&1"
             # Re-apply persisted monitor on/off state (runs after waybar so it can restart cleanly)
@@ -239,7 +258,8 @@ in
           # shows an app-chooser dialog even when mimeapps.list has a clear default.
           # Unsetting it restores the direct mimeapps.list lookup which works correctly.
           "NIXOS_XDG_OPEN_USE_PORTAL,"
-        ] ++ lib.optional (customConfig.desktop.hyprland.drmDevice != null)
+        ] ++ lib.optional (xdgMenuPrefix != null) "XDG_MENU_PREFIX,${xdgMenuPrefix}"
+          ++ lib.optional (customConfig.desktop.hyprland.drmDevice != null)
             "AQ_DRM_DEVICES,${customConfig.desktop.hyprland.drmDevice}";
 
         # Input settings

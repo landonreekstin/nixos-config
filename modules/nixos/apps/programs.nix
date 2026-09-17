@@ -178,8 +178,14 @@ in
         description = "Audio visualizer (Super+Alt+M, opened inside \$terminal).";
       };
       videoPlayer = mkAppRole {
-        package = pkgs.mpv; exe = "mpv";
-        description = "Video and audio player; the MIME default for video/* and audio/*.";
+        # autoload.lua pulls every playable sibling in the containing directory
+        # into the playlist, so opening one file from a file manager makes
+        # Shift+. / Shift+, step to the next/previous video in that folder.
+        # Plain mpv opens a single-entry playlist and those keys do nothing.
+        # bin/mpv is unchanged by the wrapper, so exe and mpv.desktop still apply.
+        package = pkgs.mpv.override { scripts = [ pkgs.mpvScripts.autoload ]; };
+        exe = "mpv";
+        description = "Video and audio player; the MIME default for video/*.";
       };
       imageViewer = mkAppRole {
         package = pkgs.imv; exe = "imv";

@@ -152,6 +152,35 @@
     # Enable XWayland for running X11 apps
     programs.xwayland.enable = true;
 
+    # KDE apps (Dolphin is the default fileManager role) look up a file's default
+    # handler through ksycoca, which kbuildsycoca6 builds by walking
+    # ''${XDG_MENU_PREFIX}applications.menu. Hyprland sets no menu prefix, so it
+    # needs a plain "applications.menu" — and KF6 kservice stopped shipping one.
+    # Without it the cache is built with zero applications and every double-click
+    # opens KDE's "Open With" dialog instead of the app.
+    #
+    # Hosts that also run Plasma or XFCE already have plasma-/xfce-applications.menu
+    # and get pointed at it by XDG_MENU_PREFIX (see the matching block in
+    # modules/home-manager/hyprland/functional.nix). This covers the rest, without
+    # dragging plasma-workspace into a Hyprland-only host's closure.
+    environment.etc."xdg/menus/applications.menu" = lib.mkIf
+      (!(lib.elem "kde" config.customConfig.desktop.environments)
+       && !(lib.elem "xfce" config.customConfig.desktop.environments))
+      {
+        text = ''
+          <!DOCTYPE Menu PUBLIC "-//freedesktop//DTD Menu 1.0//EN"
+           "http://www.freedesktop.org/standards/menu-spec/1.0/menu.dtd">
+          <Menu>
+            <Name>Applications</Name>
+            <Directory>Applications.directory</Directory>
+            <DefaultAppDirs/>
+            <DefaultDirectoryDirs/>
+            <DefaultMergeDirs/>
+            <Include><All/></Include>
+          </Menu>
+        '';
+      };
+
     # Install essential Wayland tools and recommended packages for Hyprland
     environment.systemPackages = with pkgs; [
       wayland # Core Wayland libraries
