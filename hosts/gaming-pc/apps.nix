@@ -212,10 +212,21 @@
         keepassxc
       ];
       # Declared here rather than installed by hand, so nix-flatpak owns it and a
-      # fresh deploy reinstalls it. Discord is the only Flatpak on this host.
+      # fresh deploy reinstalls it.
+      #
+      # mcpelauncher (Minecraft Bedrock) comes from Flathub rather than
+      # pkgs.mcpelauncher-ui-qt for the same reason as Discord: it has to track the
+      # game. Flathub is on 1.8.3 while nixpkgs sits at 1.7.6/1.6.4, and an outdated
+      # launcher refuses to open the current Bedrock build. Note it needs Bedrock
+      # bought on Google Play — a Windows/Xbox purchase grants no entitlement to the
+      # Android APK the launcher downloads, and the Windows build is UWP so Wine and
+      # Proton are not an alternative.
       flatpak = {
         enable = true;
-        packages = [ "com.discordapp.Discord" ];
+        packages = [
+          "com.discordapp.Discord"
+          "io.mrarm.mcpelauncher"
+        ];
       };
     };
 
