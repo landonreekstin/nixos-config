@@ -541,6 +541,10 @@ in
         ccnr                   Open Claude and pick a past chat to resume
         claude-rebuild-failed  Ask Claude to fix a failed rebuild and make a PR
 
+      IPHONE / IPAD (plug it in with a cable first, and unlock it)
+        photos         Copy your photos off the phone and open them in a gallery
+        iphone         Open an app's files on the phone (pick the app from a list)
+
       OTHER
         rebuild-test   Try a rebuild temporarily (undone on reboot)
         ipr            Open the input-remapper (button remap) app

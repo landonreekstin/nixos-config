@@ -9,6 +9,41 @@ let
   # would drop you in a terminal instead of Dolphin.
   fileManager = config.customConfig.apps.programs.fileManager.command;
 
+  # Same reasoning for the gallery: blaney-pc's browser is a Flatpak
+  # (`flatpak run org.chromium.Chromium`), so xdg-open or a hardcoded package
+  # would both be wrong. The registry is the only thing that knows.
+  browser = config.customConfig.apps.programs.browser.command;
+
+  pythonEnv = pkgs.python3;
+
+  # One command for a non-technical user: plug the phone in, type `photos`, end up
+  # looking at the gallery. Tool paths are passed by absolute store path so nothing
+  # depends on what happens to be on PATH.
+  photos = pkgs.writeShellScriptBin "photos" ''
+    #!${pkgs.stdenv.shell}
+    set -uo pipefail
+
+    export IOS_IFUSE=${pkgs.ifuse}/bin/ifuse
+    export IOS_RSYNC=${pkgs.rsync}/bin/rsync
+    export IOS_EXIFTOOL=${pkgs.exiftool}/bin/exiftool
+    export IOS_FFMPEG=${pkgs.ffmpeg}/bin/ffmpeg
+    export IOS_MAGICK=${pkgs.imagemagick}/bin/magick
+    export IOS_IDEVICE_ID=${pkgs.libimobiledevice}/bin/idevice_id
+    export IOS_IDEVICEPAIR=${pkgs.libimobiledevice}/bin/idevicepair
+    export IOS_IDEVICEINFO=${pkgs.libimobiledevice}/bin/ideviceinfo
+    export IOS_BROWSER=${lib.escapeShellArg browser}
+
+    # ifuse links fuse 2.x, so the unmount helper is `fusermount`, not fusermount3,
+    # and only the setuid NixOS wrapper works unprivileged.
+    IOS_FUSERMOUNT=/run/wrappers/bin/fusermount
+    [ -x "$IOS_FUSERMOUNT" ] || IOS_FUSERMOUNT=${pkgs.fuse}/bin/fusermount
+    export IOS_FUSERMOUNT
+
+    exec ${pythonEnv}/bin/python3 ${./ios-photos-src/photo_tool.py} "$@" \
+      --archive ${lib.escapeShellArg cfg.photos.archive} \
+      --gallery ${lib.escapeShellArg cfg.photos.gallery}
+  '';
+
   # The Linux equivalent of iTunes' "Device -> Apps -> File Sharing" pane. That pane
   # is not an iTunes feature: it drives an iOS service (com.apple.mobile.house_arrest)
   # over AFC on USB, which libimobiledevice implements in full. `ifuse --list-apps` is
@@ -211,6 +246,40 @@ in
         Created on demand and removed again on unmount, so nothing persists on disk.
       '';
     };
+
+    photos = {
+      enable = mkOption {
+        type = types.bool;
+        default = false;
+        description = ''
+          Provide the `photos` command: copies the camera roll off a USB-connected
+          iPhone/iPad, reconstructs dates and albums from the device's Photos
+          database, and builds a static HTML gallery. One command start to finish,
+          so it is usable without knowing any of the underlying tools.
+        '';
+      };
+
+      archive = mkOption {
+        type = types.str;
+        default = "${config.customConfig.user.home}/ios-archive";
+        defaultText = literalExpression ''"''${config.customConfig.user.home}/ios-archive"'';
+        description = ''
+          Where the untouched copy of each device's media lives, one directory per
+          device. Only ever appended to; the organized views are hardlinks into it.
+        '';
+      };
+
+      gallery = mkOption {
+        type = types.str;
+        default = "${config.customConfig.user.home}/photos";
+        defaultText = literalExpression ''"''${config.customConfig.user.home}/photos"'';
+        description = ''
+          Where the browsable output goes: by-date/, by-album/, by-device/, the
+          HEIC-to-JPEG conversions, and gallery/index.html. Hardlinked from the
+          archive, so it costs almost no extra disk.
+        '';
+      };
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -223,6 +292,6 @@ in
       pkgs.ifuse            # the FUSE mount of an app's Documents folder
       pkgs.ideviceinstaller # app listing/install, incl. bundle-id lookup
       iphone
-    ];
+    ] ++ lib.optional cfg.photos.enable photos;
   };
 }
