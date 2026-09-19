@@ -192,6 +192,11 @@ in
       "image/svg+xml"                 = d.imageViewer;
       "image/avif"                    = d.imageViewer;
       "image/x-xcf"                   = d.imageViewer;
+      # iPhone photos. shared-mime-info maps *.heic, *.heif and *.hif all onto
+      # image/heif, so this single entry covers the lot. Without it the type fell
+      # through to the desktop database, which picked Okular's kimgio catch-all —
+      # every phone photo opened in the PDF reader.
+      "image/heif"                    = d.imageViewer;
 
       # ── Video player ────────────────────────────────────────────────────────
       "video/mp4"                     = d.videoPlayer;
