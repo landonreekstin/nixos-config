@@ -9,6 +9,15 @@
       url = "github:NixOS/nixpkgs/nixos-unstable";
     };
 
+    # Version floor for signal-desktop only — see modules/nixos/unstable-overlay.nix.
+    # Signal migrates ~/.config/Signal forward to a newer database schema and then
+    # refuses to open it with an older build, so a host must never be handed a
+    # signal-desktop older than the one that last touched its database. Bump this
+    # rev forward when Signal needs updating; never move it backwards.
+    nixpkgs-signal = {
+      url = "github:NixOS/nixpkgs/c043004d1c6985732bcc1cbc5a9c9aecbbb4e0f0";
+    };
+
     nur = {
       url = "github:nix-community/NUR";
       inputs.nixpkgs.follows = "nixpkgs";
