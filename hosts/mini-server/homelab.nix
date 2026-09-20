@@ -51,6 +51,8 @@
       minecraftSurvival.enable = true;
       minecraftMinigames.enable = true;
       minecraftBedrock.enable = true;
+      minecraftBedrockLandon.enable = true;
+      minecraftBedrockVenator.enable = true;
     };
 
     gameControl.enable = true;

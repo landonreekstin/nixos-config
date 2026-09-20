@@ -46,6 +46,20 @@ SERVERS = {
         "bedrock": True,
         "ports": "19132/udp, 19133/udp",
     },
+    "minecraft-bedrock-landon": {
+        "label": "Minecraft Bedrock (Landon)",
+        "container": "minecraft-bedrock-landon",
+        "rcon": False,
+        "bedrock": True,
+        "ports": "19134/udp, 19135/udp",
+    },
+    "minecraft-bedrock-venator": {
+        "label": "Minecraft Bedrock (Venator)",
+        "container": "minecraft-bedrock-venator",
+        "rcon": False,
+        "bedrock": True,
+        "ports": "19136/udp, 19137/udp",
+    },
 }
 
 

@@ -6,7 +6,9 @@ let
   anyEnabled = cfg.astroneer.enable
     || cfg.minecraftSurvival.enable
     || cfg.minecraftMinigames.enable
-    || cfg.minecraftBedrock.enable;
+    || cfg.minecraftBedrock.enable
+    || cfg.minecraftBedrockLandon.enable
+    || cfg.minecraftBedrockVenator.enable;
 in
 {
   options.customConfig.homelab.gameServers = with lib; {
@@ -57,6 +59,32 @@ in
         description = "Minecraft Bedrock IPv6 UDP port.";
       };
     };
+    minecraftBedrockLandon = {
+      enable = mkEnableOption "Minecraft Bedrock server hosting the 'landon' world (OCI container, autoStart = false)";
+      port = mkOption {
+        type = types.port;
+        default = 19134;
+        description = "Minecraft Bedrock 'landon' IPv4 UDP port.";
+      };
+      portV6 = mkOption {
+        type = types.port;
+        default = 19135;
+        description = "Minecraft Bedrock 'landon' IPv6 UDP port.";
+      };
+    };
+    minecraftBedrockVenator = {
+      enable = mkEnableOption "Minecraft Bedrock server hosting the 'venator' world (OCI container, autoStart = false)";
+      port = mkOption {
+        type = types.port;
+        default = 19136;
+        description = "Minecraft Bedrock 'venator' IPv4 UDP port.";
+      };
+      portV6 = mkOption {
+        type = types.port;
+        default = 19137;
+        description = "Minecraft Bedrock 'venator' IPv6 UDP port.";
+      };
+    };
   };
 
   config = lib.mkIf anyEnabled {
@@ -89,6 +117,12 @@ in
     ]
     ++ lib.optionals cfg.minecraftBedrock.enable [
       "d ${cfg.dataDir}/minecraft-bedrock 0755 root root - -"
+    ]
+    ++ lib.optionals cfg.minecraftBedrockLandon.enable [
+      "d ${cfg.dataDir}/minecraft-bedrock-landon 0755 root root - -"
+    ]
+    ++ lib.optionals cfg.minecraftBedrockVenator.enable [
+      "d ${cfg.dataDir}/minecraft-bedrock-venator 0755 root root - -"
     ];
 
     virtualisation.oci-containers.containers = lib.mkMerge [
@@ -151,6 +185,45 @@ in
           ];
           volumes = [ "${cfg.dataDir}/minecraft-bedrock:/data" ];
           environment.EULA = "TRUE";
+        };
+      })
+
+      (lib.mkIf cfg.minecraftBedrockLandon.enable {
+        minecraft-bedrock-landon = {
+          image = "itzg/minecraft-bedrock-server";
+          autoStart = false;
+          ports = [
+            "${toString cfg.minecraftBedrockLandon.port}:${toString cfg.minecraftBedrockLandon.port}/udp"
+            "${toString cfg.minecraftBedrockLandon.portV6}:${toString cfg.minecraftBedrockLandon.portV6}/udp"
+          ];
+          volumes = [ "${cfg.dataDir}/minecraft-bedrock-landon:/data" ];
+          environment = {
+            EULA = "TRUE";
+            LEVEL_NAME = "landon";
+            # BDS defaults to 19132/19133 inside the container; the itzg image writes
+            # SERVER_PORT/SERVER_PORT_V6 into server.properties so BDS actually listens
+            # on the custom ports we're bind-mapping.
+            SERVER_PORT = toString cfg.minecraftBedrockLandon.port;
+            SERVER_PORT_V6 = toString cfg.minecraftBedrockLandon.portV6;
+          };
+        };
+      })
+
+      (lib.mkIf cfg.minecraftBedrockVenator.enable {
+        minecraft-bedrock-venator = {
+          image = "itzg/minecraft-bedrock-server";
+          autoStart = false;
+          ports = [
+            "${toString cfg.minecraftBedrockVenator.port}:${toString cfg.minecraftBedrockVenator.port}/udp"
+            "${toString cfg.minecraftBedrockVenator.portV6}:${toString cfg.minecraftBedrockVenator.portV6}/udp"
+          ];
+          volumes = [ "${cfg.dataDir}/minecraft-bedrock-venator:/data" ];
+          environment = {
+            EULA = "TRUE";
+            LEVEL_NAME = "venator";
+            SERVER_PORT = toString cfg.minecraftBedrockVenator.port;
+            SERVER_PORT_V6 = toString cfg.minecraftBedrockVenator.portV6;
+          };
         };
       })
     ];

@@ -104,10 +104,12 @@ let
       fi
     }
 
-    check_server "astroneer"           "astroneer-server"   "astroneer"
-    check_server "minecraft-survival"  "minecraft-survival" "rcon"
-    check_server "minecraft-minigames" "minecraft-minigames" "rcon"
-    check_server "minecraft-bedrock"   "minecraft-bedrock"  "bedrock"
+    check_server "astroneer"                 "astroneer-server"          "astroneer"
+    check_server "minecraft-survival"        "minecraft-survival"        "rcon"
+    check_server "minecraft-minigames"       "minecraft-minigames"       "rcon"
+    check_server "minecraft-bedrock"         "minecraft-bedrock"         "bedrock"
+    check_server "minecraft-bedrock-landon"  "minecraft-bedrock-landon"  "bedrock"
+    check_server "minecraft-bedrock-venator" "minecraft-bedrock-venator" "bedrock"
   '';
 in
 {
