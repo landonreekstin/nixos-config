@@ -1,110 +1,128 @@
-# Runbook: host `landon` and `Venator class XvX` as Bedrock servers
+# Runbook: `landon` and `Venator class XvX` as Bedrock servers
 
-**Run this on `mini-server`.** It owns the game servers and the game-control
-dashboard, and the containers can only be started and verified there.
+**Status: done.** Both worlds are served by their own BDS instance on `mini-server`, each
+with a game-control dashboard tile, and both have been verified in game with the builds
+visible. This file is kept for the three traps involved, none of which announce themselves.
 
-Goal: two recovered Minecraft worlds served as independently start/stoppable
-Bedrock instances, each with its own tile on the game-control dashboard.
+| world | container | UDP | source device | notes |
+|---|---|---|---|---|
+| `landon` | `minecraft-bedrock-landon` | 19134 / 19135 | iPod touch 4 | `Generator 0` limited world, content in blocks 0–255 |
+| `venator` | `minecraft-bedrock-venator` | 19136 / 19137 | iPhone XR | `Generator 2` flat, spans blocks −160–367 |
 
-## The worlds are already staged
+Declared in `modules/nixos/homelab/game-servers.nix`, enabled in
+`hosts/mini-server/homelab.nix`, tiles in `modules/nixos/homelab/game-control-src/app.py`.
+LAN/VPN reachability comes from `rdr-to` rules on optiplex-fw (see `docs/networking.md`).
+
+## Trap 1 — BDS 1.26 defaults to `transport=nethernet`
+
+A 1.26 server writes `transport=nethernet` into a fresh `server.properties`. NetherNet is
+Microsoft's WebRTC transport: the server registers with a signaling service and **does not
+serve RakNet on its UDP port**, so "Add Server" by IP:port can never connect and the server
+does not answer a ping. The log line `Signed in to signaling service successfully` is the
+tell.
+
+Fix is `TRANSPORT = "raknet"` in the container `environment`. Older servers (the 19132
+`minecraft-bedrock`) predate the property entirely and were never affected.
+
+Ignore the `TRANSPORT TYPE ERROR` block that 1.26 prints claiming NetherNet is the only
+supported transport — the next lines say `IPv4 supported, port: NNNNN: Used for gameplay`
+and RakNet clients connect fine.
+
+## Trap 2 — `Generator 0` worlds get fenced off from their own terrain
+
+This is the one that cost the most. `landon` is `Generator 0`, a *legacy limited world*
+(the old finite 256×256 MCPE map type).
+
+When BDS 1.26 opens such a world it **relocates the spawn** — `SpawnX/Z` went from
+128/128 to **580/4** — then computes the limited world's playable boundary around that new
+spawn. Every coordinate in the real build area is then rejected with *"Cannot teleport
+entities outside of the world"*, and `setworldspawn` is refused with *"The world spawn can
+not be set in legacy worlds"*. The player lands in freshly generated terrain hundreds of
+blocks away and concludes the save is empty.
+
+**The chunks are never touched.** Measured before and after a BDS open:
+
+| | landon | venator |
+|---|---|---|
+| chunk columns | 256 → 256 | 458 → 458 |
+| non-air blocks | 4,401,773 → **4,401,773** | 525,188 → **525,188** |
+
+**Fix: patch one integer in `level.dat` — `Generator 0 → 1` (infinite) — before BDS opens
+the world.** It is a fixed-width `TAG_Int`, so the file length is unchanged and the 8-byte
+header's payload-length field needs no adjustment. BDS then preserves the spawn at
+128/64/128 and generates no stray chunks. Verified against the real 1.26.51.1 binary.
+
+`Generator 2` worlds like venator are unaffected — its spawn was never modified.
+
+### Two red herrings
+
+Both of these were cited as evidence of corruption. Neither is:
+
+- **`SpawnY = 32767`** is int16 max used as Bedrock's *auto-pick the surface* sentinel.
+- **`limitedWorldWidth` / `limitedWorldDepth` = 16** are counted in **chunks**, so 16 = 256
+  blocks — correct for landon, not a truncation to a 16-block box. BDS re-adds these even
+  when `Generator=1`, and they are inert.
+
+Both appear in the **pristine iPhone XR copy of venator that BDS has never opened**. That
+single comparison is what disproves them; when a field looks like damage, check whether an
+untouched copy already has it.
+
+## Trap 3 — "the server opened it" is not verification
+
+A headless server opens, upgrades and serves a world without ever drawing a block, so a
+clean log cannot detect unreadable or unreachable terrain. An earlier session reported
+"24/24 worlds pass" from exactly this signal; 17 of them render empty.
+
+Verify one of two ways:
+
+1. **Count blocks.** Parse the LevelDB directly and compare non-air block totals before and
+   after. Mojang LevelDB uses **raw deflate** (compression type 4) so stock readers fail;
+   parse the SST footer → index → data blocks, strip the 8-byte internal-key suffix
+   (`k[:-8]`), and read `.log` as well as `.ldb` — the `.log` holds the newest state and a
+   parser that globs only `*.ldb` reads a stale world.
+2. **Look at it.** Join with a real client and find the build.
+
+For fast iteration without a client or a container runtime, BDS can be run straight from
+the install tree on any NixOS box:
+
+```bash
+rsync -a --exclude worlds/ -e "ssh -J lando@192.168.1.189" \
+  lando@192.168.100.103:/var/lib/game-servers/minecraft-bedrock-landon/ ./bds/
+cd bds && NIXPKGS_ALLOW_UNFREE=1 nix shell --impure nixpkgs#steam-run \
+  -c steam-run env LD_LIBRARY_PATH=. ./bedrock_server-1.26.51.1
+```
+
+Two gotchas: `steam-run` is unfree, and its `bwrap` sandbox could not `chdir` into `/tmp`
+here — keep the tree under `/home`.
+
+## Source worlds
+
+Pristine iOS extractions live on gaming-pc under a **per-device** directory, not a flat one:
 
 ```
-mini-server:~/minecraft-worlds/landon                 1.9M
-mini-server:~/minecraft-worlds/Venator class XvX      1.4M
+~/Games/Minecraft-worlds/ipod-touch-4/minecraft-worlds/landon
+~/Games/Minecraft-worlds/iphone-xr/minecraft-worlds/Venator class XvX
 ```
 
-| world | StorageVersion | Generator | subchunks | minClient | notes |
-|---|---|---|---|---|---|
-| `landon` | 8 | **0 — limited 256×256** | 1,354 | 1.14.0.9 | creative; content only in blocks 0–255 on both axes |
-| `Venator class XvX` | 8 | 2 (flat) | 604 | 1.18.0.0 | references a resource pack that is not in the extraction |
+They are read-only on purpose and must never be opened by BDS — its upgrade is one-way.
+Copy first, `chmod -R u+w` the copy. The once-converted intermediates from mcpelauncher
+1.14.60.5 are at `mini-server:~/minecraft-worlds/` and in the mcpelauncher data dir on
+gaming-pc; those are the right input for any further conversion, since Chunker and friends
+will not read the original LegacyTerrain format (Chunker's floor is Bedrock 1.12.0).
 
-## Use these copies. Do not substitute the originals
+Background on the LegacyTerrain conversion itself: memory note
+`mcpe-legacy-world-recovery`.
 
-These came off an iPod touch 4 / iPhone 5c and originally stored terrain as
-**`LegacyTerrain`** (LevelDB key tag `0x30`, 83,200-byte values). **Bedrock 1.18
-and newer — including BDS 1.26 — cannot read that format and do not say so.**
-They treat the world as new, relocate spawn and player to a seed-derived spot,
-generate fresh terrain there, and serve that instead. The original chunks are
-left untouched and unread, so the failure looks exactly like an empty world.
+## Swapping a world in
 
-`landon` was converted to modern subchunks by opening it once in **mcpelauncher
-1.14.60.5**, which rewrote all 256 columns in a single open. The staged copy is
-that converted one. Re-copying the pristine original from
-`gaming-pc:~/Games/Minecraft-worlds/` would silently undo this. Full background:
-memory note `mcpe-legacy-world-recovery`.
+```bash
+sudo systemctl stop docker-minecraft-bedrock-landon
+sudo rm -rf /var/lib/game-servers/minecraft-bedrock-landon/worlds/landon
+sudo cp -a /tmp/converted-landon /var/lib/game-servers/minecraft-bedrock-landon/worlds/landon
+sudo chown -R root:root /var/lib/game-servers/minecraft-bedrock-landon/worlds/landon
+sudo systemctl start docker-minecraft-bedrock-landon
+```
 
-The pristine originals on gaming-pc are read-only and stay the backstop; BDS
-upgrades a world **one-way** on first load.
-
-## Resolve the existing bedrock setup first
-
-`minecraft-bedrock` is currently defined **twice, inconsistently**:
-
-- `modules/nixos/homelab/game-servers.nix` declares an OCI container mounting
-  `${cfg.dataDir}/minecraft-bedrock:/data`.
-- `/var/lib/game-servers/minecraft-bedrock/docker-compose.yml` (hand-written,
-  not in the repo) mounts `./data:/data`.
-
-So the live BDS install lives in `/var/lib/game-servers/minecraft-bedrock/data/`
-(BDS 1.26.21.1, world `Bedrock level`), while the declared container would see
-the parent — containing only `data/` and `docker-compose.yml` — and bootstrap a
-fresh server. Both also use container name `minecraft-bedrock`, so they collide.
-
-Decide which is authoritative before adding anything. The repo-declared path is
-the one to keep; the compose file predates it.
-
-## Work
-
-Two worlds require **two BDS instances** — one server hosts one world.
-
-1. **`modules/nixos/homelab/game-servers.nix`**
-   - Add two option blocks alongside `minecraftBedrock`, following its shape
-     (`enable`, `port`, `portV6`).
-   - Add two OCI containers modelled on the existing `minecraft-bedrock` one
-     (`image = "itzg/minecraft-bedrock-server"`, `autoStart = false`,
-     `environment.EULA = "TRUE"`, a `${cfg.dataDir}/<name>:/data` volume).
-   - Add matching `systemd.tmpfiles.rules` entries, guarded by the new
-     `enable` flags like the others.
-   - Ports: 19132/19133 are taken. Use distinct UDP pairs, e.g. 19134/19135 and
-     19136/19137.
-
-2. **`modules/nixos/homelab/game-control-src/app.py`**
-   - Add two entries to `SERVERS` with `"rcon": False, "bedrock": True`, matching
-     the existing `minecraft-bedrock` entry. `container` must equal the OCI
-     container name — the dashboard drives `systemctl start/stop docker-<container>`.
-
-3. **World placement** — inside each server's data dir:
-   - put the world at `worlds/<folder>/`
-   - set `level-name=<folder>` in `server.properties`
-   - folder names contain no spaces for `landon`; consider renaming
-     `Venator class XvX` to `venator` to avoid quoting problems in
-     `server.properties`. The in-game name comes from `LevelName` inside
-     `level.dat`, not the folder, so renaming the folder is safe and invisible.
-
-4. **Enable on the host** in `hosts/mini-server/homelab.nix` next to the existing
-   `minecraftBedrock.enable`.
-
-## Verification
-
-Per the repo's commit rules, verify before committing.
-
-1. `systemctl start docker-<container>`, then read the log:
-   - `Opening level 'worlds/<folder>/db'` naming the right world
-   - `Server started.`
-   - no `ERROR` lines (a missing-resource-pack `WARN` on Venator is expected and
-     harmless — geometry is unaffected)
-2. Start and stop both from the dashboard; confirm the tiles track state.
-3. **Connect with a real Bedrock client and confirm the build is visible.** This
-   is the step that matters. A clean server log proves only that the world
-   opened — it does not prove the terrain is readable, which is precisely the
-   failure mode these worlds have. In `landon`, everything is inside blocks
-   0–255 on both axes, with the largest structures around X 96–111, Z 208–255.
-
-## Risks
-
-- **`landon` is a `Generator 0` limited world** (finite 256×256). Whether BDS
-  handles that sanely is untested — verify this early, it is the main unknown.
-- `sudo` on mini-server prompts for a password, so lando needs to be present for
-  privileged steps.
-- Adding UDP ports only exposes them on the server LAN. External access would
-  need forwards on optiplex-fw — see `docs/networking.md`.
+Discarding the old world also discards its player records, so the next join is treated as a
+first-time join and lands on the repaired world spawn — no teleport needed. `sudo` on
+mini-server prompts for a password, so lando has to be present.
