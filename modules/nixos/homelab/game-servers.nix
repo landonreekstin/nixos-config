@@ -17,6 +17,28 @@ in
       default = "/var/lib/game-servers";
       description = "Parent directory for all game server OCI container volume mounts.";
     };
+    bedrockAllowList = mkOption {
+      type = types.listOf types.str;
+      default = [ ];
+      example = [ "GreenArroww9090:2535428000000000" ];
+      description = ''
+        Bedrock allowlist entries in `gamertag:XUID` format, applied to the
+        `minecraftBedrockLandon` and `minecraftBedrockVenator` servers. The itzg
+        image writes these into `allowlist.json` on every start (overwriting any
+        hand-added entries) and sets `allow-list=true` in `server.properties`.
+
+        The older `minecraftBedrock` server keeps its independent access policy
+        (`allow-list=false` on disk) and is not affected by this option.
+
+        Bootstrap procedure to obtain the XUID for a new gamertag:
+          1. Ensure `bedrockAllowList = [ ]` (or the option is unset).
+          2. Start the container, then run:
+             `docker exec <container> send-command allowlist add "<gamertag>"`
+          3. Have that account join once; the XUID prints in the server log as
+             `Player connected: <gamertag>, xuid: <digits>`.
+          4. Add `"<gamertag>:<xuid>"` to this list and rebuild.
+      '';
+    };
     astroneer = {
       enable = mkEnableOption "Astroneer dedicated server (OCI container, autoStart = false)";
       port = mkOption {
@@ -205,6 +227,15 @@ in
             # on the custom ports we're bind-mapping.
             SERVER_PORT = toString cfg.minecraftBedrockLandon.port;
             SERVER_PORT_V6 = toString cfg.minecraftBedrockLandon.portV6;
+            # BDS 1.26 defaults to transport=nethernet (WebRTC signaling); RakNet on
+            # the UDP port is what a direct-IP:port client join needs.
+            TRANSPORT = "raknet";
+            ALLOW_LIST = "true";
+          } // lib.optionalAttrs (cfg.bedrockAllowList != [ ]) {
+            # Only set when the list is non-empty — otherwise the itzg entrypoint
+            # would regenerate allowlist.json to [] on every start, wiping any
+            # entry added out-of-band during the XUID bootstrap.
+            ALLOW_LIST_USERS = lib.concatStringsSep "," cfg.bedrockAllowList;
           };
         };
       })
@@ -223,6 +254,10 @@ in
             LEVEL_NAME = "venator";
             SERVER_PORT = toString cfg.minecraftBedrockVenator.port;
             SERVER_PORT_V6 = toString cfg.minecraftBedrockVenator.portV6;
+            TRANSPORT = "raknet";
+            ALLOW_LIST = "true";
+          } // lib.optionalAttrs (cfg.bedrockAllowList != [ ]) {
+            ALLOW_LIST_USERS = lib.concatStringsSep "," cfg.bedrockAllowList;
           };
         };
       })

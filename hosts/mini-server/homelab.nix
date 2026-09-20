@@ -53,6 +53,9 @@
       minecraftBedrock.enable = true;
       minecraftBedrockLandon.enable = true;
       minecraftBedrockVenator.enable = true;
+      bedrockAllowList = [
+        "GreenArroww9090:2535408372064922"
+      ];
     };
 
     gameControl.enable = true;
