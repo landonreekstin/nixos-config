@@ -37,6 +37,8 @@ Format: `- [ ] **Title** — description`
 
 - [x] **Test-VM hosts + build-based CI** — Added `vm-sandbox` (kitchen-sink ricing) and `vm-blaney` (blaney-pc software mirror) throwaway QEMU hosts sharing `hosts/vm-common.nix`, launched via the `testvm <sandbox|blaney>` command (12 vCPU / 16G; `-vga virtio` software display — the virgl `virtio-vga-gl`/`gl=on` path black-screens on gaming-pc's NVIDIA-proprietary + X11 host, so it was dropped; see `hosts/vm-common.nix`). Upgraded CI: `evaluate` covers the VMs; a `build` job on the optiplex-nas self-hosted runner realizes just the fragile source-built derivations (aerothemeplasma's C++ pkgs + openrazer module) so those breaks fail CI without OOMing the NAS on incidental full-toplevel builds. VMs can't validate GPU/driver behaviour (llvmpipe). Merged in PR #87; runner online with `Restart=always` self-heal.
 
+- [ ] **Host `landon` and `Venator class XvX` as Bedrock servers** *(run this one on mini-server)* — Two Minecraft worlds recovered from a 2013 iPod / iPhone 5c, to be served as independently start/stoppable BDS instances with their own game-control dashboard tiles. Worlds are already staged at `mini-server:~/minecraft-worlds/`. Full runbook incl. the trap that makes this non-obvious (BDS 1.26 silently cannot read the original LegacyTerrain format and serves a regenerated empty world instead): `docs/runbooks/minecraft-bedrock-servers.md`. Also resolves a pre-existing inconsistency: `minecraft-bedrock` is defined both by the repo OCI container and by an unmanaged `docker-compose.yml` on the host, with mismatched `/data` mounts and a colliding container name.
+
 ---
 
 ## Hardware / Peripherals
