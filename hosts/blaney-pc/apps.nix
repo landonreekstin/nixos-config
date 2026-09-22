@@ -31,6 +31,11 @@
       unstable-override = [
         "obs-studio"
         "vscode"
+        # firefox is enabled via customConfig.homeManager.browser.firefox and the
+        # 25.11 pin (152.0.4) is no longer cached upstream, so leaving it on stable
+        # forces a full source rebuild that TIMEOUT'd the flake-updater on W39.
+        # Unstable's 156.0 is cached; drop this once we're on 26.05.
+        "firefox"
         #"librewolf"
         #"brave"
         #"chromium"

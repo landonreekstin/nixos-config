@@ -52,7 +52,11 @@
     nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=latest";
 
     sops-nix = {
-      url = "github:Mic92/sops-nix";
+      # Pinned: upstream sops-nix commit 16954c1c (2026-09-17) raised its Go floor to
+      # 1.26, but nixos-25.11 is EOL and only ships go_1_25. Every `nix flake update`
+      # would otherwise pull the newer sops-nix and fail `sops-install-secrets`. Drop
+      # the pin once we're on nixos-26.05.
+      url = "github:Mic92/sops-nix/a8627b21b9107c5711c96b84f32a9a4b3d45295f";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
