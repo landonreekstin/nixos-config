@@ -19,6 +19,8 @@
     "lidarr" "music" "ombi" "slskd" "soularr"
     # Read-only HTTP file drop for VPN users (homelab/public-files.nix).
     "files"
+    # Games: gamarr -> PC game + ROM requests and downloads.
+    "gamarr"
   ];
 
   # Names whose address is the same from everywhere (mini-server, server subnet).

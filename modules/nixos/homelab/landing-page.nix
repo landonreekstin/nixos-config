@@ -144,6 +144,11 @@ let
             <span class="card-label">slskd</span>
             <span class="card-desc">Soulseek</span>
           </a>
+          <a class="card" href="http://gamarr.lan">
+            <span class="card-icon">🎮</span>
+            <span class="card-label">Gamarr</span>
+            <span class="card-desc">Games &amp; ROMs</span>
+          </a>
         </div>
       </div>
 

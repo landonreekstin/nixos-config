@@ -74,6 +74,11 @@ in
       navidrome = lib.mkIf config.customConfig.homelab.navidrome.enable {
         extraGroups = [ "media" ];
       };
+      # Reads and writes its own library tree; also needs the shared download dir,
+      # since its imports hardlink out of Transmission's category directory.
+      gamarr = lib.mkIf config.customConfig.homelab.gamarr.enable {
+        extraGroups = [ "media" ];
+      };
     };
 
     # 3. Declaratively create directories and set their permissions.
@@ -110,6 +115,17 @@ in
     ++ lib.optionals config.customConfig.homelab.slskd.enable [
       "d ${cfg.storagePath}/downloads/slskd 2775 ${cfg.user} media -"
       "d ${cfg.storagePath}/downloads/slskd-incomplete 2775 ${cfg.user} media -"
+    ]
+    # Gamarr stages its grabs in a dedicated Transmission category dir, the same
+    # way lidarr does above, and hardlinks out of it into the games tree. Both
+    # sit under storagePath so the link never crosses a filesystem.
+    ++ lib.optionals config.customConfig.homelab.gamarr.enable [
+      "d ${cfg.storagePath}/downloads/torrents/gamarr 2775 ${cfg.user} media -"
+      # PC game installers and ROM sets are not Jellyfin media, so this is a
+      # top-level sibling of media/ rather than a directory inside it.
+      "d ${cfg.storagePath}/games 2775 ${cfg.user} media -"
+      "d ${cfg.storagePath}/games/roms 2775 ${cfg.user} media -"
+      "d ${cfg.storagePath}/games/vault 2775 ${cfg.user} media -"
     ]
     ++ [
       "d ${cfg.storagePath}/media 2775 ${cfg.user} media -"

@@ -57,6 +57,16 @@
       shareMusic = true;
     };
     soularr.enable = true;
+
+    # PC games and ROMs. Requests and downloads only - playback is elsewhere
+    # (ROMs go to FPGA hardware via SD card), which is why there is no RomM.
+    gamarr = {
+      enable = true;
+      libraryPath = "/mnt/storage/games";
+      # rawgKeyFile is unset: RAWG.io supplies cover art, descriptions and the
+      # release calendar, and Gamarr runs happily without them. Add the key to
+      # sops and point this at it to turn metadata on.
+    };
     mullvad.enable = true;
     jellyseerr.enable = true;
     flaresolverr.enable = true;

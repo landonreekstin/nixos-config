@@ -290,6 +290,7 @@
       worldmonitor = pkgs.callPackage ./pkgs/worldmonitor { };
       spotatui = pkgs.callPackage ./pkgs/spotatui { };
       tuisic = pkgs.callPackage ./pkgs/tuisic { };
+      gamarr = pkgs.callPackage ./pkgs/gamarr { };
     };
 
     # Development Shells provided by this flake

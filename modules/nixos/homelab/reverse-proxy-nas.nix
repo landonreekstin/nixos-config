@@ -29,6 +29,7 @@ in
         (lib.mkIf cfg.ombi.enable         { "ombi.lan"         = mkProxy cfg.ombi.port; })
         (lib.mkIf cfg.slskd.enable        { "slskd.lan"        = mkProxy cfg.slskd.webPort; })
         (lib.mkIf cfg.soularr.enable      { "soularr.lan"      = mkProxy cfg.soularr.webPort; })
+        (lib.mkIf cfg.gamarr.enable       { "gamarr.lan"       = mkProxy cfg.gamarr.port; })
         (lib.mkIf cfg.nixCache.enable     { "nix-cache.lan"    = mkProxy 5000; })
       ];
     };

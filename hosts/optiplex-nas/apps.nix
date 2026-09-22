@@ -24,6 +24,11 @@
       ];
       unstable-override = [
         "claude-code"
+        # 25.11 ships 3.4.6; Gamarr's Vimm source needs the Turnstile handling
+        # added in 3.5.0 (it drives the verification control by tab presses),
+        # and without it every Vimm download fails at "could not find download
+        # form". Prowlarr shares this FlareSolverr and is unaffected by the bump.
+        "flaresolverr"
       ];
       homeManager = with pkgs; [
         vscode
