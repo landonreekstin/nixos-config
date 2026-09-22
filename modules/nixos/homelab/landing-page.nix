@@ -149,6 +149,11 @@ let
             <span class="card-label">Gamarr</span>
             <span class="card-desc">Games &amp; ROMs</span>
           </a>
+          <a class="card" href="http://qbittorrent.lan">
+            <span class="card-icon">⬇️</span>
+            <span class="card-label">qBittorrent</span>
+            <span class="card-desc">Game torrents</span>
+          </a>
         </div>
       </div>
 

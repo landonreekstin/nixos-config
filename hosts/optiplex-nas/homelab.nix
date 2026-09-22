@@ -58,6 +58,10 @@
     };
     soularr.enable = true;
 
+    # Second torrent client, for Gamarr only - it can import from qBittorrent
+    # and nothing else. Transmission keeps the media stack.
+    qbittorrent.enable = true;
+
     # PC games and ROMs. Requests and downloads only - playback is elsewhere
     # (ROMs go to FPGA hardware via SD card), which is why there is no RomM.
     gamarr = {

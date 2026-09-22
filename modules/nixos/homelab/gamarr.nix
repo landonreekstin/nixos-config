@@ -5,6 +5,7 @@ let
   cfg = config.customConfig.homelab.gamarr;
   mediaCfg = config.customConfig.homelab.mediaSetup;
   arrCfg = config.customConfig.homelab.arr;
+  qbtCfg = config.customConfig.homelab.qbittorrent;
 
   # Prowlarr writes its key here on first run. Note this is NOT the
   # .config/<App>/config.xml path Lidarr and Bazarr use - the nixpkgs Prowlarr
@@ -27,7 +28,13 @@ let
   # manager.go:122), where it stages direct Myrient/Vimm downloads (manager.go:
   # 464), and the source side of the hardlink trial in the settings UI
   # (internal/api/handlers_extra.go:201).
-  stagingDir = "${mediaCfg.storagePath}/downloads/torrents/gamarr";
+  # Single-sourced from qBittorrent when it is the client: Gamarr has NO remote
+  # path mapping, so the path it thinks a torrent landed at and the path the
+  # client reports must be byte-identical or every import fails.
+  stagingDir =
+    if qbtCfg.enable
+    then qbtCfg.downloadDir
+    else "${mediaCfg.storagePath}/downloads/torrents/gamarr";
 
   # Prowlarr runs with DynamicUser=yes, so /var/lib/prowlarr is a symlink into
   # /var/lib/private, which is 0700 root:root. config.xml itself is 0644, but an
@@ -39,12 +46,28 @@ let
   # root with the sandboxing lifted, which is the documented way to do exactly
   # this. It copies the key out to a file owned by the service user, and nothing
   # else about the unit gains privilege.
-  prowlarrKeyScript = pkgs.writeShellScript "gamarr-prowlarr-key" ''
+  preStartScript = pkgs.writeShellScript "gamarr-pre-start" ''
     set -euo pipefail
 
     sed=${pkgs.gnused}/bin/sed
 
     log() { echo "[gamarr] $*" >&2; }
+
+    # qBittorrent's unit is Type=simple, so systemd calls it active the moment
+    # the process forks - well before its WebUI binds. After=qbittorrent.service
+    # therefore orders the start but guarantees nothing about readiness, and
+    # Gamarr logs a pair of connection-refused errors on every boot. It does
+    # recover on the watcher's next 30s tick, so this is purely about not
+    # shipping alarming-looking errors in the journal at every boot.
+    ${lib.optionalString qbtCfg.enable ''
+      for _ in $(seq 1 30); do
+        if ${pkgs.curl}/bin/curl -sf -o /dev/null --max-time 2 \
+             "http://127.0.0.1:${toString qbtCfg.webPort}/api/v2/app/version"; then
+          break
+        fi
+        sleep 1
+      done
+    ''}
 
     # Prowlarr only writes <ApiKey> once its first-run bootstrap finishes, which
     # can trail our start even with After=prowlarr.service. Wait, but bounded: a
@@ -145,6 +168,7 @@ in
       after = [ "network.target" ]
         ++ lib.optional arrCfg.prowlarr.enable "prowlarr.service"
         ++ lib.optional config.customConfig.homelab.transmission.enable "transmission.service"
+        ++ lib.optional qbtCfg.enable "qbittorrent.service"
         ++ lib.optional (cfg.rawgKeyFile != null) "sops-nix.service";
       wants = lib.optional (cfg.rawgKeyFile != null) "sops-nix.service";
 
@@ -162,6 +186,7 @@ in
         GAMES_VAULT_PATH = vaultDir;
         QB_SAVE_PATH = stagingDir;
 
+
         # Hardlink keeps the torrent seeding and costs no extra disk; storagePath
         # is one btrfs filesystem, so the link always resolves. Fall back to a
         # copy rather than erroring out if that ever stops being true.
@@ -169,12 +194,17 @@ in
         IMPORT_HARDLINK_FALLBACK = "copy";
         EXTRACT_ARCHIVES = "true";
 
-        # QB_URL has a non-empty default (http://qbittorrent:8080), and the qBit
-        # client is considered configured whenever it is set - so leaving it
-        # alone makes the torrent watcher and orphan recovery retry a host that
-        # does not exist, forever. Upstream added envStrAllowEmpty precisely so
-        # an empty value disables it (internal/config/config.go:161,316).
-        QB_URL = "";
+        # Gamarr is qBittorrent-only on the import side: watchGameTorrent and
+        # the orphan watcher both poll m.qb exclusively, and the Transmission
+        # client only ever implements AddTorrent. Pointing this at a real qBit
+        # is what makes a grab actually complete, import and organise.
+        #
+        # QB_URL also has a non-empty default (http://qbittorrent:8080) and is
+        # treated as configured whenever set, so it is never safe to leave alone:
+        # unset, it retries a host that does not resolve forever. Upstream reads
+        # it with envStrAllowEmpty so "" disables the client outright.
+        QB_URL = lib.optionalString qbtCfg.enable "http://127.0.0.1:${toString qbtCfg.webPort}";
+        QB_CATEGORY = "games";
         TRANSMISSION_URL = "http://127.0.0.1:9091/transmission/rpc";
         PROWLARR_URL = "http://127.0.0.1:9696";
       }
@@ -190,8 +220,8 @@ in
         Group = cfg.group;
 
         # "+" runs this as root with sandboxing lifted - see the note on
-        # prowlarrKeyScript for why that is unavoidable here.
-        ExecStartPre = [ "+${prowlarrKeyScript}" ];
+        # preStartScript for why that is unavoidable here.
+        ExecStartPre = [ "+${preStartScript}" ];
         ExecStart = lib.getExe cfg.package;
 
         # The key file is optional ("-"): Gamarr is useful without Prowlarr, and

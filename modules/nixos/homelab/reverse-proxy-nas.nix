@@ -30,6 +30,7 @@ in
         (lib.mkIf cfg.slskd.enable        { "slskd.lan"        = mkProxy cfg.slskd.webPort; })
         (lib.mkIf cfg.soularr.enable      { "soularr.lan"      = mkProxy cfg.soularr.webPort; })
         (lib.mkIf cfg.gamarr.enable       { "gamarr.lan"       = mkProxy cfg.gamarr.port; })
+        (lib.mkIf cfg.qbittorrent.enable  { "qbittorrent.lan"  = mkProxy cfg.qbittorrent.webPort; })
         (lib.mkIf cfg.nixCache.enable     { "nix-cache.lan"    = mkProxy 5000; })
       ];
     };
