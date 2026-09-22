@@ -38,6 +38,13 @@
         # build for asus-m15 (2026-W33). With chromium on stable, the electron
         # drv matches asus-laptop's cached one exactly.
         "firefox"
+        # signal-desktop 8.25.0 from stable 25.11 pulls its own electron-unwrapped-
+        # 43.4.1 variant that isn't cached (25.11 is EOL); source-building it on
+        # the NAS TIMEOUT'd the weekly flake-updater on W39. Unstable's 8.26.0 is
+        # cached with all its transitive deps. Every other host that carries this
+        # role already overrides signal-desktop to unstable — this brings asus-m15
+        # in line.
+        "signal-desktop"
         "claude-code"
       ];
       # vscode comes from customConfig.apps.programs.ide.
