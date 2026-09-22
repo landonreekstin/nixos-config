@@ -32,8 +32,14 @@
     services = {
       ssh.enable = true;
       vscodeServer.enable = true;
+      # TEMPORARILY DISABLED for the nixos-26.05 upgrade. 26.05 makes systemd
+      # stage-1 initrd the default and switches D-Bus to dbus-broker; neither
+      # takes effect until the next boot, and this host has no WoL and no IPMI,
+      # so a failed boot means driving to it. It also hosts the CI runner, the
+      # flake-updater and the binary cache. Rebuild it deliberately, in person.
+      # TODO: set back to true once optiplex-nas is verified on 26.05.
       autoUpdate = {
-        enable = true;
+        enable = false;
         day = "Tue";
       };
     };
