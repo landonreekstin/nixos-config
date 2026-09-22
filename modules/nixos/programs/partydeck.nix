@@ -110,6 +110,13 @@ let
     mesonFlags = [
       (lib.mesonBool "enable_gamescope" true)
       (lib.mesonBool "enable_gamescope_wsi_layer" true)
+      # This fork vendors wlroots 0.18, which builds itself with -Werror. On
+      # 26.05's libinput (1.31) its libinput switch handler stops compiling:
+      # "enumeration value 'LIBINPUT_SWITCH_KEYPAD_SLIDE' not handled in switch".
+      # Nothing here is our code and the fork is frozen at a 2026-03 rev, so the
+      # only options are to stop treating a new upstream enum as an error or to
+      # drop partydeck. werror=false applies to the subprojects too.
+      (lib.mesonBool "werror" false)
     ];
 
     mesonInstallFlags = [ "--skip-subprojects" ];

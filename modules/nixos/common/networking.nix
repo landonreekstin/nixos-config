@@ -174,20 +174,22 @@ in
     networking.firewall.enable = cfg.firewall.enable;
 
     # === systemd-resolved (NetworkManager hosts) ===
-    # NOTE: this nixpkgs still has the classic options (fallbackDns/llmnr/dnssec/
-    # extraConfig). A future flake update migrates them to services.resolved.settings.Resolve.*
+    # 26.05 folded the classic options into services.resolved.settings.Resolve.
+    # fallbackDns/llmnr/dnssec are still accepted as renamed aliases, but
+    # extraConfig was removed outright, so the whole block moves at once rather
+    # than half-living on aliases.
     services.resolved = lib.mkIf cfg.useResolved {
       enable = true;
-      fallbackDns = cfg.fallbackDns;
-      # Unbound does not sign the .lan zone; validation would only cause failures.
-      dnssec = "false";
-      # avahi owns local name discovery on these hosts (services.airplayReceiver and
-      # friends enable it with nssmdns4). Leaving LLMNR/mDNS to resolved as well means
-      # two daemons answering for the same names.
-      llmnr = "false";
-      extraConfig = ''
-        MulticastDNS=no
-      '';
+      settings.Resolve = {
+        FallbackDNS = cfg.fallbackDns;
+        # Unbound does not sign the .lan zone; validation would only cause failures.
+        DNSSEC = "false";
+        # avahi owns local name discovery on these hosts (services.airplayReceiver and
+        # friends enable it with nssmdns4). Leaving LLMNR/mDNS to resolved as well means
+        # two daemons answering for the same names.
+        LLMNR = "false";
+        MulticastDNS = "no";
+      };
     };
 
     # Encrypted DNS: dnscrypt-proxy on 127.0.0.1:53. Does not clash with resolved's

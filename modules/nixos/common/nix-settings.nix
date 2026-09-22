@@ -38,9 +38,11 @@
   };
 
   nixpkgs.config.allowUnfree = true;
-  nixpkgs.config.permittedInsecurePackages = [
-    "electron-39.8.10"            # used by aerotheme-plasma on optiplex
-  ];
+  # Empty on purpose. This carried "electron-39.8.10" for aerotheme-plasma on
+  # optiplex; 26.05 no longer flags that electron, and every host evaluates with
+  # the list empty. A stale entry here is worse than none — it reads as a live
+  # exception while silently permitting nothing.
+  nixpkgs.config.permittedInsecurePackages = [ ];
 
   # Garbage collection
   nix.gc = {

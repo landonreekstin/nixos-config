@@ -16,7 +16,6 @@
       ];
       unstable-override = [
         "vscode"
-        "librewolf"
         "brave"
         "ungoogled-chromium"
       ];

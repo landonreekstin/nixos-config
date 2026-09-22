@@ -21,7 +21,6 @@
       ];
       unstable-override = [
         "vscode"
-        "librewolf"
         "brave"
         "claude-code"
       ];

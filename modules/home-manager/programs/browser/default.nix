@@ -198,7 +198,14 @@ in
 {
   config = lib.mkMerge [
     (lib.mkIf cfg.firefox.enable {
-      programs.firefox = mkBrowser "firefox" pkgs.firefox cfg.firefox;
+      # HM 26.05 moves the profile root to $XDG_CONFIG_HOME/mozilla/firefox for
+      # stateVersion >= 26.05 and warns until configPath is explicit. Migrating
+      # would mean physically moving ~/.mozilla/firefox on every host (and it
+      # does not move native messaging hosts), so stay on the legacy path
+      # deliberately.
+      programs.firefox = (mkBrowser "firefox" pkgs.firefox cfg.firefox) // {
+        configPath = ".mozilla/firefox";
+      };
       home.activation.firefoxBookmarkSecrets =
         lib.mkIf (secretsEnabled cfg.firefox) (mkSecretsActivation "firefox" cfg.firefox);
     })
