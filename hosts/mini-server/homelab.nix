@@ -19,8 +19,8 @@
 
     homeAssistant = {
       enable = true;
-      # nixpkgs 25.11 ships HA 2025.11.x; backup requires >= 2026.2.1 — use unstable
-      package = unstablePkgs.home-assistant;
+      # Was pinned to unstable because 25.11 only shipped HA 2025.11.x and backup
+      # needs >= 2026.2.1. 26.05 ships 2026.5.4, so stable clears the floor.
     };
 
     wyoming = {

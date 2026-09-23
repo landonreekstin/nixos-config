@@ -51,6 +51,11 @@ in
   xdg.userDirs = {
     enable = true;
     createDirectories = true;
+    # HM 26.05 flips this default to false for stateVersion >= 26.05 and warns on
+    # every eval until it is set explicitly. Our stateVersions stay where they
+    # are (they record the install, not the channel), so pin the legacy
+    # behaviour rather than letting it change out from under existing $HOMEs.
+    setSessionVariables = true;
   };
 
   xdg.enable = true;

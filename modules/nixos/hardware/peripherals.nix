@@ -120,30 +120,17 @@ in
     };
 
     # === OpenRazer for Razer Device Support ===
-    # openrazer 3.10.3 doesn't build against kernel 6.12.79+ / 6.13+ because
-    # hid_report_raw_event gained a new `bufsize` parameter.
-    # Patch all driver .c files at build time: duplicate the sizeof() arg so
-    # the old 5-arg call becomes the required 6-arg call.
-    nixpkgs.overlays = lib.mkIf cfg.openrazer.enable [
-      (_: prev: {
-        linuxPackages = prev.linuxPackages.extend (_: lprev: {
-          openrazer = lprev.openrazer.overrideAttrs (old: {
-            postPatch = (old.postPatch or "") + ''
-              find driver/ -name "*.c" -exec sed -i -E \
-                's/(hid_report_raw_event\([^,]+, [^,]+, [^,]+, )(sizeof\([^)]+\))(, [^;]+;)/\1\2, \2\3/g' {} +
-            '';
-          });
-        });
-        linuxPackages_latest = prev.linuxPackages_latest.extend (_: lprev: {
-          openrazer = lprev.openrazer.overrideAttrs (old: {
-            postPatch = (old.postPatch or "") + ''
-              find driver/ -name "*.c" -exec sed -i -E \
-                's/(hid_report_raw_event\([^,]+, [^,]+, [^,]+, )(sizeof\([^)]+\))(, [^;]+;)/\1\2, \2\3/g' {} +
-            '';
-          });
-        });
-      })
-    ];
+    # There used to be an overlay here patching every driver/*.c at build time:
+    # openrazer 3.10.3 still made the old 5-argument hid_report_raw_event call,
+    # which stopped compiling when the kernel gave that function a `bufsize`
+    # parameter in 6.12.79 / 6.13, and the sed duplicated the sizeof() argument
+    # to make up the sixth.
+    #
+    # Upstream fixed it themselves. 26.05 ships openrazer 3.12.4, whose sources
+    # already pass six arguments, so the sed appended a seventh and the module
+    # failed to build with "too many arguments to function; expected 6, have 7".
+    # Removed rather than conditionalised — a build-time regex against upstream
+    # C is only ever correct for one window of versions.
 
     hardware.openrazer = lib.mkIf cfg.openrazer.enable {
       enable = true;
@@ -194,9 +181,10 @@ in
     };
 
     # === Asus ROG Laptop Control ===
+    # enableUserService was removed in 26.05 — asusd no longer needs a user
+    # service, and the option now asserts if you define it.
     services.asusd = lib.mkIf cfg.asus.enable {
       enable = true;
-      enableUserService = true;
     };
      # === Systemd SYSTEM service to set Asus keyboard backlight at Display Manager ===
     systemd.services.set-asus-aura-dm = lib.mkIf cfg.asus.enable {

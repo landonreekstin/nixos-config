@@ -53,10 +53,12 @@ in
         command = "/run/current-system/sw/bin/hyprctl dispatch dpms off";
         resumeCommand = "/run/current-system/sw/bin/hyprctl dispatch dpms on";
       };
-    events = [
+    # HM 26.05 takes events as an attrset keyed by event name; the old list form
+    # is still coerced, but with a warning on every eval.
+    events = {
       # Lock unconditionally on sleep/explicit lock — don't skip for media
-      { event = "before-sleep"; command = lockNow; }
-      { event = "lock";         command = lockNow; }
-    ];
+      before-sleep = lockNow;
+      lock = lockNow;
+    };
   };
 }

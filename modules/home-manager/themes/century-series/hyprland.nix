@@ -72,7 +72,7 @@ let
             then "desc:${monitor.identifier}"
             else monitor.identifier;
           wallpaper = assignWallpaper monitor i "horizontal";
-        in "${identifierString},${wallpaper}"
+        in { monitor = identifierString; path = wallpaper; }
       ) categorized.horizontal;
 
       # Create assignments for vertical monitors  
@@ -85,19 +85,25 @@ let
             then "desc:${monitor.identifier}"
             else monitor.identifier;
           wallpaper = assignWallpaper monitor i "vertical";
-        in "${identifierString},${wallpaper}"
+        in { monitor = identifierString; path = wallpaper; }
       ) categorized.vertical;
     in
       horizontalAssignments ++ verticalAssignments;
 
-  # Determine wallpaper assignments
-  wallpaperAssignments = 
+  # Determine wallpaper assignments.
+  #
+  # hyprpaper 0.8.0 was a complete rewrite onto hyprtoolkit and, in upstream's
+  # own words, "configs are broken and much simplified". The old
+  # `preload = <path>` + `wallpaper = <monitor>,<path>` pair is gone; there is now
+  # a `wallpaper { monitor = ...; path = ...; }` block per monitor and no preload
+  # concept at all. 0.8.4 does not warn about the old keys — it parses the file,
+  # finds no wallpaper blocks, logs "Monitor X has no target: no wp will be
+  # created" and shows nothing, which is exactly how this presented after the
+  # 26.05 upgrade.
+  wallpaperAssignments =
     if (lib.length customConfig.desktop.monitors) > 0
     then generateWallpaperAssignments customConfig.desktop.monitors
-    else [ ",${wallpapers.fallback}" ]; # Single monitor fallback
-
-  # Get all wallpapers needed for preloading
-  wallpapersToPreload = lib.unique (lib.attrValues wallpapers);
+    else [ { monitor = ""; path = wallpapers.fallback; } ]; # Single monitor fallback
 
   # Border width configuration for MFD-style appearance
   mfdBorderSize = if centuryConfig.borderStyle or "mfd" == "mfd" then 3 else 2;
@@ -222,7 +228,6 @@ in {
     services.hyprpaper = {
       enable = true;
       settings = {
-        preload = wallpapersToPreload;
         wallpaper = wallpaperAssignments;
         ipc = false;
         splash = false;
@@ -297,8 +302,8 @@ in {
         };
 
         # Dwindle layout - organized like instrument panels
+        # (pseudotile removed in Hyprland 0.55 — see functional.nix)
         dwindle = {
-          pseudotile = true;
           preserve_split = true;
           smart_split = false;
           force_split = 2;  # Always split to right/bottom
@@ -321,20 +326,24 @@ in {
         };
 
         # Window rules for specific applications
-        windowrulev2 = [
+        # Hyprland 0.55 syntax: `<effect> <value>` pairs, matchers prefixed
+        # `match:`. bordercolor was renamed to border_color.
+        windowrule = [
           # Float and center dialogs like popup instruments
-          "float, class:^(.*), title:^(.*)(dialog|Dialog|confirm|Confirm).*$"
-          "center, class:^(.*), title:^(.*)(dialog|Dialog|confirm|Confirm).*$"
+          "float true, match:class ^(.*), match:title ^(.*)(dialog|Dialog|confirm|Confirm).*$"
+          "center true, match:class ^(.*), match:title ^(.*)(dialog|Dialog|confirm|Confirm).*$"
 
           # Browsers - amber accent border
-          "bordercolor rgb(${removePrefix "#" c.accent-amber}) rgb(${removePrefix "#" c.accent-amber-dim}) 45deg, class:^(firefox|chromium|brave).*$"
+          "border_color rgb(${removePrefix "#" c.accent-amber}) rgb(${removePrefix "#" c.accent-amber-dim}) 45deg, match:class ^(firefox|chromium|brave).*$"
 
         ];
 
-        # Layer rules for overlay applications (wlogout uses "gtk-layer-shell")
+        # Layer rules for overlay applications (wlogout uses "gtk-layer-shell").
+        # ignorezero became ignore_alpha, which takes the threshold as its value —
+        # 0 reproduces the old "ignore fully transparent pixels" behaviour.
         layerrule = [
-          "blur, gtk-layer-shell"
-          "ignorezero, gtk-layer-shell"
+          "blur true, match:namespace gtk-layer-shell"
+          "ignore_alpha 0, match:namespace gtk-layer-shell"
         ];
 
         # Theme-specific keybinds

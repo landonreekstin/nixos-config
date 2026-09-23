@@ -27,12 +27,14 @@
   boot.loader.efi.canTouchEfiVariables = true;
 
   # Prevent GNOME/logind from suspending or hibernating — this is a server.
-  systemd.sleep.extraConfig = ''
-    AllowSuspend=no
-    AllowHibernation=no
-    AllowHybridSleep=no
-    AllowSuspendThenHibernate=no
-  '';
+  # 26.05 removed systemd.sleep.extraConfig in favour of settings.Sleep, matching
+  # the services.logind.settings.Login style used just below.
+  systemd.sleep.settings.Sleep = {
+    AllowSuspend = "no";
+    AllowHibernation = "no";
+    AllowHybridSleep = "no";
+    AllowSuspendThenHibernate = "no";
+  };
   services.logind.settings.Login = {
     IdleAction = "ignore";
     HandleSuspendKey = "ignore";

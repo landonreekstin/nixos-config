@@ -16,7 +16,7 @@ in `docs/` — read the matching file when the task calls for it:
 | [docs/architecture.md](docs/architecture.md) | adding a host file, deciding where an option is *declared*, or refactoring/moving config (incl. the no-op proof recipes) |
 | [docs/theming.md](docs/theming.md) | Plasma / SDDM / Hyprland themes, or any `modules/home-manager/themes/*` work |
 | [docs/networking.md](docs/networking.md) | the OpenBSD firewall, WireGuard peers, port forwards, `.lan` DNS, NAS addressing, wake-on-LAN |
-| [docs/flake-updates.md](docs/flake-updates.md) | blocking / fixing / explaining a weekly `update/*` PR, or beta-host tracking |
+| [docs/flake-updates.md](docs/flake-updates.md) | blocking / fixing / explaining a weekly `update/*` PR, beta-host tracking, or a **NixOS release upgrade** (25.11 → 26.05 and the next one) |
 | [docs/test-vms-and-ci.md](docs/test-vms-and-ci.md) | using `vm-sandbox` / `vm-blaney`, or changing the CI workflow / NAS runner |
 | [docs/remote-xfce-rdp.md](docs/remote-xfce-rdp.md) | XFCE-over-xrdp work, or a `rebuild` that didn't visibly change a live XFCE session |
 | [docs/installation.md](docs/installation.md) | deploying a new host or re-installing an existing one |

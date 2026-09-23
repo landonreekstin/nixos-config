@@ -3,7 +3,7 @@
   description = "Lando's Modular NixOS Configuration";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
 
     nixpkgs-unstable = {
       url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -33,7 +33,7 @@
     };
 
     home-manager = {
-      url = "github:nix-community/home-manager/release-25.11";
+      url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -52,11 +52,7 @@
     nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=latest";
 
     sops-nix = {
-      # Pinned: upstream sops-nix commit 16954c1c (2026-09-17) raised its Go floor to
-      # 1.26, but nixos-25.11 is EOL and only ships go_1_25. Every `nix flake update`
-      # would otherwise pull the newer sops-nix and fail `sops-install-secrets`. Drop
-      # the pin once we're on nixos-26.05.
-      url = "github:Mic92/sops-nix/a8627b21b9107c5711c96b84f32a9a4b3d45295f";
+      url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -78,12 +74,6 @@
         config.allowUnfree = true;
       };
       lib = nixpkgs.lib;
-
-      aerothemeplasma-src = pkgs.fetchgit {
-        url = "https://gitgud.io/wackyideas/AeroThemePlasma.git";
-        rev = "6.3.4";
-        sha256 = "sha256-PGWpLKXanZ+miN9dE0+SThTAGutFdHMMRmCNcD5myx8=";
-      };
 
       embeddedComponents = referenceHostConfig.customConfig.profiles.development.embedded-linux.components;
 

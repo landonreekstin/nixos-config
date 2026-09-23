@@ -65,7 +65,9 @@ in
       # Radarr creates each title directory. At the default 0022 the group write
       # bit is dropped, so Bazarr - though it is in the media group - cannot write
       # .srt sidecars next to the video. 0002 keeps the media group writable.
-      systemd.services.radarr.serviceConfig.UMask = "0002";
+      # mkForce: since 26.05 the upstream radarr module sets UMask = "0022"
+      # itself, at normal priority, which collides with this.
+      systemd.services.radarr.serviceConfig.UMask = lib.mkForce "0002";
     })
 
     (lib.mkIf arrCfg.sonarr.enable {
@@ -73,8 +75,10 @@ in
         enable = true;
         openFirewall = true;
       };
-      # Same as Radarr: keep series directories group-writable for Bazarr.
-      systemd.services.sonarr.serviceConfig.UMask = "0002";
+      # Same as Radarr: keep series directories group-writable for Bazarr, and
+      # the same mkForce reason — upstream's sonarr module now sets "0022" too.
+      # (bazarr and lidarr below need no mkForce; upstream sets no UMask there.)
+      systemd.services.sonarr.serviceConfig.UMask = lib.mkForce "0002";
     })
 
     (lib.mkIf arrCfg.bazarr.enable {

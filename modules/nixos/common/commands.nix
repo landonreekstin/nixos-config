@@ -336,7 +336,17 @@ in
       echo "This will update all flake inputs and then rebuild the system."
       echo "Using flake: $FLAKE_PATH"
 
-      sudo nixos-rebuild switch --upgrade --flake "$FLAKE_PATH" --impure --max-jobs auto --cores 0
+      # This used to pass --upgrade to nixos-rebuild, which does nothing for a
+      # flake-based system: --upgrade only runs `nix-channel --update`. 26.05's
+      # rewritten nixos-rebuild says so out loud ("'--upgrade(-all)' flag has no
+      # effect for flake-based systems") — before that it failed silently, so
+      # `upgrade` was only ever a rebuild. Update the inputs explicitly instead,
+      # the same way the `flake-update` command does.
+      echo "Updating flake inputs..."
+      cd "${nixosConfigDir}"
+      nix flake update
+
+      sudo nixos-rebuild switch --flake "$FLAKE_PATH" --impure --max-jobs auto --cores 0
       echo "System upgrade complete."
     '')
   ]) ++ (lib.optionals (cfg.user.name == "insideabush") [

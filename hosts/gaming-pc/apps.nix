@@ -191,7 +191,6 @@
       unstable-override = [
         "obs-studio"
         "vscode"
-        "librewolf"
         "brave"
         "ungoogled-chromium"
         "claude-code"
@@ -206,8 +205,9 @@
         # Kept installed alongside Firefox, but no longer on the browser role and
         # deliberately NOT managed by customConfig.homeManager.browser — its
         # hand-configured ~/.librewolf profile is untouched and stays as a
-        # fallback. Still needs the unstable-override above: stable 25.11 marks
-        # librewolf insecure, so Hydra never builds it.
+        # fallback. It used to need an unstable-override because 25.11 marked
+        # librewolf insecure so Hydra never built it; 26.05 ships a cached
+        # 156.0-1, so it comes from stable now.
         librewolf
 
         jamesdsp
