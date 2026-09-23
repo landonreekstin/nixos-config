@@ -21,9 +21,19 @@ in {
   ];
 
   # Rest of your configuration remains unchanged
+  #
+  # The trailing back-references MUST be written ''${VAR}, not $VAR.
+  # environment.sessionVariables is rendered into /etc/pam/environment, and the
+  # pam_env in nixos-26.05 only expands the braced form — given a bare $VAR it
+  # logs "Expandable variables must be wrapped in {} ... - ignoring" and throws
+  # away the *entire* entry. That silently left QT_PLUGIN_PATH and
+  # QML2_IMPORT_PATH unset on every aerothemeplasma host, which is precisely how
+  # the Win7 decoration, SevenStart, desktopcontainment and volume plasmoids get
+  # found. Caught in vm-blaney; 25.11's pam_env accepted the bare form, so this
+  # only became a bug on the 26.05 upgrade.
   environment.sessionVariables = {
-    QT_PLUGIN_PATH = "${pkgs.aerothemeplasma}/lib/qt-6/plugins:${pkgs.decoration}/lib/qt-6/plugins:${pkgs.sevenstart}/lib/qt-6/plugins:${pkgs.volume}/lib/qt-6/plugins:${lib.makeSearchPath "lib/qt-6/plugins" [pkgs.kdePackages.qtmultimedia]}:$QT_PLUGIN_PATH";
-    QML2_IMPORT_PATH = "${pkgs.aerothemeplasma}/lib/qt-6/qml:${pkgs.desktopcontainment}/lib/qt-6/qml:${lib.makeSearchPath "lib/qt-6/qml" [pkgs.kdePackages.qtmultimedia pkgs.kdePackages.qtvirtualkeyboard pkgs.kdePackages.qtsvg]}:$QML2_IMPORT_PATH";
+    QT_PLUGIN_PATH = "${pkgs.aerothemeplasma}/lib/qt-6/plugins:${pkgs.decoration}/lib/qt-6/plugins:${pkgs.sevenstart}/lib/qt-6/plugins:${pkgs.volume}/lib/qt-6/plugins:${lib.makeSearchPath "lib/qt-6/plugins" [pkgs.kdePackages.qtmultimedia]}:\${QT_PLUGIN_PATH}";
+    QML2_IMPORT_PATH = "${pkgs.aerothemeplasma}/lib/qt-6/qml:${pkgs.desktopcontainment}/lib/qt-6/qml:${lib.makeSearchPath "lib/qt-6/qml" [pkgs.kdePackages.qtmultimedia pkgs.kdePackages.qtvirtualkeyboard pkgs.kdePackages.qtsvg]}:\${QML2_IMPORT_PATH}";
     QML_DISABLE_DISTANCEFIELD = "1";
   };
 
