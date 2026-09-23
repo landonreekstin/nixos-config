@@ -41,6 +41,14 @@ buildGoModule rec {
     # phase to cmd/gamarr, which has no tests. Dropping subPackages would start
     # running internal/platform's tests and they would fail on this patch.
     ./pc-games-category-4050.patch
+
+    # organizeGame calls maybeExtractArchives in its ROM branch but not its PC
+    # branch, so a PC release that ships as archives lands in the vault still
+    # packed and nothing ever unpacks it - which is every multi-disc scene
+    # release, where split RARs sit in DVD1/DVD2 subdirectories. The extractor
+    # itself already recurses and EXTRACT_ARCHIVES was already on; the call was
+    # simply absent from that one branch.
+    ./extract-archives-on-pc-import.patch
   ];
 
   subPackages = [ "cmd/gamarr" ];

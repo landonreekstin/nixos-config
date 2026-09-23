@@ -245,7 +245,14 @@ in
         ProtectSystem = "strict";
         ProtectKernelTunables = true;
         ProtectControlGroups = true;
-        RestrictSUIDSGID = true;
+        # NOT RestrictSUIDSGID: imports replicate the source directory's mode
+        # (fileops/import.go uses info.Mode()), and every directory under
+        # storagePath is 2775 by the media-group convention in media-setup.nix.
+        # That makes the call mkdirat(..., 02775), which this option rejects
+        # with EPERM - every PC import failed at "Organize failed: mkdir ...
+        # operation not permitted". NoNewPrivileges above is what actually
+        # blocks privilege escalation here; gamarr is already in the media
+        # group, so an SGID-media file gains it nothing.
         # One writable path spanning BOTH the staging dir and the library, not
         # one entry each: systemd turns every ReadWritePaths entry into its own
         # bind mount, and the kernel refuses to hardlink across bind mounts even
