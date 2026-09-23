@@ -8,8 +8,9 @@ installation underneath it.
 This is already working on gaming-pc. The module and both commands exist; this task is
 enabling them here and getting the game files onto this machine.
 
-**Prerequisite — check this first and stop if it fails.** This needs
-`customConfig.programs.iw4x` to exist:
+**Prerequisites — check both first and stop if either fails.**
+
+1. The module must exist:
 
 ```bash
 test -f modules/nixos/programs/iw4x.nix && echo OK || echo "NOT MERGED YET"
@@ -18,21 +19,32 @@ test -f modules/nixos/programs/iw4x.nix && echo OK || echo "NOT MERGED YET"
 If it prints `NOT MERGED YET`, the module has not reached `main`. Tell Blaney the task
 isn't ready, don't try to write it yourself, and stop.
 
+2. The NAS file drop must be up — this is where the game comes from:
+
+```bash
+curl -sI http://192.168.1.76/public/ | head -1     # expect 200
+```
+
+Blaney must have the homelab VPN connected in the KDE network applet for this to
+answer at all. If it 404s or the vhost is missing, the drop has not been built yet
+(`docs/runbooks/nas-public-share.md`) — tell Blaney and stop.
+
 **Where:**
 - `hosts/blaney-pc/apps.nix` — the `customConfig.programs` block (partydeck lives there)
 - `modules/nixos/programs/iw4x.nix` — read it, don't change it
 
 ## Background you need
 
-- **The game files are on a USB drive**, not the NAS. blaney-pc genuinely cannot reach the
-  NAS over SMB — `pf` on the firewall blocks it for restricted VPN peers. Do not try to
-  mount the NAS, and do not enable `nasClient`; both will fail. (Full detail in
-  `docs/runbooks/mw2-iw4x-source.md`. A `public` share that would fix this is designed but
-  not built: `docs/runbooks/nas-public-share.md`.)
-- **The drive may hold either form.** Check which before planning:
-  - a prepared `mw2/` directory (~15 GB) — already installed and IW4x-synced. **Prefer
-    this.** Copy it and skip `mw2-install` entirely.
-  - `sr-mw2a.iso` + `sr-mw2b.iso` (~12 GB) — run `mw2-install /path/to/isos`.
+- **The game comes from the NAS over HTTP**, at `http://192.168.1.76/public/`, with the
+  VPN connected. Blaney is remote, so this crosses the internet -- expect it to take a
+  while and use a resumable download.
+- **Do NOT try to mount the NAS over SMB and do NOT enable `nasClient`.** Both will fail:
+  `pf` on the firewall blocks 445/139 for restricted VPN peers, and blaney-pc has no sops
+  identity to hold the Samba credentials. HTTP on port 80 is the one path that is open.
+  (Full detail in `docs/runbooks/nas-public-share.md`.)
+- **Prefer `mw2.tar`** if the drop has it (~15 GB, already installed and IW4x-synced) --
+  untar it and skip `mw2-install` entirely. The two ISOs are the fallback and need far
+  more free space.
 
 ## Do this
 
@@ -41,9 +53,10 @@ isn't ready, don't try to write it yourself, and stop.
    ```bash
    df -h /
    ```
-   - copying a prepared directory: **~16 GB**
-   - installing from ISOs: **~37 GB peak** (12 GB unpacked ISOs + 12 GB extracted payload
-     + 13 GB game), settling to ~15 GB
+   - downloading and untarring `mw2.tar`: **~31 GB peak** (15 GB tar + 15 GB extracted),
+     settling to ~15 GB once the tar is deleted
+   - installing from ISOs: **~37 GB peak** (12 GB downloaded ISOs + 12 GB unpacked + 12 GB
+     extracted payload + 13 GB game), settling to ~15 GB
    If there isn't room, say so plainly and stop — do not start and fill the disk.
 
 2. **Find the monitor's native resolution.** MW2 is capped at 1920x1080 internally, and
@@ -66,14 +79,21 @@ isn't ready, don't try to write it yourself, and stop.
    };
    ```
    Leave `installDir` at its default (`~/Games/mw2`) and set no `mediaDir` — the media
-   comes from a USB path passed on the command line, which varies.
+   is downloaded to ~/Games directly, and the ISO fallback takes its path on the command
+   line.
 
 5. **`sudo chown -R insideabush:users /home/insideabush/nixos-config`, then `rebuild`.**
 
-6. **Get the game in place.**
-   - Prepared directory: `mkdir -p ~/Games && cp -a /run/media/…/mw2 ~/Games/`
-   - ISOs: `mw2-install "/run/media/…/<iso dir>"` — takes a while, most of it reading the
-     USB drive. It needs no display and no clicking.
+6. **Download the game from the NAS.** Use `curl -C -` so a dropped connection resumes
+   instead of starting 15 GB over:
+   ```bash
+   mkdir -p ~/Games && cd ~/Games
+   curl -C - -O http://192.168.1.76/public/mw2.tar
+   tar -xf mw2.tar && rm mw2.tar
+   ```
+   If the drop only has the ISOs instead, download both the same way and then run
+   `mw2-install "<dir holding them>"` -- it needs no display and no clicking, but check
+   the space numbers in step 1 again first.
 
 7. **Launch it:** `iw4x`. The first run downloads ~750 MB of IW4x files.
 
@@ -96,7 +116,8 @@ isn't ready, don't try to write it yourself, and stop.
 - **Don't run `mw2-install` or `iw4x` with `sudo`.** Both refuse, on purpose: everything
   they write has to be owned by Blaney, and as root the launcher later fails trying to
   write into a root-owned game directory, with an error pointing nowhere near the cause.
-- **Quote the USB path.** The media directory name contains spaces and literal `[` `]`.
+- **Quote any media path.** If you fall back to the ISOs, the directory name they came
+  from contains spaces and literal `[` `]`.
 - **Don't set the resolution by editing `players/iw4x_config.cfg`.** MW2's `r_mode` is a
   fixed list ending at 1080p and an unrecognised value silently falls back to 640x480.
   gamescope is what fills a bigger screen.
