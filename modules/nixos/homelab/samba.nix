@@ -96,11 +96,17 @@ in
           ncalrpc dir = /run/samba-private/ncalrpc
 
           [private]
-          path = "${cfg.private.path}"
+          # Values are NOT quoted: smb.conf takes the rest of the line verbatim, so a
+          # quoted value keeps its quotes. `force user = "lando"` never resolved to the
+          # real account, which silently reduced every client to the *group* rights of
+          # the share (`lando:users 775` worked, an owner-only `lando:users 700` did
+          # not) -- exactly the rights force user exists to grant. The main share does
+          # not have the bug because services.samba generates its config.
+          path = ${cfg.private.path}
           browseable = yes
           read only = no
           guest ok = no
-          force user = "${cfg.private.user}"
+          force user = ${cfg.private.user}
           # Set sane default permissions for new files and directories.
           create mask = 0664
           directory mask = 0775

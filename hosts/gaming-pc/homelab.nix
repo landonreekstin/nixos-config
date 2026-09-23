@@ -13,6 +13,11 @@ in
       # use the legacy main-LAN address (which post-migration is an alias on the
       # fw's re0).
       serverAddress = if vars.nasViaLanWg then "192.168.100.76" else "192.168.1.76";
+
+      # Manual-only access to the LUKS-encrypted private share: provides the
+      # `private-share` command and nothing else — no fstab entry, no automount,
+      # nothing that mounts at boot.
+      privateShare.enable = true;
     };
     localCA.trustCA = true;
   };
