@@ -106,21 +106,21 @@ let
   ) customConfig.desktop.autostart;
 
   # Use [workspace N silent] prefix only when no windowClass is provided.
-  # When windowClass is set, workspace assignment is handled by windowrulev2 (more reliable for XWayland).
+  # When windowClass is set, workspace assignment is handled by windowrule (more reliable for XWayland).
   mkExecOnce = app:
     if app.workspace != null && app.windowClass == null
     then "[workspace ${toString app.workspace} silent] ${app.command}"
     else app.command;
 
-  # Generate windowrulev2 lines for apps with both windowClass and workspace set
+  # Generate windowrule lines for apps with both windowClass and workspace set
   autostartWindowRules = lib.concatMapStrings (app:
     lib.optionalString (app.windowClass != null && app.workspace != null)
-      "windowrulev2 = workspace ${toString app.workspace} silent, class:^(${app.windowClass})$\n"
+      "windowrule = workspace ${toString app.workspace} silent, match:class ^(${app.windowClass})$\n"
   ) hyprlandAutostart;
 
-  # Generate windowrulev2 lines for utility workspace apps
+  # Generate windowrule lines for utility workspace apps
   utilityWindowRules = lib.concatMapStrings (app:
-    "windowrulev2 = workspace special:ckb silent, class:^(${app.windowClass})$\n"
+    "windowrule = workspace special:ckb silent, match:class ^(${app.windowClass})$\n"
   ) customConfig.desktop.hyprland.utilityApps;
 
   # Empty submap activated while hyprland-keys is open.
@@ -283,8 +283,10 @@ in
         };
 
         # Layout-specific settings (functional behavior)
+        # dwindle:pseudotile was removed in Hyprland 0.55 — pseudotiling is now
+        # only a per-window thing (the `pseudo` window-rule effect and the
+        # togglepseudo dispatcher, which SUPER+P below still uses).
         dwindle = {
-          pseudotile = true;
           preserve_split = true;
         };
         master = {
@@ -300,7 +302,15 @@ in
         misc = {
           force_default_wallpaper = -1; # Important if another tool handles wallpaper
           disable_hyprland_logo = true;
-          vfr = false; # Prevents damage tracking artifacts (black lines, stale pixels)
+        };
+
+        # vfr moved from misc: to debug: in Hyprland 0.55. Kept off for the same
+        # reason it always was — it prevents damage-tracking artifacts here (black
+        # lines, stale pixels). Upstream now labels this a debug-only knob, so if
+        # a later version fixes the artifacts this should go back to the default
+        # (true) rather than being carried forever.
+        debug = {
+          vfr = false;
         };
 
         # Keybindings
@@ -434,21 +444,25 @@ in
         ];
 
         # Window rules
-        windowrulev2 = [
+        # Hyprland 0.55 replaced windowrulev2 with a unified `windowrule` that
+        # takes `<effect> <value>` pairs and prefixes matchers with `match:`.
+        # Several effects were renamed at the same time: noborder -> border_size,
+        # noshadow -> no_shadow, stayfocused -> stay_focused.
+        windowrule = [
           # hyprland-keys overlay: float, cover full screen, stay on top
-          "float,        class:^(land.lando.hyprland-keys)$"
-          "center,       class:^(land.lando.hyprland-keys)$"
-          "size 1440 820,class:^(land.lando.hyprland-keys)$"
-          "pin,          class:^(land.lando.hyprland-keys)$"
-          "noborder,     class:^(land.lando.hyprland-keys)$"
-          "noshadow,     class:^(land.lando.hyprland-keys)$"
-          "stayfocused,  class:^(land.lando.hyprland-keys)$"
+          "float true,          match:class ^(land.lando.hyprland-keys)$"
+          "center true,         match:class ^(land.lando.hyprland-keys)$"
+          "size 1440 820,       match:class ^(land.lando.hyprland-keys)$"
+          "pin true,            match:class ^(land.lando.hyprland-keys)$"
+          "border_size 0,       match:class ^(land.lando.hyprland-keys)$"
+          "no_shadow true,      match:class ^(land.lando.hyprland-keys)$"
+          "stay_focused true,   match:class ^(land.lando.hyprland-keys)$"
 
           # Steam games: force real fullscreen and enable immediate (raw) input.
           # "immediate" bypasses Hyprland's input processing for lower latency and
           # fixes mouse capture issues in XWayland games.
-          "fullscreen,   class:^(steam_app_.*)$"
-          "immediate,    class:^(steam_app_.*)$"
+          "fullscreen true,     match:class ^(steam_app_.*)$"
+          "immediate true,      match:class ^(steam_app_.*)$"
         ];
       }; # End of wayland.windowManager.hyprland.settings
     }; # End of wayland.windowManager.hyprland

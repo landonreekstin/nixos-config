@@ -53,8 +53,15 @@ in {
     programs.kitty = {
       enable = true;
 
+      # "JetBrainsMono Nerd Font", not plain "JetBrains Mono": the two are the
+      # same typeface (Nerd Fonts patches the original glyphs unchanged) but only
+      # the Nerd Font carries the icon glyphs that Claude Code, the shell prompt
+      # and anything powerline-ish print. Asking for the plain family only worked
+      # by fontconfig fallback, and kitty 0.44 -> 0.48 (nixos-26.05) tightened
+      # that fallback, so those characters started rendering as tofu boxes.
+      # nerd-fonts.jetbrains-mono is already installed by theme.nix.
       font = {
-        name = "JetBrains Mono";
+        name = "JetBrainsMono Nerd Font";
         size = 11;
       };
 

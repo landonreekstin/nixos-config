@@ -35,13 +35,16 @@ in
     # -------------------------------------------------------------------------- #
     services.hyprpaper = {
       enable = true;
+      # hyprpaper 0.8.0 rewrote its config: no more preload, and one
+      # `wallpaper { monitor; path; }` block per monitor. See the longer note in
+      # themes/century-series/hyprland.nix. No host currently selects this theme,
+      # so this is migrated for parity rather than verified on hardware.
       settings = {
-        preload = [ wallpaperF104 wallpaperHangar3 wallpaperHangar1 wallpaperSu47 ];
         wallpaper = [
-          "desc:${monitorDescMainDell},${wallpaperHangar3}"
-          "desc:${monitorDescLeftVirt},${wallpaperF104}"
-          "desc:${monitorDescRightVirt},${wallpaperSu47}"
-          "desc:${monitorDescTV},${wallpaperHangar1}"
+          { monitor = "desc:${monitorDescMainDell}";  path = wallpaperHangar3; }
+          { monitor = "desc:${monitorDescLeftVirt}";  path = wallpaperF104; }
+          { monitor = "desc:${monitorDescRightVirt}"; path = wallpaperSu47; }
+          { monitor = "desc:${monitorDescTV}";        path = wallpaperHangar1; }
         ];
         ipc = false;
         splash = false;
