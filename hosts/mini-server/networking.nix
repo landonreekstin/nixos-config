@@ -24,7 +24,12 @@
     services = {
       ssh.enable = true;
       vscodeServer.enable = true;
-      autoUpdate.enable = true;
+      # TEMPORARILY DISABLED for the nixos-26.05 upgrade — see the same note on
+      # optiplex-nas. mini-server is the most recoverable of the three (reachable
+      # through optiplex-fw), but it should still be the deliberate first host we
+      # reboot onto 26.05 rather than finding out by surprise.
+      # TODO: set back to true once mini-server is verified on 26.05.
+      autoUpdate.enable = false;
     };
 
   };
