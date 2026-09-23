@@ -1,0 +1,24 @@
+diff --git a/internal/search/vimm.go b/internal/search/vimm.go
+index cd700c2..af6e8f1 100644
+--- a/internal/search/vimm.go
++++ b/internal/search/vimm.go
+@@ -35,9 +35,17 @@ func SearchVimm(reg *sources.Registry, query string, platformSlug string) []*mod
+ 	}
+ 	params := url.Values{"p": {"list"}, "q": {query}}
+ 	if platformSlug != "" {
+-		if sys, ok := reg.Vimm.PlatformSystems[platformSlug]; ok {
+-			params.Set("system", sys)
++		sys, ok := reg.Vimm.PlatformSystems[platformSlug]
++		if !ok {
++			// The caller asked for a platform Vimm does not carry (PC, most
++			// obviously - Vimm is console-only). Without this the lookup just
++			// misses, ?system= is never set, and the search runs unfiltered
++			// across every console, returning ROMs stamped "Unknown" for a
++			// platform the user explicitly filtered to. SearchMyrient already
++			// guards this way.
++			return nil
+ 		}
++		params.Set("system", sys)
+ 	}
+ 	systemFromFilter := reg.Vimm.PlatformSystems[platformSlug]
+ 
