@@ -19,8 +19,24 @@
 
     homeAssistant = {
       enable = true;
-      # Was pinned to unstable because 25.11 only shipped HA 2025.11.x and backup
-      # needs >= 2026.2.1. 26.05 ships 2026.5.4, so stable clears the floor.
+      # Stays on unstable, and this is a FLOOR, not a preference — do not "clean it
+      # up" onto stable just because stable's version looks new enough.
+      #
+      # Home Assistant migrates files under ~/.storage forward on first run by a newer
+      # release, and never migrates them back. An older build then refuses to start:
+      #   UnsupportedStorageVersionError: Storage file http has version 2 which is
+      #   newer than the max supported version 1
+      #
+      # That is exactly what the 26.05 upgrade hit. The previous comment justified
+      # unstable *only* by a backup feature needing >= 2026.2.1, so when 26.05 shipped
+      # 2026.5.4 the override looked obsolete and was dropped. But this host had been
+      # running unstable's 2026.9.3, which had already taken .storage/http to version 2,
+      # and stable 2026.5.4 crash-looped on every start.
+      #
+      # Same shape as the signal-desktop version floor in unstable-overlay.nix: on-disk
+      # state only moves forward, so the package must never move backwards. Only move to
+      # stable once stable's HA is >= whatever last wrote this host's .storage.
+      package = unstablePkgs.home-assistant;
     };
 
     wyoming = {
