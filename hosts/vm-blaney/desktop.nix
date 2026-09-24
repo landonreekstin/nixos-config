@@ -3,7 +3,7 @@
 
 {
   customConfig.desktop = {
-    environments = [ "kde" "hyprland" "xfce" ];
+    environments = [ "hyprland" "xfce" ];
     hyprland = {
       launcher = { # off, mirroring blaney-pc: the glade theme's boards replace it
         enable = false;
