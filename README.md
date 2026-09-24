@@ -222,4 +222,4 @@ Wayland components follow a functional/theme split — `functional.nix` modules 
 - **`century-series`** — Cold War aviation cockpit aesthetic (F-100 through F-106, MiG-17/19/21). Per-app theming across Hyprland, Waybar, Kitty, Dunst, Rofi, Wofi, Swaylock, wlogout, Yazi, and btop.
 - **`future-aviation`** — Modern aerospace look.
 
-KDE themes include a full Windows 7 Aero recreation (fetching AeroThemePlasma from source) and a macOS Big Sur theme, each managed declaratively through plasma-manager.
+KDE themes include stock Breeze and a macOS Big Sur theme, managed declaratively through plasma-manager. The Windows 7 Aero recreation now lives in the XFCE theme (`themes.xfce = "windows7"`), which compiles nothing; the source-built Plasma version (AeroThemePlasma) is retained in-tree but selected by no host — see `docs/theming.md`.
