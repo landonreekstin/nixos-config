@@ -75,8 +75,12 @@ in {
         font = "JetBrains Mono";
         font-size = 24;
 
-        # Custom text - Aviation terminology
-        text = "SECURE";
+        # Custom text - Aviation terminology.
+        # No plain `text = ...`: swaylock-effects 1.7.0.0 (26.05) dropped the idle
+        # -state --text option while keeping the per-state ones below, so
+        # `--text=SECURE` reached getopt as an ambiguous prefix of --text-color /
+        # --text-clear / --text-ver / --text-wrong. swaylock printed its usage and
+        # exited 1, which silently broke BOTH Super+Escape and the idle lock.
         text-ver = "AUTHENTICATING";
         text-wrong = "ACCESS DENIED";
         text-clear = "CLEARED";
