@@ -40,11 +40,12 @@
       xdgOpenUsePortal = true;
     };
 
+    # The KDE *applications* (konsole, gwenview, okular, ark, elisa, kcalc,
+    # partitionmanager, the Dolphin companions) are NOT here: they live in
+    # modules/nixos/apps/kde-suite.nix so a host can keep them without running
+    # Plasma. Only the session's own portal backend belongs to this module.
     environment.systemPackages = with pkgs; [
       kdePackages.xdg-desktop-portal-kde
-
-      kdePackages.kcalc
-      kdePackages.kate
     ];
 
     services.pipewire = {
@@ -54,6 +55,5 @@
     };
 
     programs.xwayland.enable = true;
-    programs.partition-manager.enable = true;
   };
 }
