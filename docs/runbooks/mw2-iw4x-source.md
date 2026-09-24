@@ -1,9 +1,10 @@
-# Runbook: MW2 install media on the NAS, for IW4x on gaming-pc (and later blaney-pc)
+# Runbook: MW2 install media on the NAS, for IW4x on gaming-pc and blaney-pc
 
-**Status: media staged and verified; installation not yet attempted.** gaming-pc can reach
-it today; blaney-pc cannot, for reasons in "Reaching the media". The two install
-ISOs sit on the NAS, checksummed and content-listed. Everything below the "Install" heading
-is derived from the release's own readme and from probing the images — it has not been run.
+**Status: media staged and verified; installation not yet attempted.** Both gaming-pc and
+blaney-pc can reach it — gaming-pc over its SMB mount, blaney-pc over the NAS's HTTP drop
+since 2026-09-23 (see "Reaching the media"). The two install ISOs sit on the NAS,
+checksummed and content-listed. Everything below the "Install" heading is derived from the
+release's own readme and from probing the images — it has not been run.
 
 The goal this serves: IW4x (in nixpkgs) needs a complete Modern Warfare 2 installation to
 sit on top of. These ISOs are what produce one. IW4x itself is out of scope here.
@@ -54,10 +55,21 @@ The share is `storage` → `/mnt/storage`, `guest ok = no`, `force user = lando`
 /mnt/nas/games/installers/Call Of Duty Modern Warfare 2 [English][PC][2DVDs][WwW.GamesTorrents.CoM]/
 ```
 
-**blaney-pc — cannot reach the NAS at all, and enabling `nasClient` will not change that.**
-This is the trap that will waste the most time if taken on faith, so it is spelled out.
+**blaney-pc — reaches the media over HTTP, not SMB.** Since 2026-09-23 the NAS serves a
+read-only drop at `http://192.168.1.76/public/` (`customConfig.homelab.publicFiles`,
+`docs/runbooks/nas-public-share.md`). Blaney needs the homelab VPN up; he is peer
+`10.10.0.5`, and port 80 to the NAS is already in the restricted-peer pf allow-list, so
+nothing else has to be opened.
 
-Three independent blockers, all verified against the current tree:
+```bash
+curl -C - -O http://192.168.1.76/public/mw2.tar     # resumes; ~15 GB
+```
+
+Use `curl -C -`, not a plain download — this crosses the WAN to another state.
+
+**Do NOT try to get there over SMB, and do not enable `nasClient`.** This is the trap that
+will waste the most time if taken on faith, so the blockers are spelled out. All three are
+still true; HTTP routes around them rather than fixing them.
 
 1. **No sops identity.** `hosts/blaney-pc/networking.nix` sets `ssh.enable = false`, so NixOS
    never generates `/etc/ssh/ssh_host_ed25519_key`, and `modules/nixos/sops.nix` derives every
@@ -67,19 +79,20 @@ Three independent blockers, all verified against the current tree:
    `secrets/common.yaml`, whose key group in `.sops.yaml` is lando, asus-laptop, gaming-pc,
    optiplex-nas, mini-server. blaney-pc is absent — and cannot be added until blocker 1 is
    resolved, since there is no key to add.
-3. **No network path.** blaney-pc is a remote host; it reaches the homelab only over the VPN,
-   and its `networking.nix` configures no WireGuard at all. Neither `192.168.1.76` nor
-   `192.168.100.76` is routable from it.
+3. **`pf` blocks SMB for him regardless.** Restricted peers are passed
+   `{ 8096, 5055, 5000, 53, 80, 8100 }` to the NAS and then blocked; 445/139 are deliberately
+   absent. Full peers *do* get them in the rule immediately above, which is what makes this
+   easy to misread as already working. His `AllowedIPs` is `192.168.1.76/32`, so
+   `192.168.100.76` is not routable from him at all.
 
 So `customConfig.homelab.nasClient.enable = true` on blaney-pc produces a mount unit that
 fails on both credentials and connectivity. Note also that `hosts/blaney-pc/default.nix`
 imports no `homelab.nix`, so the file would have to be created *and* added to that import
-list — but do not do this until the blockers above are cleared.
+list — but there is no reason to, now that HTTP works.
 
-Unblocking it properly means working through `docs/runbooks/blaney-sops-setup.md` first
-(sops identity, then the WireGuard client). Until then, get the media onto blaney-pc some
-other way — a copy staged by gaming-pc, or physical transfer. Roughly 12 GB of ISO, or
-12–13 GB of installed game.
+Giving blaney-pc a real SMB mount would still mean working through
+`docs/runbooks/blaney-sops-setup.md` first (sops identity, then the WireGuard client). That
+is worth doing for its own sake, but it is **not** a prerequisite for the MW2 install.
 
 Blaney-pc work follows `docs/hosts/blaney-pc.md`: `blaney/`-prefixed branch, PR only, never
 commit to `main` and never merge it yourself.
