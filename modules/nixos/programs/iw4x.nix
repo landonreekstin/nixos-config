@@ -303,6 +303,31 @@ let
       # ourselves below because its own Linux launch path probes $PATH for a binary named
       # `umu` (src/game.rs), while nixpkgs installs `umu-run` -- so left to itself it
       # would silently fall through to plain wine, losing Proton's 32-bit D3D9 support.
+      STATE_DIR="''${XDG_STATE_HOME:-$HOME/.local/state}/iw4x"
+      MARKER="$STATE_DIR/last-sync"
+      MAX_AGE=${toString (cfg.updateMaxAgeHours * 3600)}
+
+      FORCE_UPDATE=0
+      SKIP_UPDATE=0
+      GAME_ARGS=()
+      for arg in "$@"; do
+        case "$arg" in
+          --update)    FORCE_UPDATE=1 ;;
+          --no-update) SKIP_UPDATE=1 ;;
+          *)           GAME_ARGS+=("$arg") ;;
+        esac
+      done
+
+      need_update() {
+        [ "$SKIP_UPDATE" = 1 ] && return 1
+        [ "$FORCE_UPDATE" = 1 ] && return 0
+        [ "$MAX_AGE" -le 0 ] && return 0
+        [ -f "$MARKER" ] || return 0
+        now="$(date +%s)"
+        last="$(cat "$MARKER" 2>/dev/null || echo 0)"
+        [ "$((now - last))" -ge "$MAX_AGE" ]
+      }
+
       # The update must NOT be able to stop the game starting. This script runs under
       # `set -e`, so a bare call here aborts on any non-zero exit -- and because the
       # desktop entry has no terminal, that looks like clicking the icon does nothing at
@@ -315,8 +340,17 @@ let
       # stdin from /dev/null: on failure the launcher prints "Press Enter to exit.." and
       # blocks on a read. Launched from the menu that would be an invisible hang rather
       # than a failed update, so never give it a stdin to wait on.
-      if ! iw4x-launcher --update --skip-self-update --path "$INSTALL_DIR" </dev/null; then
-        say "Update check failed -- network problem? Launching the installed version."
+      if need_update; then
+        # Say so up front. Launched from the menu this is several minutes of complete
+        # silence otherwise, which is indistinguishable from the icon being broken --
+        # exactly how this looked on 2026-09-23.
+        say "Updating IW4x -- this downloads ~730 MB and takes a few minutes."
+        if iw4x-launcher --update --skip-self-update --path "$INSTALL_DIR" </dev/null; then
+          mkdir -p "$STATE_DIR"
+          date +%s > "$MARKER"
+        else
+          say "Update check failed -- network problem? Launching the installed version."
+        fi
       fi
 
       # ...unless the client itself was never synced, in which case there is nothing to
@@ -328,9 +362,9 @@ let
 
       cd "$INSTALL_DIR"
       ${if gs.enable then ''
-        exec ${gamescopeCmd} -- umu-run "$INSTALL_DIR/iw4x.exe" "$@"
+        exec ${gamescopeCmd} -- umu-run "$INSTALL_DIR/iw4x.exe" "''${GAME_ARGS[@]}"
       '' else ''
-        exec umu-run "$INSTALL_DIR/iw4x.exe" "$@"
+        exec umu-run "$INSTALL_DIR/iw4x.exe" "''${GAME_ARGS[@]}"
       ''}
     '';
   };
@@ -386,6 +420,25 @@ in
       description = ''
         Default directory holding sr-mw2a.iso and sr-mw2b.iso, used by `mw2-install`
         when it is run without an argument. Null means the path must be passed in.
+      '';
+    };
+
+    updateMaxAgeHours = mkOption {
+      type = types.int;
+      default = 24;
+      description = ''
+        Skip the IW4x update check if the last successful sync is newer than this many
+        hours. 0 checks on every launch.
+
+        This exists because the launcher re-downloads roughly 730 MB EVERY time
+        otherwise, which is a launcher/client disagreement rather than a real update:
+        the launcher fetches into `iw4x/` and `zone/dlc/`, and the IW4x client then
+        relocates that payload into `main/iw4x/x86/` and `zone/iw4x/x86/dlc/` when it
+        runs. The launcher re-checks its own paths, finds them empty, and fetches the
+        lot again -- every launch, forever. Waiting on it means minutes of silence
+        before the game appears.
+
+        `iw4x --update` forces a check regardless; `iw4x --no-update` skips one.
       '';
     };
 
