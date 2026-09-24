@@ -6,6 +6,7 @@
     ./options.nix
     ./flatpak.nix
     ./partydeck.nix
+    ./iw4x.nix
     ./claude-code.nix
   ];
 }

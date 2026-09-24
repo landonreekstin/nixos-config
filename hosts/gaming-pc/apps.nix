@@ -57,6 +57,21 @@
     programs = {
       partydeck.enable = true;
 
+      # IW4x needs a full MW2 (2009) install under it; `mw2-install` builds one from the
+      # two ISOs on the NAS. /mnt/games has the room -- / is at 83%, and the install plus
+      # its unpacking staging wants ~25 GB. See docs/runbooks/mw2-iw4x-source.md.
+      iw4x = {
+        enable = true;
+        installDir = "/mnt/games/mw2";
+        # The LG ULTRAGEAR (DP-1) is the gaming monitor: 2560x1440 native, 180 Hz.
+        # MW2 renders at its 1080p ceiling and gamescope upscales to fill it.
+        gamescope = {
+          outputWidth = 2560;
+          outputHeight = 1440;
+        };
+        mediaDir = "/mnt/nas/games/installers/Call Of Duty Modern Warfare 2 [English][PC][2DVDs][WwW.GamesTorrents.CoM]";
+      };
+
       claudeCode = {
         enable = true;
         # lando's hyprland-keys working clone lives alongside nixos-config on this host.
