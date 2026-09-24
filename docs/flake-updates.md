@@ -35,6 +35,26 @@ journalctl -u flake-updater -f
 
 On gaming-pc, running `update` when an `update/*` branch exists on remote will automatically switch to it. When no update branch exists (post-merge), `update` falls back to main. This is transparent — no user action needed.
 
+## Desktop hosts: the shutdown guard
+
+`customConfig.services.autoUpdate` assumes the host is *on* when its timer fires. On a
+headless server that is a given; on a desktop it is not, and `persistent = false` (the
+right setting there — it stops a surprise rebuild+poweroff on the next boot) means a
+missed window is simply lost until the following week. blaney-pc makes this worse with
+`shutdownAfterRebuild = true`: the machine is *supposed* to end up off, so "it was off"
+looks normal and nobody notices the update never ran.
+
+`customConfig.homeManager.services.shutdownGuard.enable` closes that gap. It installs a
+`shutdown-guard` command that reads `nixos-auto-update.timer`'s next elapse and, only when
+that is within `warnWithinHours` (default 12), shows a GTK dialog offering **Shut down
+anyway** / **Update now, then shut down** / **Cancel**. Outside the window — or on a host
+with no auto-update timer — it exits silently and instantly. Every shutdown path the user
+can reach runs it first; see [hosts/blaney-pc.md](hosts/blaney-pc.md#the-shutdown-guard).
+
+The "update now" button runs **`update-shutdown`**, which is also a plain CLI command on
+every host: git pull → rebuild → power off, i.e. the weekly run on demand. (Do not confuse
+it with `rebuild-shutdown`, which rebuilds the flake already on disk and never fetches.)
+
 ## For Claude: how to handle common requests
 
 **"Approve the update" / "let it merge"** — do nothing. The NAS auto-merges on the following Monday's run automatically. There is no action needed; manually merging via `gh pr merge` is wrong and bypasses the soak period.

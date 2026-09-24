@@ -8,5 +8,6 @@
     ./swayidle.nix
     ./update-notification.nix
     ./rebuild-shutdown-notify.nix
+    ./shutdown-guard.nix
   ];
 }

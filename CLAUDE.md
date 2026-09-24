@@ -75,6 +75,7 @@ git config user.email  # should be: landonreekstin@gmail.com
 - `update` - Pull latest changes from the remote repository (handles merge conflicts)
 - `flake-update` - Update flake inputs (requires `updateCmdPermission` enabled)
 - `upgrade` - Update flake inputs and rebuild system in one command
+- `update-shutdown` - Pull the latest config, rebuild, then power off — the weekly auto-update on demand. (`rebuild-shutdown` is the one that rebuilds *without* pulling.)
 - `post-install` - Complete initial setup after fresh NixOS installation
 
 #### blaney-pc-only commands (gated to the `insideabush` user)

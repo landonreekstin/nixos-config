@@ -38,6 +38,10 @@ let
   # package = null has an empty command (it is unset); those binds are filtered out
   # below rather than emitted as an empty xfconf value.
   apps = lib.mapAttrs (_: role: role.command) customConfig.apps.programs;
+
+  # The Start-menu power flyout, shared with panel.nix. No whiskermenu id here: invoked from a
+  # keybind there is no Start menu to keep open underneath, so it runs in standalone mode.
+  powerMenuCmd = "${import ./power-menu.nix { inherit pkgs; }}/bin/win7-power-menu";
   xfconfDir = "xfce4/xfconf/xfce-perchannel-xml";
 
   # Per-monitor display toggles, Hyprland parity (Ctrl+Super+1..4 → xfce-toggle-monitor <name>).
@@ -106,7 +110,13 @@ let
         { key = "<Super>space";           value = "xfce4-popup-whiskermenu"; cheat = false; } # shown in Start
         { key = "<Primary>Escape";        value = "xfce4-popup-whiskermenu"; cheat = false; } # paired w/ Super-tap
         { key = "<Super>l";               value = "xflock4";                 desc = "Lock screen"; }
-        { key = "<Super>BackSpace";       value = "xfce4-session-logout";    desc = "Log out"; }
+        # Both of these open the same Start-menu power flyout (standalone mode — no
+        # whiskermenu id), not xfce4-session-logout: the flyout is what runs the auto-update
+        # shutdown guard, and the stock dialog also eats the first click on X11. XF86PowerOff
+        # reaches us only because the host turns off logind's and xfce4-power-manager's own
+        # power-key handling — see hosts/blaney-pc/system.nix and ./idle.nix.
+        { key = "<Super>BackSpace";       value = powerMenuCmd;              desc = "Power options"; }
+        { key = "XF86PowerOff";           value = powerMenuCmd;              cheat = false; }
         { key = "<Super>v";               value = "xfce4-popup-clipman";     desc = "Clipboard history"; }
         { key = "<Super><Shift>s";        value = "xfce4-screenshooter -r";  desc = "Screenshot (region)"; }
         { key = "Print";                  value = "xfce4-screenshooter -f";  desc = "Screenshot (whole screen)"; }
