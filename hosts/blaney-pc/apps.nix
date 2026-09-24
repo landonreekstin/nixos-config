@@ -21,7 +21,12 @@
     };
 
     programs = {
-      partydeck.enable = true;
+      # Off since KDE was dropped from this host. partydeck is not built against KWin,
+      # but its `enable_kwin_script` setting defaults to on and its launch path calls
+      # KWin over D-Bus with `?` — so without Plasma a launch aborts, and unticking the
+      # setting leaves you hand-positioning every split-screen window. Nobody was using
+      # it, so it is off rather than half-working. See modules/nixos/programs/partydeck.nix.
+      partydeck.enable = false;
       claudeCode.enable = true;
       # His own vibe-coded app projects: the `vibe` command, ~/projects, and the dev
       # shells its .envrc files point at (customConfig.profiles.development.vibe-* in
