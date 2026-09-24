@@ -463,6 +463,18 @@ in
           # fixes mouse capture issues in XWayland games.
           "fullscreen true,     match:class ^(steam_app_.*)$"
           "immediate true,      match:class ^(steam_app_.*)$"
+
+          # Keep the display awake while ANY window is fullscreen (games from any
+          # launcher, plus fullscreen video). swayidle only counts keyboard/pointer
+          # events from the Wayland seat: a gamepad is evdev-only and never resets
+          # the idle timer, so a controller game blanked the screen mid-match at
+          # desktop.idle.sleepTimeout. The lock timeout escapes that via the audio
+          # check in lock-if-idle, but the DPMS timeout has no such guard, so it
+          # has to be inhibited at the compositor instead.
+          # The rule is `idle_inhibit` in Hyprland 0.55 (was `idleinhibit`), and
+          # its `fullscreen` mode only holds while the window is fullscreen on a
+          # visible workspace, so a backgrounded game stops keeping the screen on.
+          "idle_inhibit fullscreen, match:class ^(.*)$"
         ];
       }; # End of wayland.windowManager.hyprland.settings
     }; # End of wayland.windowManager.hyprland
