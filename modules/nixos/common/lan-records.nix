@@ -17,6 +17,8 @@
     # Music stack: music -> Navidrome (listen), ombi -> requests,
     # lidarr -> album manager, slskd -> Soulseek client.
     "lidarr" "music" "ombi" "slskd" "soularr"
+    # Read-only HTTP file drop for VPN users (homelab/public-files.nix).
+    "files"
   ];
 
   # Names whose address is the same from everywhere (mini-server, server subnet).
