@@ -48,6 +48,17 @@ before and after. Hosts whose Plasma wallpaper is a repo path embed the flake-so
 in one derivation, so theirs changes on any commit; use `nix-diff` on the two drvs to
 confirm the only delta is that `…-source/assets/…` prefix.
 
+**The drvPath test is only valid when the change declares no new options.** Declaring a
+`customConfig` option — even one nothing sets, on a host where the owning feature is
+disabled — changes that host's `etc` derivation, and so its toplevel. Measured 2026-09-23
+while adding `customConfig.homelab.mullvad.watchdog.*`: `optiplex` changed although
+`homelab.mullvad.enable = false` there, while `asus-laptop` was byte-identical under the
+same change with mullvad equally disabled. Adding *only* the `mkOption` — no units, no
+`config` block, nothing referencing it — reproduces it on its own, and every input
+derivation plus `system-path` are identical, so it is not a package creeping into the
+closure. Which hosts are affected is not fully pinned down; treat a changed drvPath on an
+unrelated host as *unexplained*, not as proof of a leak, and fall back to the
+`customConfig` fixpoint below or `nix-diff` on the two drvs.
 
 ## Module Option Layout
 

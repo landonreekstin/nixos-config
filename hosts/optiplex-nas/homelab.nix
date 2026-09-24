@@ -68,6 +68,11 @@
     reverseProxy.enable = true;
     landingPage.enable = true;
 
+    # Read-only HTTP file drop at http://files.lan/public/ (and, for VPN peers
+    # who cannot resolve .lan, http://192.168.1.76/public/). Path defaults to
+    # /mnt/storage/public. See docs/runbooks/nas-public-share.md.
+    publicFiles.enable = true;
+
     flakeUpdater = {
       enable = true;
       # Headroom, not a fix for any one host. 45min (the option default) was
