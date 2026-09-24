@@ -17,7 +17,7 @@ in `docs/` — read the matching file when the task calls for it:
 | [docs/theming.md](docs/theming.md) | Plasma / SDDM / Hyprland themes, or any `modules/home-manager/themes/*` work |
 | [docs/networking.md](docs/networking.md) | the OpenBSD firewall, WireGuard peers, port forwards, `.lan` DNS, NAS addressing, wake-on-LAN |
 | [docs/flake-updates.md](docs/flake-updates.md) | blocking / fixing / explaining a weekly `update/*` PR, beta-host tracking, or a **NixOS release upgrade** (25.11 → 26.05 and the next one) |
-| [docs/test-vms-and-ci.md](docs/test-vms-and-ci.md) | using `vm-sandbox` / `vm-blaney`, or changing the CI workflow / NAS runner |
+| [docs/test-vms-and-ci.md](docs/test-vms-and-ci.md) | using `vm-sandbox` / `vm-blaney`, **driving a VM headlessly to screenshot a GUI change over SSH**, or changing the CI workflow / NAS runner |
 | [docs/remote-xfce-rdp.md](docs/remote-xfce-rdp.md) | XFCE-over-xrdp work, or a `rebuild` that didn't visibly change a live XFCE session |
 | [docs/installation.md](docs/installation.md) | deploying a new host or re-installing an existing one |
 | [docs/hosts/blaney-pc.md](docs/hosts/blaney-pc.md) | the session is on `blaney-pc` (user `insideabush`), or writing a `docs/runbooks/blaney/` task |
@@ -292,9 +292,11 @@ Fixing an update branch, rolling back gaming-pc, and manual triggering are in
 Three topics that only matter when you are actively doing them:
 
 - **Test VMs & CI** — `testvm sandbox` / `testvm blaney` build throwaway QEMU hosts for
-  desktop/theme software-config work (they cannot validate GPU/driver behaviour). CI has
-  an `evaluate` job for all hosts plus a gated `build` job on the NAS runner.
-  → **[docs/test-vms-and-ci.md](docs/test-vms-and-ci.md)**
+  desktop/theme software-config work (they cannot validate GPU/driver behaviour). With no
+  display (SSH, or a Claude session) run the VM headless and drive it over QMP with
+  `scripts/vm-qmp.py` — screenshot → look → click — which is how a GUI change gets *shown*
+  working rather than just asserted. CI has an `evaluate` job for all hosts plus a gated
+  `build` job on the NAS runner. → **[docs/test-vms-and-ci.md](docs/test-vms-and-ci.md)**
 - **Installation** — remote deploy via `scripts/deploy-host.sh` (nixos-anywhere), the
   on-target fallback, and the new-host checklist. → **[docs/installation.md](docs/installation.md)**
 - **Remote XFCE via RDP (gaming-pc)** — SSH-tunnelled xrdp for desktop work from Windows,
