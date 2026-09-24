@@ -35,5 +35,6 @@
     ./reverse-proxy-mini.nix
     ./article2pod.nix
     ./landing-page.nix
+    ./public-files.nix
   ];
 }

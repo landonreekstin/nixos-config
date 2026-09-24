@@ -1,7 +1,8 @@
 # Runbook: a read-only `public` drop for VPN users on optiplex-nas
 
-**Status: designed, not built.** Do this in a session **on optiplex-nas** — none of it can
-be verified from anywhere else.
+**Status: built and verified on optiplex-nas, 2026-09-23** (PR #147). The HTTP drop is
+live; the optional Samba section at the end was deliberately not built. What remains is
+putting a payload in the drop — see "Afterwards".
 
 **Why:** restricted VPN peers (Blaney, Chris, …) have no way to receive a file from the
 homelab. The immediate need is ~15 GB of MW2 game files for
@@ -50,13 +51,20 @@ WireGuard is **not** a blocker: peer `10.10.0.5` is live on optiplex-fw.
 
 ## Steps
 
-### 1. The directory
+*Built as described, with one change: the directory is declarative rather than a manual
+`mkdir`.*
 
-```bash
-sudo mkdir -p /mnt/storage/public
-sudo chown lando:media /mnt/storage/public
-sudo chmod 2775 /mnt/storage/public
+### 1. The directory — done by the module
+
+`public-files.nix` carries a tmpfiles rule, matching how every other `/mnt/storage`
+subdirectory is created in `media-setup.nix`:
+
+```nix
+systemd.tmpfiles.rules = [ "d ${cfg.path} 2775 ${cfg.owner} media -" ];
 ```
+
+`2775 lando:media` leaves the directory world-readable, which is what lets nginx (running
+as its own `nginx` user, in no shared group) read it.
 
 ### 2. Populate with hardlinks, not copies
 
@@ -74,38 +82,41 @@ on his end. That has to be copied to the NAS first, so it cannot be a hardlink. 
 it is one resumable download:
 
 ```bash
-tar -C /mnt/games -cf /mnt/storage/public/mw2.tar mw2   # run on gaming-pc, write over the NAS mount
+tar -C /mnt/games -cf /mnt/nas/public/mw2.tar mw2   # on gaming-pc; /mnt/nas IS the storage share
 ```
 
-### 3. nginx — a new module beside the other homelab services
+### 3. nginx — `modules/nixos/homelab/public-files.nix`
 
-Add `customConfig.homelab.publicFiles.{enable,path}` in
-`modules/nixos/homelab/public-files.nix`, following the layout rule that a module declares
-the options it implements. The vhost goes alongside the ones in `reverse-proxy-nas.nix`:
+Built as sketched, as `customConfig.homelab.publicFiles.{enable,path,owner,serverAliases}`,
+following the layout rule that a module declares the options it implements. Enabled in
+`hosts/optiplex-nas/homelab.nix`. Read the module for the current config.
 
-```nix
-services.nginx.virtualHosts."files.lan" = {
-  serverAliases = [ "192.168.1.76" ];   # see the DNS trap below
-  locations."/public/" = {
-    alias = "${cfg.path}/";
-    extraConfig = ''
-      autoindex on;
-      autoindex_exact_size off;
-      autoindex_localtime on;
-      # GET/HEAD only -- nothing here should ever accept an upload.
-      limit_except GET HEAD { deny all; }
-    '';
-  };
-};
+**The `serverAliases` default is the trap, and it was real.** Restricted peers use 1.1.1.1
+and cannot resolve `.lan` at all (see [networking.md](../networking.md), "VPN peer
+addressing"), so Blaney reaches the NAS only as `http://192.168.1.76/public/`. nginx
+matches on the `Host` header, which will be that literal IP. Confirmed on the NAS *before*
+the change:
+
+```bash
+curl -s -H 'Host: 192.168.1.76' http://127.0.0.1/ | head -5    # <title>Bazarr</title>
 ```
 
-**The `serverAliases` line is the trap.** Restricted peers use 1.1.1.1 and cannot resolve
-`.lan` at all (see [networking.md](../networking.md), "VPN peer addressing"), so Blaney
-reaches the NAS only as `http://192.168.1.76/public/`. nginx matches on the `Host` header,
-which will be that literal IP — without the alias he gets whichever vhost happens to be
-nginx's default, not the file listing.
+`bazarr.lan` sorts first among the vhosts and was therefore nginx's default server, so
+without the alias Blaney would have landed in Bazarr's web UI.
 
-Then enable it in `hosts/optiplex-nas/homelab.nix` and `rebuild` on the NAS.
+**`files.lan` also needs a DNS record**, which the original sketch missed: add `"files"` to
+`nasNames` in `modules/nixos/common/lan-records.nix`. That one list feeds both Unbound's
+`local-data` and the generated `/etc/hosts` on every client, so both follow from the one
+edit. Remote peers never use it — it is for LAN machines.
+
+**Trap: unbound may restart mid-switch and come up on the old config.** After the rebuild,
+`files.lan` did not resolve even though `/etc/unbound/unbound.conf` contained the record.
+`sudo systemctl restart unbound` fixed it. Check the record resolves rather than assuming
+the rebuild applied it:
+
+```bash
+dig @127.0.0.1 files.lan +short     # expect 192.168.1.76
+```
 
 ### 4. No firewall change
 
@@ -115,22 +126,52 @@ something else is wrong.
 
 ## Verification
 
-On the NAS:
+All of the NAS-side checks below passed on 2026-09-23:
 
 ```bash
-curl -sI -H 'Host: 192.168.1.76' http://127.0.0.1/public/ | head -1     # 200
+curl -sI -H 'Host: 192.168.1.76' http://127.0.0.1/public/ | head -1          # 200
+curl -sI -H 'Host: files.lan'    http://127.0.0.1/public/ | head -1          # 200
 curl -s  -H 'Host: 192.168.1.76' http://127.0.0.1/public/ | grep -o 'mw2[^"]*'
-curl -sI -X PUT -H 'Host: 192.168.1.76' http://127.0.0.1/public/x | head -1   # 403
+curl -sI -X PUT  -H 'Host: 192.168.1.76' http://127.0.0.1/public/x | head -1 # 403
+curl -sI -X POST -H 'Host: 192.168.1.76' http://127.0.0.1/public/x | head -1 # 403
+curl -s -r 0-1 -H 'Host: 192.168.1.76' http://127.0.0.1/public/<f> -D - -o /dev/null | head -1   # 206
+curl -sI -H 'Host: 192.168.1.76' 'http://127.0.0.1/public/../media/' | head -1                   # 404
+dig @127.0.0.1 files.lan +short                                             # 192.168.1.76
 ```
 
-From a restricted peer with the VPN up — blaney-pc is the real test:
+The `206` matters as much as the `200`: it is what proves a dropped 15 GB download resumes
+rather than restarting.
+
+**Not yet done: the remote half.** From a restricted peer with the VPN up — blaney-pc is
+the real test, and nothing here substitutes for it:
 
 - `http://192.168.1.76/public/` lists the files in a browser
 - a download resumes: `curl -C - -O http://192.168.1.76/public/mw2.tar`
 - **`smbclient -L //192.168.1.76 -p 445` still fails.** If SMB became reachable, something
   widened the firewall that should not have.
 
+### Trap: the rebuild can take DNS down for ~20 minutes
+
+Not caused by this change — any rebuild that restarts `mullvad-daemon` can do it, and it is
+worth recognising rather than debugging from scratch. On 2026-09-23 the daemon came back
+unable to pick a relay:
+
+```
+ERROR mullvad_daemon::tunnel: Error: Failed to generate tunnel parameters
+ INFO mullvad_daemon: Blocking all network connections, reason: Failure to select a matching tunnel relay
+```
+
+Its kill-switch then held the network closed, so unbound's DoT upstreams logged
+`SSL_handshake syscall: Connection refused` for 20 minutes until the tunnel came up on its
+own. Chicken-and-egg: selecting a relay wants DNS, DNS wants the tunnel. **It self-recovers
+— wait before intervening.** Collateral in that window: `media-linker` failed once (exit 7)
+and succeeded on its next timer firing.
+
 ## Optional: the SMB share for LAN machines
+
+**Not built.** Skipped deliberately in PR #147: no LAN box currently wants the mount, and
+it does nothing for the remote users this runbook exists for. The design below stands if
+that changes.
 
 Only worth doing if a LAN box wants it mounted; it adds nothing for remote users. Copy the
 **private** share pattern in `modules/nixos/homelab/samba.nix` (block 2) — a separate
@@ -160,6 +201,27 @@ would need `share` / `readOnly` / credential-less options before any host could 
 
 ## Afterwards
 
-Update `docs/runbooks/blaney/01-install-mw2-iw4x.md`, which currently tells Claude the
-media arrives on a USB drive, and the "Reaching the media" section of
-[mw2-iw4x-source.md](mw2-iw4x-source.md), which says blaney-pc has no path to the NAS.
+**Done.** `docs/runbooks/blaney/01-install-mw2-iw4x.md` and the "Reaching the media"
+section of [mw2-iw4x-source.md](mw2-iw4x-source.md) both describe the HTTP path now;
+neither mentions a USB drive. Nothing in the tree still claims blaney-pc has no route to
+the NAS.
+
+**Still outstanding: the drop is empty.** Nothing is served until a payload is put in it,
+and for MW2 that step belongs on **gaming-pc**, not here — the finished IW4x-synced game
+directory only exists there:
+
+```bash
+tar -C /mnt/games -cf /mnt/nas/public/mw2.tar mw2    # on gaming-pc; /mnt/nas IS the storage share
+```
+
+That is a ~15 GB copy across the LAN mount, so expect it to take a while; the NAS side
+needs no action. Once it lands, re-run the verification above and Blaney's runbook works
+end to end.
+
+The ISOs can be hardlinked in on the NAS itself at no cost (same btrfs filesystem), as a
+fallback for anyone who wants to run the installer rather than take the prepared tree.
+Quote the path — it contains spaces **and** literal `[` `]`:
+
+```bash
+ln "/mnt/storage/games/installers/Call Of Duty Modern Warfare 2 [English][PC][2DVDs][WwW.GamesTorrents.CoM]/sr-mw2a.iso" /mnt/storage/public/
+```
