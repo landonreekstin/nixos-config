@@ -264,11 +264,20 @@ let
 
   iw4x = pkgs.writeShellApplication {
     name = "iw4x";
-    runtimeInputs = [ pkgs.iw4x-launcher pkgs.umu-launcher ]
+    runtimeInputs = [ pkgs.iw4x-launcher pkgs.umu-launcher pkgs.libnotify ]
       ++ lib.optional gs.enable pkgs.gamescope;
     text = ''
       INSTALL_DIR="${cfg.installDir}"
       ${umuEnv}
+
+      # Launched from the applications menu there is no terminal, so stderr goes nowhere.
+      # Anything the user needs to see has to become a desktop notification too.
+      say() {
+        echo "iw4x: $*" >&2
+        if [ ! -t 2 ]; then
+          notify-send -a IW4x -i applications-games "IW4x" "$*" 2>/dev/null || true
+        fi
+      }
 
       if [ "$(id -u)" = 0 ]; then
         echo "iw4x: do not run this as root." >&2
@@ -282,8 +291,7 @@ let
       # in a directory containing no game. main/*.iwd is the base game's own data and is
       # the only honest test. (See the same note in mw2-install.)
       if [ -z "$(find "$INSTALL_DIR/main" -maxdepth 1 -name '*.iwd' -print -quit 2>/dev/null)" ]; then
-        echo "iw4x: no MW2 installation at $INSTALL_DIR" >&2
-        echo "IW4x is a mod -- it needs the base game first. Run: mw2-install" >&2
+        say "No MW2 installation at $INSTALL_DIR. Run mw2-install first."
         exit 1
       fi
 
@@ -295,7 +303,28 @@ let
       # ourselves below because its own Linux launch path probes $PATH for a binary named
       # `umu` (src/game.rs), while nixpkgs installs `umu-run` -- so left to itself it
       # would silently fall through to plain wine, losing Proton's 32-bit D3D9 support.
-      iw4x-launcher --update --skip-self-update --path "$INSTALL_DIR"
+      # The update must NOT be able to stop the game starting. This script runs under
+      # `set -e`, so a bare call here aborts on any non-zero exit -- and because the
+      # desktop entry has no terminal, that looks like clicking the icon does nothing at
+      # all. It happened on 2026-09-23: the NAS (which is the LAN's DNS resolver) had
+      # Mullvad blocked, name resolution failed for the whole network, the launcher exited
+      # non-zero 10ms in, and the game silently never launched.
+      #
+      # The game is already installed by this point. A failed update check is a reason to
+      # warn, not a reason to refuse to play.
+      # stdin from /dev/null: on failure the launcher prints "Press Enter to exit.." and
+      # blocks on a read. Launched from the menu that would be an invisible hang rather
+      # than a failed update, so never give it a stdin to wait on.
+      if ! iw4x-launcher --update --skip-self-update --path "$INSTALL_DIR" </dev/null; then
+        say "Update check failed -- network problem? Launching the installed version."
+      fi
+
+      # ...unless the client itself was never synced, in which case there is nothing to
+      # launch and saying so beats Proton failing on a missing exe.
+      if [ ! -f "$INSTALL_DIR/iw4x.exe" ]; then
+        say "IW4x client is missing and the update failed. Check the network, then run iw4x again."
+        exit 1
+      fi
 
       cd "$INSTALL_DIR"
       ${if gs.enable then ''
