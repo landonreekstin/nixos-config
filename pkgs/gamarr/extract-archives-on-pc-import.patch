@@ -1,0 +1,18 @@
+diff --git a/internal/download/manager.go b/internal/download/manager.go
+index f3da490..991f8b2 100644
+--- a/internal/download/manager.go
++++ b/internal/download/manager.go
+@@ -355,6 +355,13 @@ func (m *Manager) organizeGame(jobID string, torrent *qbit.Torrent, platf, platS
+ 		m.TrackInLibrary(torrentName, platf, platSlug, isPC, dest, 0, "torrent", "prowlarr", "torrent:"+torrentHash)
+ 		m.jobs.LogActivity("download_completed", torrentName, "Organized to GameVault", jobID, nil)
+ 		slog.Info("PC game organized", "name", sanitizeLog(torrentName), "dest", sanitizeLog(dest))
++
++		// Same as the ROM branch below. Without this a PC release that ships as
++		// archives - every multi-disc scene release, which nests split RARs in
++		// DVD1/DVD2 - lands in the vault still packed, and nothing ever unpacks
++		// it. extractArchives already recurses into subdirectories, so the
++		// nesting is not the problem; the call was simply missing here.
++		m.maybeExtractArchives(jobID, dest)
+ 	} else if platSlug != "" {
+ 		// platSlug arrives from the download request; keep it a single path
+ 		// component so it cannot climb out of the ROM library root.

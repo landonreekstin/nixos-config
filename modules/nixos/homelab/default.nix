@@ -26,6 +26,8 @@
     ./vaultwarden.nix
     ./home-assistant.nix
     ./wyoming.nix
+    ./gamarr.nix
+    ./qbittorrent.nix
     ./game-servers.nix
     ./game-control.nix
     ./game-backup.nix

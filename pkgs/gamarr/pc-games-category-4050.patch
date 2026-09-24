@@ -1,0 +1,29 @@
+diff --git a/internal/platform/platform.go b/internal/platform/platform.go
+index 94f0885..90aeb1f 100644
+--- a/internal/platform/platform.go
++++ b/internal/platform/platform.go
+@@ -36,7 +36,11 @@ var PlatformMap = map[int]PlatformInfo{
+ 	100072: {Name: "3DS", Slug: "3ds"},
+ 	100077: {Name: "PS4", Slug: "ps4"},
+ 	100082: {Name: "Switch", Slug: "switch"},
+-	4050:   {Name: "Switch", Slug: "switch"},
++	// 4050 is PC/Games in the Newznab category tree, not Switch - Prowlarr
++	// itself reports it as "PC/Games". Mapped to Switch it did double damage:
++	// PC searches dropped every real PC-game release (4050 was not in the PC
++	// category set), and Switch searches matched PC repacks.
++	4050: {Name: "PC", Slug: "", IsPC: true},
+ }
+ 
+ // ExtraPlatform is a platform not in Prowlarr categories, for user override.
+@@ -91,7 +95,10 @@ func DetectPlatform(categories []interface{}) PlatformInfo {
+ // GetCategoriesForPlatform returns all Prowlarr category IDs matching a platform slug.
+ func GetCategoriesForPlatform(slug string) []int {
+ 	if slug == "pc" {
+-		return []int{4000, 100010}
++		// 4050 (PC/Games) is where these indexers actually file PC releases;
++		// 4000 alone matches almost nothing. This set is also used as a
++		// post-filter over returned results, so omitting 4050 discarded them.
++		return []int{4000, 4050, 100010}
+ 	}
+ 	var matches []int
+ 	for catID, info := range PlatformMap {

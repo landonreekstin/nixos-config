@@ -19,6 +19,9 @@
     "lidarr" "music" "ombi" "slskd" "soularr"
     # Read-only HTTP file drop for VPN users (homelab/public-files.nix).
     "files"
+    # Games: gamarr -> PC game + ROM requests and downloads, qbittorrent ->
+    # the torrent client it imports from (Transmission serves the media stack).
+    "gamarr" "qbittorrent"
   ];
 
   # Names whose address is the same from everywhere (mini-server, server subnet).
