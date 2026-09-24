@@ -44,4 +44,11 @@
       exec sudo modprobe rtw89_8852ce
     '')
   ];
+
+  # Firmware updates (`fwupdmgr refresh && fwupdmgr update`). This used to arrive as a
+  # `mkDefault true` from services.desktopManager.plasma6 and silently disappeared when
+  # KDE was dropped from desktop.environments — it has nothing to do with the desktop, so
+  # declare it here instead of letting a session choice decide whether this machine can
+  # update its firmware.
+  services.fwupd.enable = true;
 }

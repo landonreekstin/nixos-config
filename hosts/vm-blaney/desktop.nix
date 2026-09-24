@@ -3,7 +3,7 @@
 
 {
   customConfig.desktop = {
-    environments = [ "kde" "hyprland" "xfce" ];
+    environments = [ "hyprland" "xfce" ];
     hyprland = {
       launcher = {
         enable = true;

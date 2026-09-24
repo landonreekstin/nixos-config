@@ -1,4 +1,17 @@
 # ~/nixos-config/modules/nixos/themes/aerothemeplasma/plasma-system.nix
+#
+# MOTHBALLED. Retained, but selected by NO host: nothing sets
+# customConfig.homeManager.themes.kde = "windows7-alt" any more, so the overlay below is
+# never applied, the three gitgud sources are never fetched, and none of the ~9 C++
+# derivations are built or even present on pkgs. CI no longer builds them either
+# (.github/workflows/check.yml). The Windows 7 look moved to the XFCE theme in
+# modules/{nixos,home-manager}/themes/windows7-xfce/, which compiles nothing.
+#
+# Re-enabling this is not a one-line change. The rev in aerothemeplasma.nix is versioned
+# against the *Plasma release*, not against the theme, so it must be re-pinned for whatever
+# Plasma nixpkgs currently ships — and from Plasma/6.6 upstream split the KWin half into
+# separate repositories, so a forward move means packaging new upstreams rather than bumping
+# a hash. See the header of ./aerothemeplasma.nix and docs/theming.md before trying.
 { config, pkgs, lib, ... }:
 
 let

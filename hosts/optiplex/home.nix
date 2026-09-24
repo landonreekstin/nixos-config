@@ -6,7 +6,7 @@
     enable = true;
     themes = {
       plasmaOverride = false;
-      kde = "windows7-alt";
+      kde = "default";
       hyprland = "century-series";
       wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
       pinnedApps = [
