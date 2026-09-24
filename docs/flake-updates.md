@@ -114,7 +114,7 @@ together. Every other input either `follows` nixpkgs or floats.
 upgrade's two worst findings — a `buildEnv` collision that made `optiplex` unbuildable, and
 `gamescope-kbm` failing on a new libinput enum — were both invisible to eval, and the
 optiplex one had been broken on `main` for some time because **CI only evaluates hosts; its
-`build` job covers the aerotheme/openrazer derivations, not full toplevels**. Build every
+`build` job covers only the openrazer derivation, not full toplevels**. Build every
 configuration:
 ```bash
 for host in $(NIXPKGS_ALLOW_UNFREE=1 nix eval --impure --raw \
@@ -125,11 +125,14 @@ for host in $(NIXPKGS_ALLOW_UNFREE=1 nix eval --impure --raw \
 done
 ```
 
-**5. Expect the theme pins to move.** `aerothemeplasma` is versioned against *Plasma*, not
-against itself, so its rev has to move whenever nixpkgs moves Plasma — and upstream has
-since split the KWin half into separate repos. See the comment block at the top of
-`modules/nixos/themes/aerothemeplasma/aerothemeplasma.nix`; it records which rev pairs with
-which Plasma and why the decoration and smodglow must stay on the same rev.
+**5. The aerothemeplasma pin no longer applies — unless someone re-enables it.** The theme
+is mothballed: no host selects `homeManager.themes.kde = "windows7-alt"`, so its gated
+overlay never applies and nothing of it is fetched or built. That removes what used to be
+the single most reliable source of a broken release upgrade, because its rev is versioned
+against *Plasma*, not against itself, and upstream has since split the KWin half into
+separate repos. If a host ever re-selects it, that rule is back — see the comment block at
+the top of `modules/nixos/themes/aerothemeplasma/aerothemeplasma.nix`, which records which
+rev pairs with which Plasma and why the decoration and smodglow must stay on the same rev.
 
 **6. stateVersion never moves.** It records the install, not the channel. The same goes for
 Home Manager defaults that key off it — pin the legacy behaviour explicitly rather than

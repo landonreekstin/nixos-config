@@ -6,15 +6,18 @@
 # Test VMs & CI Build Job
 
 Two throwaway QEMU hosts exist for iterating on the fragile *software-config* surface
-(aerothemeplasma, plasma, Hyprland, browser/app config) without disrupting gaming-pc or a
+(plasma, Hyprland, XFCE, browser/app config) without disrupting gaming-pc or a
 headless server. They are never installed to hardware — they share `hosts/vm-common.nix`
 (VM sizing, guest agents, boot/FS stub) and force `nvidia`/`peripherals` **off**.
 
-- **`vm-sandbox`** — kitchen-sink: KDE (windows7-alt aerotheme) + Hyprland (century-series),
-  SDDM autologin. General ricing/experimentation.
-- **`vm-blaney`** — mirrors blaney-pc's KDE/aerotheme + Hyprland *software* config (gaming
-  stack and heavy packages trimmed) so his theme/plasma issues can be reproduced and fixed
-  locally before pushing a `blaney/` PR to that remote machine.
+- **`vm-sandbox`** — kitchen-sink: KDE (stock Breeze) + Hyprland (century-series) + XFCE,
+  SDDM autologin. General ricing/experimentation, and the only Plasma test surface left now
+  that gaming-pc and blaney-pc run Hyprland+XFCE only — use it for optiplex, asus-laptop,
+  asus-m15, atl-mini-pc and justus-pc work.
+- **`vm-blaney`** — mirrors blaney-pc's Hyprland + windows7-XFCE *software* config (gaming
+  stack and heavy packages trimmed) so his theme issues can be reproduced and fixed
+  locally before pushing a `blaney/` PR to that remote machine. Like blaney-pc it lists no
+  `"kde"` environment.
 
 Launch (needs KVM — run on gaming-pc, log in as the host user / password `vm`). The
 `testvm` command (from `modules/nixos/common/commands.nix`) builds + launches in one step,
@@ -129,10 +132,13 @@ mandatory. See [networking.md](networking.md).)
 - **`evaluate`** (GitHub-hosted `ubuntu-latest`) — fast `nix eval …drvPath` for **all**
   hosts incl. the two VMs. Catches type/option errors and stale fetch hashes.
 - **`build`** (self-hosted runner on **optiplex-nas**) — `nix build`s only the fragile
-  *source-built* derivations, **not** full toplevels: aerothemeplasma's ~13 KWin/Plasma
-  C++ derivations (via `vm-sandbox.pkgs.*`) and the openrazer out-of-tree kernel module
-  (`blaney-pc.config.boot.kernelPackages.openrazer`). These are the things that break on
-  nixpkgs bumps (PR #74/#83 class). Full toplevels are deliberately avoided — they drag in
+  *source-built* derivations, **not** full toplevels. Currently that is just the openrazer
+  out-of-tree kernel module (`blaney-pc.config.boot.kernelPackages.openrazer`), which breaks
+  on kernel-ABI changes. It used to also cover aerothemeplasma's ~13 KWin/Plasma C++
+  derivations via `vm-sandbox.pkgs.*`; that theme is now mothballed and selected by no host,
+  so the gated overlay never applies and those attributes no longer exist on `pkgs` — listing
+  them would be an *evaluation* error. Restore the list if the theme is ever re-enabled.
+  Full toplevels are deliberately avoided — they drag in
   browsers/steam/kernels that are usually cached but OOM this modest NAS when momentarily
   uncached, for no benefit to what we test. The NAS store is warm from the nightly
   flake-updater, so these builds are cheap and incremental.
