@@ -209,8 +209,10 @@ in
         PROWLARR_URL = "http://127.0.0.1:9696";
       }
       // lib.optionalAttrs config.customConfig.homelab.flaresolverr.enable {
-        # Vimm gates its download form behind Cloudflare Turnstile; without this
-        # that source can search but cannot resolve a download.
+        # Set for when a release ships it. v1.3.0 reads this nowhere - it has no
+        # FlareSolverr support at all, so its Vimm source can search but dies at
+        # "Could not find download form" on Cloudflare Turnstile. That support
+        # exists only on upstream main; revisit at the next tagged release.
         FLARESOLVERR_URL = "http://127.0.0.1:8191";
       };
 
