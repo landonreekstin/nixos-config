@@ -236,6 +236,32 @@ in
       systemctl poweroff
     '')
 
+    # The on-demand equivalent of the weekly auto-update (modules/nixos/common/auto-update.nix):
+    # pull the config from GitHub, rebuild, then power off. Distinct from `rebuild-shutdown`
+    # above, which rebuilds the flake *as it already is on disk* and never fetches. Same
+    # conventions as that command and for the same reasons: no `set -e` (poweroff must be
+    # reached even on failure — a failed switch leaves the old, working generation), poweroff
+    # without sudo (a long run must not hang on a password prompt), and the shared failure
+    # marker so modules/home-manager/services/rebuild-shutdown-notify.nix reports it at the
+    # next login.
+    (writeShellScriptBin "update-shutdown" ''
+      #!${stdenv.shell}
+      echo "=== update-shutdown: downloading updates, rebuilding, then powering off. You can walk away. ==="
+      MARKER="$HOME/.local/state/rebuild-shutdown-failed"
+      mkdir -p "$HOME/.local/state"
+      rm -f "$MARKER"
+      if ! update; then
+        echo "Download FAILED — nothing was changed; recording it. Powering off."
+        date > "$MARKER" 2>/dev/null || true
+      elif rebuild; then
+        echo "Update complete — powering off."
+      else
+        echo "Rebuild FAILED — recording it; you'll be told on next login. Powering off anyway."
+        date > "$MARKER" 2>/dev/null || true
+      fi
+      systemctl poweroff
+    '')
+
     (writeShellScriptBin "rebuild-test" ''
       #!${stdenv.shell}
       set -e
@@ -538,6 +564,7 @@ in
       EVERYDAY
         rebuild           Apply your config changes to the system
         rebuild-shutdown  Rebuild the system, then shut down (run and walk away)
+        update-shutdown   Get the latest updates, then shut down (the weekly update, on demand)
         update            Download the latest config from GitHub
         branch-switch     Pick a branch by number, switch to it, and rebuild
         smart-rebuild     Safely get back to the latest main and rebuild

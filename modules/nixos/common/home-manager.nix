@@ -384,6 +384,22 @@ in
           description = "Show a critical desktop notification at next login if the last `rebuild-shutdown` failed. Enable on hosts where rebuild-shutdown is used unattended.";
         };
       };
+      shutdownGuard = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = ''
+            Warn before a desktop shutdown that would cancel an imminent automated update.
+            Only meaningful alongside `customConfig.services.autoUpdate.enable`; the guard is
+            silent (and exits "go ahead") whenever no update is due inside the warning window.
+          '';
+        };
+        warnWithinHours = mkOption {
+          type = types.int;
+          default = 12;
+          description = "Show the warning only when the next automated update is due within this many hours.";
+        };
+      };
     };
     themes = {
       kde = mkOption {

@@ -49,6 +49,47 @@ When running on the `blaney-pc` host, apply these additional guidelines:
 - Always use `nixos-rebuild test` before `rebuild` for significant changes, so insideabush can verify before permanently switching
 - Keep changes focused and minimal
 
+## The shutdown guard
+
+blaney-pc updates itself unattended every Monday at 03:00 and powers off afterwards
+(`customConfig.services.autoUpdate` in `hosts/blaney-pc/networking.nix`). The machine has
+to be left **on** for that, and `persistent = false` means a missed Monday is lost for a
+week — so a Sunday-night shutdown silently costs an update, and because the host is meant
+to end up off anyway, nothing looks wrong afterwards.
+
+`customConfig.homeManager.services.shutdownGuard` (declared in
+`modules/nixos/common/home-manager.nix`, implemented in
+`modules/home-manager/services/shutdown-guard.nix`) installs a `shutdown-guard` command
+that every shutdown path runs first. It reads `nixos-auto-update.timer`'s next elapse and
+does nothing at all unless the update is due within `warnWithinHours` (default 12); inside
+that window it shows a themed GTK3 dialog with three choices — **Shut down anyway**,
+**Update now, then shut down** (runs `update-shutdown` in a terminal), and **Cancel**.
+
+Paths that run the guard:
+
+| Path | How |
+|---|---|
+| Start menu → Shut Down | `Guarded(...)` around the Shut Down action in `modules/home-manager/themes/windows7-xfce/power-menu.nix` |
+| `<Super>BackSpace` | rebound from `xfce4-session-logout` to the same flyout (`keybindings.nix`) |
+| The case's power button | `XF86PowerOff` → the flyout, with `services.logind.settings.Login.HandlePowerKey = "ignore"` in `hosts/blaney-pc/system.nix` |
+
+Restart, Log Off and Sleep are **not** guarded: they leave the machine powered on, so the
+timer still fires.
+
+Two things to keep in mind when touching this:
+
+- **It fails open on purpose.** Only an explicit "hold" status blocks a shutdown; a missing,
+  crashed or display-less guard lets the shutdown through. A guard bug must never leave
+  insideabush with a PC that refuses to turn off.
+- **The power button is an X grab race.** `xfce4-power-manager` `XGrabKey`s `XF86PowerOff`
+  on the root window unconditionally at startup, competing with xfsettingsd for the same
+  grab. xfsettingsd normally wins (it starts with the session core; xfpm only later from
+  the tray autostart), which is why the keybind works. `idle.nix` pins xfpm's
+  `power-button-action` to 0 so that if xfpm *does* win, the button does nothing rather
+  than powering off unguarded. Scripted poweroffs (`systemctl poweroff`, `rebuild-shutdown`,
+  `update-shutdown`, the auto-update service itself) are deliberately never guarded —
+  blocking those would break the automation the guard exists to protect.
+
 ## Runbooks as blaney-pc tasks
 
 `docs/runbooks/blaney/*.md` is the task queue lando leaves for blaney-pc. Each markdown

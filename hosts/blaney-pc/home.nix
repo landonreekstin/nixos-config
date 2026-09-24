@@ -6,6 +6,10 @@
     enable = true; # Enable Home Manager for this host
     # Notify at next login if a walk-away `rebuild-shutdown` failed.
     services.rebuildShutdownNotify.enable = true;
+    # Warn before a shutdown that would cancel the weekly unattended update
+    # (customConfig.services.autoUpdate in ./networking.nix — this host powers off afterwards,
+    # so it has to be left on). Silent unless the update is due within warnWithinHours.
+    services.shutdownGuard.enable = true;
     themes = {
       plasmaOverride = true;
       kde = "windows7-alt";

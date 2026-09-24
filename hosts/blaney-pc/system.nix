@@ -23,4 +23,10 @@
     };
 
   };
+
+  # The case's power button must not power the machine off behind our back: this host runs a
+  # weekly unattended update that needs it left on, so the button is bound to the Win7 power
+  # flyout instead (XF86PowerOff in modules/home-manager/themes/windows7-xfce/keybindings.nix),
+  # which runs the shutdown guard. Without this, logind would still hard-poweroff on the key.
+  services.logind.settings.Login.HandlePowerKey = "ignore";
 }

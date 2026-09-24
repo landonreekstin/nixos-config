@@ -7,6 +7,14 @@
 # owned by xscreensaver too (it clobbers xset DPMS on activate), so this file DISABLES
 # xfce4-power-manager's DPMS and neuters the xfce4-screensaver xfconf channel as
 # belt-and-suspenders (in case either daemon ever starts, it must not race xscreensaver).
+#
+# power-button-action is pinned to 0 (XFPM_DO_NOTHING, also upstream's default) on purpose.
+# xfce4-power-manager XGrabKey()s XF86PowerOff on the root window unconditionally at startup
+# (src/xfpm-button.c), racing xfsettingsd for the same grab — and the loser silently gets
+# nothing. keybindings.nix binds XF86PowerOff to the power flyout, so xfsettingsd winning
+# (the normal case: it starts with the session core, xfpm only later from the tray autostart)
+# opens the flyout. Pinning this to 0 makes the *other* outcome harmless rather than an
+# unguarded poweroff: whoever wins, the power button either shows the flyout or does nothing.
 let
   win7XfceCondition = lib.elem "xfce" customConfig.desktop.environments
     && customConfig.homeManager.themes.xfce == "windows7";
@@ -37,6 +45,7 @@ let
         <property name="dpms-enabled" type="bool" value="false"/>
         <property name="blank-on-ac" type="int" value="0"/>
         <property name="lock-screen-suspend-hibernate" type="bool" value="true"/>
+        <property name="power-button-action" type="int" value="0"/>
       </property>
     </channel>
   '';
