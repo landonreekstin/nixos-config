@@ -15,6 +15,9 @@ let
     app.desktops == [] || lib.elem "kde" app.desktops
   ) customConfig.desktop.autostart;
 
+  # OnlyShowIn keeps a KDE-scoped entry out of the XFCE/Hyprland sessions that share
+  # ~/.config/autostart — see the matching note in xfce/functional.nix. An empty
+  # `desktops` means "all DEs", so those stay unrestricted.
   mkDesktopEntry = app:
     let
       name = lib.last (lib.splitString "/" (lib.head (lib.splitString " " app.command)));
@@ -26,7 +29,7 @@ let
         Exec=${app.command}
         Name=${name}
         X-KDE-AutostartPhase=2
-      '';
+      '' + lib.optionalString (app.desktops != []) "OnlyShowIn=KDE;\n";
     };
 in
 {
