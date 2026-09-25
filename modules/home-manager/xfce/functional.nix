@@ -22,6 +22,13 @@ let
 
   # Reuse the KDE autostart-entry shape (minus the KDE-specific phase key). XFCE reads
   # the same ~/.config/autostart/*.desktop XDG mechanism.
+  #
+  # ~/.config/autostart is shared by every session this user logs into, so an entry
+  # written here also fires under KDE and Hyprland. Any app that named its `desktops`
+  # therefore gets OnlyShowIn, or the filter above only holds at *generation* time:
+  # `desktops = [ "xfce" ]` still autostarted under Hyprland, racing that session's own
+  # exec-once and making the loser print "ckb-next is already running. Exiting.".
+  # An empty `desktops` means "all DEs", so those stay unrestricted.
   mkDesktopEntry = app:
     let
       name = lib.last (lib.splitString "/" (lib.head (lib.splitString " " app.command)));
@@ -32,7 +39,7 @@ let
         Type=Application
         Exec=${app.command}
         Name=${name}
-      '';
+      '' + lib.optionalString (app.desktops != []) "OnlyShowIn=XFCE;\n";
     };
 
   xfconfDir = "xfce4/xfconf/xfce-perchannel-xml";
