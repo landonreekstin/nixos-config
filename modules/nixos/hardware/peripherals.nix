@@ -22,6 +22,48 @@ let
   ckb-next-fixed = pkgs.ckb-next.overrideAttrs (oldAttrs: {
     cmakeFlags = (oldAttrs.cmakeFlags or []) ++ [ "-DUSE_DBUS_MENU=0" ];
     qtWrapperArgs = (oldAttrs.qtWrapperArgs or []) ++ [ "--set QT_QPA_PLATFORM xcb" ];
+
+    # Stop the idle timer killing the GUI on XWayland.
+    #
+    # XcbIdleTimer never overrides IdleTimerImpl::isSupported(), so it inherits
+    # `return true` and queries MIT-SCREEN-SAVER without ever asking whether the
+    # server has it. XWayland does not (25 extensions, none of them that one), so
+    # on a tick of "Turn lights off when idle" the GUI died two ways: first
+    # xcb_screensaver_query_info_reply() returned NULL and upstream dereferenced
+    # it unchecked (SIGSEGV in XcbIdleTimer::getIdleTime), and with that guarded,
+    # the request itself came back BadRequest -- a fatal protocol error that tore
+    # down the X connection ("Unsupported extension used (code 2)") and exited.
+    #
+    # So the extension has to be checked *before* the request is issued; the reply
+    # NULL-checks stay as belt and braces, and fix the leaked geometry reply while
+    # we are here. The feature degrades to "never idle". Upstream bug, not a
+    # packaging one.
+    #
+    # This is load-bearing for the xcb pin above: IdleTimerHelper picks the
+    # implementation with `if (WaylandUtils::isWayland())`, so forcing xcb also
+    # forces this code path.
+    postPatch = (oldAttrs.postPatch or "") + ''
+      substituteInPlace src/gui/xcb/xcbidletimer.cpp \
+        --replace-fail \
+          'conn = x11Application->connection();' \
+          'conn = x11Application->connection();
+
+    const xcb_query_extension_reply_t* ssExt = xcb_get_extension_data(conn, &xcb_screensaver_id);
+    if(!ssExt || !ssExt->present)
+        return 0;' \
+        --replace-fail \
+          'xcb_get_geometry_reply_t* geomReply = xcb_get_geometry_reply(conn, geomCookie, nullptr);' \
+          'xcb_get_geometry_reply_t* geomReply = xcb_get_geometry_reply(conn, geomCookie, nullptr);
+    if(!geomReply)
+        return 0;' \
+        --replace-fail \
+          'uint32_t userIdle = replyInfo->ms_since_user_input;' \
+          'free(geomReply);
+    if(!replyInfo)
+        return 0;
+
+    uint32_t userIdle = replyInfo->ms_since_user_input;'
+    '';
   });
 
   # Script to set ckb-next lighting via the daemon's command pipe.
