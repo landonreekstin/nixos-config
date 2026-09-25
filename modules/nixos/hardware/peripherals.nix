@@ -6,8 +6,22 @@ let
   user = config.customConfig.user.name;
 
   # Override ckb-next to disable dbusmenu (requires removed dbusmenu-qt5 in 25.11)
+  # and to pin the GUI to XWayland.
+  #
+  # Since the Qt6 rebuild, qtwayland is on the GUI's QT_PLUGIN_PATH, so Qt picks the
+  # native Wayland platform under Hyprland. ckb-next never calls
+  # QGuiApplication::setDesktopFileName(), so its Wayland window comes up with an
+  # *empty* app_id: `windowrule = workspace special:ckb silent, match:class
+  # ^(ckb-next)$` stops matching and the window escapes onto whatever workspace is
+  # current instead of the hidden utility one. The GUI also runs an XCB EWMH thread
+  # for focus-based profile switching, which has no business talking to X while the
+  # window itself is a Wayland surface (it segfaulted mid-session doing so).
+  #
+  # Forcing the xcb platform restores WM_CLASS=ckb-next, which Hyprland reports as
+  # the window class, so the existing windowrule matches again.
   ckb-next-fixed = pkgs.ckb-next.overrideAttrs (oldAttrs: {
     cmakeFlags = (oldAttrs.cmakeFlags or []) ++ [ "-DUSE_DBUS_MENU=0" ];
+    qtWrapperArgs = (oldAttrs.qtWrapperArgs or []) ++ [ "--set QT_QPA_PLATFORM xcb" ];
   });
 
   # Script to set ckb-next lighting via the daemon's command pipe.
