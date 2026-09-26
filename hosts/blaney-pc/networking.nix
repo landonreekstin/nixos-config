@@ -6,6 +6,13 @@
     ssh.enable = false;
     vscodeServer.enable = false;
 
+    # USB iPhone/iPad access: the `iphone` command browses an app's File Sharing
+    # folder, and `photos` copies the camera roll off and builds a gallery.
+    iosDevice = {
+      enable = true;
+      photos.enable = true;
+    };
+
     # Weekly automated git sync + rebuild, then power off. Desktop-safe settings:
     autoUpdate = {
       enable = true;
