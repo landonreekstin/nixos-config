@@ -3,10 +3,11 @@
 # Each profile declares its own customConfig.profiles.* options, so there is no
 # options.nix here. Development profiles live in ../development/, which is
 # imported separately by modules/nixos/default.nix.
-# Other profiles like 'server' or 'htpc' could be added here later.
+# Other profiles like 'server' could be added here later.
 { ... }: # No specific args needed here usually, they are passed to the individual modules
 {
   imports = [
     ./gaming.nix
+    ./htpc.nix
   ];
 }

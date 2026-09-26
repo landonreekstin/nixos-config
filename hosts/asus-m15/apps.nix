@@ -45,12 +45,15 @@
         # in line.
         "signal-desktop"
         "claude-code"
+        "mullvad-vpn"
       ];
       # vscode comes from customConfig.apps.programs.ide.
       homeManager = with pkgs; [
         chromium
         firefox
         claude-code
+        gopher64
+        mullvad-vpn
       ];
       flatpak = {
         enable = true;
