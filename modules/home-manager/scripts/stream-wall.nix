@@ -46,23 +46,31 @@ let
     # substring match on comm is what hits it -- the same reason every
     # `pkill -RTMIN+N waybar` in waybar/functional.nix omits -x.
     #
-    # SIGUSR1 is a blind toggle, so the signal has to be gated on our own state
-    # or the wall ends up fighting the bars: arranging twice would hide then
-    # re-show them, and `off` with no wall up would hide them outright. The
-    # state file mirrors what toggle-launchbar does for the same reason.
-    STATE_FILE="''${XDG_STATE_HOME:-$HOME/.local/state}/hypr/stream-wall-bars-hidden"
-    ${pkgs.coreutils}/bin/mkdir -p "$(${pkgs.coreutils}/bin/dirname "$STATE_FILE")"
+    # SIGUSR1 is a blind toggle, so it has to be gated on whether the bars are
+    # ALREADY hidden, or the wall fights them: arranging twice would hide then
+    # re-show, and `off` with no wall up would hide them outright.
+    #
+    # Gate on the compositor's reserved area, not on a state file. A state file
+    # goes stale the moment anything restarts waybar -- a rebuild, a crash,
+    # toggle-launchbar -- because the bars come back visible while the file
+    # still claims they are hidden, and the next arrange then skips hiding them.
+    # The reserved area is ground truth: a hidden bar drops its exclusive zone,
+    # so the sum is 0 exactly when nothing is reserving space.
+    bars_hidden() {
+      [ "$("$hyprctl" -j monitors \
+            | "$jq" -r '[.[] | select(.focused) | .reserved[]] | add')" = "0" ]
+    }
 
-    hide_bars() {
-      [ -e "$STATE_FILE" ] && return 0
+    signal_bars() {
       ${pkgs.procps}/bin/pkill -SIGUSR1 waybar 2>/dev/null || true
-      ${pkgs.coreutils}/bin/touch "$STATE_FILE"
+      # Let the compositor apply the new exclusive zone, so an immediately
+      # following invocation reads the updated reserved area rather than
+      # toggling a second time.
+      ${pkgs.coreutils}/bin/sleep 0.2
     }
-    show_bars() {
-      [ -e "$STATE_FILE" ] || return 0
-      ${pkgs.procps}/bin/pkill -SIGUSR1 waybar 2>/dev/null || true
-      ${pkgs.coreutils}/bin/rm -f "$STATE_FILE"
-    }
+
+    hide_bars() { if ! bars_hidden; then signal_bars; fi; }
+    show_bars() { if   bars_hidden; then signal_bars; fi; }
 
     PIP_TITLE='^Picture-in-Picture$'
 
