@@ -104,7 +104,13 @@
         options = {
           match = mkOption {
             type = types.str;
-            description = "Substring to match against the sink description (as shown in pavucontrol Output Devices tab).";
+            description = ''
+              Substring matched against "<sink name>|<description>|<device name>", where the
+              device name is the sink's alsa.name property — on HDMI/DP that is the display's
+              EDID name, e.g. "LG ULTRAGEAR". Prefer it: the sink name's pro-output-N index
+              renumbers when the card's PCM enumeration shifts, and one GPU's outputs all
+              share a description.
+            '';
           };
           icon = mkOption {
             type = types.str;
@@ -124,14 +130,16 @@
       });
       default = [];
       description = ''
-        Map audio sink description substrings to Nerd Font icons for the waybar audio indicator
-        and the rofi sink-switcher menu. Useful on hosts where HDMI audio outputs are ambiguous
+        Map audio sinks to Nerd Font icons for the waybar audio indicator and the rofi
+        sink-switcher menu. Useful on hosts where HDMI audio outputs are ambiguous
         (e.g. an HDMI port feeding a monitor whose audio-out jack connects to headphones).
-        Patterns are matched as substrings against the sink description from pactl.
+        Patterns are substrings of "<sink name>|<description>|<device name>" — see `match`.
+        List the sinks with:
+          pactl list sinks | grep -E 'Name:|Description:|alsa\.name'
       '';
       example = [
-        { match = "Pro 7"; icon = "󰕾"; class = "speakers"; label = "SPKR"; }
-        { match = "Pro 8"; icon = "󰋋"; class = "headphones"; label = "HDPH"; }
+        { match = "LG ULTRAGEAR"; icon = "󰕾"; class = "speakers"; label = "SPKR"; }
+        { match = "S27R65x"; icon = "󰋋"; class = "headphones"; label = "HDPH"; }
       ];
     };
   };

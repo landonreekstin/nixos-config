@@ -24,8 +24,9 @@ let
 
   vpnInterface = customConfig.services.wireguard.client.interfaceName;
 
-  # Shell case statements for sink name|description → icon/class, Nix-interpolated at build time
-  # Match patterns can target the sink name (e.g. "pro-output-3") or description text.
+  # Shell case statements for sink name|description|device → icon/class, Nix-interpolated at build time
+  # Match patterns can target the sink name (e.g. "pro-output-7"), the description, or the
+  # device's own name (alsa.name — the display's EDID name on HDMI/DP, e.g. "LG ULTRAGEAR").
   audioMappingCases = lib.concatMapStrings (m: ''
     *"${m.match}"*)
       ICON="${m.icon}"; CLASS="${m.class}" ;;
@@ -91,11 +92,18 @@ let
   audioStatusScript = pkgs.writeShellScript "waybar-audio-status" ''
     # Single-shot polling script (interval=2 + signal=11 for immediate scroll refresh).
     #
-    # HDMI pro-audio sinks report hardware level (1.00 = 100%) when SUSPENDED because
-    # WirePlumber hasn't initialized the mixer node yet. We detect this state, read the
-    # stored volume from WirePlumber's routes file, and re-apply it via wpctl set-volume.
-    # This one-time initialization means wpctl get-volume tracks correctly from then on,
-    # so scroll events (which send SIGRTMIN+11 to refresh immediately) work without pavu.
+    # Volume is read from wpctl, i.e. the WirePlumber software volume the scroll handlers
+    # and the media keys write. An HDMI pro-audio sink can report the hardware level
+    # (1.00) before WirePlumber has initialized its mixer node; initializing it is the
+    # job of the login `paplay --volume=0` in hyprland/functional.nix, which the
+    # sink-switch scripts replay on every switch.
+    #
+    # This script must never write a volume back. A suspended sink sitting at a genuine
+    # 100% is indistinguishable from an uninitialized one, so "restoring" the stored level
+    # whenever the reading is 100% silently overwrites the real volume every time an app
+    # lets the sink go idle. That is what dropped playback to 15% on each stream reload:
+    # the value came from this card's stale hdmi-output-1 route, which is not even the
+    # route these pro-audio sinks use (they report device.routes = "0").
 
     SINK=$(${pkgs.pulseaudio}/bin/pactl get-default-sink 2>/dev/null)
     WPVOL=$(${pkgs.wireplumber}/bin/wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null)
@@ -113,56 +121,25 @@ let
       [ -n "$REAL" ] && SINK="$REAL"
     fi
 
-    # HDMI sink uninitialized: read stored volume from WirePlumber routes file and re-apply.
-    # The re-apply initializes wpctl so scroll updates work immediately via signal refresh.
-    if [ "$VOLUME" -ge 99 ] && [ "$MUTED" -eq 0 ]; then
-      SINK_STATE=$(${pkgs.pulseaudio}/bin/pactl list sinks short | \
-        ${pkgs.gawk}/bin/awk -F'\t' -v s="$SINK" '$2==s{print $NF}')
-      if [ "$SINK_STATE" = "SUSPENDED" ]; then
-        ALSA_DEV=$(echo "$SINK" | grep -oE 'pro-output-[0-9]+' | grep -oE '[0-9]+$')
-        if [ -n "$ALSA_DEV" ]; then
-          DEVICE_ID=$(${pkgs.wireplumber}/bin/wpctl inspect @DEFAULT_AUDIO_SINK@ 2>/dev/null | \
-            ${pkgs.gawk}/bin/awk '/ device\.id =/{gsub(/[^0-9]/,""); print; exit}')
-          if [ -n "$DEVICE_ID" ]; then
-            ROUTE_NAME=$(${pkgs.pipewire}/bin/pw-cli enum-params "$DEVICE_ID" \
-              "Spa:Enum:ParamId:EnumRoute" 2>/dev/null | \
-              ${pkgs.gawk}/bin/awk -v dev="$ALSA_DEV" '
-                /Prop: key/ { in_devices = 0 }
-                /Route:devices/ { in_devices = 1 }
-                /String "hdmi-output-/ {
-                  match($0, /hdmi-output-[0-9]+/)
-                  current_route = substr($0, RSTART, RLENGTH)
-                }
-                in_devices && /^\s+Int [0-9]/ {
-                  if ($NF == dev) found = current_route
-                }
-                END { print found }
-              ')
-            if [ -n "$ROUTE_NAME" ]; then
-              CARD=$(echo "$SINK" | sed 's/^alsa_output\./alsa_card./; s/\.[^.]*$//')
-              ROUTES_FILE="$HOME/.local/state/wireplumber/default-routes"
-              STORED_VOL=$(grep -F "''${CARD}:output:''${ROUTE_NAME}=" "$ROUTES_FILE" 2>/dev/null | \
-                sed 's/.*"channelVolumes":\[//' | cut -d',' -f1 | \
-                ${pkgs.gawk}/bin/awk '{printf "%d", $1 * 100}')
-              if [ -n "$STORED_VOL" ] && [ "$STORED_VOL" -gt 0 ] && [ "$STORED_VOL" -lt 99 ]; then
-                # Re-apply stored volume to initialize WirePlumber's mixer node.
-                # After this, wpctl get-volume correctly tracks changes.
-                ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ "''${STORED_VOL}%"
-                VOLUME="$STORED_VOL"
-              fi
-            fi
-          fi
-        fi
-      fi
-    fi
-
-    DESC=$(${pkgs.pulseaudio}/bin/pactl list sinks | ${pkgs.gawk}/bin/awk -v sink="$SINK" '
-      /^\s*Name:/ { found = ($2 == sink) }
-      /^\s*Description:/ && found {
-        sub(/^\s*Description:\s*/, "")
-        print; exit
+    # Description plus the device's own name. On an HDMI/DP sink alsa.name is the
+    # display's EDID name (e.g. "LG ULTRAGEAR"), which is the stable thing to match a
+    # mapping on: it follows the physical panel, while the pro-output-N index renumbers
+    # whenever the card's PCM enumeration shifts.
+    SINK_INFO=$(${pkgs.pulseaudio}/bin/pactl list sinks | ${pkgs.gawk}/bin/awk -v sink="$SINK" '
+      /^[[:space:]]*Name:/ { found = ($2 == sink); next }
+      !found { next }
+      /^[[:space:]]*Description:/ {
+        sub(/^[[:space:]]*Description:[[:space:]]*/, "")
+        desc = $0; next
       }
+      /^[[:space:]]*alsa\.name = / {
+        match($0, /"[^"]*"/)
+        dev = substr($0, RSTART + 1, RLENGTH - 2); exit
+      }
+      END { print desc "|" dev }
     ')
+    DESC="''${SINK_INFO%%|*}"
+    DEVNAME="''${SINK_INFO#*|}"
 
     if   [ "$VOLUME" -eq 0 ]; then ICON="󰸈"; CLASS="muted"
     elif [ "$VOLUME" -le 33 ]; then ICON="󰕿"; CLASS="default"
@@ -170,7 +147,7 @@ let
     else ICON="󰕾"; CLASS="default"
     fi
 
-    case "$SINK|$DESC" in
+    case "$SINK|$DESC|$DEVNAME" in
       ${audioMappingCases}
       *) ;;
     esac
@@ -182,7 +159,7 @@ let
       TEXT="$ICON $VOLUME%"
     fi
 
-    TOOLTIP="Sink: $SINK\nDesc: $DESC\nVol: $VOLUME%"
+    TOOLTIP="Sink: $SINK\nDesc: $DESC''${DEVNAME:+\nDev: $DEVNAME}\nVol: $VOLUME%"
     if [ "$FLIP" -eq 1 ]; then
       CLASS="$CLASS flipped"
       TEXT="$TEXT ⇄"

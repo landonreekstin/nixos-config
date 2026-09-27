@@ -12,10 +12,11 @@ let
     ${pkgs.sox}/bin/sox -n -r 48000 -c 2 -b 16 $out trim 0 0.1
   '';
 
-  # Generate a shell case body that maps a "name|description" string to icon+label+class.
+  # Generate a shell case body that maps a "name|description|device" string to icon+label+class.
   # Used in both the switcher and cycle scripts.
-  # Expects NAME and DESC variables to be set; sets ICON, LABEL, CLASS.
-  # Match patterns can target either the sink name (e.g. "pro-output-3") or description text.
+  # Expects NAME, DESC and DEVNAME variables to be set; sets ICON, LABEL, CLASS.
+  # Match patterns can target the sink name (e.g. "pro-output-7"), the description, or the
+  # device's own name (alsa.name — the display's EDID name on HDMI/DP, e.g. "LG ULTRAGEAR").
   mappingCasesShell = lib.concatMapStrings (m: ''
     *"${m.match}"*)
       ICON="${m.icon}"; LABEL="${lib.optionalString (m.label != "") "${m.label}  "}"; CLASS="${m.class}" ;;
@@ -32,29 +33,40 @@ let
       toggle-audio-flip off
     fi
 
-    # Build a list of "name|description" pairs from pactl
+    # Build a list of "name|description|device" triples from pactl. The device name is
+    # alsa.name, which on HDMI/DP is the display's EDID name ("LG ULTRAGEAR") — both the
+    # stable thing to match a mapping against and the only human-readable label here,
+    # since every output on one GPU shares a description ("... Controller Pro 7").
+    # It is printed per sink rather than on the Description line because alsa.name comes
+    # later, inside the sink's Properties block.
     SINK_DATA=$(${pkgs.pulseaudio}/bin/pactl list sinks | ${pkgs.gawk}/bin/awk '
-      /^\s*Name:/ { name = $2 }
-      /^\s*Description:/ {
-        sub(/^\s*Description:\s*/, "")
-        desc = $0
-        print name "|" desc
+      function flush() { if (name != "") print name "|" desc "|" dev; name = ""; desc = ""; dev = "" }
+      /^Sink #/ { flush(); next }
+      /^[[:space:]]*Name:/ { name = $2; next }
+      /^[[:space:]]*Description:/ {
+        sub(/^[[:space:]]*Description:[[:space:]]*/, "")
+        desc = $0; next
       }
+      /^[[:space:]]*alsa\.name = / {
+        match($0, /"[^"]*"/)
+        dev = substr($0, RSTART + 1, RLENGTH - 2); next
+      }
+      END { flush() }
     ' | grep -v '^flip-lr-sink|')
 
     if [ -z "$SINK_DATA" ]; then
       exit 1
     fi
 
-    # Build display lines for rofi: "ICON LABEL  description  (name)"
+    # Build display lines for rofi: "ICON LABEL  device-or-description"
     DISPLAY_LINES=""
-    while IFS='|' read -r NAME DESC; do
+    while IFS='|' read -r NAME DESC DEVNAME; do
       ICON="󰕾"; LABEL=""; CLASS="default"
-      case "$NAME|$DESC" in
+      case "$NAME|$DESC|$DEVNAME" in
         ${mappingCasesShell}
         *) ICON="󰕾"; LABEL=""; CLASS="default" ;;
       esac
-      DISPLAY_LINES="$DISPLAY_LINES$ICON $LABEL$DESC\n"
+      DISPLAY_LINES="$DISPLAY_LINES$ICON $LABEL''${DEVNAME:-$DESC}\n"
     done <<< "$SINK_DATA"
 
     # Present rofi menu
@@ -67,13 +79,13 @@ let
     # Find the sink name corresponding to the chosen display line
     # Match by stripping the icon/label prefix and comparing descriptions
     CHOSEN_SINK=""
-    while IFS='|' read -r NAME DESC; do
+    while IFS='|' read -r NAME DESC DEVNAME; do
       ICON="󰕾"; LABEL=""; CLASS="default"
-      case "$NAME|$DESC" in
+      case "$NAME|$DESC|$DEVNAME" in
         ${mappingCasesShell}
         *) ICON="󰕾"; LABEL=""; CLASS="default" ;;
       esac
-      DISPLAY="$ICON $LABEL$DESC"
+      DISPLAY="$ICON $LABEL''${DEVNAME:-$DESC}"
       if [ "$DISPLAY" = "$CHOSEN" ]; then
         CHOSEN_SINK="$NAME"
         break
