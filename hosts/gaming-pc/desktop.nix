@@ -84,19 +84,19 @@
         }
       ];
       # Audio sink → icon mappings for the waybar audio indicator.
-      # Match is checked against the sink name (pactl list sinks short | awk '{print $2}').
-      # Use "pro-output-N" to match the sink name — more reliable than description substrings
-      # since descriptions like "Pro" are ambiguous across multiple HDMI/DP outputs.
-      # If sinks renumber after a kernel upgrade, check: pactl list sinks | grep -E "Name:|Description:"
+      # Match on the monitor's EDID name (the sink's alsa.name), not "pro-output-N": the
+      # speakers moved from pro-output-3 to pro-output-7 on their own, which left the
+      # widget with the generic icon. The EDID name follows the panel instead.
+      # List them with: pactl list sinks | grep -E 'Name:|Description:|alsa\.name'
       audioSinkMappings = [
         {
-          match = "pro-output-3";    # DP-1 audio → main 1440p monitor → speakers on 3.5mm out
+          match = "LG ULTRAGEAR";    # main 1440p monitor → speakers on its 3.5mm out
           icon = "󰓃";
           class = "speakers";
           label = "SPKR";
         }
         {
-          match = "pro-output-8";    # DP-2 audio → right portrait monitor → headphones on 3.5mm out
+          match = "S27R65x";         # right portrait monitor → headphones on its 3.5mm out
           icon = "󰋋";
           class = "headphones";
           label = "HDPH";
