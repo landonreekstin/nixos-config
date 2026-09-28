@@ -159,6 +159,7 @@ in
     ../scripts/set-wayvnc-output.nix
     ../scripts/hyprland-keys.nix
     ../scripts/toggle-monitor.nix
+    ../scripts/stream-wall.nix
   ];
 
   config = lib.mkIf ((customConfig.desktop.enable) && (lib.elem "hyprland" customConfig.desktop.environments)) {
@@ -392,6 +393,13 @@ in
           "$mainMod SHIFT, up, exec, ${moveToNewWsOnMonitor}/bin/move-to-new-ws-on-monitor"
           "$mainMod SHIFT, down, movetoworkspace, m-1"
 
+          # Stream wall: a gapless named workspace holding a grid of video
+          # windows, plus stream-wall to snap them to exact quadrants.
+          "$mainMod $ctrlMod, S, workspace, name:streams"
+          "$mainMod $ctrlMod SHIFT, S, movetoworkspace, name:streams"
+          "$mainMod $ctrlMod, W, exec, stream-wall"
+          "$mainMod $ctrlMod SHIFT, W, exec, stream-wall off"
+
           # Special workspace toggle (hidden utility apps like ckb-next)
           "$mainMod, grave, togglespecialworkspace, ckb"
           "$mainMod SHIFT, grave, movetoworkspace, special:ckb"
@@ -443,6 +451,26 @@ in
           "$mainMod, mouse:273, resizewindow"
         ];
 
+        # Workspace rules
+        # The stream wall is strictly a video grid, so it drops every pixel that
+        # is not picture. That matters more than it sounds: on a 1920x1080 panel
+        # a quadrant is exactly 960x540 (16:9), but gaps_in=4 + gaps_out=8 leaves
+        # 942x522 (aspect 1.8046) and Firefox PiP letterboxes the difference on
+        # all four tiles. Zeroing gaps and border restores an exact 16:9 quadrant.
+        #
+        # This governs the windows while they are TILED. `stream-wall` floats
+        # them to place them by pixel (see that script for why), so the rule is
+        # what keeps the workspace sane before/after a wall is arranged.
+        #
+        # NOTE the spelling: workspace rules take `gapsin:`/`gapsout:` with NO
+        # underscore. `gaps_in`/`gaps_out` are the *general* option names, and
+        # passing those here is accepted silently — `hyprctl configerrors` stays
+        # empty and the rule just does not register. `hyprctl workspacerules` is
+        # the only way to see which keys actually took.
+        workspace = [
+          "name:streams, gapsin:0, gapsout:0, bordersize:0, border:false, rounding:false, decorate:false"
+        ];
+
         # Window rules
         # Hyprland 0.55 replaced windowrulev2 with a unified `windowrule` that
         # takes `<effect> <value>` pairs and prefixes matchers with `match:`.
@@ -475,6 +503,20 @@ in
           # its `fullscreen` mode only holds while the window is fullscreen on a
           # visible workspace, so a backgrounded game stops keeping the screen on.
           "idle_inhibit fullscreen, match:class ^(.*)$"
+
+          # Send every Picture-in-Picture window to the stream wall, so a grid
+          # assembles itself regardless of which tab or workspace it was popped
+          # from. `silent` moves the window without dragging focus along.
+          # Firefox allows many concurrent PiP windows (one per video); Chromium
+          # permits exactly one process-wide and tears the previous one down, so
+          # the wall only works in Firefox.
+          # Drop this line to place PiP windows by hand with $mainMod $ctrlMod SHIFT, S.
+          "workspace name:streams silent, match:title ^(Picture-in-Picture)$"
+
+          # stream-wall butts the tiles against each other, so any rounding or
+          # shadow shows up as a notch/seam along the interior edges.
+          "rounding 0,     match:title ^(Picture-in-Picture)$"
+          "no_shadow true, match:title ^(Picture-in-Picture)$"
         ];
       }; # End of wayland.windowManager.hyprland.settings
     }; # End of wayland.windowManager.hyprland
