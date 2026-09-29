@@ -11,8 +11,12 @@ let
   userGroup = config.users.users.${userName}.group;
 
   # The config clone is universal; hosts add their own extra working clones via
-  # customConfig.programs.claudeCode.extraChownPaths.
-  chownDirs = [ "${cfg.user.home}/nixos-config" ] ++ cfg.programs.claudeCode.extraChownPaths;
+  # customConfig.programs.claudeCode.extraChownPaths. The parallel-worktree root is listed
+  # too, so a session working in a worktree gets the same root-owned-files cleanup —
+  # chowning the parent covers every worktree under it, which is why they share one
+  # directory instead of sitting loose in $HOME. See docs/parallel-sessions.md.
+  chownDirs = [ "${cfg.user.home}/nixos-config" "${cfg.user.home}/nixos-config-worktrees" ]
+    ++ cfg.programs.claudeCode.extraChownPaths;
   chownCmd = "sudo chown -R ${userName}:${userGroup} ${lib.concatStringsSep " " chownDirs} 2>/dev/null || true";
 
   rcCfg = cfg.programs.claudeCode.remoteControl;
