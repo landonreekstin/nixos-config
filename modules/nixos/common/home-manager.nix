@@ -362,12 +362,50 @@ in
         dayStartHour = mkOption {
           type = types.int;
           default = 7;
-          description = "Hour (0–23) when daytime begins and day temperature is applied.";
+          description = ''
+            Hour (0–23) when daytime begins and day temperature is applied.
+            Fallback only: used when solar.enable = false, or if sunwait fails.
+          '';
         };
         nightStartHour = mkOption {
           type = types.int;
           default = 20;
-          description = "Hour (0–23) when nighttime begins and night temperature is applied.";
+          description = ''
+            Hour (0–23) when nighttime begins and night temperature is applied.
+            Fallback only: used when solar.enable = false, or if sunwait fails.
+          '';
+        };
+        # Fixed hours drift badly across the year: a 20:00 boundary is ~40 min
+        # after sunset in late September and ~2h40m after it in December. With
+        # solar tracking on, the boundary is the real sunset/sunrise at these
+        # coordinates and the hours above are only a fallback.
+        solar = {
+          enable = mkOption {
+            type = types.bool;
+            default = true;
+            description = "Follow real sunrise/sunset at latitude/longitude instead of dayStartHour/nightStartHour.";
+          };
+          latitude = mkOption {
+            type = types.str;
+            default = "32.78N";
+            description = "Latitude in sunwait format: decimal degrees with N or S appended.";
+            example = "51.48N";
+          };
+          longitude = mkOption {
+            type = types.str;
+            default = "96.80W";
+            description = "Longitude in sunwait format: decimal degrees with E or W appended.";
+            example = "0.00W";
+          };
+          twilight = mkOption {
+            type = types.enum [ "daylight" "civil" "nautical" "astronomical" ];
+            default = "daylight";
+            description = ''
+              Which twilight defines the boundary. "daylight" is the sun touching the
+              horizon, so the warm shift starts at sunset; "civil" holds daytime until
+              roughly 25 minutes past sunset, and the later types hold it longer still.
+            '';
+          };
         };
       };
       updateNotification = {
