@@ -305,14 +305,22 @@ in
 
         list)
           OWNER=$(wt_owner_path)
-          printf '%-2s %-52s %-38s %s\n' "" "WORKTREE" "BRANCH" "STATE"
-          while read -r d; do
+          # Size the columns to the actual contents: worktree paths grow with the branch
+          # name, so a fixed width silently misaligns everything to its right.
+          mapfile -t DIRS < <(wt_paths)
+          PW=8; BW=6
+          for d in "''${DIRS[@]}"; do
+            [ ''${#d} -gt "$PW" ] && PW=''${#d}
+            b=$(wt_branch "$d"); [ ''${#b} -gt "$BW" ] && BW=''${#b}
+          done
+          printf "%-2s %-''${PW}s %-''${BW}s %s\n" "" "WORKTREE" "BRANCH" "STATE"
+          for d in "''${DIRS[@]}"; do
             [ -n "$d" ] || continue
             mark=" "; [ "$d" = "$OWNER" ] && mark="*"
             n=$(wt_dirty "$d"); st="clean"
             [ "''${n:-0}" -gt 0 ] && st="$n uncommitted"
-            printf '%-2s %-52s %-38s %s\n' "$mark" "$d" "$(wt_branch "$d")" "$st"
-          done < <(wt_paths)
+            printf "%-2s %-''${PW}s %-''${BW}s %s\n" "$mark" "$d" "$(wt_branch "$d")" "$st"
+          done
           echo
           echo "* owns the live system — the only worktree where 'rebuild' works without --take"
           wt_owner_stale && echo "  (record is stale: the system was last changed outside 'rebuild')"
