@@ -5,6 +5,7 @@
   imports = [
     ./apps.nix
     ./bash.nix
+    ./fontconfig.nix
     ./xdg.nix
   ];
 }
