@@ -55,7 +55,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build aerothemeplasma + openrazer
+      - name: Build fragile derivations
         env:
           NIXPKGS_ALLOW_UNFREE: "1"
         run: |
@@ -64,17 +64,16 @@ jobs:
           # usually cached but OOM this modest NAS whenever they momentarily fall out of the
           # binary cache (e.g. an aged-out librewolf pin), for zero benefit to what we test.
           # These targets are the small C++/kernel-module builds that actually break on
-          # nixpkgs bumps — the recurring aerothemeplasma (PR #74/#83) and openrazer
-          # kernel-ABI classes. The `evaluate` job still type-checks every full toplevel.
+          # nixpkgs bumps. The `evaluate` job still type-checks every full toplevel.
           #
-          # aerothemeplasma's ~13 KWin/Plasma C++ derivations, via the overlay on vm-sandbox
-          # (host-independent — same drv on any aerotheme host):
-          aero=(decoration smodsnap smodglow startupfeedback aeroglassblur aeroglide
-                seventasks sevenstart desktopcontainment volume notifications aerothemeplasma)
+          # aerothemeplasma's ~13 KWin/Plasma C++ derivations used to be built here via the
+          # overlay on vm-sandbox. The theme is now mothballed — no host selects
+          # homeManager.themes.kde = "windows7-alt", so the gated overlay in
+          # modules/nixos/themes/aerothemeplasma/plasma-system.nix is never applied and those
+          # attributes do not exist on pkgs at all. Listing them here would be an *evaluation*
+          # error, not just a wasted build. If the theme is ever re-enabled on a host, restore
+          # the target list along with it (git log this file).
           targets=()
-          for p in "${aero[@]}"; do
-            targets+=(".#nixosConfigurations.vm-sandbox.pkgs.$p")
-          done
           # openrazer out-of-tree module, patched for the current kernel — from a host that
           # enables it. blaney-pc + optiplex share a kernel, so one build covers both.
           targets+=(".#nixosConfigurations.blaney-pc.config.boot.kernelPackages.openrazer")

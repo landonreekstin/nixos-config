@@ -9,15 +9,13 @@
     # Mirror blaney-pc: warn before a shutdown that would cancel the weekly update.
     services.shutdownGuard.enable = true;
     themes = {
-      plasmaOverride = true;
-      kde = "windows7-alt";      # aerothemeplasma — the thing we're here to test
       hyprland = "century-series";
       # XFCE windows7 taskbar — mirror blaney-pc EXACTLY so the pre-PR VM check shows his
-      # real taskbar (pick "Xfce Session" at Ly). Keep this identical to hosts/blaney-pc.
+      # real taskbar (pick "Xfce Session" at Ly). Keep this identical to hosts/blaney-pc,
+      # including the dropped KDE session: aerothemeplasma is mothballed and blaney-pc no
+      # longer lists "kde" in desktop.environments.
       xfce = "windows7";
-      wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
-      # Mirror blaney-pc: XFCE gets the aviation wallpaper (no desktop.monitors → f-15 on all),
-      # KDE keeps Win7.
+      # Mirror blaney-pc: XFCE gets the aviation wallpaper (no desktop.monitors → f-15 on all).
       xfceWallpaper = ../../assets/wallpapers/f-15-satellite.jpg;
       xfcePanel = {
         trayApplets = [ "network" "bluetooth" "power" "clipboard" ];
@@ -39,14 +37,6 @@
           { name = "Notes";           exec = "xpad";                               icon = "xpad"; }
         ];
       };
-      pinnedApps = [
-        "applications:org.kde.konsole.desktop"
-        "applications:systemsettings.desktop"
-        "applications:org.kde.dolphin.desktop"
-        "applications:org.chromium.Chromium.desktop"
-        "applications:org.kde.plasma-systemmonitor.desktop"
-        "applications:org.kde.kcalc.desktop"
-      ];
     };
   };
 
