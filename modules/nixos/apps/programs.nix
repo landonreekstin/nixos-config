@@ -199,6 +199,16 @@ in
         package = pkgs.file-roller; exe = "file-roller";
         description = "Archive manager; the MIME default for archive types.";
       };
+      # gnome-calculator rather than kcalc for its Programming mode, which is laid
+      # out the way Windows Calculator's is and kcalc's is not: a word-size
+      # selector (8/16/32/64-bit), a clickable bit grid that updates as you type,
+      # and a conversion line showing the value in the other bases at the same
+      # time (entering 3735928559 reads "33653337357₈ DEADBEEF₁₆").
+      # It is libadwaita, so it keeps Adwaita styling rather than following Breeze.
+      calculator = mkAppRole {
+        package = pkgs.gnome-calculator; exe = "gnome-calculator";
+        description = "Calculator; chosen for its Windows-style Programmer mode.";
+      };
 
       # ── Gaming ────────────────────────────────────────────────────────────
       # Installed by customConfig.profiles.gaming (a profile, not an app set),
