@@ -12,8 +12,14 @@ let
   hasVpnClient = customConfig.services.wireguard.client.enable;
   hasWeather = customConfig.desktop.hyprland.weather.enable;
   hasHyprsunset = customConfig.homeManager.services.hyprsunset.enable;
-  hyprsunsetDayStart   = toString customConfig.homeManager.services.hyprsunset.dayStartHour;
-  hyprsunsetNightStart = toString customConfig.homeManager.services.hyprsunset.nightStartHour;
+  hyprsunsetDayTemp = toString customConfig.homeManager.services.hyprsunset.dayTemp;
+  systemctlUser = "${pkgs.systemd}/bin/systemctl --user";
+  # The same day/night predicate the schedule timer uses, so the widget and the
+  # timer can never disagree about which side of the boundary we are on.
+  hyprsunsetIsDay = "${import ../../scripts/hyprsunset-solar.nix {
+    inherit pkgs;
+    cfg = customConfig.homeManager.services.hyprsunset;
+  }}/bin/hyprsunset-isday";
   hasCkbNext = customConfig.hardware.peripherals.ckb-next.enable;
   hasBluetoothWidget = customConfig.hardware.bluetooth.waybar.enable;
   hasWifiWidget = customConfig.hardware.wifi.waybar.enable;
@@ -195,8 +201,7 @@ let
     MODE="''${STATE##*:}"
     [ "$MODE" = "enabled" ] && MODE="auto"
 
-    HOUR=$(date +%-H)
-    if [ "$HOUR" -ge ${hyprsunsetDayStart} ] && [ "$HOUR" -lt ${hyprsunsetNightStart} ]; then IS_DAY=1; else IS_DAY=0; fi
+    IS_DAY=$(${hyprsunsetIsDay})
 
     temp_class() {
       T=$1
@@ -219,7 +224,7 @@ let
     elif [ "$IS_DAY" = "1" ]; then
       TEXT="''${TEMP}K"
       CLASS="temp-day"
-      TOOLTIP="Auto day (6500K active) — night preset: ''${TEMP}K — scroll to adjust — right-click for manual override"
+      TOOLTIP="Auto day (${hyprsunsetDayTemp}K active) — night preset: ''${TEMP}K — scroll to adjust — right-click for manual override"
     else
       ACTIVE=$(cat "$HOME/.cache/hyprsunset-active-temp" 2>/dev/null || echo "''${TEMP}")
       TEXT="''${ACTIVE}K"
@@ -233,7 +238,6 @@ let
   gammastepAdjustScript = pkgs.writeShellScript "gammastep-waybar-adjust" ''
     STATE_FILE="$HOME/.cache/hyprsunset-state"
     ACTIVE_FILE="$HOME/.cache/hyprsunset-active-temp"
-    PID_FILE="$HOME/.cache/hyprsunset-transition.pid"
 
     [ ! -f "$STATE_FILE" ] && echo "2500:auto" > "$STATE_FILE"
 
@@ -253,14 +257,10 @@ let
 
     echo "''${TEMP}:''${MODE}" > "$STATE_FILE"
 
-    # Kill any in-progress gradual transition
-    if [ -f "$PID_FILE" ]; then
-      kill "$(cat "$PID_FILE")" 2>/dev/null || true
-      rm -f "$PID_FILE"
-    fi
+    # Cancel any in-progress gradual transition — user input wins
+    ${systemctlUser} stop hyprsunset-transition.service 2>/dev/null || true
 
-    HOUR=$(date +%-H)
-    if [ "$HOUR" -ge ${hyprsunsetDayStart} ] && [ "$HOUR" -lt ${hyprsunsetNightStart} ]; then IS_DAY=1; else IS_DAY=0; fi
+    IS_DAY=$(${hyprsunsetIsDay})
 
     # Apply immediately in manual mode, or in auto mode during nighttime.
     # In auto daytime, just save the preset — display stays at dayTemp.
@@ -282,7 +282,6 @@ let
   gammastepToggleScript = pkgs.writeShellScript "gammastep-waybar-toggle" ''
     STATE_FILE="$HOME/.cache/hyprsunset-state"
     ACTIVE_FILE="$HOME/.cache/hyprsunset-active-temp"
-    PID_FILE="$HOME/.cache/hyprsunset-transition.pid"
 
     [ ! -f "$STATE_FILE" ] && echo "2500:auto" > "$STATE_FILE"
 
@@ -291,14 +290,10 @@ let
     MODE="''${STATE##*:}"
     [ "$MODE" = "enabled" ] && MODE="auto"
 
-    # Kill any in-progress transition
-    if [ -f "$PID_FILE" ]; then
-      kill "$(cat "$PID_FILE")" 2>/dev/null || true
-      rm -f "$PID_FILE"
-    fi
+    # Cancel any in-progress gradual transition — user input wins
+    ${systemctlUser} stop hyprsunset-transition.service 2>/dev/null || true
 
-    HOUR=$(date +%-H)
-    if [ "$HOUR" -ge ${hyprsunsetDayStart} ] && [ "$HOUR" -lt ${hyprsunsetNightStart} ]; then IS_DAY=1; else IS_DAY=0; fi
+    IS_DAY=$(${hyprsunsetIsDay})
 
     if [ "$MODE" = "disabled" ]; then
       # Enable in auto mode, apply correct time-of-day temp immediately
@@ -324,7 +319,6 @@ let
   gammastepModeScript = pkgs.writeShellScript "gammastep-waybar-mode" ''
     STATE_FILE="$HOME/.cache/hyprsunset-state"
     ACTIVE_FILE="$HOME/.cache/hyprsunset-active-temp"
-    PID_FILE="$HOME/.cache/hyprsunset-transition.pid"
 
     [ ! -f "$STATE_FILE" ] && echo "2500:auto" > "$STATE_FILE"
 
@@ -335,14 +329,10 @@ let
 
     [ "$MODE" = "disabled" ] && exit 0  # no-op when disabled
 
-    # Kill any in-progress transition
-    if [ -f "$PID_FILE" ]; then
-      kill "$(cat "$PID_FILE")" 2>/dev/null || true
-      rm -f "$PID_FILE"
-    fi
+    # Cancel any in-progress gradual transition — user input wins
+    ${systemctlUser} stop hyprsunset-transition.service 2>/dev/null || true
 
-    HOUR=$(date +%-H)
-    if [ "$HOUR" -ge ${hyprsunsetDayStart} ] && [ "$HOUR" -lt ${hyprsunsetNightStart} ]; then IS_DAY=1; else IS_DAY=0; fi
+    IS_DAY=$(${hyprsunsetIsDay})
 
     SOCK="''${XDG_RUNTIME_DIR}/hypr/''${HYPRLAND_INSTANCE_SIGNATURE}/.hyprsunset.sock"
     if [ "$MODE" = "auto" ]; then
