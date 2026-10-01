@@ -130,6 +130,12 @@ in
           export HOSTCFLAGS="-I${pkgs.ncurses.dev}/include -std=gnu89"
           export HOSTLDFLAGS="-L${pkgs.ncurses}/lib"
 
+          # Chapter 5 root filesystem staging area (the book calls this ~/rootfs).
+          # Exported here because it is needed in every new shell: when ROOTFS is
+          # unset, 'cd $ROOTFS' degrades to a bare 'cd' to $HOME and the chapter's
+          # 'mkdir bin dev etc ...' scatters directories into the home directory.
+          export ROOTFS="$HOME/embedded-linux/staging_dir/rootfs"
+
           export PS1='\[\033[1;33m\][embedded-linux]\[\033[0m\] \[\033[1;34m\]\w\[\033[0m\]\$ '
           echo "--------------------------------------------------------"
           echo "Entered Unified Embedded Linux Dev Shell."
@@ -144,6 +150,9 @@ in
           echo
           echo "menuconfig (GCC 14 fix for kconfig lxdialog check):"
           echo "  kconfig-menuconfig      # Use in BusyBox/kernel source tree"
+          echo
+          echo "Chapter 5 rootfs staging area:"
+          echo "  ROOTFS=$ROOTFS"
           echo "--------------------------------------------------------"
         '';
       };
