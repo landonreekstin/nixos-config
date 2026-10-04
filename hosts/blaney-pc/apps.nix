@@ -23,6 +23,17 @@
     programs = {
       partydeck.enable = true;
       claudeCode.enable = true;
+      # Call of Duty: Modern Warfare 2 (2009) on community servers. The game itself is
+      # not packaged -- the module ships `mw2-install` (builds MW2 from its install ISOs)
+      # and `iw4x` (syncs the IW4x client, then launches it). installDir defaults to
+      # ~/Games/mw2 and no mediaDir is set: this host fetches the media over HTTP from the
+      # NAS public drop rather than from a mount, so the path is passed on the command line
+      # (docs/runbooks/mw2-iw4x-source.md).
+      #
+      # gamescope.output{Width,Height} stay unset deliberately. They only matter above
+      # 1080p, and this host tops out at 1920x1080 (DP-1 1920x1080 + HDMI-0 1600x900), so
+      # gamescope using the native mode is already correct.
+      iw4x.enable = true;
     };
 
     packages = {
