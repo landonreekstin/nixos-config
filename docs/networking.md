@@ -81,7 +81,7 @@ doas pfctl -si                # statistics
 | Lando (gaming-pc) | 10.10.0.2 | Full | |
 | Lando (Android) | 10.10.0.3 | Full | full tunnel (0.0.0.0/0) |
 | Chris | 10.10.0.4 | Restricted | NAS only (192.168.1.76) |
-| Blaney | 10.10.0.5 | Restricted | NAS only |
+| Blaney | 10.10.0.5 | Restricted | NAS only. Re-keyed 2026-08-02 (`52c397b`); client is the declarative NM profile in `hosts/blaney-pc/networking.nix`, key in `secrets/blaney-pc.yaml`. |
 | Emily | 10.10.0.6 | Restricted | NAS only |
 | Russell | 10.10.0.7 | Restricted | NAS only |
 | Cmoore | 10.10.0.8 | Restricted | NAS only |
