@@ -25,8 +25,10 @@ isn't ready, don't try to write it yourself, and stop.
 curl -sI http://192.168.1.76/public/ | head -1     # expect 200
 ```
 
-Blaney must have the homelab VPN connected in the KDE network applet for this to
-answer at all. If it 404s or the vhost is missing, the drop has not been built yet
+Blaney must have the homelab VPN (**homelab-vpn**) connected in his session's network
+applet for this to answer at all — it is a declarative NetworkManager profile, so it
+appears in the XFCE tray applet and the KDE one alike, and it does not auto-connect.
+If it 404s or the vhost is missing, the drop has not been built yet
 (`docs/runbooks/nas-public-share.md`) — tell Blaney and stop.
 
 **Where:**
@@ -39,8 +41,8 @@ answer at all. If it 404s or the vhost is missing, the drop has not been built y
   VPN connected. Blaney is remote, so this crosses the internet -- expect it to take a
   while and use a resumable download.
 - **Do NOT try to mount the NAS over SMB and do NOT enable `nasClient`.** Both will fail:
-  `pf` on the firewall blocks 445/139 for restricted VPN peers, and blaney-pc has no sops
-  identity to hold the Samba credentials. HTTP on port 80 is the one path that is open.
+  `pf` on the firewall blocks 445/139 for restricted VPN peers, and the NAS share would be
+  writable to a peer that should only read. HTTP on port 80 is the one path that is open.
   (Full detail in `docs/runbooks/nas-public-share.md`.)
 - **Prefer `mw2.tar`** if the drop has it (~15 GB, already installed and IW4x-synced) --
   untar it and skip `mw2-install` entirely. The two ISOs are the fallback and need far

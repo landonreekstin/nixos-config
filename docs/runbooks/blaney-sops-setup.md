@@ -1,5 +1,15 @@
 # Runbook: blaney-pc sops setup (unblocks the WireGuard client, PR #80)
 
+> **Status 2026-10-04: superseded — Parts A and B are done, Part C is what remains.**
+> Parts A and B were carried out in August but landed *on the feature branch instead of
+> `main`*, so `.sops.yaml` and `secrets/blaney-pc.yaml` never reached `main` and Part C
+> never ran. Meanwhile the firewall peer for `10.10.0.5` **was** re-keyed to the new client
+> key (openbsd-dotfiles `52c397b`, 2026-08-02), which deleted the key Blaney was actually
+> using — so his VPN has been dead since that date, and the server shows no handshake for
+> the peer at all. The replacement PR rebases that work onto current `main`. Keep Parts A/B
+> below as the reference for *re-keying*, which is needed if blaney-pc's SSH host key has
+> changed since August.
+
 **Why:** blaney-pc has no sops identity (it runs with `services.ssh.enable = false`, so NixOS
 never generated `/etc/ssh/ssh_host_ed25519_key`; sops derives every host's age key from that
 — see `modules/nixos/sops.nix`). So `.sops.yaml` still has `age1PLACEHOLDER_blaney-pc` and
@@ -66,8 +76,10 @@ Inputs: blaney-pc's `age1…` public key (from Part A).
 ## Part C — after the sops PR merges (brings the VPN up)
 1. On blaney-pc: `update` over the internet to pull the merged secret.
 2. Roll out PR #80: rebase it on main, set `blaneyWgVpn = true`, `rebuild` blaney-pc.
-3. In the KDE network applet, toggle **homelab-vpn** on; confirm the NAS (`192.168.1.76`) is
-   reachable and `.lan` resolves. Firewall already has the `10.10.0.5` peer — no change.
+3. In his session's network applet (XFCE tray or KDE — it is a NetworkManager profile),
+   toggle **homelab-vpn** on and confirm the NAS answers: `curl -sI http://192.168.1.76/public/`.
+   Firewall already has the `10.10.0.5` peer — no change. Do **not** expect `.lan` names to
+   resolve: as a restricted peer he has no port-53 rdr and the profile sets no DNS on purpose.
 4. Merge PR #80.
 
 ## Notes
