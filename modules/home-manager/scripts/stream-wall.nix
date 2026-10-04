@@ -125,19 +125,25 @@ let
 
     mapfile -t ALL_ADDRS < <(printf '%s' "$CLIENTS" | "$jq" -r '${orderedPipFilter} | .[].address')
 
+    # `off` is handled BEFORE the empty check on purpose. Closing the last
+    # stream while the wall is up is the ordinary way a viewing session ends,
+    # and it leaves the bars hidden; if `off` bailed out on an empty list there
+    # would be no command left that could bring them back.
+    if [ "''${1:-}" = "off" ]; then
+      if [ "''${#ALL_ADDRS[@]}" -gt 0 ]; then
+        for a in "''${ALL_ADDRS[@]}"; do
+          "$hyprctl" dispatch settiled "address:$a" >/dev/null
+        done
+      fi
+      show_bars
+      echo "stream-wall: released ''${#ALL_ADDRS[@]} window(s), bars restored."
+      exit 0
+    fi
+
     if [ "''${#ALL_ADDRS[@]}" -eq 0 ]; then
       echo "stream-wall: no Picture-in-Picture windows found." >&2
       echo "Pop out a video in Firefox first (Chromium only allows one)." >&2
       exit 1
-    fi
-
-    if [ "''${1:-}" = "off" ]; then
-      for a in "''${ALL_ADDRS[@]}"; do
-        "$hyprctl" dispatch settiled "address:$a" >/dev/null
-      done
-      show_bars
-      echo "stream-wall: released ''${#ALL_ADDRS[@]} window(s), bars restored."
-      exit 0
     fi
 
     # Grid geometry. Default 2x2 -- the four-stream case this exists for.
@@ -153,6 +159,7 @@ let
     CELLS=$(( COLS * ROWS ))
 
     MONITORS="$("$hyprctl" -j monitors)"
+    LAYERS="$("$hyprctl" -j layers)"
     PLACED=0
     WALLS=0
 
@@ -162,16 +169,35 @@ let
     for mid in $(printf '%s' "$CLIENTS" \
                    | "$jq" -r '${orderedPipFilter} | .[].monitor' | sort -un); do
 
-      # Monitor box in LOGICAL coordinates. hyprctl reports .width/.height as
-      # the physical mode, so a rotated monitor (transform 1/3) needs the swap
-      # or the grid is computed against the wrong axis.
+      # Monitor box in LOGICAL coordinates, measured off a full-screen layer
+      # surface rather than computed.
+      #
+      # The obvious .width / .scale is WRONG on a fractionally scaled monitor,
+      # because hyprctl rounds .scale to two decimals in both its JSON and text
+      # output. DP-1 here runs scale 1.0667, is reported as 1.07, and
+      # 2560 / 1.07 = 2392 against a true logical width of 2400 -- so the wall
+      # came up 8px narrow and every tile was off. The true scale is not
+      # recoverable from the rounded value.
+      #
+      # Layer surfaces are laid out in logical coordinates, so a full-screen
+      # one (hyprpaper) measures the monitor exactly. It also comes out already
+      # rotated -- the portrait DP-2 reports 1080x1920 -- so this needs no
+      # transform handling at all.
+      #
+      # Fall back to the rounded computation if no sufficiently large layer
+      # exists, guarding on 50% of the estimate so a monitor carrying only bars
+      # cannot yield a 47px-tall "wall".
       read -r MX MY MW MH MNAME < <(
-        printf '%s' "$MONITORS" | "$jq" -r --argjson id "$mid" '
-          .[] | select(.id == $id) |
+        printf '%s' "$MONITORS" | "$jq" -r --argjson id "$mid" --argjson layers "$LAYERS" '
+          .[] | select(.id == $id) | . as $m |
           (if (.transform % 2) == 1
            then [(.height / .scale), (.width / .scale)]
-           else [(.width / .scale), (.height / .scale)] end) as $d |
-          "\(.x) \(.y) \($d[0] | floor) \($d[1] | floor) \(.name)"'
+           else [(.width / .scale), (.height / .scale)] end) as $est |
+          ((($layers[$m.name].levels // {}) | [ .[] | .[] ]) | max_by(.w * .h)) as $big |
+          (if ($big != null) and ($big.w >= ($est[0] * 0.5)) and ($big.h >= ($est[1] * 0.5))
+           then [$big.w, $big.h]
+           else [($est[0] | floor), ($est[1] | floor)] end) as $d |
+          "\($m.x) \($m.y) \($d[0]) \($d[1]) \($m.name)"'
       )
 
       CW=$(( MW / COLS ))
