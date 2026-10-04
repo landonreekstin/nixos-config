@@ -517,6 +517,17 @@ in
           # shadow shows up as a notch/seam along the interior edges.
           "rounding 0,     match:title ^(Picture-in-Picture)$"
           "no_shadow true, match:title ^(Picture-in-Picture)$"
+
+          # Float every PiP window on arrival. Without this a PiP created AFTER
+          # a wall is arranged lands tiled, and because stream-wall has floated
+          # all the others it becomes the only tiled window on the workspace --
+          # so dwindle hands it the entire monitor and it reads as one stream
+          # going fullscreen behind the grid. Firefox re-creates these windows
+          # on its own (a video ending and the next starting is enough), so it
+          # is not something the user can avoid by being careful.
+          # Floating also costs nothing: stream-wall has to float them anyway in
+          # order to place them by pixel and to escape the bars' reserved area.
+          "float true,     match:title ^(Picture-in-Picture)$"
         ];
       }; # End of wayland.windowManager.hyprland.settings
     }; # End of wayland.windowManager.hyprland
