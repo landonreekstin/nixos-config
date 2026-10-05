@@ -25,6 +25,7 @@ in `docs/` — read the matching file when the task calls for it:
 | [docs/browsers.md](docs/browsers.md) | Firefox / LibreWolf presets, `customConfig.homeManager.browser`, or the bookmark-secrets path |
 | [docs/subtitles.md](docs/subtitles.md) | subtitles for Jellyfin, Bazarr config/providers, or the `bazarr-provision` unit |
 | [docs/music.md](docs/music.md) | anything music: Lidarr, Navidrome, Ombi requests, slskd/Soulseek, or the `soularr` bridge |
+| [docs/parallel-sessions.md](docs/parallel-sessions.md) | another session is working on this config at the same time, or a `rebuild` was REFUSED because another worktree owns the live system |
 
 ## Choosing the Right Host to Work On
 
@@ -71,7 +72,9 @@ git config user.email  # should be: landonreekstin@gmail.com
 ```
 
 ### System Management
-- `rebuild` - Rebuild the current host configuration using the local flake
+- `wt` - List/create/remove the parallel worktrees, and show which one owns the live system
+- `rebuild` - Rebuild the host configuration from the worktree you are standing in
+  (`--take` to activate from a worktree that doesn't currently own the system)
 - `update` - Pull latest changes from the remote repository (handles merge conflicts)
 - `flake-update` - Update flake inputs (requires `updateCmdPermission` enabled)
 - `upgrade` - Update flake inputs and rebuild system in one command
@@ -335,13 +338,41 @@ Everything else — the full topology, pf commands, port forwards, the peer tabl
 `add-vpn-client.sh`, `.lan` split-horizon DNS, VPN peer addressing rules, hairpin NAT,
 and wake-on-LAN — is in **[docs/networking.md](docs/networking.md)**.
 
+## Parallel Sessions
+
+Several sessions work on this config at once. **Each one gets its own git worktree; the
+machine can only have one of them activated at a time.**
+
+At the start of any session that will edit config, run `wt`. It lists every worktree with
+its branch, its uncommitted count, and a `*` on the one that owns the live system.
+
+- **Never work in a tree holding another task's uncommitted files.** That is how HEAD moves
+  under another session and how `git add -A` sweeps up a stranger's work. Run
+  `wt new <branch>` and work in the new directory instead.
+- **`rebuild` builds the worktree you are standing in**, and refuses if a different worktree
+  owns the live system. That refusal is correct and must not be worked around with a raw
+  `nixos-rebuild` — from a non-owning worktree, anything you "verify" is the *other*
+  branch's code, which would make the verify-before-commit rule below a lie.
+- **`rebuild --take`** moves ownership to your worktree. It is fine to take it; just say so,
+  since it means another session's branch is no longer the one running.
+- **Without ownership you can still do everything but activate.** Eval-check with
+  `NIXPKGS_ALLOW_UNFREE=1 nix eval --impure .#nixosConfigurations.$(hostname).config.system.build.toplevel.drvPath`,
+  or verify GUI behaviour in `testvm sandbox`. Take the machine only for the verify step.
+
+`wt status` shows who owns it and whether that record is stale (something rebuilt outside
+`rebuild`, e.g. the weekly auto-update). Full workflow:
+**[docs/parallel-sessions.md](docs/parallel-sessions.md)**.
+
 ## PRIMARY RULES: Making and Committing Changes
 
 **CRITICAL**: Follow this exact order — commit only comes AFTER verify:
 
+0. **Check for other sessions** — `wt` (see [Parallel Sessions](#parallel-sessions)). If the
+   working tree holds another task's uncommitted files, do NOT work in it: `wt new <branch>`
+   and work there instead.
 1. **Branch** — create a feature/fix branch
 2. **Edit** configuration files
-3. **`sudo chown -R lando:users /home/lando/nixos-config`** ← always do this before rebuild
+3. **`sudo chown -R lando:users <your worktree>`** ← always do this before rebuild
 4. **`rebuild`** ← REQUIRED before committing
 5. **Verify** the changes work correctly (open the app, check the setting, confirm the behavior)
 6. **Commit** — only after steps 4 and 5 succeed
@@ -352,11 +383,11 @@ hardware, or display required) skip steps 4–5 locally. Instead: eval-check →
 (note in-person testing needed) → merge after confirmed on target.
 
 **Never commit to main before rebuilding and verifying**, even for "obviously correct"
-changes. `rebuild` detects the current host — **never manually specify the hostname**. To
-activate without making it the boot default:
+changes. `rebuild` detects the current host — **never manually specify the hostname** — and
+builds the worktree you are standing in. To activate without making it the boot default:
 
 ```bash
-sudo nixos-rebuild test --flake /home/lando/nixos-config#$(hostname) --impure
+rebuild-test
 ```
 
 ### Branching strategy
