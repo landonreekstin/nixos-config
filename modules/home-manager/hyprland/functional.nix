@@ -98,6 +98,12 @@ let
     ${pkgs.hyprland}/bin/hyprctl dispatch workspace "$next_ws"
   '';
 
+  # Stream-wall workspaces. A Hyprland named workspace lives on exactly one
+  # monitor, so a wall per monitor means a workspace per wall. Wall 1 keeps the
+  # bare name `streams` it was introduced with; the rest are suffixed. The same
+  # ordering numbers the windows for stream-audio — see scripts/stream-wall.nix.
+  streamWallWorkspace = n: if n == 1 then "streams" else "streams-${toString n}";
+
   launcherEnabled = customConfig.desktop.hyprland.launcher.enable;
 
   # Filter autostart entries for Hyprland and build exec-once commands
@@ -393,12 +399,32 @@ in
           "$mainMod SHIFT, up, exec, ${moveToNewWsOnMonitor}/bin/move-to-new-ws-on-monitor"
           "$mainMod SHIFT, down, movetoworkspace, m-1"
 
-          # Stream wall: a gapless named workspace holding a grid of video
+          # Stream wall: gapless named workspaces holding grids of video
           # windows, plus stream-wall to snap them to exact quadrants.
           "$mainMod $ctrlMod, S, workspace, name:streams"
           "$mainMod $ctrlMod SHIFT, S, movetoworkspace, name:streams"
           "$mainMod $ctrlMod, W, exec, stream-wall"
           "$mainMod $ctrlMod SHIFT, W, exec, stream-wall off"
+        ]
+        ++ (
+          # One wall per monitor: a named workspace lives on exactly one
+          # monitor, so a second wall needs a second workspace. SHIFT+<n> sends
+          # the focused window to wall n, which is how a PiP window reaches a
+          # monitor other than the one new windows auto-route to.
+          lib.concatMap (n: [
+            "$mainMod $altMod SHIFT, ${toString n}, movetoworkspace, name:${streamWallWorkspace n}"
+          ]) (lib.range 1 3)
+        )
+        ++ (
+          # Pick which single video is audible. Numbering runs walls in order
+          # then row-major within a wall, so 1-4 is the first wall and 5-8 the
+          # second. Firefox mixes every video into ONE PipeWire stream, so this
+          # cannot be done with wpctl -- see scripts/stream-wall.nix.
+          lib.map (n: "$mainMod $altMod, ${toString n}, exec, stream-audio ${toString n}")
+            (lib.range 1 8)
+        )
+        ++ [
+          "$mainMod $altMod, 0, exec, stream-audio none"
 
           # Special workspace toggle (hidden utility apps like ckb-next)
           "$mainMod, grave, togglespecialworkspace, ckb"
@@ -467,9 +493,9 @@ in
         # passing those here is accepted silently — `hyprctl configerrors` stays
         # empty and the rule just does not register. `hyprctl workspacerules` is
         # the only way to see which keys actually took.
-        workspace = [
-          "name:streams, gapsin:0, gapsout:0, bordersize:0, border:false, rounding:false, decorate:false"
-        ];
+        workspace = lib.map
+          (n: "name:${streamWallWorkspace n}, gapsin:0, gapsout:0, bordersize:0, border:false, rounding:false, decorate:false")
+          (lib.range 1 3);
 
         # Window rules
         # Hyprland 0.55 replaced windowrulev2 with a unified `windowrule` that
@@ -517,6 +543,17 @@ in
           # shadow shows up as a notch/seam along the interior edges.
           "rounding 0,     match:title ^(Picture-in-Picture)$"
           "no_shadow true, match:title ^(Picture-in-Picture)$"
+
+          # Float every PiP window on arrival. Without this a PiP created AFTER
+          # a wall is arranged lands tiled, and because stream-wall has floated
+          # all the others it becomes the only tiled window on the workspace --
+          # so dwindle hands it the entire monitor and it reads as one stream
+          # going fullscreen behind the grid. Firefox re-creates these windows
+          # on its own (a video ending and the next starting is enough), so it
+          # is not something the user can avoid by being careful.
+          # Floating also costs nothing: stream-wall has to float them anyway in
+          # order to place them by pixel and to escape the bars' reserved area.
+          "float true,     match:title ^(Picture-in-Picture)$"
         ];
       }; # End of wayland.windowManager.hyprland.settings
     }; # End of wayland.windowManager.hyprland
