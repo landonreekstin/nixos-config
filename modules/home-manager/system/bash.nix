@@ -89,6 +89,12 @@ in
             emulation)
               PS1='\[\033[1;34m\][emulation] \[\033[0;34m\]\w\[\033[0m\] ❯ '
               ;;
+            vibe-python)
+              PS1='\[\033[1;33m\][python app] \[\033[0;32m\]\w\[\033[0m\] ❯ '
+              ;;
+            vibe-web)
+              PS1='\[\033[1;36m\][web app] \[\033[0;36m\]\w\[\033[0m\] ❯ '
+              ;;
             *)
               PS1="${defaultPS1}"
               ;;

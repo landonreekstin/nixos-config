@@ -90,6 +90,14 @@ Two things to keep in mind when touching this:
   `update-shutdown`, the auto-update service itself) are deliberately never guarded —
   blocking those would break the automation the guard exists to protect.
 
+## His own app projects
+
+Separate from everything above: insideabush also builds his own small apps, with the `vibe`
+command. Those live in `~/projects/<slug>` as local-only git repos he commits to `main`
+directly, and a session in one of them is governed by `~/projects/CLAUDE.md`, not by this
+file. See [blaney-vibe-projects.md](blaney-vibe-projects.md). The rules here still bind
+anything that touches *this* repo.
+
 ## Runbooks as blaney-pc tasks
 
 `docs/runbooks/blaney/*.md` is the task queue lando leaves for blaney-pc. Each markdown

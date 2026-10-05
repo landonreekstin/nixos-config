@@ -19,6 +19,11 @@
       };
     };
 
+    # Mirrors blaney-pc so the `vibe` command and its dev shells can be exercised here.
+    # claudeCode is deliberately NOT enabled: there is no Claude auth in a throwaway VM,
+    # and `vibe` is driven with a stub on PATH when verifying it.
+    programs.vibeProjects.enable = true;
+
     packages = {
       nixos = with pkgs; [ ];
       unstable-override = [ ];
