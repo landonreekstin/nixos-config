@@ -21,6 +21,7 @@ in `docs/` — read the matching file when the task calls for it:
 | [docs/remote-xfce-rdp.md](docs/remote-xfce-rdp.md) | XFCE-over-xrdp work, or a `rebuild` that didn't visibly change a live XFCE session |
 | [docs/installation.md](docs/installation.md) | deploying a new host or re-installing an existing one |
 | [docs/hosts/blaney-pc.md](docs/hosts/blaney-pc.md) | the session is on `blaney-pc` (user `insideabush`), or writing a `docs/runbooks/blaney/` task |
+| [docs/hosts/blaney-vibe-projects.md](docs/hosts/blaney-vibe-projects.md) | the `vibe` command, a language toolchain for one of insideabush's own app projects, or packaging one of his finished apps |
 | [docs/companion-repos.md](docs/companion-repos.md) | bumping the pin of a package sourced from another of our repos |
 | [docs/browsers.md](docs/browsers.md) | Firefox / LibreWolf presets, `customConfig.homeManager.browser`, or the bookmark-secrets path |
 | [docs/subtitles.md](docs/subtitles.md) | subtitles for Jellyfin, Bazarr config/providers, or the `bazarr-provision` unit |
@@ -85,6 +86,7 @@ git config user.email  # should be: landonreekstin@gmail.com
 Defined in `modules/nixos/common/commands.nix` under `lib.optionals (cfg.user.name == "insideabush")`:
 - `branch-switch` - Numbered-menu branch picker: fetches, lists all branches (main first), stashes current changes (tagged with their source branch), checks out the chosen branch, offers to restore a stash saved for that branch, then rebuilds. On rebuild failure it points the user at `smart-rebuild` / `claude-rebuild-failed`.
 - `blaney-todo` - Numbered-menu task picker: fetches `origin/main`, lists the runbooks in `docs/runbooks/blaney/`, and launches `claude` on the chosen one with a blaney-pc preface prompt. See [Runbooks as blaney-pc tasks](docs/hosts/blaney-pc.md#runbooks-as-blaney-pc-tasks).
+- `vibe` - Numbered-menu front door for insideabush's **own** app projects (vibe-coded apps in `~/projects/<slug>`): start a new one, or re-open an existing one and either resume its last chat, browse older chats, or start a fresh one. Unlike the commands above this one is gated on `customConfig.programs.vibeProjects.enable` and defined in `modules/nixos/programs/vibe-projects.nix`. His project repos are local-only and he commits to their `main` directly; this repo's rules are unchanged. See [docs/hosts/blaney-vibe-projects.md](docs/hosts/blaney-vibe-projects.md).
 - `blaney-help` - Prints a curated one-line cheat-sheet of the commands insideabush uses. **This is the user-facing command index — keep it in sync when adding/removing blaney commands.**
 - `sync` - **Deprecated alias for `update`**, blaney-pc only. Prints a notice pointing at the new name, then runs `update`. Everywhere else `sync` is coreutils' disk-flush again. Remove once the new name has stuck.
 

@@ -306,6 +306,13 @@
       cpp-practice = referenceHostConfig.customConfig.profiles.development.cpp-practice.devShell;
 
       emulation = referenceHostConfig.customConfig.profiles.development.emulation.devShell;
+
+      # Blaney's vibe-coded app workspaces (customConfig.programs.vibeProjects).
+      # Enabled on gaming-pc purely so these exist as flake outputs — see
+      # modules/nixos/development/vibe-python.nix.
+      vibe-python = referenceHostConfig.customConfig.profiles.development.vibe-python.devShell;
+
+      vibe-web = referenceHostConfig.customConfig.profiles.development.vibe-web.devShell;
     };
 
   };

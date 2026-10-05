@@ -950,6 +950,9 @@ in
         ccnr                   Open Claude and pick a past chat to resume
         claude-rebuild-failed  Ask Claude to fix a failed rebuild and make a PR
 
+      BUILD YOUR OWN APPS
+        vibe                   Start a new app of your own, or carry on with one
+
       OTHER
         rebuild-test   Try a rebuild temporarily (undone on reboot)
         ipr            Open the input-remapper (button remap) app

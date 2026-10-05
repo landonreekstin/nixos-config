@@ -23,6 +23,10 @@
     programs = {
       partydeck.enable = true;
       claudeCode.enable = true;
+      # His own vibe-coded app projects: the `vibe` command, ~/projects, and the dev
+      # shells its .envrc files point at (customConfig.profiles.development.vibe-* in
+      # ./profiles.nix). See docs/hosts/blaney-vibe-projects.md.
+      vibeProjects.enable = true;
       # Call of Duty: Modern Warfare 2 (2009) on community servers. The game itself is
       # not packaged -- the module ships `mw2-install` (builds MW2 from its install ISOs)
       # and `iw4x` (syncs the IW4x client, then launches it). installDir defaults to

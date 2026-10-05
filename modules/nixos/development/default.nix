@@ -9,5 +9,7 @@
     ./gbdk.nix
     ./cpp-practice.nix
     ./emulation.nix
+    ./vibe-python.nix
+    ./vibe-web.nix
   ];
 }
