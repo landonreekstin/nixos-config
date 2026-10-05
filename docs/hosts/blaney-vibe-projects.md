@@ -86,6 +86,15 @@ a directory that only exists at runtime), and counts the saved chats under
 `/root/.claude/projects/<cwd-with-dashes>/` — which `vibe` cannot do itself, since it runs
 as insideabush and that tree is `0700 root`.
 
+### `vibe` cannot be run from inside a Claude session
+
+It ends in `exec sudo claude`, and Claude sessions do not nest. So a `blaney-todo` session
+cannot drive `vibe` to test it, and neither can any other session — including one of
+lando's. Anything that wants Blaney in a vibe project has to **tell him to type `vibe`**,
+which is the one place handing him a command is correct: it is the entry point to a
+different session, not a chore being offloaded. `docs/runbooks/blaney/06-build-your-first-app.md`
+is written that way.
+
 ## Adding a language toolchain
 
 Only when none of the existing shells fits. Five touch points, and the third is the one
