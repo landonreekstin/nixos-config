@@ -6,11 +6,45 @@
 # Working with Themes
 
 ## Plasma Themes
-- `windows7` / `windows7-alt` - Complete Windows 7 recreation with custom plasmoids
+- `default` - Stock Breeze with this repo's panel/pin layout
 - `bigsur` - macOS Big Sur appearance
-- `aerothemeplasma` - Base Aero theme system
+- `windows7-alt` - AeroThemePlasma. **Mothballed — see below.**
 
 Theme configuration is set via `customConfig.homeManager.themes.kde`.
+
+### AeroThemePlasma (`windows7-alt`) is mothballed
+
+The modules are still in the tree (`modules/nixos/themes/aerothemeplasma/`,
+`modules/home-manager/themes/aerothemeplasma/`) but **no host selects them**, so the
+gated overlay in `plasma-system.nix` is never applied: the three gitgud sources are never
+fetched, the ~9 C++ derivations never build, and those attributes do not exist on `pkgs`
+at all. CI no longer builds them either.
+
+Why: the rev in `aerothemeplasma.nix` is versioned against the **Plasma release**, not
+against the theme, so it has to be re-pinned every time nixpkgs moves Plasma — and from
+`Plasma/6.6` upstream split the KWin half into separate repositories, so moving forward
+means packaging new upstreams rather than bumping a hash. That is a build-breaking
+maintenance burden on every release upgrade, for a look that the XFCE theme now delivers
+without compiling anything.
+
+**The supported Windows 7 route is `customConfig.homeManager.themes.xfce = "windows7"`**
+(`modules/{nixos,home-manager}/themes/windows7-xfce/`), which is what blaney-pc and
+gaming-pc's XFCE session run. It extracts images and sounds from the same upstream repo
+(pinned separately at 6.3.4) and compiles nothing.
+
+If you do re-enable `windows7-alt` on a host, restore the aero target list in
+`.github/workflows/check.yml` at the same time — otherwise nothing will build it until a
+host rebuild fails.
+
+### KDE applications without Plasma
+
+`customConfig.apps.kdeSuite.enable` (`modules/nixos/apps/kde-suite.nix`) installs konsole,
+gwenview, okular, ark, elisa, kcalc, partitionmanager and the Dolphin companions. These
+used to arrive only as a side effect of `services.desktopManager.plasma6.enable`, which
+made `apps.defaultSet = "kde"` a hidden dependency on the whole Plasma session. It
+defaults on for any host with `defaultSet = "kde"` or `"kde"` in `desktop.environments`,
+so gaming-pc and blaney-pc keep the KDE app set and their file associations while running
+only Hyprland and XFCE.
 
 ## Custom SDDM Themes
 Configure via `customConfig.desktop.displayManager.sddm.customTheme` with wallpaper, colors, and styling options.

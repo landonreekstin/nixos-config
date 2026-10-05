@@ -55,7 +55,12 @@
     };
 
     programs = {
-      partydeck.enable = true;
+      # Off since KDE was dropped from this host. partydeck is not built against KWin,
+      # but its `enable_kwin_script` setting defaults to on and its launch path calls
+      # KWin over D-Bus with `?` — so without Plasma a launch aborts, and unticking the
+      # setting leaves you hand-positioning every split-screen window. Nobody was using
+      # it, so it is off rather than half-working. See modules/nixos/programs/partydeck.nix.
+      partydeck.enable = false;
 
       # IW4x needs a full MW2 (2009) install under it; `mw2-install` builds one from the
       # two ISOs on the NAS. /mnt/games has the room -- / is at 83%, and the install plus

@@ -340,13 +340,13 @@ Format: `- [ ] **Title** — description`
   `windows7-xfce/default.nix`; the TTF's internal family name is literally "Segoe UI" so `fc-match`
   resolves it exactly (no fontconfig alias needed). Verified on gaming-pc: `fc-match "Segoe UI"` →
   `segoeui.ttf` (was Noto Sans), and the change is visible live in the XFCE session. **Follow-up
-  still open:** the KDE `aerothemeplasma` theme (`plasma-user.nix`/`plasma-system.nix` also declare
-  `Segoe UI`) has the identical gap — left untouched (XFCE-only scope). See below.
-- [ ] **KDE aerothemeplasma "Segoe UI" fallback** — the KDE Win7 theme (optiplex/blaney-pc) declares
-  `Segoe UI` in `plasma-user.nix` (`font`/`menuFont`/…) and `plasma-system.nix`
-  (`fonts.defaultFonts.sansSerif`) but nothing installs it → also falls back to Noto Sans. Port the
-  `segoe-ui` derivation from `windows7-xfce/default.nix` (or lift it into a small shared piece both
-  themes consume) into aerothemeplasma's `fonts.packages`. Verify on a KDE Win7 host.
+  still open:** the KDE `aerothemeplasma` theme had the identical gap — see the withdrawn
+  follow-up below.
+- [x] **KDE aerothemeplasma "Segoe UI" fallback** — *Withdrawn.* The theme is mothballed: no
+  host selects `themes.kde = "windows7-alt"` any more (blaney-pc and gaming-pc dropped KDE
+  entirely, optiplex and vm-sandbox moved to stock Breeze), so nothing renders those font
+  declarations. If it is ever re-enabled, port the `segoe-ui` derivation from
+  `windows7-xfce/default.nix` into `aerothemeplasma`'s `fonts.packages` at the same time.
 - [x] **XFCE keyboard shortcuts (Hyprland/Win11 parity)** — Done: whole-file
   `xfce4-keyboard-shortcuts.xml` seeded from a single `binds` data structure in
   `keybindings.nix` (mirrors Hyprland app-launch binds via `hyprland.applications`; Win11
@@ -497,7 +497,9 @@ Format: `- [ ] **Title** — description`
 
 ## KDE Themes
 
-- [ ] **aerothemeplasma: upstream as standalone flake** — The Windows 7 / Aero theme derivation in `modules/home-manager/themes/aerothemeplasma/` is a custom Nix package. Goal: publish it as a standalone Nix flake that others can use. Steps: (1) Check upstream activity at gitgud.io/aeroshell/atp/aerothemeplasma — it has recent commits, so coordinate rather than fork. (2) Determine if a PR to add a `flake.nix` to upstream is appropriate, or if a separate repo that wraps it as a flake is better. (3) Once published, replace the inline derivation in this config with a flake input. Medium scope; requires upstream communication.
+- [ ] **Retire aerothemeplasma; drop KDE from gaming-pc and blaney-pc** *(PR open — needs in-person test on blaney-pc and optiplex)* — AeroThemePlasma is mothballed: modules kept in-tree, selected by no host, so its gated overlay never applies, the three gitgud sources are never fetched, and its ~9 C++ derivations are neither built nor present on `pkgs` (CI's aero target list removed — it would now be an *evaluation* error). Its rev is versioned against the Plasma release and upstream split the KWin half into separate repos at `Plasma/6.6`, which made it a build-breaking cost on every release upgrade for a look the XFCE theme delivers without compiling anything. gaming-pc and blaney-pc now run `environments = [ "hyprland" "xfce" ]`; optiplex and vm-sandbox moved to `themes.kde = "default"` (stock Breeze) and keep KDE; vm-blaney mirrors blaney-pc. Two couplings had to be broken first, both silent: `apps.defaultSet = "kde"` pointed every image/PDF/archive/audio/terminal MIME default at gwenview/okular/ark/elisa/konsole, which arrived *only* as a side effect of `services.desktopManager.plasma6.enable` — now installed by `customConfig.apps.kdeSuite` (`modules/nixos/apps/kde-suite.nix`), on by default for `defaultSet = "kde"` **or** `"kde"` in `desktop.environments` so no host regresses; and `partydeckCondition` required `"kde"`, which would have deleted partydeck/gamescope-kbm/gamescope from gaming-pc silently. The KDE term is gone from that condition, but partydeck is now explicitly **off** on both hosts: it is not built against KWin, yet its `enable_kwin_script` default makes a launch abort without one, and nobody was using it — see the Hyprland section for what re-enabling needs. `gamescope` itself is unaffected (it comes from `iw4x.nix` and Steam). Verified on gaming-pc.
+
+- [x] **aerothemeplasma: upstream as standalone flake** — *Withdrawn.* The theme is mothballed rather than maintained: no host selects `themes.kde = "windows7-alt"`, the gated overlay in `plasma-system.nix` is never applied, and CI no longer builds its derivations. Upstreaming a package we do not use is not worth the coordination. The reason it was dropped is the same reason it would be hard to publish: its rev is versioned against the Plasma release, and since `Plasma/6.6` upstream split the KWin half into separate repositories. See `docs/theming.md`.
 
 ---
 
@@ -510,6 +512,12 @@ Format: `- [ ] **Title** — description`
 ---
 
 ## Hyprland
+
+- [ ] **partydeck split-screen tiling on Hyprland** — partydeck was turned off on gaming-pc and blaney-pc when KDE was dropped (see the KDE Themes entry); re-enable it once the tiling works without KWin. It is not a build-time dependency on Plasma: `customConfig.programs.partydeck.enable = true` builds and runs fine today. The blocker is that upstream's `enable_kwin_script` defaults to **true** (`src/app/config.rs`) and `src/launch.rs` calls `kwin_dbus_start_script(...)` with `?`, so with no `org.kde.KWin` on the bus the launch **aborts** instead of degrading. Unticking it launches the instances but tiles nothing — you place every window by hand. (`--kwin`, the other escape hatch in `src/main.rs`, shells out to a nested `kwin_wayland`, which a non-Plasma host does not have.)
+
+  The port is small and needs no upstream patch. `res/splitscreen_kwin.js` is ~50 lines: collect windows whose `resourceClass` is `gamescope` or `gamescope-kbm`, count them per output, then set each one's geometry from fixed fraction tables for 1–4 players (`x`/`y`/`width`/`height` arrays at the top of the file). The Hyprland equivalent is `hyprctl -j clients` → filter `.class == "gamescope"` → `hyprctl dispatch togglefloating`, then `movewindowpixel` / `resizewindowpixel` against each `address:0x…`, with the same fraction tables and `hyprctl -j monitors` for the per-output split. Ship it as a script in `modules/home-manager/hyprland/` (or a `windowrulev2` set if per-instance matching turns out to be enough) and untick `enable_kwin_script` in partydeck's own config so its launch path stops calling D-Bus.
+
+  Worth checking first whether upstream has since grown a non-KDE backend — that would make this a config change rather than a script. Note `gamescope-kbm` is a source-built fork that has broken on nixpkgs bumps before (vendored wlroots, `-Werror`), so re-enabling partydeck also puts that back in the build path.
 
 - [x] **Hyprland lid close lock bug** — *(PR [#25](https://github.com/landonreekstin/nixos-config/pull/25))* Replaced swaylock+swayidle with hyprlock+hypridle. Root cause of lock crash: hyprlock's `screenshot` background path crashed when launched via `before_sleep_cmd` because the compositor was already tearing down outputs. Fixed by switching to a static wallpaper. Also set `no_fade_in = true` so input is immediately ready on manual lock.
 

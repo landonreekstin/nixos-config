@@ -169,7 +169,7 @@ split across several modules go in that domain's `options.nix` instead.
 | `services.*` | `services/{ssh,vscode-server,wireguard-client,wireguard-server,airplay-receiver}.nix`; `autoUpdate` in `common/auto-update.nix` |
 | `profiles.*` | `profiles/gaming.nix` and each `development/*.nix` — no `options.nix` |
 | `programs.*` | `programs/{partydeck,claude-code}.nix`; `flatpak` in `programs/options.nix` |
-| `apps.*` | `apps/programs.nix` (registry + `mkAppRole`), `apps/xdg-defaults.nix` (MIME) |
+| `apps.*` | `apps/programs.nix` (registry + `mkAppRole`), `apps/xdg-defaults.nix` (MIME), `apps/kde-suite.nix` (KDE apps without Plasma) |
 | `bootloader`, `networking`, `homeManager` (incl. `homeManager.browser`) | `common/{bootloader,networking,home-manager}.nix` |
 | `user`, `system`, `packages` | `common/options.nix` |
 

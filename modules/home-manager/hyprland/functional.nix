@@ -255,7 +255,20 @@ in
         # Environment variables
         env = [
           "XCURSOR_SIZE,24"
-          "QT_QPA_PLATFORMTHEME,qt6ct"
+
+          # Which platform-theme plugin Qt loads. This decides whether KDE apps
+          # (Dolphin, Gwenview, Okular, Kate, Konsole) get a palette at all: name a
+          # plugin that is not installed and Qt silently applies NONE, leaving every
+          # Qt app in the default LIGHT Fusion colours next to this session's dark GTK
+          # ones. That is exactly what happened — this said "qt6ct" and the theme layer
+          # then overrode it with "qt5ct", and NEITHER qt6ct nor qt5ct is packaged on any
+          # host here, so both were dead and the light look read as deliberate.
+          #
+          # "kde" is registered by plasma-integration, which every host running Hyprland
+          # here has: from Plasma on the KDE hosts, and from customConfig.apps.kdeSuite
+          # on the ones that dropped it. It reads the colour scheme from kdeglobals, so
+          # the theme layer only has to pick the widget style.
+          "QT_QPA_PLATFORMTHEME,kde"
           "LIBVA_DRIVER_NAME,nvidia"
           "__GLX_VENDOR_LIBRARY_NAME,nvidia"
           # Tell GTK/Steam to not apply their own scaling on top of XWayland's native pixels
