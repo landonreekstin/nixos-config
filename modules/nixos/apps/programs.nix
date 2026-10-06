@@ -199,15 +199,20 @@ in
         package = pkgs.file-roller; exe = "file-roller";
         description = "Archive manager; the MIME default for archive types.";
       };
-      # gnome-calculator rather than kcalc for its Programming mode, which is laid
-      # out the way Windows Calculator's is and kcalc's is not: a word-size
-      # selector (8/16/32/64-bit), a clickable bit grid that updates as you type,
-      # and a conversion line showing the value in the other bases at the same
-      # time (entering 3735928559 reads "33653337357₈ DEADBEEF₁₆").
-      # It is libadwaita, so it keeps Adwaita styling rather than following Breeze.
+      # Uno Calculator: Microsoft's own open-source Windows Calculator (the
+      # microsoft/calculator C# source) recompiled for Linux by Uno Platform, so
+      # Programmer mode is the real thing — HEX/DEC/OCT/BIN as four live rows, a
+      # QWORD/DWORD/WORD/BYTE selector, and Lsh/Rsh/Or/Xor/Not/And. kcalc and
+      # gnome-calculator both lay that mode out differently.
+      #
+      # It is a Flathub app, not a nixpkgs one, so the role carries no package:
+      # programs/flatpak.nix installs it on every flatpak-enabled host that uses
+      # this command, and system/apps.nix skips a null package. Note the genuine
+      # Windows 11 build cannot be run here at all — it ships as a UWP/MSIX Store
+      # app, which Wine still does not support.
       calculator = mkAppRole {
-        package = pkgs.gnome-calculator; exe = "gnome-calculator";
-        description = "Calculator; chosen for its Windows-style Programmer mode.";
+        command = "flatpak run uno.platform.uno-calculator";
+        description = "Calculator (Flathub); Microsoft's Windows Calculator ported by Uno Platform.";
       };
 
       # ── Gaming ────────────────────────────────────────────────────────────

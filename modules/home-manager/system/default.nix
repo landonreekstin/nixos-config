@@ -6,6 +6,7 @@
     ./apps.nix
     ./bash.nix
     ./fontconfig.nix
+    ./uno-calculator.nix
     ./xdg.nix
   ];
 }

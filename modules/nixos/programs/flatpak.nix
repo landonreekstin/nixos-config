@@ -1,6 +1,16 @@
 # ~/nixos-config/modules/nixos/profiles/flatpak.nix
 { config, pkgs, lib, inputs, ... }:
 
+let
+  unoCalculatorId = "uno.platform.uno-calculator";
+
+  # True when the calculator app role is pointed at the Uno Calculator flatpak.
+  # Matched on the command rather than a separate option so the role stays the
+  # single place the calculator is chosen.
+  unoCalculatorEnabled =
+    config.customConfig.apps.programs.enable
+    && lib.hasInfix unoCalculatorId config.customConfig.apps.programs.calculator.command;
+in
 {
 
   imports = [
@@ -38,7 +48,16 @@
     services.flatpak.uninstallUnmanaged = false;
 
     # Add here the flatpaks you want to install
-    services.flatpak.packages = config.customConfig.packages.flatpak.packages;
+    #
+    # The calculator role (customConfig.apps.programs.calculator) launches a
+    # Flathub app rather than a nixpkgs package, so it cannot install itself the
+    # way the other roles do — system/apps.nix only installs roles that carry a
+    # package. Derive it from the role's own command instead of hardcoding it in
+    # every host's flatpak list, so pointing the role somewhere else (or setting
+    # its command to "") also stops installing this.
+    services.flatpak.packages =
+      config.customConfig.packages.flatpak.packages
+      ++ lib.optional unoCalculatorEnabled "uno.platform.uno-calculator";
 
     # The Flathub mcpelauncher build exits immediately (255, printing only
     # "SAFE_MODE before exec: (null)") when QT_STYLE_OVERRIDE is set. nixpkgs'
@@ -57,7 +76,20 @@
           Environment.QT_STYLE_OVERRIDE = "";
           Context.unset-environment = [ "QT_STYLE_OVERRIDE" ];
         };
-      };
+      }
+    // lib.optionalAttrs unoCalculatorEnabled {
+      # Uno Calculator's dark mode comes from a settings.ini that Home Manager
+      # writes into the app's own config dir
+      # (modules/home-manager/system/uno-calculator.nix). home.file installs it as
+      # a *symlink into /nix/store*, and while /nix exists inside the sandbox the
+      # store path itself is not exposed — so the app saw a dangling link and fell
+      # back to light. Verified by reading the file from inside the sandbox: the
+      # symlink lists fine, `cat` fails with ENOENT until the store is readable.
+      #
+      # Read-only, and the store is world-readable on disk anyway, so this grants
+      # no access the app could not already infer.
+      "${unoCalculatorId}".Context.filesystems = [ "/nix/store:ro" ];
+    };
 
   };
 }
