@@ -451,6 +451,45 @@ in
         default = "none";
         description = "Set the Hyprland theme for Home Manager.";
       };
+      centurySeries.night = {
+        enable = mkOption {
+          type = types.bool;
+          default = true;
+          description = ''
+            Swap the century-series theme to its night-mission stealth palette
+            (F-117/B-2: red accents on near-black) at sunset, and back at
+            sunrise. Independent of, and layered under, hyprsunset: that shifts
+            colour temperature, this shifts the palette itself.
+
+            Only has an effect when themes.hyprland = "century-series".
+          '';
+        };
+        mode = mkOption {
+          type = types.enum [ "auto" "day" "night" ];
+          default = "auto";
+          description = ''
+            Initial mode, seeded into ~/.cache/century-night-state on first
+            run. "auto" follows the sun; "day"/"night" pin a palette. Changed
+            at runtime with `century-night day|night|auto`, and the runtime
+            value wins from then on.
+          '';
+        };
+        transitionSeconds = mkOption {
+          type = types.int;
+          default = 90;
+          description = "Wall-clock length of the animated day<->night ramp.";
+        };
+        steps = mkOption {
+          type = types.int;
+          default = 10;
+          description = ''
+            Interpolation steps in the ramp. Each step is a pre-built palette,
+            waybar stylesheet and CRT shader in the store, so raising this
+            costs store space and evaluation time, not runtime work. Set to 1
+            for an effectively instant switch.
+          '';
+        };
+      };
       xfce = mkOption {
         type = types.enum [ "windows7" "none" ];
         default = "none";

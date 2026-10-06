@@ -40,6 +40,46 @@ This theme recreates the aesthetic of 1950s-1960s military aviation cockpits, fe
 - **Dimmed Text** (`#a6a69c`) - Secondary labels
 - **Subdued Text** (`#6a6a5e`) - Tertiary information
 
+## Night Mode (F-117 / B-2)
+
+The palette above is the **day** variant. `colors.nix` also exports
+`centuryNightColors` under identical keys — a night-mission stealth cockpit, switched
+automatically at sunset by `night-mode.nix`. Full mechanism and the traps involved are
+in [docs/theming.md](../../../../docs/theming.md#century-series-night-mode); the short
+version:
+
+- **Same keys, different values.** A key named for a day colour keeps its day
+  *meaning* at night, not its hue — `accent-amber` is the primary accent (red at
+  night), `accent-green` is the "nominal/ok" accent (ember amber at night). That is
+  why remapping values here reskins ~200 waybar CSS references and every other
+  generated config without editing any of them. **Do not rename these keys.**
+- **Blue <= red for every night value**, checked by an assertion in `colors.nix` that
+  fails the build. The day backgrounds actually violate this (`#0a0e14` has B > R);
+  flipping that is the biggest perceptual change.
+- **Severity is carried by brightness, not hue.** Once everything is red, hue can no
+  longer separate warning from accent, so night warnings go hotter and whiter and
+  `caution-yellow` (`#ffb070`) is kept deliberately as the one high-luminance "this is
+  different" channel. This is the judgement call most likely to need tuning on real
+  glass — it is one line in the palette.
+
+| Key | Day | Night |
+|---|---|---|
+| `bg-primary` | `#0a0e14` | `#0a0604` |
+| `border-primary` | `#2a3441` | `#3a1c18` |
+| `accent-amber` | `#ff9e3b` | `#ff4538` |
+| `accent-green` | `#7fda89` | `#d98a2b` |
+| `accent-radar` | `#39ff14` | `#ff2a1a` |
+| `text-primary` | `#e6e1cf` | `#dfbda6` |
+| `warning-red` | `#ff3838` | `#ff1f14` |
+| `info-blue` | `#5ccfe6` | `#d4714a` |
+
+Control it with `century-night {status|day|night|auto|toggle}`.
+
+Colours that were hardcoded in `waybar.nix` (the ckb swatches, weather snow, the
+hyprsunset temp-cool pair) are now palette keys so they follow night mode too; their
+day values are unchanged, and the generated day stylesheet is byte-for-byte what it
+was before the refactor.
+
 ## Components
 
 ### Hyprland

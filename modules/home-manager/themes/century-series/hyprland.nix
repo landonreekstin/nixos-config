@@ -123,74 +123,24 @@ let
 
   barrelShaderPath = "${config.home.homeDirectory}/.config/hypr/shaders/crt-barrel.glsl";
 
-  # GLSL header shared by both shaders
-  crtGlslHeader = ''
-    #version 320 es
-    precision highp float;
-    in vec2 v_texcoord;
-    uniform sampler2D tex;
-    out vec4 fragColor;
-
-    float hash(vec2 p) {
-        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-    }
-  '';
-
-  # Shared CRT effects body — sits inside main() after UV is established
-  crtEffectsBody = ''
-        // === CHROMATIC ABERRATION ===
-        float aberration = 0.0006;
-        float r = texture(tex, vec2(uv.x - aberration, uv.y)).r;
-        float g = texture(tex, uv).g;
-        float b = texture(tex, vec2(uv.x + aberration, uv.y)).b;
-        vec4 color = vec4(r, g, b, 1.0);
-
-        // === SCANLINES ===
-        float scanline = mod(floor(gl_FragCoord.y), 2.0);
-        color.rgb *= mix(0.62, 1.0, scanline);
-
-        // === VIGNETTE ===
-        float vigX = uv.x * (1.0 - uv.x) * 4.0;
-        float vigY = uv.y * (1.0 - uv.y) * 4.0;
-        float vignette = pow(vigX * vigY, 0.3);
-        vignette = clamp(vignette, 0.6, 1.0);
-        color.rgb *= vignette;
-
-        // === DUAL-TONE PHOSPHOR ===
-        float luminance = dot(color.rgb, vec3(0.299, 0.587, 0.114));
-        vec3 phosphorAmber = vec3(1.0, 0.62, 0.23);
-        vec3 phosphorGreen = vec3(0.498, 0.855, 0.537);
-        color.rgb = mix(color.rgb, color.rgb * phosphorAmber, luminance * 0.35);
-        color.rgb += phosphorGreen * (1.0 - luminance) * 0.04;
-
-        // === FILM GRAIN ===
-        float grain = hash(uv);
-        color.rgb += (grain - 0.5) * 0.025;
-
-        fragColor = color;
-  '';
-
-  crtBarrelShader = ''
-    ${crtGlslHeader}
-    void main() {
-        vec2 uv = v_texcoord;
-
-        // === BARREL DISTORTION ===
-        vec2 centered = uv * 2.0 - 1.0;
-        float dist = dot(centered, centered);
-        uv = (centered * (1.0 + 0.025 * dist)) * 0.5 + 0.5;
-        if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
-            fragColor = vec4(0.0, 0.0, 0.0, 1.0);
-            return;
-        }
-
-        ${crtEffectsBody}
-    }
-  '';
+  # The CRT screen shader now lives in crt-shader.nix as a function of the
+  # palette, so night-mode.nix can generate one shader per ramp step. This is
+  # the DAY shader at the stable path century-crt-toggle has always used.
+  crtShaders = import ./crt-shader.nix { };
+  crtBarrelShader = crtShaders.mkCrtBarrelShader c 1.0;
 
   crtToggleScript = ''
     #!/usr/bin/env bash
+    # Turn the filter on with the shader for the CURRENT day/night phase.
+    # night-mode.nix writes that path to ~/.cache/century-night-shader on every
+    # ramp step and at login; the stable day shader is the fallback for when
+    # night mode is disabled or has not run yet.
     BARREL_SHADER="${barrelShaderPath}"
+    PHASE_SHADER="$HOME/.cache/century-night-shader"
+    if [ -r "$PHASE_SHADER" ]; then
+        CANDIDATE=$(cat "$PHASE_SHADER")
+        [ -r "$CANDIDATE" ] && BARREL_SHADER="$CANDIDATE"
+    fi
     CURRENT=$(hyprctl getoption decoration:screen_shader | grep "str:" | awk '{print $2}')
     if [ -z "$CURRENT" ] || [ "$CURRENT" = "[[EMPTY]]" ]; then
         hyprctl keyword decoration:screen_shader "$BARREL_SHADER"
@@ -366,6 +316,12 @@ in {
       # Environment variables for consistent theming
       extraConfig = ''
         # Start CRT fullscreen watcher
+
+        # Apply the correct day/night palette instantly at login (no ramp).
+        # exec-once is additive in hyprlang, so this merges with the mkDefault
+        # list in hyprland/functional.nix without the functional layer needing
+        # to know this theme has a night mode.
+        exec-once = century-night init
 
         # Toolkit theming
         env = QT_QPA_PLATFORMTHEME,qt5ct
