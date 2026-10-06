@@ -63,7 +63,35 @@ artifacts into the store and the ramp walks them:
 |---|---|---|
 | Hyprland borders, `dim_strength`, `blur:brightness` | one `hyprctl --batch` per step | yes, interpolated every step |
 | Waybar | rewrite `~/.config/waybar/century-palette.css` + **one** `SIGUSR2` | yes, but a single crossover at the ramp midpoint |
+| Wallpaper | one `awww img -t fade --transition-duration` up front | yes, awww animates its own crossfade alongside the walk |
 | CRT screen shader | `hyprctl keyword decoration:screen_shader` to a per-step path | yes, only when the opt-in filter is already on |
+
+### Wallpaper engine
+
+`customConfig.desktop.hyprland.wallpaperEngine` picks the daemon, and defaults to
+`awww` whenever century-series night mode is on. **hyprpaper 0.8.x dropped its IPC
+socket entirely** — 0.7.5's binary contains `hyprpaper.sock`, `listloaded` and
+`listactive`, 0.8.4 contains none of them — so with hyprpaper the wallpaper can only be
+changed by restarting the daemon, which blinks. `awww` (nixpkgs' current name for
+`swww`; the `swww` attribute is an alias that warns) keeps a daemon with a per-monitor
+GPU crossfade.
+
+The choice lives in the *functional* layer because starting a daemon is functional, not
+styling; the theme only reads it. `services.hyprpaper` is `mkIf`-gated on the same
+option so the two daemons never both run.
+
+Both wallpaper sets and the per-monitor assignment live in
+`themes/century-series/wallpapers.nix`, shared by `hyprland.nix` (which feeds the day
+set to hyprpaper and links the files) and `night-mode.nix` (which needs both). The night
+set mirrors the day set slot for slot, so each display keeps its character across the
+switch — hero airframe on primary, cockpit on secondary, portraits stay portrait.
+
+Two things the applier has to handle: `awww -o` takes **output names** (`DP-1`), while a
+monitor identifier may be `desc:<description>`, which only Hyprland can resolve — and it
+is a **prefix** match, because Hyprland appends a serial to `.description`. And the
+daemon is started from the same `exec-once` batch, so the applier retries `awww query`
+for up to 10s at login rather than leaving the desktop bare. A missing night image falls
+back to the day one with a single notification, never to a blank screen.
 
 So the compositor interpolates continuously while the bar changes exactly once,
 halfway through, which is why the whole thing still reads as one event.

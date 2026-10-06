@@ -9,101 +9,15 @@ let
   c = colorsModule.centuryColors;
   centuryConfig = colorsModule.centuryConfig;
 
-  # Wallpaper paths for Cold War aviation theme
-  wallpaperDir = config.home.homeDirectory + "/.local/share/wallpapers";
-  
-  # Century Series wallpaper hierarchy - easy to customize
-  wallpapers = {
-    # Primary wallpapers (main displays)
-    primary-horizontal = wallpaperDir + "/f-15-satellite.jpg";
-    primary-vertical = wallpaperDir + "/carrier-top.jpg";
-    
-    # Secondary wallpapers (additional displays)  
-    secondary-horizontal = wallpaperDir + "/f-4-cockpit.png";
-    secondary-vertical = wallpaperDir + "/carrier-top.jpg";
-    
-    # Tertiary wallpapers (for systems with 3+ displays)
-    tertiary-horizontal = wallpaperDir + "/f-4-cockpit.png";
-    tertiary-vertical = wallpaperDir + "/carrier-top.jpg";
-    
-    # Default fallback
-    fallback = wallpaperDir + "/f-15-satellite.jpg";
+  # Wallpaper hierarchy + per-monitor assignment, shared with night-mode.nix
+  # (which needs the night set for the awww crossfade).
+  wallpaperSets = import ./wallpapers.nix {
+    inherit lib customConfig;
+    homeDir = config.home.homeDirectory;
   };
+  wallpaperAssignments = wallpaperSets.dayAssignments;
 
-  # Helper function to determine if a monitor is vertical (transform = 1 or 3)
-  isVertical = monitor: 
-    monitor.transform == "1" || monitor.transform == "3";
-
-  # Helper function to categorize monitors by orientation and priority
-  categorizeMonitors = monitors:
-    let
-      enabledMonitors = lib.filter (m: m.enabled) monitors;
-      horizontalMonitors = lib.filter (m: !(isVertical m)) enabledMonitors;
-      verticalMonitors = lib.filter (m: isVertical m) enabledMonitors;
-    in {
-      horizontal = horizontalMonitors;
-      vertical = verticalMonitors;
-      total = enabledMonitors;
-    };
-
-  # Function to assign wallpapers based on hierarchy
-  assignWallpaper = monitor: index: orientation:
-    let
-      wallpaperKey = 
-        if index == 0 then "primary-${orientation}"
-        else if index == 1 then "secondary-${orientation}" 
-        else "tertiary-${orientation}";
-      
-      wallpaper = wallpapers.${wallpaperKey} or wallpapers.fallback;
-    in wallpaper;
-
-  # Generate wallpaper assignments using the hierarchy system
-  generateWallpaperAssignments = monitors:
-    let
-      categorized = categorizeMonitors monitors;
-      
-      # Create assignments for horizontal monitors
-      horizontalAssignments = lib.imap0 (i: monitor:
-        let
-          identifierString = 
-            if lib.strings.hasPrefix "desc:" monitor.identifier
-            then monitor.identifier
-            else if (lib.strings.hasInfix " " monitor.identifier) || (lib.strings.hasInfix "." monitor.identifier)
-            then "desc:${monitor.identifier}"
-            else monitor.identifier;
-          wallpaper = assignWallpaper monitor i "horizontal";
-        in { monitor = identifierString; path = wallpaper; }
-      ) categorized.horizontal;
-
-      # Create assignments for vertical monitors  
-      verticalAssignments = lib.imap0 (i: monitor:
-        let
-          identifierString = 
-            if lib.strings.hasPrefix "desc:" monitor.identifier
-            then monitor.identifier
-            else if (lib.strings.hasInfix " " monitor.identifier) || (lib.strings.hasInfix "." monitor.identifier)
-            then "desc:${monitor.identifier}"
-            else monitor.identifier;
-          wallpaper = assignWallpaper monitor i "vertical";
-        in { monitor = identifierString; path = wallpaper; }
-      ) categorized.vertical;
-    in
-      horizontalAssignments ++ verticalAssignments;
-
-  # Determine wallpaper assignments.
-  #
-  # hyprpaper 0.8.0 was a complete rewrite onto hyprtoolkit and, in upstream's
-  # own words, "configs are broken and much simplified". The old
-  # `preload = <path>` + `wallpaper = <monitor>,<path>` pair is gone; there is now
-  # a `wallpaper { monitor = ...; path = ...; }` block per monitor and no preload
-  # concept at all. 0.8.4 does not warn about the old keys — it parses the file,
-  # finds no wallpaper blocks, logs "Monitor X has no target: no wp will be
-  # created" and shows nothing, which is exactly how this presented after the
-  # 26.05 upgrade.
-  wallpaperAssignments =
-    if (lib.length customConfig.desktop.monitors) > 0
-    then generateWallpaperAssignments customConfig.desktop.monitors
-    else [ { monitor = ""; path = wallpapers.fallback; } ]; # Single monitor fallback
+  wallpaperEngine = customConfig.desktop.hyprland.wallpaperEngine;
 
   # Border width configuration for MFD-style appearance
   mfdBorderSize = if centuryConfig.borderStyle or "mfd" == "mfd" then 3 else 2;
@@ -174,8 +88,17 @@ in {
     home.file.".local/share/wallpapers/f-4-cockpit.png".source = ../../../../assets/wallpapers/f-4-cockpit.png;
     home.file.".local/share/wallpapers/carrier-top.jpg".source = ../../../../assets/wallpapers/carrier-top.jpg;
 
-    # Hyprpaper service for wallpaper management
-    services.hyprpaper = {
+    # Night-mission set
+    home.file.".local/share/wallpapers/f-117-sunset.jpg".source = ../../../../assets/wallpapers/f-117-sunset.jpg;
+    home.file.".local/share/wallpapers/cockpit-night.jpg".source = ../../../../assets/wallpapers/cockpit-night.jpg;
+    home.file.".local/share/wallpapers/eurofighter-night-vertical.jpg".source = ../../../../assets/wallpapers/eurofighter-night-vertical.jpg;
+
+    # Hyprpaper service for wallpaper management.
+    # Only while hyprpaper is still the engine: night mode flips the default to
+    # awww, which night-mode.nix drives directly (hyprpaper 0.8.x has no IPC, so
+    # it could only be restarted, which blinks). Leaving this on under awww
+    # would also start a second, competing wallpaper daemon.
+    services.hyprpaper = mkIf (wallpaperEngine == "hyprpaper") {
       enable = true;
       settings = {
         wallpaper = wallpaperAssignments;

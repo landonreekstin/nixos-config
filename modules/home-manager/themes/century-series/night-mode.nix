@@ -198,6 +198,87 @@ let
   # returns only alongside the custom/century-night widget that configures the
   # signal (and must be checked against a live waybar then).
 
+  # ---- wallpaper ----------------------------------------------------------
+  # usage: century-wallpaper-apply <day|night> <fade-seconds>
+  #
+  # One call per transition, fired up front by the ramp: awww runs its own GPU
+  # crossfade over the same duration, so the wallpaper fade and the compositor
+  # walk overlap instead of queueing. K calls would fight each other.
+  wallpaperSets = import ./wallpapers.nix {
+    inherit lib customConfig;
+    homeDir = homeDir;
+  };
+
+  # Day and night assignment lists are parallel — same monitors, same order —
+  # so they zip into one try_set line per display.
+  wallpaperLines = concatStringsSep "\n" (imap0 (i: d:
+    let n = elemAt wallpaperSets.nightAssignments i;
+    in ''try_set "${d.monitor}" "${d.path}" "${n.path}"''
+  ) wallpaperSets.dayAssignments);
+
+  wallpaperScript = pkgs.writeShellScriptBin "century-wallpaper-apply" ''
+    set -u
+    SIDE="''${1:-day}"
+    DUR="''${2:-0}"
+    [ "''${XDG_CURRENT_DESKTOP:-}" != "Hyprland" ] && exit 0
+    ${lib.optionalString (customConfig.desktop.hyprland.wallpaperEngine != "awww") ''
+      # Not the awww engine — hyprpaper owns the wallpaper and cannot change it
+      # at runtime, so there is nothing to do.
+      exit 0
+    ''}
+
+    # The daemon is started from exec-once alongside us, so at login we can win
+    # the race. Wait briefly rather than silently leaving the desktop bare.
+    for _ in $(seq 1 40); do
+      ${pkgs.awww}/bin/awww query >/dev/null 2>&1 && break
+      ${pkgs.coreutils}/bin/sleep 0.25
+    done
+    ${pkgs.awww}/bin/awww query >/dev/null 2>&1 || exit 0
+
+    # awww -o takes OUTPUT NAMES (DP-1, HDMI-A-1). hyprpaper-style identifiers
+    # may instead be `desc:<description>`, which only Hyprland can resolve — and
+    # it is a PREFIX match, because Hyprland appends a serial to .description.
+    resolve() {
+      case "$1" in
+        "") ${pkgs.hyprland}/bin/hyprctl -j monitors 2>/dev/null \
+              | ${pkgs.jq}/bin/jq -r '.[].name' | ${pkgs.coreutils}/bin/paste -sd, ;;
+        desc:*) ${pkgs.hyprland}/bin/hyprctl -j monitors 2>/dev/null \
+              | ${pkgs.jq}/bin/jq -r --arg d "''${1#desc:}" \
+                  '.[] | select(.description | startswith($d)) | .name' \
+              | ${pkgs.coreutils}/bin/paste -sd, ;;
+        *) echo "$1" ;;
+      esac
+    }
+
+    warned=0
+    try_set() {   # $1 identifier, $2 day path, $3 night path
+      if [ "$SIDE" = night ]; then IMG="$3"; else IMG="$2"; fi
+      if [ ! -f "$IMG" ]; then
+        # Missing asset: keep the day image rather than blanking the desktop.
+        if [ "$warned" = 0 ]; then
+          ${pkgs.libnotify}/bin/notify-send -t 4000 -i image \
+            "Night mode" "Wallpaper missing, keeping the day image" 2>/dev/null || true
+          warned=1
+        fi
+        IMG="$2"
+        [ -f "$IMG" ] || return 0
+      fi
+      OUT=$(resolve "$1")
+      [ -z "$OUT" ] && return 0
+      if [ "$DUR" = 0 ]; then
+        ${pkgs.awww}/bin/awww img -o "$OUT" "$IMG" --resize crop -t none >/dev/null 2>&1 || true
+      else
+        # .4,0,.2,1 is the theme's own `hydraulic` bezier from hyprland.nix, so
+        # the wallpaper fade shares a motion curve with the window animations.
+        ${pkgs.awww}/bin/awww img -o "$OUT" "$IMG" --resize crop \
+          -t fade --transition-duration "$DUR" --transition-fps 60 \
+          --transition-bezier .4,0,.2,1 >/dev/null 2>&1 || true
+      fi
+    }
+
+    ${wallpaperLines}
+  '';
+
   # ---- shared shell fragments ---------------------------------------------
   readState = ''
     STATE_FILE="${stateFile}"
@@ -277,6 +358,11 @@ let
     MID=$(( (CUR + TARGET) / 2 ))
     RELOADED=0
 
+    # Fire the wallpaper crossfade ONCE, up front: awww animates it itself over
+    # the same wall-clock duration, so it runs alongside the compositor walk.
+    if [ "$TARGET" = 0 ]; then SIDE=day; else SIDE=night; fi
+    ${wallpaperScript}/bin/century-wallpaper-apply "$SIDE" ${toString cfg.transitionSeconds} || true
+
     i=$CUR
     while [ "$i" != "$TARGET" ]; do
       i=$(( i + DIR ))
@@ -320,6 +406,8 @@ let
       ${applyStep} "$1" || true
       echo "$1" > "$PHASE_FILE"
       echo "$1" > "$TARGET_FILE"
+      if [ "$1" = 0 ]; then SIDE=day; else SIDE=night; fi
+      ${wallpaperScript}/bin/century-wallpaper-apply "$SIDE" 0 || true
       ${reloadWaybar}
     }
 
@@ -387,7 +475,7 @@ let
 
 in {
   config = mkIf enabled {
-    home.packages = [ scheduleScript rampScript cliScript ];
+    home.packages = [ scheduleScript rampScript cliScript wallpaperScript ];
 
     # The waybar stylesheet @imports this file by absolute path, and a MISSING
     # import makes GTK reject the entire provider — unstyled bars. So it must

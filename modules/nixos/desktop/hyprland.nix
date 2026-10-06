@@ -81,6 +81,23 @@
         A windowrulev2 sends each app there on launch; SUPER+` toggles the workspace.
       '';
     };
+    wallpaperEngine = mkOption {
+      type = types.enum [ "hyprpaper" "awww" ];
+      default =
+        if config.customConfig.homeManager.themes.hyprland == "century-series"
+           && config.customConfig.homeManager.themes.centurySeries.night.enable
+        then "awww" else "hyprpaper";
+      description = ''
+        Which wallpaper daemon Hyprland starts.
+
+        hyprpaper 0.8.x dropped its IPC socket entirely (0.7.5 had one), so the
+        wallpaper can only be changed by restarting the daemon — a visible
+        blink. awww (nixpkgs' current name for swww) keeps a daemon with a
+        per-monitor GPU crossfade, which is what century-series night mode needs
+        in order to fade the wallpaper at sunset. Hence the default.
+      '';
+    };
+
     weather = {
       enable = mkOption {
         type = types.bool;
