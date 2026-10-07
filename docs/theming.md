@@ -66,6 +66,48 @@ artifacts into the store and the ramp walks them:
 | Wallpaper | one `awww img -t fade --transition-duration` up front | yes, awww animates its own crossfade alongside the walk |
 | CRT screen shader | `hyprctl keyword decoration:screen_shader` to a per-step path | yes, only when the opt-in filter is already on |
 
+### Application colours
+
+Apps that read their config only at launch live in
+`themes/century-series/app-themes.nix` — one generator per app, each a function of the
+palette, so the day module and the switcher build from the same source and cannot drift.
+`night-mode.nix` lists them in `swappable` and `century-apps-apply day|night` installs
+the right variant. Adding an app is one generator plus one list entry.
+
+| App | Mechanism | Catches up |
+|---|---|---|
+| kitty | generated `century-colors.conf`, `include`d by the theme; `SIGUSR1` | immediately, in open terminals |
+| starship | generated `~/.config/starship.toml` | next prompt |
+| dunst | `dunstctl reload <path>` | next notification |
+
+**kitty is the one place a key changes meaning, not just hue.** `term-fg` is phosphor
+green by day and red by night, because a green-on-black CRT is the day conceit and red
+instrument lighting is the night one. Two deliberate choices around it: night body text
+(`#e8513a`) is a *softer* red than `warning-red` (`#ff1f14`) so error output still stands
+out against it, and ANSI green becomes **ember** (`#d98a2b`) rather than another red —
+otherwise `ls` directories and `git` additions would be indistinguishable from errors.
+
+**dunst's night config is the day config with its colours substituted**, not a second
+render of the settings attrset. Re-rendering looked cleaner but silently drops what
+home-manager adds on the way out — notably the computed `icon_path`, without which night
+notifications lose their icons — and writes `true`/`false` where home-manager writes
+`yes`/`no`. Only the nine palette keys dunst actually uses are substituted, because
+several palette values are shared between keys with *different* night values (`#7fda89`
+is both `accent-green` and `term-fg`), so a blanket hex replacement would be ambiguous.
+That list has to stay in step with `mkDunstSettings`.
+
+Still on the day palette: rofi, wlogout, swaylock, btop, yazi, zathura, imv, and the
+browser userChrome.
+
+> **dunst vs swaync.** The functional layer enables swaync and this theme enables
+> dunst. Both units declare `BusName=org.freedesktop.Notifications`, and systemd
+> refuses to load **either** when two units claim one bus name — so the host ran no
+> notification daemon at all and every `notify-send` failed with `NameHasNoOwner`,
+> silently. The theme now `mkForce`s `services.swaync.enable = false`, since it styles
+> dunst in detail and does not style swaync. If you ever want swaync back, turn dunst
+> off in the theme rather than enabling both.
+
+
 ### Wallpaper engine
 
 `customConfig.desktop.hyprland.wallpaperEngine` picks the daemon, and defaults to
@@ -92,6 +134,14 @@ is a **prefix** match, because Hyprland appends a serial to `.description`. And 
 daemon is started from the same `exec-once` batch, so the applier retries `awww query`
 for up to 10s at login rather than leaving the desktop bare. A missing night image falls
 back to the day one with a single notification, never to a blank screen.
+
+> **Changing `wallpaperEngine` needs a fresh Hyprland session.** `exec-once` only runs
+> at session start, so a rebuild that switches the engine leaves the *old* daemon
+> running and never launches the new one. Colours still switch — those go through
+> `hyprctl` to the live compositor — but wallpapers silently do not, which reads as a
+> broken feature. The applier now notices awww is unreachable and says so once per
+> session via `notify-send`. To fix it without logging out: kill `hyprpaper`, start
+> `awww-daemon`, then run `century-wallpaper-apply night 3`.
 
 So the compositor interpolates continuously while the bar changes exactly once,
 halfway through, which is why the whole thing still reads as one event.

@@ -9,40 +9,10 @@ let
   c = colorsModule.centuryColors;
   centuryConfig = colorsModule.centuryConfig;
 
-  # Primary phosphor color based on accent mode
-  phosphorColor =
-    if (centuryConfig.accentMode or "mixed") == "amber" then c.accent-amber
-    else if (centuryConfig.accentMode or "mixed") == "green" then c.accent-green
-    else c.accent-green;  # Default to green for mixed (traditional CRT)
-
-  phosphorDim =
-    if (centuryConfig.accentMode or "mixed") == "amber" then c.accent-amber-dim
-    else if (centuryConfig.accentMode or "mixed") == "green" then c.accent-green-dim
-    else c.accent-green-dim;
-
-  # Terminal color scheme - Phosphor CRT aesthetic
-  # Colors adapted to look like glowing phosphor on dark screen
-  termColors = {
-    # Standard colors - phosphor variations
-    black = c.bg-primary;
-    red = c.warning-red;
-    green = if (centuryConfig.accentMode or "mixed") == "amber" then c.caution-yellow else c.accent-radar;
-    yellow = c.accent-amber-glow;
-    blue = c.info-blue;
-    magenta = "#a277ff";  # Slight purple tint for magenta
-    cyan = "#73daca";     # Cyan with phosphor feel
-    white = c.text-primary;
-
-    # Bright colors - glowing intensified
-    bright-black = c.text-tertiary;
-    bright-red = "#ff6b6b";
-    bright-green = if (centuryConfig.accentMode or "mixed") == "amber" then c.accent-amber else c.accent-radar;
-    bright-yellow = c.caution-yellow;
-    bright-blue = "#89ddff";
-    bright-magenta = "#c792ea";
-    bright-cyan = "#80cbc4";
-    bright-white = "#ffffff";
-  };
+  # Colours live in app-themes.nix and are written to a generated
+  # century-colors.conf that extraConfig below `include`s, so night mode can
+  # swap that one file and SIGUSR1 kitty rather than needing a restart.
+  # Non-colour settings stay in programs.kitty below.
 
   # Check if home-manager, Hyprland, and the Century Series theme are enabled
   centurySeriesThemeCondition = lib.elem "hyprland" customConfig.desktop.environments
@@ -74,25 +44,12 @@ in {
         single_window_margin_width = 0;
         placement_strategy = "center";
 
-        # Active/inactive border colors - Powered/unpowered monitor
-        active_border_color = phosphorColor;
-        inactive_border_color = c.border-primary;
-
-        # Background and foreground - CRT screen
-        background = c.bg-primary;
-        foreground = phosphorColor;
-        selection_background = phosphorDim;
-        selection_foreground = c.bg-primary;
-
         # Cursor - Blinking phosphor cursor
-        cursor = phosphorColor;
-        cursor_text_color = c.bg-primary;
         cursor_shape = mkForce "block";
         cursor_blink_interval = mkForce 0.5;
         cursor_stop_blinking_after = 15.0;
 
         # URL styling - Data link highlighting
-        url_color = c.info-blue;
         url_style = "single";
 
         # Tab bar - Multi-display selector
@@ -101,18 +58,12 @@ in {
         tab_bar_min_tabs = 1;
         tab_separator = " │ ";
         tab_title_template = "{index}: {title}";
-        active_tab_foreground = c.bg-primary;
-        active_tab_background = phosphorColor;
         active_tab_font_style = "bold";
-        inactive_tab_foreground = c.text-secondary;
-        inactive_tab_background = c.bg-secondary;
         inactive_tab_font_style = "normal";
-        tab_bar_background = c.bg-tertiary;
 
         # Terminal bell - Audio warning system
         enable_audio_bell = false;
         visual_bell_duration = "0.1";
-        visual_bell_color = c.warning-red;
 
         # Performance - CRT phosphor persistence simulation
         repaint_delay = 10;
@@ -134,30 +85,8 @@ in {
         strip_trailing_spaces = "smart";
 
         # Terminal colors
-        color0 = termColors.black;
-        color1 = termColors.red;
-        color2 = termColors.green;
-        color3 = termColors.yellow;
-        color4 = termColors.blue;
-        color5 = termColors.magenta;
-        color6 = termColors.cyan;
-        color7 = termColors.white;
-        color8 = termColors.bright-black;
-        color9 = termColors.bright-red;
-        color10 = termColors.bright-green;
-        color11 = termColors.bright-yellow;
-        color12 = termColors.bright-blue;
-        color13 = termColors.bright-magenta;
-        color14 = termColors.bright-cyan;
-        color15 = termColors.bright-white;
 
         # Marks - Reference markers like bearing indicators
-        mark1_foreground = c.bg-primary;
-        mark1_background = c.accent-amber;
-        mark2_foreground = c.bg-primary;
-        mark2_background = c.accent-green;
-        mark3_foreground = c.bg-primary;
-        mark3_background = c.info-blue;
       };
 
       # Keybindings - Cockpit control style
@@ -191,7 +120,12 @@ in {
 
       # Additional config for CRT glow effect
       extraConfig = ''
-        # Additional phosphor glow settings
+        # Day/night palette. The ONLY runtime-swapped piece of kitty config:
+        # night-mode.nix rewrites this file and sends SIGUSR1, which makes kitty
+        # re-read its config in place. kitty resolves a relative include against
+        # the including file — a /nix/store path here — so this must be
+        # absolute. night-mode.nix guarantees the file exists in home.activation.
+        include ${config.home.homeDirectory}/.config/kitty/century-colors.conf
 
         # Undercurl style for errors - Warning indicators
         undercurl_style thick-sparse

@@ -71,6 +71,9 @@ let
   phaseFile = "${homeDir}/.cache/century-night-phase";
   targetFile = "${homeDir}/.cache/century-night-target";
   shaderFile = "${homeDir}/.cache/century-night-shader";
+  # Runtime dir, not ~/.cache: this warning is per-session, and a fresh session
+  # is exactly what clears the condition.
+  wallpaperWarnFile = "\${XDG_RUNTIME_DIR:-/tmp}/century-night-wallpaper-warned";
 
   # ---- generated artifacts -------------------------------------------------
   # GTK named colours. @define-color takes #rrggbb or rgba() but REJECTS
@@ -126,6 +129,14 @@ let
         fi
 
         echo "${shader}" > "${shaderFile}"
+
+        # Per-app colour files for this side of the boundary. These apps cannot
+        # interpolate, so they flip once, at the halfway step, rather than
+        # following the ramp — which is also when waybar crosses over, so the
+        # whole non-interpolatable half of the theme changes together.
+        ${appThemeScript}/bin/century-apps-apply ${
+          if i * 2 >= lastStep then "night" else "day"
+        } || true
       fi
 
       [ "$STEP_MODE" = files ] && exit 0
@@ -198,6 +209,96 @@ let
   # returns only alongside the custom/century-night widget that configures the
   # signal (and must be checked against a live waybar then).
 
+  # ---- per-application colour files ---------------------------------------
+  # Apps that read their config only at launch — or, like kitty, can be poked
+  # into re-reading it. Each entry generates a day and a night file in the
+  # store; the live path is a writable real file the switcher installs over and
+  # home.activation seeds, the same shape as the waybar palette.
+  #
+  # Adding an app is one entry here plus a generator in app-themes.nix.
+  appThemes = import ./app-themes.nix { };
+
+  swappable = [
+    {
+      name = "kitty";
+      live = "${homeDir}/.config/kitty/century-colors.conf";
+      mk = appThemes.mkKittyColors;
+      # SIGUSR1 makes kitty re-read its config in place, so terminals that are
+      # already open change colour without a restart. No -x: NixOS wraps it.
+      reload = "${pkgs.procps}/bin/pkill -SIGUSR1 kitty 2>/dev/null || true";
+    }
+    {
+      name = "starship";
+      live = "${homeDir}/.config/starship.toml";
+      mk = appThemes.mkStarshipToml;
+      # starship re-reads the file per prompt, so the next prompt in any open
+      # shell is already the new palette. Nothing to signal.
+      reload = "true";
+    }
+  ];
+
+  paletteFor = side:
+    if side == "night" then colorsModule.centuryNightColors else colorsModule.centuryColors;
+
+  mkAppFile = side: e: pkgs.writeText "century-${e.name}-${side}" (e.mk (paletteFor side));
+
+  # dunst needs no file swap at all: `dunstctl reload <path>` takes a config
+  # path, so both variants stay immutable in the store and night mode just
+  # points the running daemon at the other one.
+  #
+  # The night file is the DAY file with its colours substituted, rather than a
+  # second render of the settings attrset. Re-rendering looked cleaner but drops
+  # what home-manager adds on its way out — notably the computed `icon_path`,
+  # without which night notifications lose their icons — and writes true/false
+  # where home-manager writes yes/no. Substituting leaves every one of those
+  # bytes alone.
+  #
+  # Only these keys are substituted, because only these appear in
+  # mkDunstSettings. That matters: several palette values are shared (#7fda89 is
+  # both accent-green and term-fg, which have DIFFERENT night values), so a
+  # blanket hex replacement would be ambiguous. Keep this list in step with
+  # app-themes.nix if dunst starts using another colour.
+  dunstColourKeys = [
+    "accent-amber" "accent-amber-dim" "accent-green" "accent-green-dim"
+    "bg-primary" "bg-secondary" "caution-yellow" "info-blue" "warning-red"
+  ];
+
+  dunstDayRc = config.xdg.configFile."dunst/dunstrc".source;
+
+  dunstNightRc = pkgs.runCommand "century-dunstrc-night" { } ''
+    ${pkgs.gnused}/bin/sed ${
+      concatMapStringsSep " " (k:
+        "-e 's/${colorsModule.centuryColors.${k}}/${colorsModule.centuryNightColors.${k}}/gI'"
+      ) dunstColourKeys
+    } ${dunstDayRc} > $out
+  '';
+
+  dunstApply = side: ''
+    ${pkgs.dunst}/bin/dunstctl reload ${
+      if side == "night" then dunstNightRc else dunstDayRc
+    } 2>/dev/null || true
+  '';
+
+  # install+mv is atomic, and the cmp guard stops the 5-minute reconciler from
+  # rewriting — and reloading — files that have not actually changed.
+  appApplyLines = side: concatStringsSep "\n" (map (e: ''
+    ${pkgs.coreutils}/bin/mkdir -p "$(${pkgs.coreutils}/bin/dirname ${escapeShellArg e.live})"
+    if ! ${pkgs.diffutils}/bin/cmp -s ${mkAppFile side e} ${escapeShellArg e.live}; then
+      ${pkgs.coreutils}/bin/install -m644 ${mkAppFile side e} ${escapeShellArg (e.live + ".new")}
+      ${pkgs.coreutils}/bin/mv -f ${escapeShellArg (e.live + ".new")} ${escapeShellArg e.live}
+      ${e.reload}
+    fi
+  '') swappable) + "\n" + dunstApply side;
+
+  appThemeScript = pkgs.writeShellScriptBin "century-apps-apply" ''
+    set -u
+    case "''${1:-day}" in
+      day)   ${appApplyLines "day"} ;;
+      night) ${appApplyLines "night"} ;;
+      *) echo "usage: century-apps-apply day|night" >&2; exit 1 ;;
+    esac
+  '';
+
   # ---- wallpaper ----------------------------------------------------------
   # usage: century-wallpaper-apply <day|night> <fade-seconds>
   #
@@ -233,7 +334,21 @@ let
       ${pkgs.awww}/bin/awww query >/dev/null 2>&1 && break
       ${pkgs.coreutils}/bin/sleep 0.25
     done
-    ${pkgs.awww}/bin/awww query >/dev/null 2>&1 || exit 0
+    if ! ${pkgs.awww}/bin/awww query >/dev/null 2>&1; then
+      # Almost always one specific thing: the session predates the rebuild that
+      # switched wallpaperEngine to awww. exec-once only runs at session start,
+      # so hyprpaper is still up from the old config and awww-daemon was never
+      # launched — colours switch (they go through hyprctl) but wallpapers do
+      # not. Silence here looks like a broken feature, so say it once per
+      # session rather than exiting quietly.
+      if [ ! -f "${wallpaperWarnFile}" ]; then
+        : > "${wallpaperWarnFile}"
+        ${pkgs.libnotify}/bin/notify-send -t 10000 -i preferences-desktop-wallpaper \
+          "Night mode" \
+          "Wallpapers need a fresh Hyprland session: awww-daemon is not running (hyprpaper probably still is, from before the last rebuild)." 2>/dev/null || true
+      fi
+      exit 0
+    fi
 
     # awww -o takes OUTPUT NAMES (DP-1, HDMI-A-1). hyprpaper-style identifiers
     # may instead be `desc:<description>`, which only Hyprland can resolve — and
@@ -475,7 +590,7 @@ let
 
 in {
   config = mkIf enabled {
-    home.packages = [ scheduleScript rampScript cliScript wallpaperScript ];
+    home.packages = [ scheduleScript rampScript cliScript wallpaperScript appThemeScript ];
 
     # The waybar stylesheet @imports this file by absolute path, and a MISSING
     # import makes GTK reject the entire provider — unstyled bars. So it must

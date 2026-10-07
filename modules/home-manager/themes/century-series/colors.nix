@@ -191,6 +191,22 @@ let
     kbd-amber = "#ff7a1a";
     kbd-red = "#cc0000";
     kbd-mig = "#00c8b4";
+
+    # --- Terminal (kitty). term-fg is the one key whose MEANING changes between
+    # the variants: a phosphor-green CRT by day, red instrument lighting by
+    # night. The rest were hardcoded in kitty.nix; day values here are identical
+    # to the literals they replace.
+    term-fg = "#7fda89";            # was phosphorColor (accent-green)
+    term-fg-dim = "#5cb36a";        # was phosphorDim
+    term-green = "#39ff14";         # ANSI 2, was accent-radar
+    term-bright-green = "#39ff14";  # ANSI 10, was accent-radar
+    term-magenta = "#a277ff";
+    term-cyan = "#73daca";
+    term-bright-red = "#ff6b6b";
+    term-bright-blue = "#89ddff";
+    term-bright-magenta = "#c792ea";
+    term-bright-cyan = "#80cbc4";
+    term-bright-white = "#ffffff";
   };
 
   # -------------------------------------------------------------------------
@@ -268,6 +284,22 @@ let
     kbd-amber = "#ff6a00";
     kbd-red = "#ff1f14";
     kbd-mig = "#c4703a";
+
+    # --- Terminal. Body text goes RED, but deliberately a softer red than
+    # warning-red (#ff1f14) so that error output still stands out against it,
+    # and ANSI green becomes EMBER rather than another red — otherwise `ls`
+    # directories and `git` additions would be indistinguishable from errors.
+    term-fg = "#e8513a";
+    term-fg-dim = "#a8341f";
+    term-green = "#d98a2b";
+    term-bright-green = "#ffa54a";
+    term-magenta = "#c06a5a";
+    term-cyan = "#c4703a";
+    term-bright-red = "#ff8f7a";
+    term-bright-blue = "#e8906a";
+    term-bright-magenta = "#d4907a";
+    term-bright-cyan = "#e0a870";
+    term-bright-white = "#f5e2d2";
   };
 
   # --- build-time guards ----------------------------------------------------
