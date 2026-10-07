@@ -16,47 +16,14 @@ let
   # Flat annunciator tile - dim / un-lit state
   # width/height at 4x the viewBox force high-res rasterization so text stays
   # crisp when wlogout scales the SVG up to fill the button.
-  mkSwitchSvg = { color, label }: ''
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 180" width="560" height="720"
-         text-rendering="geometricPrecision">
-      <!-- Annunciator tile -->
-      <rect x="8" y="18" width="124" height="144" rx="4"
-            fill="#0d1219" stroke="${color}" stroke-width="2" stroke-opacity="0.35"/>
-      <!-- Label -->
-      <text x="70" y="94" font-family="JetBrains Mono, monospace" font-size="14"
-            font-weight="bold" fill="${color}" fill-opacity="0.55"
-            text-anchor="middle" letter-spacing="1.5">${label}</text>
-      <!-- Indicator bar (off) -->
-      <rect x="52" y="122" width="36" height="3" rx="1" fill="${color}" fill-opacity="0.3"/>
-    </svg>
-  '';
-
-  # Flat annunciator tile - lit / glowing hover state
-  mkSwitchHoverSvg = { color, label }: ''
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 180" width="560" height="720"
-         text-rendering="geometricPrecision">
-      <defs>
-        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="2.5" result="blur"/>
-          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-      </defs>
-      <!-- Backlit inner wash -->
-      <rect x="8" y="18" width="124" height="144" rx="4" fill="${color}" fill-opacity="0.08"/>
-      <!-- Annunciator tile - glowing border -->
-      <rect x="8" y="18" width="124" height="144" rx="4"
-            fill="none" stroke="${color}" stroke-width="2" filter="url(#glow)"/>
-      <!-- Label - lit -->
-      <text x="70" y="94" font-family="JetBrains Mono, monospace" font-size="14"
-            font-weight="bold" fill="${color}" text-anchor="middle"
-            letter-spacing="1.5" filter="url(#glow)">${label}</text>
-      <!-- Indicator bar (lit + glow) -->
-      <rect x="48" y="121" width="44" height="4" rx="1" fill="${color}" filter="url(#glow)"/>
-    </svg>
-  '';
 
   # CSS styling for wlogout - Engine Control Panel aesthetic
   wlogoutStyle = ''
+    /* Day/night palette, swapped by night-mode.nix. The URL must be absolute:
+       a relative one resolves against this stylesheet's /nix/store path, not
+       ~/.config/wlogout. Same shape as the waybar palette. */
+    @import url("file://${config.home.homeDirectory}/.config/wlogout/century-colors.css");
+
     /* Century Series Engine Control Panel */
     * {
       background-image: none;
@@ -66,7 +33,7 @@ let
     }
 
     window {
-      background-color: rgba(10, 14, 20, 0.7);
+      background-color: @c_window;
     }
 
     button {
@@ -158,20 +125,9 @@ let
 in {
   config = mkIf centurySeriesThemeCondition {
     # Create switch SVG images with labels
-    home.file = {
-      ".config/wlogout/icons/switch-green.svg".text = mkSwitchSvg { color = "#7fda89"; label = "SECURE"; };
-      ".config/wlogout/icons/switch-green-hover.svg".text = mkSwitchHoverSvg { color = "#7fda89"; label = "SECURE"; };
-      ".config/wlogout/icons/switch-yellow.svg".text = mkSwitchSvg { color = "#ffb454"; label = "EJECT"; };
-      ".config/wlogout/icons/switch-yellow-hover.svg".text = mkSwitchHoverSvg { color = "#ffb454"; label = "EJECT"; };
-      ".config/wlogout/icons/switch-amber.svg".text = mkSwitchSvg { color = "#ff9e3b"; label = "STANDBY"; };
-      ".config/wlogout/icons/switch-amber-hover.svg".text = mkSwitchHoverSvg { color = "#ff9e3b"; label = "STANDBY"; };
-      ".config/wlogout/icons/switch-amber-dim.svg".text = mkSwitchSvg { color = "#cc7e2f"; label = "HIBERNATE"; };
-      ".config/wlogout/icons/switch-amber-dim-hover.svg".text = mkSwitchHoverSvg { color = "#cc7e2f"; label = "HIBERNATE"; };
-      ".config/wlogout/icons/switch-red.svg".text = mkSwitchSvg { color = "#ff3838"; label = "SHUTDOWN"; };
-      ".config/wlogout/icons/switch-red-hover.svg".text = mkSwitchHoverSvg { color = "#ff3838"; label = "SHUTDOWN"; };
-      ".config/wlogout/icons/switch-blue.svg".text = mkSwitchSvg { color = "#5ccfe6"; label = "REBOOT"; };
-      ".config/wlogout/icons/switch-blue-hover.svg".text = mkSwitchHoverSvg { color = "#5ccfe6"; label = "REBOOT"; };
-    };
+    # The twelve annunciator SVGs are written by night-mode.nix, not here:
+    # their colour is baked into each file, so the night variant is a
+    # different SVG rather than a restyle.
 
     programs.wlogout = {
       enable = true;

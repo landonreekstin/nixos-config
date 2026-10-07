@@ -216,7 +216,7 @@ let
   # home.activation seeds, the same shape as the waybar palette.
   #
   # Adding an app is one entry here plus a generator in app-themes.nix.
-  appThemes = import ./app-themes.nix { };
+  appThemes = import ./app-themes.nix { inherit lib; };
 
   swappable = [
     {
@@ -235,7 +235,76 @@ let
       # shell is already the new palette. Nothing to signal.
       reload = "true";
     }
-  ];
+    # The rest read their config once, at launch: anything already open keeps
+    # the old palette until it is reopened. None of them has a reload hook.
+    {
+      name = "btop";
+      live = "${homeDir}/.config/btop/themes/century-series.theme";
+      mk = appThemes.mkBtopTheme;
+      reload = "true";
+    }
+    {
+      name = "yazi";
+      live = "${homeDir}/.config/yazi/theme.toml";
+      mk = appThemes.mkYaziTheme;
+      reload = "true";
+    }
+    {
+      name = "imv";
+      live = "${homeDir}/.config/imv/config";
+      mk = appThemes.mkImvConfig;
+      reload = "true";
+    }
+    {
+      name = "zathura";
+      live = "${homeDir}/.config/zathura/century-colors";
+      mk = appThemes.mkZathuraColors;
+      reload = "true";
+    }
+    {
+      name = "swaylock";
+      live = "${homeDir}/.config/swaylock/config";
+      # Reproduces home-manager's own renderer exactly (see its swaylock.nix):
+      # a bare key for true, key=value otherwise, and false omitted entirely.
+      mk = p: concatStrings (mapAttrsToList (n: v:
+        if v == false then ""
+        else (if v == true then n else "${n}=${toString v}") + "\n"
+      ) (appThemes.mkSwaylockSettings p));
+      reload = "true";
+    }
+    {
+      name = "rofi";
+      live = "${homeDir}/.config/rofi/century-colors.rasi";
+      mk = appThemes.mkRofiColors;
+      reload = "true";
+    }
+    {
+      name = "wlogout-css";
+      live = "${homeDir}/.config/wlogout/century-colors.css";
+      mk = appThemes.mkWlogoutColors;
+      reload = "true";
+    }
+  ]
+  # wlogout's annunciator tiles bake their colour into the SVG, so the night
+  # variant is a different file rather than a restyle. Filenames stay
+  # colour-named because the stylesheet references them by name; only the
+  # contents change. Two files per tile (normal + hover).
+  ++ concatMap (ic: [
+    {
+      name = "wlogout-${ic.file}";
+      live = "${homeDir}/.config/wlogout/icons/${ic.file}.svg";
+      mk = p: appThemes.mkSwitchSvg {
+        color = p.${ic.key}; label = ic.label; tile = p.wlogout-tile;
+      };
+      reload = "true";
+    }
+    {
+      name = "wlogout-${ic.file}-hover";
+      live = "${homeDir}/.config/wlogout/icons/${ic.file}-hover.svg";
+      mk = p: appThemes.mkSwitchHoverSvg { color = p.${ic.key}; label = ic.label; };
+      reload = "true";
+    }
+  ]) appThemes.wlogoutIcons;
 
   paletteFor = side:
     if side == "night" then colorsModule.centuryNightColors else colorsModule.centuryColors;

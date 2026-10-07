@@ -6,7 +6,7 @@ with lib;
 let
   # Import colors and configuration
   colorsModule = import ./colors.nix { };
-  appThemes = import ./app-themes.nix { };
+  appThemes = import ./app-themes.nix { inherit lib; };
   c = colorsModule.centuryColors;
   centuryConfig = colorsModule.centuryConfig;
 

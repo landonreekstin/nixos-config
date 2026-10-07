@@ -207,6 +207,10 @@ let
     term-bright-magenta = "#c792ea";
     term-bright-cyan = "#80cbc4";
     term-bright-white = "#ffffff";
+
+    # wlogout annunciator tile face (was a literal in wlogout.nix)
+    wlogout-tile = "#0d1219";
+    rofi-match = "#ffffff";      # was a literal in rofi.nix
   };
 
   # -------------------------------------------------------------------------
@@ -300,6 +304,9 @@ let
     term-bright-magenta = "#d4907a";
     term-bright-cyan = "#e0a870";
     term-bright-white = "#f5e2d2";
+
+    wlogout-tile = "#120806";
+    rofi-match = "#ffe4d4";      # warm white: still reads as "the match"
   };
 
   # --- build-time guards ----------------------------------------------------

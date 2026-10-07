@@ -78,7 +78,12 @@ the right variant. Adding an app is one generator plus one list entry.
 |---|---|---|
 | kitty | generated `century-colors.conf`, `include`d by the theme; `SIGUSR1` | immediately, in open terminals |
 | starship | generated `~/.config/starship.toml` | next prompt |
-| dunst | `dunstctl reload <path>` | next notification |
+| dunst | `dunstctl reload <path>` — no file swap at all | next notification |
+| rofi | an `@import`ed `century-colors.rasi` — home-manager's `toRasi` emits a top-level `@import` key before everything else | next launch |
+| wlogout | `@import`ed GTK palette, plus 12 regenerated SVG tiles | next launch |
+| swaylock | generated `~/.config/swaylock/config` | next lock |
+| btop, yazi, imv | generated theme files | next launch |
+| zathura | `include`d `century-colors` | next launch |
 
 **kitty is the one place a key changes meaning, not just hue.** `term-fg` is phosphor
 green by day and red by night, because a green-on-black CRT is the day conceit and red
@@ -96,8 +101,8 @@ several palette values are shared between keys with *different* night values (`#
 is both `accent-green` and `term-fg`), so a blanket hex replacement would be ambiguous.
 That list has to stay in step with `mkDunstSettings`.
 
-Still on the day palette: rofi, wlogout, swaylock, btop, yazi, zathura, imv, and the
-browser userChrome.
+Everything the theme styles now follows the switch except the browser
+userChrome, which lives in a different module tree and needs a browser restart.
 
 > **dunst vs swaync.** The functional layer enables swaync and this theme enables
 > dunst. Both units declare `BusName=org.freedesktop.Notifications`, and systemd
