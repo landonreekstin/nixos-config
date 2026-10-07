@@ -16,6 +16,7 @@ let
 in {
   imports = [
     ./hyprland.nix
+    ./night-mode.nix
     ./waybar.nix
     ./rofi.nix
     ./kitty.nix

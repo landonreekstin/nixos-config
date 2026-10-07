@@ -9,101 +9,15 @@ let
   c = colorsModule.centuryColors;
   centuryConfig = colorsModule.centuryConfig;
 
-  # Wallpaper paths for Cold War aviation theme
-  wallpaperDir = config.home.homeDirectory + "/.local/share/wallpapers";
-  
-  # Century Series wallpaper hierarchy - easy to customize
-  wallpapers = {
-    # Primary wallpapers (main displays)
-    primary-horizontal = wallpaperDir + "/f-15-satellite.jpg";
-    primary-vertical = wallpaperDir + "/carrier-top.jpg";
-    
-    # Secondary wallpapers (additional displays)  
-    secondary-horizontal = wallpaperDir + "/f-4-cockpit.png";
-    secondary-vertical = wallpaperDir + "/carrier-top.jpg";
-    
-    # Tertiary wallpapers (for systems with 3+ displays)
-    tertiary-horizontal = wallpaperDir + "/f-4-cockpit.png";
-    tertiary-vertical = wallpaperDir + "/carrier-top.jpg";
-    
-    # Default fallback
-    fallback = wallpaperDir + "/f-15-satellite.jpg";
+  # Wallpaper hierarchy + per-monitor assignment, shared with night-mode.nix
+  # (which needs the night set for the awww crossfade).
+  wallpaperSets = import ./wallpapers.nix {
+    inherit lib customConfig;
+    homeDir = config.home.homeDirectory;
   };
+  wallpaperAssignments = wallpaperSets.dayAssignments;
 
-  # Helper function to determine if a monitor is vertical (transform = 1 or 3)
-  isVertical = monitor: 
-    monitor.transform == "1" || monitor.transform == "3";
-
-  # Helper function to categorize monitors by orientation and priority
-  categorizeMonitors = monitors:
-    let
-      enabledMonitors = lib.filter (m: m.enabled) monitors;
-      horizontalMonitors = lib.filter (m: !(isVertical m)) enabledMonitors;
-      verticalMonitors = lib.filter (m: isVertical m) enabledMonitors;
-    in {
-      horizontal = horizontalMonitors;
-      vertical = verticalMonitors;
-      total = enabledMonitors;
-    };
-
-  # Function to assign wallpapers based on hierarchy
-  assignWallpaper = monitor: index: orientation:
-    let
-      wallpaperKey = 
-        if index == 0 then "primary-${orientation}"
-        else if index == 1 then "secondary-${orientation}" 
-        else "tertiary-${orientation}";
-      
-      wallpaper = wallpapers.${wallpaperKey} or wallpapers.fallback;
-    in wallpaper;
-
-  # Generate wallpaper assignments using the hierarchy system
-  generateWallpaperAssignments = monitors:
-    let
-      categorized = categorizeMonitors monitors;
-      
-      # Create assignments for horizontal monitors
-      horizontalAssignments = lib.imap0 (i: monitor:
-        let
-          identifierString = 
-            if lib.strings.hasPrefix "desc:" monitor.identifier
-            then monitor.identifier
-            else if (lib.strings.hasInfix " " monitor.identifier) || (lib.strings.hasInfix "." monitor.identifier)
-            then "desc:${monitor.identifier}"
-            else monitor.identifier;
-          wallpaper = assignWallpaper monitor i "horizontal";
-        in { monitor = identifierString; path = wallpaper; }
-      ) categorized.horizontal;
-
-      # Create assignments for vertical monitors  
-      verticalAssignments = lib.imap0 (i: monitor:
-        let
-          identifierString = 
-            if lib.strings.hasPrefix "desc:" monitor.identifier
-            then monitor.identifier
-            else if (lib.strings.hasInfix " " monitor.identifier) || (lib.strings.hasInfix "." monitor.identifier)
-            then "desc:${monitor.identifier}"
-            else monitor.identifier;
-          wallpaper = assignWallpaper monitor i "vertical";
-        in { monitor = identifierString; path = wallpaper; }
-      ) categorized.vertical;
-    in
-      horizontalAssignments ++ verticalAssignments;
-
-  # Determine wallpaper assignments.
-  #
-  # hyprpaper 0.8.0 was a complete rewrite onto hyprtoolkit and, in upstream's
-  # own words, "configs are broken and much simplified". The old
-  # `preload = <path>` + `wallpaper = <monitor>,<path>` pair is gone; there is now
-  # a `wallpaper { monitor = ...; path = ...; }` block per monitor and no preload
-  # concept at all. 0.8.4 does not warn about the old keys — it parses the file,
-  # finds no wallpaper blocks, logs "Monitor X has no target: no wp will be
-  # created" and shows nothing, which is exactly how this presented after the
-  # 26.05 upgrade.
-  wallpaperAssignments =
-    if (lib.length customConfig.desktop.monitors) > 0
-    then generateWallpaperAssignments customConfig.desktop.monitors
-    else [ { monitor = ""; path = wallpapers.fallback; } ]; # Single monitor fallback
+  wallpaperEngine = customConfig.desktop.hyprland.wallpaperEngine;
 
   # Border width configuration for MFD-style appearance
   mfdBorderSize = if centuryConfig.borderStyle or "mfd" == "mfd" then 3 else 2;
@@ -123,74 +37,24 @@ let
 
   barrelShaderPath = "${config.home.homeDirectory}/.config/hypr/shaders/crt-barrel.glsl";
 
-  # GLSL header shared by both shaders
-  crtGlslHeader = ''
-    #version 320 es
-    precision highp float;
-    in vec2 v_texcoord;
-    uniform sampler2D tex;
-    out vec4 fragColor;
-
-    float hash(vec2 p) {
-        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-    }
-  '';
-
-  # Shared CRT effects body — sits inside main() after UV is established
-  crtEffectsBody = ''
-        // === CHROMATIC ABERRATION ===
-        float aberration = 0.0006;
-        float r = texture(tex, vec2(uv.x - aberration, uv.y)).r;
-        float g = texture(tex, uv).g;
-        float b = texture(tex, vec2(uv.x + aberration, uv.y)).b;
-        vec4 color = vec4(r, g, b, 1.0);
-
-        // === SCANLINES ===
-        float scanline = mod(floor(gl_FragCoord.y), 2.0);
-        color.rgb *= mix(0.62, 1.0, scanline);
-
-        // === VIGNETTE ===
-        float vigX = uv.x * (1.0 - uv.x) * 4.0;
-        float vigY = uv.y * (1.0 - uv.y) * 4.0;
-        float vignette = pow(vigX * vigY, 0.3);
-        vignette = clamp(vignette, 0.6, 1.0);
-        color.rgb *= vignette;
-
-        // === DUAL-TONE PHOSPHOR ===
-        float luminance = dot(color.rgb, vec3(0.299, 0.587, 0.114));
-        vec3 phosphorAmber = vec3(1.0, 0.62, 0.23);
-        vec3 phosphorGreen = vec3(0.498, 0.855, 0.537);
-        color.rgb = mix(color.rgb, color.rgb * phosphorAmber, luminance * 0.35);
-        color.rgb += phosphorGreen * (1.0 - luminance) * 0.04;
-
-        // === FILM GRAIN ===
-        float grain = hash(uv);
-        color.rgb += (grain - 0.5) * 0.025;
-
-        fragColor = color;
-  '';
-
-  crtBarrelShader = ''
-    ${crtGlslHeader}
-    void main() {
-        vec2 uv = v_texcoord;
-
-        // === BARREL DISTORTION ===
-        vec2 centered = uv * 2.0 - 1.0;
-        float dist = dot(centered, centered);
-        uv = (centered * (1.0 + 0.025 * dist)) * 0.5 + 0.5;
-        if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
-            fragColor = vec4(0.0, 0.0, 0.0, 1.0);
-            return;
-        }
-
-        ${crtEffectsBody}
-    }
-  '';
+  # The CRT screen shader now lives in crt-shader.nix as a function of the
+  # palette, so night-mode.nix can generate one shader per ramp step. This is
+  # the DAY shader at the stable path century-crt-toggle has always used.
+  crtShaders = import ./crt-shader.nix { };
+  crtBarrelShader = crtShaders.mkCrtBarrelShader c 1.0;
 
   crtToggleScript = ''
     #!/usr/bin/env bash
+    # Turn the filter on with the shader for the CURRENT day/night phase.
+    # night-mode.nix writes that path to ~/.cache/century-night-shader on every
+    # ramp step and at login; the stable day shader is the fallback for when
+    # night mode is disabled or has not run yet.
     BARREL_SHADER="${barrelShaderPath}"
+    PHASE_SHADER="$HOME/.cache/century-night-shader"
+    if [ -r "$PHASE_SHADER" ]; then
+        CANDIDATE=$(cat "$PHASE_SHADER")
+        [ -r "$CANDIDATE" ] && BARREL_SHADER="$CANDIDATE"
+    fi
     CURRENT=$(hyprctl getoption decoration:screen_shader | grep "str:" | awk '{print $2}')
     if [ -z "$CURRENT" ] || [ "$CURRENT" = "[[EMPTY]]" ]; then
         hyprctl keyword decoration:screen_shader "$BARREL_SHADER"
@@ -224,8 +88,17 @@ in {
     home.file.".local/share/wallpapers/f-4-cockpit.png".source = ../../../../assets/wallpapers/f-4-cockpit.png;
     home.file.".local/share/wallpapers/carrier-top.jpg".source = ../../../../assets/wallpapers/carrier-top.jpg;
 
-    # Hyprpaper service for wallpaper management
-    services.hyprpaper = {
+    # Night-mission set
+    home.file.".local/share/wallpapers/f-117-sunset.jpg".source = ../../../../assets/wallpapers/f-117-sunset.jpg;
+    home.file.".local/share/wallpapers/cockpit-night.jpg".source = ../../../../assets/wallpapers/cockpit-night.jpg;
+    home.file.".local/share/wallpapers/eurofighter-night-vertical.jpg".source = ../../../../assets/wallpapers/eurofighter-night-vertical.jpg;
+
+    # Hyprpaper service for wallpaper management.
+    # Only while hyprpaper is still the engine: night mode flips the default to
+    # awww, which night-mode.nix drives directly (hyprpaper 0.8.x has no IPC, so
+    # it could only be restarted, which blinks). Leaving this on under awww
+    # would also start a second, competing wallpaper daemon.
+    services.hyprpaper = mkIf (wallpaperEngine == "hyprpaper") {
       enable = true;
       settings = {
         wallpaper = wallpaperAssignments;
@@ -352,6 +225,9 @@ in {
           "SUPER CTRL, G, exec, ~/.local/bin/century-crt-toggle"
           # Toggle top/bottom bars — also applies barrel distortion if CRT is on
           "SUPER, F10, exec, ~/.local/bin/century-bars-toggle"
+          # Flip the day/night palette by hand (pins the mode; `century-night
+          # auto` hands it back to the sun). CTRL avoids SUPER+N elsewhere.
+          "SUPER CTRL, N, exec, century-night toggle"
         ] ++ lib.optionals hasCkbNext [
           # Keyboard color cycle (RADAR → AMBER → RED → MIG → RADAR)
           # CTRL avoids conflict with SUPER+K (swapwindow up) in functional.nix
@@ -366,6 +242,12 @@ in {
       # Environment variables for consistent theming
       extraConfig = ''
         # Start CRT fullscreen watcher
+
+        # Apply the correct day/night palette instantly at login (no ramp).
+        # exec-once is additive in hyprlang, so this merges with the mkDefault
+        # list in hyprland/functional.nix without the functional layer needing
+        # to know this theme has a night mode.
+        exec-once = century-night init
 
         # Toolkit theming
         env = QT_QPA_PLATFORMTHEME,qt5ct

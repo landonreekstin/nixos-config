@@ -277,7 +277,29 @@ in {
       };
 
       # CSS Styling - Century Series Cockpit Theme
+      #
+      # Colours are GTK named colours (@c_*) defined in century-palette.css,
+      # not interpolated hex. That file is the ONLY runtime-swapped piece of
+      # waybar styling — night-mode.nix rewrites it and sends ONE SIGUSR2 — so
+      # this big stylesheet stays declarative in the store.
+      #
+      # Do NOT reach for `reload_style_on_change` here: it does not fire for
+      # @imported files (verified live, for both an atomic rename and an
+      # in-place append), and this stylesheet is an immutable store symlink that
+      # never changes anyway. See docs/theming.md.
+      #
+      # Three rules when editing this block:
+      #  1. NEVER append alpha to a named colour. `@c_x40` parses with NO error
+      #     and silently resolves to nothing. Use `alpha(@c_x, 0.251)`.
+      #  2. @define-color rejects 8-digit hex, so century-palette.css emits
+      #     rgba() for values carrying alpha (e.g. glass).
+      #  3. The @import URL must be ABSOLUTE — a relative one resolves against
+      #     this stylesheet's /nix/store path, not ~/.config/waybar. And a
+      #     MISSING import makes GTK reject the whole provider (unstyled bars),
+      #     which is why night-mode.nix guarantees the file in home.activation.
       style = ''
+        @import url("file://${config.home.homeDirectory}/.config/waybar/century-palette.css");
+
         * {
           font-family: "JetBrains Mono", "Fira Code", monospace;
           font-size: 13px;
@@ -288,9 +310,9 @@ in {
 
         /* Main bar - Instrument panel background */
         window#waybar {
-          background-color: ${c.bg-primary};
-          border-bottom: 2px solid ${c.border-primary};
-          color: ${c.text-primary};
+          background-color: @c_bg_primary;
+          border-bottom: 2px solid @c_border_primary;
+          color: @c_text_primary;
         }
 
         /* Workspace buttons - Tactical mode selectors */
@@ -302,33 +324,33 @@ in {
         #workspaces button {
           padding: 0 12px;
           margin: 4px 2px;
-          background-color: ${c.bg-secondary};
-          color: ${c.text-secondary};
-          border: 1px solid ${c.border-primary};
+          background-color: @c_bg_secondary;
+          color: @c_text_secondary;
+          border: 1px solid @c_border_primary;
           border-radius: 0;
           transition: all 0.2s ease;
         }
 
         #workspaces button:hover {
-          background-color: ${c.border-active};
-          color: ${c.text-primary};
-          border-color: ${c.accent-amber-dim};
+          background-color: @c_border_active;
+          color: @c_text_primary;
+          border-color: @c_accent_amber_dim;
         }
 
         #workspaces button.active {
-          background-color: ${c.accent-amber};
-          color: ${c.bg-primary};
-          border-color: ${c.accent-amber-glow};
-          box-shadow: 0 0 8px ${c.accent-amber}66;
+          background-color: @c_accent_amber;
+          color: @c_bg_primary;
+          border-color: @c_accent_amber_glow;
+          box-shadow: 0 0 8px alpha(@c_accent_amber, 0.4);
         }
 
         /* Clock - Mission chronometer */
         #clock {
-          color: ${c.accent-amber};
+          color: @c_accent_amber;
           font-weight: bold;
           padding: 0 12px;
-          background-color: ${c.bg-tertiary};
-          border: 1px solid ${c.accent-amber-dim};
+          background-color: @c_bg_tertiary;
+          border: 1px solid @c_accent_amber_dim;
         }
 
         /* Module base styling - Instrument readouts */
@@ -336,58 +358,58 @@ in {
         #backlight, #custom-kbd-brightness, #custom-vpn, #custom-bluetooth, #network {
           padding: 0 8px;
           margin: 2px;
-          background-color: ${c.bg-tertiary};
-          border: 1px solid ${c.border-secondary};
-          color: ${c.text-primary};
+          background-color: @c_bg_tertiary;
+          border: 1px solid @c_border_secondary;
+          color: @c_text_primary;
           font-family: "JetBrains Mono", monospace;
         }
 
         /* Screen brightness - Illumination readout */
         #backlight {
-          color: ${c.accent-amber};
-          border-color: ${c.accent-amber-dim};
+          color: @c_accent_amber;
+          border-color: @c_accent_amber_dim;
         }
 
         /* Keyboard backlight - Cockpit lighting control */
         #custom-kbd-brightness {
-          color: ${c.accent-green};
-          border-color: ${c.accent-green-dim};
+          color: @c_accent_green;
+          border-color: @c_accent_green_dim;
         }
 
         /* Battery - Power cell readout (gradient: green → yellow-green → yellow → orange → red) */
         #battery {
-          color: ${c.accent-green};
-          border-color: ${c.accent-green-dim};
+          color: @c_accent_green;
+          border-color: @c_accent_green_dim;
         }
 
         #battery.high {
-          color: ${c.caution-yellow-green};
-          border-color: ${c.caution-yellow-green};
+          color: @c_caution_yellow_green;
+          border-color: @c_caution_yellow_green;
         }
 
         #battery.medium {
-          color: ${c.caution-yellow};
-          border-color: ${c.caution-yellow};
+          color: @c_caution_yellow;
+          border-color: @c_caution_yellow;
         }
 
         #battery.low {
-          color: ${c.warning-orange};
-          border-color: ${c.warning-orange};
+          color: @c_warning_orange;
+          border-color: @c_warning_orange;
         }
 
         #battery.charging {
-          color: ${c.accent-amber};
-          border-color: ${c.accent-amber-dim};
+          color: @c_accent_amber;
+          border-color: @c_accent_amber_dim;
         }
 
         #battery.plugged {
-          color: ${c.accent-amber};
-          border-color: ${c.accent-amber-dim};
+          color: @c_accent_amber;
+          border-color: @c_accent_amber_dim;
         }
 
         #battery.critical {
-          color: ${c.warning-red};
-          border-color: ${c.warning-red};
+          color: @c_warning_red;
+          border-color: @c_warning_red;
           animation-name: blink;
           animation-duration: 1s;
           animation-timing-function: linear;
@@ -403,88 +425,88 @@ in {
         #custom-vpn {
           font-weight: bold;
           letter-spacing: 1px;
-          border-color: ${c.border-primary};
-          color: ${c.text-secondary};
+          border-color: @c_border_primary;
+          color: @c_text_secondary;
           transition: all 0.3s ease;
         }
 
         #custom-vpn.active {
-          color: ${c.accent-green};
-          border-color: ${c.accent-green-dim};
-          box-shadow: 0 0 6px ${c.accent-green}44;
+          color: @c_accent_green;
+          border-color: @c_accent_green_dim;
+          box-shadow: 0 0 6px alpha(@c_accent_green, 0.267);
         }
 
         #custom-vpn.inactive {
-          color: ${c.text-secondary};
-          border-color: ${c.border-primary};
+          color: @c_text_secondary;
+          border-color: @c_border_primary;
         }
 
         #custom-vpn:hover {
-          background-color: ${c.bg-secondary};
-          color: ${c.accent-green};
-          border-color: ${c.accent-green};
+          background-color: @c_bg_secondary;
+          color: @c_accent_green;
+          border-color: @c_accent_green;
         }
 
         /* WiFi — data-link status indicator */
         #network {
           font-weight: bold;
           letter-spacing: 1px;
-          border-color: ${c.accent-green-dim};
-          color: ${c.accent-green};
+          border-color: @c_accent_green_dim;
+          color: @c_accent_green;
           transition: all 0.3s ease;
         }
 
         #network.disconnected {
-          color: ${c.text-tertiary};
-          border-color: ${c.border-primary};
+          color: @c_text_tertiary;
+          border-color: @c_border_primary;
           opacity: 0.4;
         }
 
         #network:hover {
-          background-color: ${c.bg-secondary};
-          color: ${c.accent-green};
-          border-color: ${c.accent-green};
+          background-color: @c_bg_secondary;
+          color: @c_accent_green;
+          border-color: @c_accent_green;
         }
 
         /* Bluetooth — IFF / data-link status indicator */
         #custom-bluetooth {
           font-weight: bold;
           letter-spacing: 1px;
-          border-color: ${c.border-primary};
-          color: ${c.text-secondary};
+          border-color: @c_border_primary;
+          color: @c_text_secondary;
           transition: all 0.3s ease;
         }
 
         #custom-bluetooth.off, #custom-bluetooth.unavailable {
-          color: ${c.text-tertiary};
-          border-color: ${c.border-primary};
+          color: @c_text_tertiary;
+          border-color: @c_border_primary;
           opacity: 0.4;
         }
 
         #custom-bluetooth.on {
-          color: ${c.accent-green-dim};
-          border-color: ${c.accent-green-dim};
+          color: @c_accent_green_dim;
+          border-color: @c_accent_green_dim;
         }
 
         #custom-bluetooth.connected {
-          color: ${c.accent-green};
-          border-color: ${c.accent-green-dim};
-          box-shadow: 0 0 6px ${c.accent-green}44;
+          color: @c_accent_green;
+          border-color: @c_accent_green_dim;
+          box-shadow: 0 0 6px alpha(@c_accent_green, 0.267);
         }
 
         #custom-bluetooth:hover {
-          background-color: ${c.bg-secondary};
-          color: ${c.accent-green};
-          border-color: ${c.accent-green};
+          background-color: @c_bg_secondary;
+          color: @c_accent_green;
+          border-color: @c_accent_green;
         }
 
         /* Special workspace indicator - Utility bay access light */
         #custom-special-workspace {
           padding: 0 10px;
           margin: 2px 0 2px 4px;
-          background-color: ${c.bg-tertiary};
-          border: 1px solid ${c.border-primary};
-          color: ${c.text-tertiary};
+          background-color: @c_bg_tertiary;
+          border: 1px solid @c_border_primary;
+          color: @c_text_tertiary;
           font-weight: bold;
           letter-spacing: 1px;
           transition: all 0.3s ease;
@@ -492,17 +514,17 @@ in {
         }
 
         #custom-special-workspace.occupied {
-          color: ${c.accent-radar};
-          border-color: ${c.accent-radar};
+          color: @c_accent_radar;
+          border-color: @c_accent_radar;
           opacity: 1.0;
-          box-shadow: 0 0 8px ${c.accent-radar}66;
-          text-shadow: 0 0 6px ${c.accent-radar}cc;
+          box-shadow: 0 0 8px alpha(@c_accent_radar, 0.4);
+          text-shadow: 0 0 6px alpha(@c_accent_radar, 0.8);
         }
 
         #custom-special-workspace:hover {
-          background-color: ${c.bg-secondary};
-          border-color: ${c.accent-green};
-          color: ${c.accent-green};
+          background-color: @c_bg_secondary;
+          border-color: @c_accent_green;
+          color: @c_accent_green;
           opacity: 1.0;
         }
 
@@ -510,9 +532,9 @@ in {
         #custom-ckb-color {
           padding: 0 10px;
           margin: 2px 0 2px 0;
-          background-color: ${c.bg-tertiary};
-          border: 1px solid ${c.border-primary};
-          color: ${c.text-tertiary};
+          background-color: @c_bg_tertiary;
+          border: 1px solid @c_border_primary;
+          color: @c_text_tertiary;
           font-weight: bold;
           letter-spacing: 1px;
           transition: color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
@@ -520,140 +542,140 @@ in {
         }
 
         #custom-ckb-color.radar {
-          color: #39ff14;
-          border-color: #39ff14;
+          color: @c_kbd_radar;
+          border-color: @c_kbd_radar;
           opacity: 1.0;
-          box-shadow: 0 0 8px #39ff1466;
-          text-shadow: 0 0 6px #39ff14cc;
+          box-shadow: 0 0 8px alpha(@c_kbd_radar, 0.4);
+          text-shadow: 0 0 6px alpha(@c_kbd_radar, 0.8);
         }
 
         #custom-ckb-color.amber {
-          color: #ff7a1a;
-          border-color: #ff7a1a;
+          color: @c_kbd_amber;
+          border-color: @c_kbd_amber;
           opacity: 1.0;
-          box-shadow: 0 0 8px #ff7a1a66;
-          text-shadow: 0 0 6px #ff7a1acc;
+          box-shadow: 0 0 8px alpha(@c_kbd_amber, 0.4);
+          text-shadow: 0 0 6px alpha(@c_kbd_amber, 0.8);
         }
 
         #custom-ckb-color.red {
-          color: #cc0000;
-          border-color: #cc0000;
+          color: @c_kbd_red;
+          border-color: @c_kbd_red;
           opacity: 1.0;
-          box-shadow: 0 0 8px #cc000066;
-          text-shadow: 0 0 6px #cc0000cc;
+          box-shadow: 0 0 8px alpha(@c_kbd_red, 0.4);
+          text-shadow: 0 0 6px alpha(@c_kbd_red, 0.8);
         }
 
         #custom-ckb-color.mig {
-          color: #00c8b4;
-          border-color: #00c8b4;
+          color: @c_kbd_mig;
+          border-color: @c_kbd_mig;
           opacity: 1.0;
-          box-shadow: 0 0 8px #00c8b466;
-          text-shadow: 0 0 6px #00c8b4cc;
+          box-shadow: 0 0 8px alpha(@c_kbd_mig, 0.4);
+          text-shadow: 0 0 6px alpha(@c_kbd_mig, 0.8);
         }
 
         #custom-ckb-color:hover {
-          background-color: ${c.bg-secondary};
+          background-color: @c_bg_secondary;
           opacity: 1.0;
         }
 
         /* Audio sink indicator - device type states */
         #custom-audio-sink.speakers {
-          color: ${c.accent-amber};
-          border-color: ${c.accent-amber-dim};
+          color: @c_accent_amber;
+          border-color: @c_accent_amber_dim;
         }
 
         #custom-audio-sink.headphones {
-          color: ${c.accent-green};
-          border-color: ${c.accent-green-dim};
-          box-shadow: 0 0 6px ${c.accent-green}44;
+          color: @c_accent_green;
+          border-color: @c_accent_green_dim;
+          box-shadow: 0 0 6px alpha(@c_accent_green, 0.267);
         }
 
         #custom-audio-sink.muted {
-          color: ${c.text-tertiary};
-          border-color: ${c.border-primary};
+          color: @c_text_tertiary;
+          border-color: @c_border_primary;
           opacity: 0.6;
         }
 
         /* L/R channel flip active */
         #custom-audio-sink.flipped {
-          color: ${c.info-blue};
-          border-color: ${c.info-blue};
-          box-shadow: 0 0 6px ${c.info-blue}66;
+          color: @c_info_blue;
+          border-color: @c_info_blue;
+          box-shadow: 0 0 6px alpha(@c_info_blue, 0.4);
         }
 
         /* System tray */
         #tray {
           padding: 0 8px;
-          background-color: ${c.bg-secondary};
+          background-color: @c_bg_secondary;
         }
 
         /* Power button - Engine control switch */
         #custom-power {
           padding: 0 12px;
           margin: 2px 4px;
-          background-color: ${c.bg-secondary};
-          border: 2px solid ${c.warning-red};
-          color: ${c.warning-red};
+          background-color: @c_bg_secondary;
+          border: 2px solid @c_warning_red;
+          color: @c_warning_red;
           font-weight: bold;
           transition: all 0.2s ease;
         }
 
         #custom-power:hover {
-          background-color: ${c.warning-red};
-          color: ${c.bg-primary};
-          box-shadow: 0 0 8px ${c.warning-red}80;
+          background-color: @c_warning_red;
+          color: @c_bg_primary;
+          box-shadow: 0 0 8px alpha(@c_warning_red, 0.502);
         }
 
         /* Weather — Atmospheric condition indicator light */
         #custom-weather {
           padding: 0 10px;
           margin: 2px;
-          background-color: ${c.bg-tertiary};
-          border: 1px solid ${c.border-secondary};
-          color: ${c.text-primary};
+          background-color: @c_bg_tertiary;
+          border: 1px solid @c_border_secondary;
+          color: @c_text_primary;
           font-family: "JetBrains Mono", monospace;
           letter-spacing: 1px;
         }
 
         #custom-weather.clear {
-          color: ${c.caution-yellow};
-          border-color: ${c.caution-yellow};
-          text-shadow: 0 0 8px ${c.caution-yellow}cc;
+          color: @c_caution_yellow;
+          border-color: @c_caution_yellow;
+          text-shadow: 0 0 8px alpha(@c_caution_yellow, 0.8);
         }
 
         #custom-weather.partly-cloudy {
-          color: ${c.accent-amber};
-          border-color: ${c.accent-amber-dim};
-          text-shadow: 0 0 6px ${c.accent-amber}88;
+          color: @c_accent_amber;
+          border-color: @c_accent_amber_dim;
+          text-shadow: 0 0 6px alpha(@c_accent_amber, 0.533);
         }
 
         #custom-weather.cloudy {
-          color: ${c.text-secondary};
-          border-color: ${c.border-secondary};
+          color: @c_text_secondary;
+          border-color: @c_border_secondary;
         }
 
         #custom-weather.fog {
-          color: ${c.info-blue};
-          border-color: ${c.info-blue};
+          color: @c_info_blue;
+          border-color: @c_info_blue;
           opacity: 0.75;
         }
 
         #custom-weather.rain {
-          color: ${c.info-blue};
-          border-color: ${c.info-blue};
-          text-shadow: 0 0 6px ${c.info-blue}aa;
+          color: @c_info_blue;
+          border-color: @c_info_blue;
+          text-shadow: 0 0 6px alpha(@c_info_blue, 0.667);
         }
 
         #custom-weather.snow {
-          color: #b0d4ff;
-          border-color: #b0d4ff;
-          text-shadow: 0 0 8px #b0d4ffaa;
+          color: @c_weather_snow;
+          border-color: @c_weather_snow;
+          text-shadow: 0 0 8px alpha(@c_weather_snow, 0.667);
         }
 
         #custom-weather.storm {
-          color: ${c.warning-red};
-          border-color: ${c.warning-red};
-          text-shadow: 0 0 8px ${c.warning-red}cc;
+          color: @c_warning_red;
+          border-color: @c_warning_red;
+          text-shadow: 0 0 8px alpha(@c_warning_red, 0.8);
           animation-name: blink;
           animation-duration: 2s;
           animation-timing-function: linear;
@@ -662,8 +684,8 @@ in {
         }
 
         #custom-weather.error, #custom-weather.unknown {
-          color: ${c.text-tertiary};
-          border-color: ${c.border-primary};
+          color: @c_text_tertiary;
+          border-color: @c_border_primary;
           opacity: 0.5;
         }
 
@@ -671,83 +693,125 @@ in {
         #custom-hyprsunset {
           padding: 0 8px;
           margin: 2px;
-          background-color: ${c.bg-tertiary};
-          border: 1px solid ${c.border-secondary};
-          color: ${c.text-primary};
+          background-color: @c_bg_tertiary;
+          border: 1px solid @c_border_secondary;
+          color: @c_text_primary;
           font-family: "JetBrains Mono", monospace;
           transition: color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
         }
 
         /* OFF - disabled, greyed out */
         #custom-hyprsunset.inactive {
-          color: ${c.text-tertiary};
-          border-color: ${c.border-primary};
+          color: @c_text_tertiary;
+          border-color: @c_border_primary;
           opacity: 0.45;
         }
 
         /* DAY - daytime auto mode, 6500K neutral, blue instrument light */
         #custom-hyprsunset.temp-day {
-          color: ${c.info-blue};
-          border-color: ${c.info-blue};
-          text-shadow: 0 0 6px ${c.info-blue}88;
+          color: @c_info_blue;
+          border-color: @c_info_blue;
+          text-shadow: 0 0 6px alpha(@c_info_blue, 0.533);
         }
 
         /* MANUAL - manual override, dashed amber border = "override engaged" */
         #custom-hyprsunset.manual {
-          color: ${c.accent-amber};
-          border-color: ${c.accent-amber};
+          color: @c_accent_amber;
+          border-color: @c_accent_amber;
           border-style: dashed;
-          text-shadow: 0 0 6px ${c.accent-amber}88;
-          box-shadow: 0 0 4px ${c.accent-amber}44;
+          text-shadow: 0 0 6px alpha(@c_accent_amber, 0.533);
+          box-shadow: 0 0 4px alpha(@c_accent_amber, 0.267);
         }
 
         /* 5501–6500K - near daylight, warm white */
         #custom-hyprsunset.temp-cool {
-          color: #ffe8a0;
-          border-color: #ccba70;
+          color: @c_temp_cool;
+          border-color: @c_temp_cool_dim;
         }
 
         /* 4501–5500K - amber-glow */
         #custom-hyprsunset.temp-neutral {
-          color: ${c.caution-yellow};
-          border-color: ${c.accent-amber-dim};
-          text-shadow: 0 0 6px ${c.caution-yellow}88;
+          color: @c_caution_yellow;
+          border-color: @c_accent_amber_dim;
+          text-shadow: 0 0 6px alpha(@c_caution_yellow, 0.533);
         }
 
         /* 3501–4500K - main amber */
         #custom-hyprsunset.temp-amber {
-          color: ${c.accent-amber};
-          border-color: ${c.accent-amber-dim};
-          text-shadow: 0 0 6px ${c.accent-amber}88;
-          box-shadow: 0 0 4px ${c.accent-amber}33;
+          color: @c_accent_amber;
+          border-color: @c_accent_amber_dim;
+          text-shadow: 0 0 6px alpha(@c_accent_amber, 0.533);
+          box-shadow: 0 0 4px alpha(@c_accent_amber, 0.2);
         }
 
         /* 2001–3500K - orange */
         #custom-hyprsunset.temp-warm {
-          color: ${c.warning-orange};
-          border-color: ${c.warning-orange};
-          text-shadow: 0 0 8px ${c.warning-orange}aa;
-          box-shadow: 0 0 6px ${c.warning-orange}44;
+          color: @c_warning_orange;
+          border-color: @c_warning_orange;
+          text-shadow: 0 0 8px alpha(@c_warning_orange, 0.667);
+          box-shadow: 0 0 6px alpha(@c_warning_orange, 0.267);
         }
 
         /* 1000–2000K - red, very warm */
         #custom-hyprsunset.temp-hot {
-          color: ${c.warning-red};
-          border-color: ${c.warning-red};
-          text-shadow: 0 0 10px ${c.warning-red}cc;
-          box-shadow: 0 0 8px ${c.warning-red}55;
+          color: @c_warning_red;
+          border-color: @c_warning_red;
+          text-shadow: 0 0 10px alpha(@c_warning_red, 0.8);
+          box-shadow: 0 0 8px alpha(@c_warning_red, 0.333);
+        }
+
+        /* Day/night palette switch — sits beside the night-light widget */
+        #custom-century-night {
+          padding: 0 8px;
+          margin: 2px;
+          background-color: @c_bg_tertiary;
+          border: 1px solid @c_border_secondary;
+          color: @c_text_primary;
+          font-family: "JetBrains Mono", monospace;
+          font-weight: bold;
+          letter-spacing: 1px;
+          transition: color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+        }
+
+        /* Applied palette: amber by day, the night accent after dark */
+        #custom-century-night.day {
+          color: @c_accent_amber;
+          border-color: @c_accent_amber_dim;
+        }
+        #custom-century-night.night {
+          color: @c_accent_amber;
+          border-color: @c_accent_amber_dim;
+          text-shadow: 0 0 6px alpha(@c_accent_amber, 0.533);
+        }
+
+        /* Mid-transition */
+        #custom-century-night.ramping {
+          border-style: dashed;
+          box-shadow: 0 0 4px alpha(@c_accent_amber, 0.267);
+        }
+
+        /* Pinned by hand — dashed amber border, same "override engaged" cue
+           the hyprsunset widget uses for its own manual mode. */
+        #custom-century-night.manual {
+          border-style: dashed;
+          color: @c_caution_yellow;
+          border-color: @c_caution_yellow;
+        }
+
+        #custom-century-night:hover {
+          background-color: @c_bg_secondary;
         }
 
         /* Tooltip styling - Info displays */
         tooltip {
-          background-color: ${c.bg-primary};
-          border: 2px solid ${c.border-primary};
+          background-color: @c_bg_primary;
+          border: 2px solid @c_border_primary;
           border-radius: 0;
-          color: ${c.text-primary};
+          color: @c_text_primary;
         }
 
         tooltip label {
-          color: ${c.text-primary};
+          color: @c_text_primary;
         }
       '' + lib.optionalString launcherEnabled ''
 
@@ -762,9 +826,9 @@ in {
 
         /* Launcher bar content - sized to buttons, centered */
         .launcherBar .modules-center {
-          background-color: ${c.bg-secondary};
-          border-top: 3px solid ${c.border-primary};
-          box-shadow: 0 -2px 10px ${c.bg-primary}cc;
+          background-color: @c_bg_secondary;
+          border-top: 3px solid @c_border_primary;
+          box-shadow: 0 -2px 10px alpha(@c_bg_primary, 0.8);
         }
 
         /* Launcher buttons - Cockpit control switches */
@@ -773,17 +837,17 @@ in {
         #custom-launcher8, #custom-launcher9 {
           padding: 8px 16px;
           margin: 4px 4px;
-          background: linear-gradient(180deg, ${c.bg-tertiary} 0%, ${c.bg-secondary} 100%);
-          color: ${c.text-primary};
-          border: 2px solid ${c.border-primary};
+          background: linear-gradient(180deg, @c_bg_tertiary 0%, @c_bg_secondary 100%);
+          color: @c_text_primary;
+          border: 2px solid @c_border_primary;
           border-radius: 2px;
           font-size: 12px;
           font-weight: bold;
           letter-spacing: 1px;
           min-width: 70px;
           box-shadow:
-            inset 0 1px 0 ${c.border-secondary}40,
-            0 2px 4px ${c.bg-primary}80;
+            inset 0 1px 0 alpha(@c_border_secondary, 0.251),
+            0 2px 4px alpha(@c_bg_primary, 0.502);
           transition: all 0.15s ease;
         }
 
@@ -791,23 +855,23 @@ in {
         #custom-launcher0:hover, #custom-launcher1:hover, #custom-launcher2:hover, #custom-launcher3:hover,
         #custom-launcher4:hover, #custom-launcher5:hover, #custom-launcher6:hover, #custom-launcher7:hover,
         #custom-launcher8:hover, #custom-launcher9:hover {
-          background: linear-gradient(180deg, ${c.accent-amber-dim} 0%, ${c.accent-amber} 100%);
-          color: ${c.bg-primary};
-          border-color: ${c.accent-amber-glow};
+          background: linear-gradient(180deg, @c_accent_amber_dim 0%, @c_accent_amber 100%);
+          color: @c_bg_primary;
+          border-color: @c_accent_amber_glow;
           box-shadow:
-            inset 0 1px 0 ${c.accent-amber-glow}60,
-            0 0 12px ${c.accent-amber}80,
-            0 4px 6px ${c.bg-primary}80;
+            inset 0 1px 0 alpha(@c_accent_amber_glow, 0.376),
+            0 0 12px alpha(@c_accent_amber, 0.502),
+            0 4px 6px alpha(@c_bg_primary, 0.502);
         }
 
         /* Launcher button active - Switch pressed */
         #custom-launcher0:active, #custom-launcher1:active, #custom-launcher2:active, #custom-launcher3:active,
         #custom-launcher4:active, #custom-launcher5:active, #custom-launcher6:active, #custom-launcher7:active,
         #custom-launcher8:active, #custom-launcher9:active {
-          background: linear-gradient(180deg, ${c.accent-amber} 0%, ${c.accent-amber-dim} 100%);
+          background: linear-gradient(180deg, @c_accent_amber 0%, @c_accent_amber_dim 100%);
           box-shadow:
-            inset 0 2px 4px ${c.bg-primary}60,
-            0 0 8px ${c.accent-amber}60;
+            inset 0 2px 4px alpha(@c_bg_primary, 0.376),
+            0 0 8px alpha(@c_accent_amber, 0.376);
         }
 
         /* Claude RWR - Radar Warning Receiver */
@@ -817,14 +881,14 @@ in {
           font-weight: 700;
           padding: 1px 8px;
           margin: 2px 4px;
-          background-color: ${c.bg-primary};
-          border: 1px solid ${c.border-primary};
+          background-color: @c_bg_primary;
+          border: 1px solid @c_border_primary;
           border-radius: 3px;
-          color: ${c.text-tertiary};
+          color: @c_text_tertiary;
         }
         #custom-claude-rwr.rwr-active {
-          border-color: ${c.accent-radar};
-          box-shadow: inset 0 0 4px ${c.accent-radar}40;
+          border-color: @c_accent_radar;
+          box-shadow: inset 0 0 4px alpha(@c_accent_radar, 0.251);
         }
       '';
     };

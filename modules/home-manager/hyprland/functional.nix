@@ -239,7 +239,13 @@ in
             # Without this, wpctl get-volume returns 1.00 on HDMI pro-audio sinks until
             # real audio plays, causing the volume widget to display 100% at boot.
             "sleep 3 && ${pkgs.pulseaudio}/bin/paplay --volume=0 ${initSilenceWav} && pkill -RTMIN+11 waybar"
-            "${pkgs.hyprpaper}/bin/hyprpaper &"
+            # Wallpaper daemon. Which one is a functional decision — see
+            # customConfig.desktop.hyprland.wallpaperEngine. A theme that wants
+            # to change wallpaper at runtime needs awww, because hyprpaper 0.8.x
+            # dropped its IPC socket and can only be restarted.
+            (if customConfig.desktop.hyprland.wallpaperEngine == "awww"
+             then "${pkgs.awww}/bin/awww-daemon &"
+             else "${pkgs.hyprpaper}/bin/hyprpaper &")
             "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1 &"
             "${pkgs.networkmanagerapplet}/bin/nm-applet &"
           ]

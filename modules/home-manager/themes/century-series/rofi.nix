@@ -39,21 +39,14 @@ in {
       theme = let
         inherit (config.lib.formats.rasi) mkLiteral;
       in {
-        # MFD Color definitions
-        "*" = {
-          bg-primary = mkLiteral c.bg-primary;
-          bg-secondary = mkLiteral c.bg-secondary;
-          bg-tertiary = mkLiteral c.bg-tertiary;
-          border-color = mkLiteral c.border-primary;
-          border-active = mkLiteral c.border-active;
-          accent-amber = mkLiteral c.accent-amber;
-          accent-green = mkLiteral c.accent-green;
-          text-primary = mkLiteral c.text-primary;
-          text-secondary = mkLiteral c.text-secondary;
-          text-dark = mkLiteral c.bg-primary;
-          warning-red = mkLiteral c.warning-red;
-          metal = mkLiteral c.metal;
+        # Colours come from an @import'ed file that night mode swaps — the same
+        # shape as waybar. home-manager's toRasi emits a top-level "@import"
+        # key before everything else, and the 45 "@name" references below
+        # resolve against it. rofi reads the theme at launch, so an open rofi
+        # keeps the old palette until it is reopened.
+        "@import" = "${config.home.homeDirectory}/.config/rofi/century-colors.rasi";
 
+        "*" = {
           font = "JetBrains Mono 11";
           background-color = mkLiteral "transparent";
           text-color = mkLiteral "@text-primary";
@@ -137,7 +130,7 @@ in {
 
         element-text = {
           text-color = mkLiteral "inherit";
-          highlight = mkLiteral "bold ${c.accent-amber}";
+          highlight = mkLiteral "bold @accent-amber";
         };
 
         element-icon = {
@@ -170,7 +163,7 @@ in {
 
         "element-text selected.normal" = {
           text-color = mkLiteral "@text-dark";
-          highlight = mkLiteral "bold #ffffff";
+          highlight = mkLiteral "bold @highlight-match";
         };
 
         "element selected.active" = {
@@ -181,7 +174,7 @@ in {
 
         "element-text selected.active" = {
           text-color = mkLiteral "@text-dark";
-          highlight = mkLiteral "bold #ffffff";
+          highlight = mkLiteral "bold @highlight-match";
         };
 
         "element selected.urgent" = {
@@ -192,7 +185,7 @@ in {
 
         "element-text selected.urgent" = {
           text-color = mkLiteral "@text-dark";
-          highlight = mkLiteral "bold #ffffff";
+          highlight = mkLiteral "bold @highlight-match";
         };
 
         # Alternate row styling (subtle)
