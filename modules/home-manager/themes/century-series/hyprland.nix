@@ -225,6 +225,9 @@ in {
           "SUPER CTRL, G, exec, ~/.local/bin/century-crt-toggle"
           # Toggle top/bottom bars — also applies barrel distortion if CRT is on
           "SUPER, F10, exec, ~/.local/bin/century-bars-toggle"
+          # Flip the day/night palette by hand (pins the mode; `century-night
+          # auto` hands it back to the sun). CTRL avoids SUPER+N elsewhere.
+          "SUPER CTRL, N, exec, century-night toggle"
         ] ++ lib.optionals hasCkbNext [
           # Keyboard color cycle (RADAR → AMBER → RED → MIG → RADAR)
           # CTRL avoids conflict with SUPER+K (swapwindow up) in functional.nix

@@ -36,6 +36,17 @@ customConfig.homeManager.themes.centurySeries.night = {
 };
 ```
 
+A `custom/century-night` waybar widget sits beside the hyprsunset one — the two are
+the layered halves of the same idea, so seeing both states together tells you which is
+responsible for what you are looking at. It shows the APPLIED side (DAY/NGT), goes
+dashed while ramping, and turns caution-yellow when pinned by hand. Click toggles,
+right-click returns to `auto`. `SUPER+CTRL+N` does the same from the keyboard.
+
+With `night.keyboard` (default on) and ckb-next enabled, the keyboard moves to its RED
+cycle entry at night and back by day. It writes the same `~/.cache/ckb-color-state`
+that `SUPER+CTRL+K` writes, so a manual cycle during the night sticks until the next
+boundary rather than being fought.
+
 Runtime control: `century-night {status|day|night|auto|toggle|reconcile}`, plus
 `century-night now day|night` for an un-animated flip (the testing hook) and
 `century-night init` for the login/activation path. A runtime mode change wins over
@@ -62,7 +73,7 @@ artifacts into the store and the ramp walks them:
 | Surface | Mechanism | Live? |
 |---|---|---|
 | Hyprland borders, `dim_strength`, `blur:brightness` | one `hyprctl --batch` per step | yes, interpolated every step |
-| Waybar | rewrite `~/.config/waybar/century-palette.css` + **one** `SIGUSR2` | yes, but a single crossover at the ramp midpoint |
+| Waybar | rewrite `~/.config/waybar/century-palette.css`, then **restart the bar once** | yes, a single crossover at the ramp midpoint |
 | Wallpaper | one `awww img -t fade --transition-duration` up front | yes, awww animates its own crossfade alongside the walk |
 | CRT screen shader | `hyprctl keyword decoration:screen_shader` to a per-step path | yes, only when the opt-in filter is already on |
 
@@ -84,6 +95,8 @@ the right variant. Adding an app is one generator plus one list entry.
 | swaylock | generated `~/.config/swaylock/config` | next lock |
 | btop, yazi, imv | generated theme files | next launch |
 | zathura | `include`d `century-colors` | next launch |
+| browser userChrome | CSS custom properties in an `@import`ed file | next browser launch |
+| ckb-next keyboard | selects index 2 (RED) of the existing cycle | immediately |
 
 **kitty is the one place a key changes meaning, not just hue.** `term-fg` is phosphor
 green by day and red by night, because a green-on-black CRT is the day conceit and red
@@ -101,8 +114,9 @@ several palette values are shared between keys with *different* night values (`#
 is both `accent-green` and `term-fg`), so a blanket hex replacement would be ambiguous.
 That list has to stay in step with `mkDunstSettings`.
 
-Everything the theme styles now follows the switch except the browser
-userChrome, which lives in a different module tree and needs a browser restart.
+Everything the theme styles follows the switch, including the Firefox/LibreWolf
+userChrome — that one via CSS custom properties in an `@import`ed file, which
+Gecko reads only at startup, so it lands on the next browser launch.
 
 > **dunst vs swaync.** The functional layer enables swaync and this theme enables
 > dunst. Both units declare `BusName=org.freedesktop.Notifications`, and systemd
@@ -160,6 +174,21 @@ than assumed:
   store symlink so it never changes either — the option is useless here and is
   deliberately not set. `SIGUSR2` is a full reload that recreates the bars: one is
   clean, but **eleven in a row (one per ramp step) made both bars disappear entirely.**
+- **And `SIGUSR2` is unusable once there are TWO bars**, which `waybar-start` runs
+  whenever the launcher is enabled. A reload sends the second process down
+  GApplication's D-Bus "remote" path — both share one application id — and GLib aborts
+  it with `g_application_impl_command_line: assertion failed: (object_id != 0)`.
+  Staggering the signals does not help; it is structural, not a race. The launcher bar
+  dies and leaves a **zombie**, which is easy to miss because `pgrep -c waybar` still
+  counts it. So the bar is RESTARTED once per transition instead (via `waybar-start`,
+  which splits the config and honours the launchbar-hidden state) — a sub-second blink,
+  correct with either one bar or two. A single-bar VM never surfaces any of this.
+- **`pkill waybar` also matches the `waybar-start` wrapper**, whose comm is
+  `waybar-start`. Both the restart and the widget poke therefore match on
+  `waybar --config` instead, which only the real bars carry in their argv. Hitting the
+  wrapper in its brief window — after it has backgrounded the launcher bar but before
+  it `exec`s the main one — leaves a launcher with no main bar. With `pkill -RTMIN+N`
+  it is worse: the wrapper has no handler for that signal, so it is simply killed.
 - Waybar's stylesheet stays a declarative store symlink; only the small
   `@define-color` palette it `@import`s gets rewritten. The import URL **must be
   absolute** — a relative one resolves against the store path, not `~/.config/waybar` —

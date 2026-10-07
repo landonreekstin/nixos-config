@@ -489,6 +489,19 @@ in
             for an effectively instant switch.
           '';
         };
+        keyboard = mkOption {
+          type = types.bool;
+          default = true;
+          description = ''
+            Put the ckb-next keyboard on its RED cycle entry at night and
+            restore the previous one by day. Only has an effect when
+            hardware.peripherals.ckb-next.enable is also set.
+
+            A manual cycle with SUPER+CTRL+K still wins until the next
+            boundary: this writes the same ~/.cache/ckb-color-state the cycle
+            script uses, it does not lock it.
+          '';
+        };
       };
       xfce = mkOption {
         type = types.enum [ "windows7" "none" ];

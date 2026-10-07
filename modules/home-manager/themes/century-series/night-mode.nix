@@ -198,16 +198,47 @@ let
   #     either, which makes that option useless for this and it is not set.
   #   * SIGUSR2 is a full reload that recreates the bars. ONE is clean; eleven
   #     in a row (one per ramp step) made both bars disappear entirely.
-  # So the palette crosses over exactly once per transition, at the midpoint of
-  # the ramp, while the compositor colours keep interpolating around it.
-  # No -x: under the NixOS wrapper the comm is `.waybar-wrapped`.
-  reloadWaybar = "${pkgs.procps}/bin/pkill -SIGUSR2 waybar 2>/dev/null || true";
+  #   * SIGUSR2 is unusable once waybar-start runs TWO bars (main + launcher),
+  #     which it does whenever the launcher is enabled. A reload makes the
+  #     second process take GApplication's D-Bus "remote" path — both share one
+  #     application id — and GLib aborts it:
+  #       GLib-GIO:ERROR:gapplicationimpl-dbus.c:851:
+  #       g_application_impl_command_line: assertion failed: (object_id != 0)
+  #     Staggering the signals does NOT help; it is structural, not a race. The
+  #     launcher bar dies and leaves a zombie, which is easy to miss because
+  #     `pgrep -c waybar` still counts it.
+  # So the bar is RESTARTED instead, once per transition, at the midpoint of the
+  # ramp while the compositor colours keep interpolating around it. That costs a
+  # sub-second blink and is correct whether one bar is running or two.
+  #
+  # Via waybar-start, not a bare `waybar`: the wrapper is what splits the config
+  # and honours the launchbar-hidden state. setsid so it outlives this script,
+  # which runs inside the ramp service. No -x on pkill: NixOS wraps the binary
+  # as `.waybar-wrapped`.
+  # Matching on `waybar --config` rather than plain `waybar` is load-bearing:
+  # a bare `pkill waybar` also matches the waybar-start WRAPPER, whose comm is
+  # `waybar-start`. Kill it in the window after it has backgrounded the launcher
+  # bar but before it execs the main one and you get a launcher with no main
+  # bar — which is exactly what happened. Only the real bars carry
+  # `waybar --config <path>` in their argv, so -f on that is precise.
+  reloadWaybar = pkgs.writeShellScript "century-night-reload-waybar" ''
+    ${pkgs.procps}/bin/pkill -f 'waybar --config' 2>/dev/null || true
+    ${pkgs.coreutils}/bin/sleep 0.5
+    ${pkgs.util-linux}/bin/setsid "$HOME/.local/bin/waybar-start" \
+      > "''${XDG_RUNTIME_DIR:-/tmp}/waybar-start.log" 2>&1 &
+  '';
 
-  # NOTE: waybar is restyled with SIGUSR2 (see reloadWaybar), never RTMIN+N.
-  # Nothing subscribes to a night-mode refresh signal yet, and an unhandled
-  # realtime signal TERMINATES the target, so the per-widget refresh poke
-  # returns only alongside the custom/century-night widget that configures the
-  # signal (and must be checked against a live waybar then).
+  # Refresh the custom/century-night widget. SEPARATE from reloadWaybar: that
+  # one is SIGUSR2, a full reload of both bars, and is only safe once per
+  # transition. This is the per-widget poke the widget subscribes to via
+  # `signal = 17`. An unhandled realtime signal TERMINATES the target, so this
+  # must never be sent unless that widget is configured. No -x: NixOS wraps it.
+  # Matched on `waybar --config` for the same reason as reloadWaybar, and here
+  # it matters even more: a bare `pkill waybar` also hits the waybar-start
+  # WRAPPER, which has no handler for RTMIN+17, and an unhandled realtime signal
+  # TERMINATES its target. Catch the wrapper between backgrounding the launcher
+  # and exec'ing the main bar and you lose the main bar entirely.
+  pokeWidget = "${pkgs.procps}/bin/pkill -RTMIN+17 -f 'waybar --config' 2>/dev/null || true";
 
   # ---- per-application colour files ---------------------------------------
   # Apps that read their config only at launch — or, like kitty, can be poked
@@ -284,6 +315,17 @@ let
       mk = appThemes.mkWlogoutColors;
       reload = "true";
     }
+    {
+      # Firefox/LibreWolf userChrome. Written unconditionally: the browser
+      # module only @imports it when chromeTheme is century-series, and an
+      # unreferenced file costs nothing — whereas gating on that option here
+      # would couple the theme to the browser preset.
+      name = "browser-chrome";
+      live = "${homeDir}/.config/century/browser-chrome-colors.css";
+      mk = appThemes.mkBrowserChromeColors;
+      # Needs a browser restart; Firefox reads userChrome only at startup.
+      reload = "true";
+    }
   ]
   # wlogout's annunciator tiles bake their colour into the SVG, so the night
   # variant is a different file rather than a restyle. Filenames stay
@@ -342,6 +384,45 @@ let
     } ${dunstDayRc} > $out
   '';
 
+  # ---- ckb-next keyboard ---------------------------------------------------
+  # Index 2 of the existing cycle is already RED, so night mode only SELECTS it
+  # and remembers what was there before. The four cycle constants stay in
+  # ckb-scripts.nix, which is contracted to match
+  # modules/nixos/hardware/peripherals.nix — redefining them here would be a
+  # second place to keep in step for no gain.
+  #
+  # This writes the same state file SUPER+CTRL+K writes, so a manual choice
+  # during the night simply sticks until the next boundary. That is the agreed
+  # behaviour, not a race.
+  ckbScripts = import ./ckb-scripts.nix { inherit pkgs; };
+  hasCkbNight = customConfig.hardware.peripherals.ckb-next.enable && cfg.keyboard;
+
+  ckbApply = side: optionalString hasCkbNight ''
+    CKB_STATE="${homeDir}/.cache/ckb-color-state"
+    CKB_SAVED="${homeDir}/.cache/century-night-ckb-saved"
+    if [ -f "$CKB_STATE" ]; then
+      CKB_CUR=$(cat "$CKB_STATE" 2>/dev/null || echo "0:80")
+      CKB_IDX="''${CKB_CUR%%:*}"
+      CKB_BRIGHT="''${CKB_CUR##*:}"
+      case "$CKB_BRIGHT" in ""|*[!0-9]*) CKB_BRIGHT=80 ;; esac
+    ${if side == "night" then ''
+      # Record the day colour only on the FIRST crossing, or the 5-minute
+      # re-assert would eventually save RED as the thing to restore.
+      [ ! -f "$CKB_SAVED" ] && echo "$CKB_IDX" > "$CKB_SAVED"
+      CKB_WANT=2
+    '' else ''
+      CKB_WANT=$(cat "$CKB_SAVED" 2>/dev/null || echo "$CKB_IDX")
+      case "$CKB_WANT" in ""|*[!0-3]*) CKB_WANT=0 ;; esac
+      ${pkgs.coreutils}/bin/rm -f "$CKB_SAVED"
+    ''}
+      if [ "$CKB_IDX" != "$CKB_WANT" ]; then
+        echo "$CKB_WANT:$CKB_BRIGHT" > "$CKB_STATE"
+        ${ckbScripts.applyCurrentScript}
+        ${pkgs.procps}/bin/pkill -RTMIN+14 waybar 2>/dev/null || true
+      fi
+    fi
+  '';
+
   dunstApply = side: ''
     ${pkgs.dunst}/bin/dunstctl reload ${
       if side == "night" then dunstNightRc else dunstDayRc
@@ -357,7 +438,7 @@ let
       ${pkgs.coreutils}/bin/mv -f ${escapeShellArg (e.live + ".new")} ${escapeShellArg e.live}
       ${e.reload}
     fi
-  '') swappable) + "\n" + dunstApply side;
+  '') swappable) + "\n" + dunstApply side + "\n" + ckbApply side;
 
   appThemeScript = pkgs.writeShellScriptBin "century-apps-apply" ''
     set -u
@@ -509,7 +590,15 @@ let
       BEFORE=$(${pkgs.coreutils}/bin/cksum "${paletteLive}" 2>/dev/null || echo none)
       ${applyStep} "$TARGET" || true
       AFTER=$(${pkgs.coreutils}/bin/cksum "${paletteLive}" 2>/dev/null || echo none)
-      [ "$BEFORE" != "$AFTER" ] && ${reloadWaybar}
+      # A restart and a poke are MUTUALLY EXCLUSIVE: a freshly started waybar
+      # has not installed its RTMIN+17 handler yet, and an unhandled realtime
+      # signal kills it. The restart already brings the bar up on current
+      # state, so there is nothing left to poke.
+      if [ "$BEFORE" != "$AFTER" ]; then
+        ${reloadWaybar}
+      else
+        ${pokeWidget}
+      fi
       exit 0
     fi
 
@@ -553,6 +642,13 @@ let
       # Compositor only: the interpolated part, every step.
       ${applyStep} "$i" live || true
       echo "$i" > "$PHASE_FILE"
+      # Poke the widget — but NOT on the midpoint step, which restarts the bar
+      # just below. A restart and a poke are mutually exclusive: a freshly
+      # started waybar has not installed its RTMIN+17 handler yet, and an
+      # unhandled realtime signal kills it.
+      if [ "$i" != "$MID" ] || [ "$RELOADED" != 0 ]; then
+        ${pokeWidget}
+      fi
 
       # Waybar crosses over ONCE, halfway through, straight to the target
       # palette — a reload per step is what made both bars vanish. Doing it at
@@ -571,7 +667,11 @@ let
     # crossover unconditional. The palette write is idempotent, so when the
     # midpoint already did it this only settles the file.
     ${applyStep} "$TARGET" files || true
-    [ "$RELOADED" = 0 ] && ${reloadWaybar}
+    if [ "$RELOADED" = 0 ]; then
+      ${reloadWaybar}
+    else
+      ${pokeWidget}
+    fi
     exit 0
   '';
 
@@ -592,7 +692,11 @@ let
       echo "$1" > "$TARGET_FILE"
       if [ "$1" = 0 ]; then SIDE=day; else SIDE=night; fi
       ${wallpaperScript}/bin/century-wallpaper-apply "$SIDE" 0 || true
+      # Restart only — no poke. The fresh bar already comes up on current state,
+      # and poking one that is still starting up kills it.
       ${reloadWaybar}
+      
+      
     }
 
     pin() {   # $1 = day|night, ramp toward it
@@ -650,8 +754,25 @@ let
         [ "$D" = 1 ] && SUN=day || SUN=night
         echo "mode=$MODE phase=$P/$LAST sun=$SUN $R"
         ;;
+      json)
+        # waybar custom/century-night. DAY/NGT is what is APPLIED; the class
+        # carries the mode so a manual pin can be styled as an override, the
+        # way the hyprsunset widget marks its own manual mode.
+        P=$(cat "$PHASE_FILE" 2>/dev/null || echo 0)
+        case "$P" in ""|*[!0-9]*) P=0 ;; esac
+        if [ "$P" -ge $(( LAST / 2 + 1 )) ]; then TEXT=NGT; SIDE=night; else TEXT=DAY; SIDE=day; fi
+        if ${systemctl} --user is-active --quiet century-night-ramp.service 2>/dev/null; then
+          CLASS="$SIDE ramping"; RAMP=" (ramping)"
+        else
+          CLASS="$SIDE"; RAMP=""
+        fi
+        [ "$MODE" != auto ] && CLASS="$CLASS manual"
+        if [ "$MODE" = auto ]; then HINT="AUTO — follows the sun"; else HINT="MANUAL — right-click for AUTO"; fi
+        printf '{"text":"%s","class":"%s","tooltip":"Night mode: %s%s\\n%s\\nclick to toggle"}\n' \
+          "$TEXT" "$CLASS" "$SIDE" "$RAMP" "$HINT"
+        ;;
       *)
-        echo "usage: century-night {status|init|day|night|auto|toggle|reconcile|now day|now night}" >&2
+        echo "usage: century-night {status|json|init|day|night|auto|toggle|reconcile|now day|now night}" >&2
         exit 1
         ;;
     esac
@@ -686,14 +807,26 @@ in {
       Service = {
         Type = "oneshot";
         ExecStart = "${scheduleScript}/bin/century-night-schedule";
+        # Same reason as the ramp: the re-assert can restart waybar when a
+        # rebuild changed the palette, and it must survive this unit exiting.
+        KillMode = "process";
       };
     };
 
     systemd.user.services.century-night-ramp = {
       Unit.Description = "Animated century-series day/night palette transition";
-      # Foreground walk: `systemctl --user restart` retargets it and `stop`
-      # cancels it. It backgrounds nothing, so the default KillMode is correct.
-      Service.ExecStart = "${rampScript}/bin/century-night-ramp";
+      Service = {
+        ExecStart = "${rampScript}/bin/century-night-ramp";
+        # Foreground walk, so `systemctl --user restart` retargets it and `stop`
+        # cancels it.
+        #
+        # KillMode=process because the midpoint restarts waybar, and waybar must
+        # outlive this unit. setsid detaches the session but NOT the cgroup, so
+        # the default control-group kill would take the new bars down with the
+        # ramp the moment it finished — the palette would change and the bar
+        # would vanish. Same reasoning as hyprsunset-transition.service.
+        KillMode = "process";
+      };
     };
 
     systemd.user.timers.century-night-schedule = {

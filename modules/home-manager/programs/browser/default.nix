@@ -27,7 +27,11 @@ let
 
   chromeCss = theme:
     if theme == "none" then ""
-    else import (./chrome + "/${theme}.nix") { inherit lib; };
+    else import (./chrome + "/${theme}.nix") {
+      inherit lib;
+      # century-series uses this to @import its swappable day/night palette.
+      homeDir = config.home.homeDirectory;
+    };
 
   # Every pref contributed by the enabled layers, plus the host's escape hatch.
   presetSettings = bcfg:

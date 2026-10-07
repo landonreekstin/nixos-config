@@ -818,4 +818,21 @@ with lib;
     let c = (import ./colors.nix { }).rgbaOf p.bg-primary; in ''
       @define-color c_window rgba(${toString c.r}, ${toString c.g}, ${toString c.b}, 0.7);
     '';
+
+  # Firefox/LibreWolf userChrome custom properties, @import'ed by
+  # programs/browser/chrome/century-series.nix. Firefox reads it only at
+  # startup, so a switch lands on the next browser launch.
+  mkBrowserChromeColors = p: ''
+    :root {
+      --cs-bg-primary:       ${p.bg-primary};
+      --cs-bg-secondary:     ${p.bg-secondary};
+      --cs-bg-tertiary:      ${p.bg-tertiary};
+      --cs-border-primary:   ${p.border-primary};
+      --cs-border-secondary: ${p.border-secondary};
+      --cs-accent-amber:     ${p.accent-amber};
+      --cs-accent-amber-glow: ${p.accent-amber-glow};
+      --cs-text-primary:     ${p.text-primary};
+      --cs-text-secondary:   ${p.text-secondary};
+    }
+  '';
 }

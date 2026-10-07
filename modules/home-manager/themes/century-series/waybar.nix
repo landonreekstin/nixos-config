@@ -760,6 +760,48 @@ in {
           box-shadow: 0 0 8px alpha(@c_warning_red, 0.333);
         }
 
+        /* Day/night palette switch — sits beside the night-light widget */
+        #custom-century-night {
+          padding: 0 8px;
+          margin: 2px;
+          background-color: @c_bg_tertiary;
+          border: 1px solid @c_border_secondary;
+          color: @c_text_primary;
+          font-family: "JetBrains Mono", monospace;
+          font-weight: bold;
+          letter-spacing: 1px;
+          transition: color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+        }
+
+        /* Applied palette: amber by day, the night accent after dark */
+        #custom-century-night.day {
+          color: @c_accent_amber;
+          border-color: @c_accent_amber_dim;
+        }
+        #custom-century-night.night {
+          color: @c_accent_amber;
+          border-color: @c_accent_amber_dim;
+          text-shadow: 0 0 6px alpha(@c_accent_amber, 0.533);
+        }
+
+        /* Mid-transition */
+        #custom-century-night.ramping {
+          border-style: dashed;
+          box-shadow: 0 0 4px alpha(@c_accent_amber, 0.267);
+        }
+
+        /* Pinned by hand — dashed amber border, same "override engaged" cue
+           the hyprsunset widget uses for its own manual mode. */
+        #custom-century-night.manual {
+          border-style: dashed;
+          color: @c_caution_yellow;
+          border-color: @c_caution_yellow;
+        }
+
+        #custom-century-night:hover {
+          background-color: @c_bg_secondary;
+        }
+
         /* Tooltip styling - Info displays */
         tooltip {
           background-color: @c_bg_primary;
