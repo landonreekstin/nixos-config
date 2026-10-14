@@ -57,10 +57,12 @@ let
       fi
     fi
 
-    # Restart waybar to avoid duplicate instances caused by monitoradded/removed events
-    pkill waybar 2>/dev/null || true
-    sleep 0.5
-    ${pkgs.waybar}/bin/waybar > /tmp/waybar-restart.log 2>&1 &
+    # Restart waybar to avoid duplicate instances caused by monitoradded/removed
+    # events. Via waybar-restart, never a bare `waybar`: the wrapper is what
+    # splits the config into the main and launcher bars, so a bare relaunch both
+    # loses the launcher bar and leaves a process no other caller's pkill
+    # pattern can find — which then survives as a duplicate.
+    "$HOME/.local/bin/waybar-restart"
   '';
 
   restoreMonitorsScript = pkgs.writeShellScriptBin "restore-monitors" ''
@@ -81,11 +83,12 @@ let
       CHANGED=1
     done < "$STATE_FILE"
 
-    # Restart waybar only if any monitors were disabled
+    # Restart waybar only if any monitors were disabled. This path runs on every
+    # `configreloaded` via monitor-state-watcher — i.e. after every rebuild with
+    # a live session — so getting the restart wrong here duplicates the bars
+    # routinely rather than rarely. See waybar-restart in hyprland/functional.nix.
     if [ "$CHANGED" = "1" ]; then
-      pkill waybar 2>/dev/null || true
-      sleep 0.5
-      ${pkgs.waybar}/bin/waybar > /tmp/waybar-restart.log 2>&1 &
+      "$HOME/.local/bin/waybar-restart"
     fi
   '';
 

@@ -626,6 +626,68 @@ in
       executable = true;
     };
 
+    # The ONE place that kills and relaunches the bars. Three callers need to:
+    # the century-series night-mode palette swap, `toggle-monitor`, and
+    # `restore-monitors` (which runs on every `configreloaded`, i.e. after every
+    # rebuild). They each used to roll their own, they disagreed, and the result
+    # was duplicate bars: a caller doing `pkill waybar` + a bare `waybar &`
+    # replaced the main+launcher pair with a single argument-less process
+    # reading ~/.config/waybar/config directly, which then matched nobody else's
+    # pkill pattern and survived every later restart as an extra bar.
+    home.file.".local/bin/waybar-restart" = {
+      text = ''
+        #!/usr/bin/env bash
+        # Restart waybar through waybar-start. Never launch a bare `waybar`:
+        # the wrapper is what splits the config into the main and launcher bars.
+
+        # Serialize — two callers at once (a monitor toggle during a palette
+        # ramp) would otherwise each spawn their own waybar-start.
+        #
+        # -w 10 rather than an unbounded wait: a lock this script cannot get is
+        # a bug in this script, and the right failure is a possible duplicate
+        # bar, not a palette ramp wedged forever at its midpoint.
+        exec 9>"''${XDG_RUNTIME_DIR:-/tmp}/waybar-restart.lock"
+        ${pkgs.util-linux}/bin/flock -w 10 9 || true
+
+        # Both patterns are load-bearing:
+        #   bin/waybar-start   catches the wrapper in the window between
+        #                      backgrounding the launcher and exec'ing the main bar.
+        #   bin/waybar( |$)    matches a bar however it was launched. `waybar
+        #                      --config` misses an argument-less one; `pkill
+        #                      waybar` additionally hits the wrapper and any
+        #                      shell whose argv merely mentions waybar; and
+        #                      `pkill -x waybar` matches nothing at all, because
+        #                      the comm of the wrapped binary is .waybar-wrapped.
+        ${pkgs.procps}/bin/pkill -f 'bin/waybar-start' 2>/dev/null || true
+        ${pkgs.procps}/bin/pkill -f 'bin/waybar( |$)' 2>/dev/null || true
+
+        # Wait for them to actually exit — a new bar that starts while the old
+        # one still holds its layer surface comes up mis-sized.
+        for _ in $(${pkgs.coreutils}/bin/seq 1 40); do
+          ${pkgs.procps}/bin/pgrep -f 'bin/waybar( |$)' >/dev/null 2>&1 || break
+          ${pkgs.coreutils}/bin/sleep 0.1
+        done
+
+        # setsid so the bars outlive whatever invoked us (a systemd unit's
+        # cgroup still needs KillMode=process; setsid only detaches the session).
+        #
+        # `9>&-` is NOT optional. flock's lock belongs to the open file
+        # description, not to this process, so a child that inherits FD 9 keeps
+        # holding it — the bars themselves would own the lock for as long as
+        # they run, and the NEXT restart would block until the processes it
+        # wanted to kill exited. That is a true deadlock, and it is exactly what
+        # stalled a night→day ramp at phase 5/10 with `flock` parked in
+        # locks_lock_inode_wait. Verified via /proc/<bar-pid>/fd/9.
+        ${pkgs.util-linux}/bin/setsid "$HOME/.local/bin/waybar-start" \
+          > "''${XDG_RUNTIME_DIR:-/tmp}/waybar-start.log" 2>&1 9>&- &
+
+        # Give the bars time to come up and install their RTMIN handlers before
+        # the caller returns; an unhandled realtime signal would kill them.
+        ${pkgs.coreutils}/bin/sleep 1.5
+      '';
+      executable = true;
+    };
+
     home.file.".local/bin/toggle-launchbar" = {
       text = ''
         #!/usr/bin/env bash

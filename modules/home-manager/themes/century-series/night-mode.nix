@@ -211,16 +211,15 @@ let
   # ramp while the compositor colours keep interpolating around it. That costs a
   # sub-second blink and is correct whether one bar is running or two.
   #
-  # Via waybar-start, not a bare `waybar`: the wrapper is what splits the config
-  # and honours the launchbar-hidden state. setsid so it outlives this script,
-  # which runs inside the ramp service. No -x on pkill: NixOS wraps the binary
-  # as `.waybar-wrapped`.
-  # Matching on `waybar --config` rather than plain `waybar` is load-bearing:
-  # a bare `pkill waybar` also matches the waybar-start WRAPPER, whose comm is
-  # `waybar-start`. Kill it in the window after it has backgrounded the launcher
-  # bar but before it execs the main one and you get a launcher with no main
-  # bar — which is exactly what happened. Only the real bars carry
-  # `waybar --config <path>` in their argv, so -f on that is precise.
+  # The kill-and-relaunch itself lives in `waybar-restart`
+  # (modules/home-manager/hyprland/functional.nix), alongside the waybar-start
+  # wrapper it drives. It is shared rather than duplicated here because this is
+  # not the only caller: `toggle-monitor` and `restore-monitors` restart the bars
+  # too, and when each site had its own version they disagreed. restore-monitors
+  # ran `pkill waybar` + a bare `waybar &`, which replaced the main+launcher pair
+  # with one argument-less process — invisible to a `waybar --config` pattern, so
+  # the next palette swap started a second pair on top of it. That is the
+  # duplicate bar, and it appeared after every rebuild, not just at a transition.
   reloadWaybar = pkgs.writeShellScript "century-night-reload-waybar" ''
     # No compositor, nothing to restart. The systemd user manager outlives a
     # Hyprland session and keeps a stale XDG_CURRENT_DESKTOP=Hyprland, so the
@@ -228,33 +227,7 @@ let
     # after logout would spawn a waybar that has nothing to attach to.
     [ -n "$(${pkgs.coreutils}/bin/ls -A "''${XDG_RUNTIME_DIR:-/run/user/$(${pkgs.coreutils}/bin/id -u)}/hypr" 2>/dev/null)" ] || exit 0
 
-    # Serialised with flock. Two restarts can legitimately overlap — a toggle
-    # that starts a ramp while the 5-minute reconciler is mid-re-assert, say —
-    # and without the lock each one spawns its own waybar-start, leaving
-    # DUPLICATE bars stacked on screen.
-    exec 9>"''${XDG_RUNTIME_DIR:-/tmp}/century-night-waybar.lock"
-    ${pkgs.util-linux}/bin/flock 9
-
-    # Kill the bars AND any waybar-start still between backgrounding the
-    # launcher and exec'ing the main bar; otherwise that wrapper goes on to
-    # spawn bars after we have already started our own.
-    ${pkgs.procps}/bin/pkill -f 'waybar --config' 2>/dev/null || true
-    ${pkgs.procps}/bin/pkill -f 'bin/waybar-start' 2>/dev/null || true
-
-    # Wait for them to actually exit rather than guessing at a sleep: starting
-    # a new bar while an old one still holds its layer surface is what produced
-    # the stacked bars in the first place.
-    for _ in $(seq 1 40); do
-      ${pkgs.procps}/bin/pgrep -f 'waybar --config' >/dev/null 2>&1 || break
-      ${pkgs.coreutils}/bin/sleep 0.1
-    done
-
-    ${pkgs.util-linux}/bin/setsid "$HOME/.local/bin/waybar-start" \
-      > "''${XDG_RUNTIME_DIR:-/tmp}/waybar-start.log" 2>&1 &
-
-    # Hold the lock until the wrapper has exec'd into the main bar, so a waiter
-    # sees the new processes and does not race this one.
-    ${pkgs.coreutils}/bin/sleep 1.5
+    exec "$HOME/.local/bin/waybar-restart"
   '';
 
   # Refresh the custom/century-night widget. SEPARATE from reloadWaybar: that
@@ -262,12 +235,13 @@ let
   # transition. This is the per-widget poke the widget subscribes to via
   # `signal = 17`. An unhandled realtime signal TERMINATES the target, so this
   # must never be sent unless that widget is configured. No -x: NixOS wraps it.
-  # Matched on `waybar --config` for the same reason as reloadWaybar, and here
-  # it matters even more: a bare `pkill waybar` also hits the waybar-start
-  # WRAPPER, which has no handler for RTMIN+17, and an unhandled realtime signal
-  # TERMINATES its target. Catch the wrapper between backgrounding the launcher
-  # and exec'ing the main bar and you lose the main bar entirely.
-  pokeWidget = "${pkgs.procps}/bin/pkill -RTMIN+17 -f 'waybar --config' 2>/dev/null || true";
+  # `bin/waybar( |$)` is the same pattern waybar-restart uses, and the choice
+  # matters more here than for a kill: a bare `pkill waybar` would also hit the
+  # waybar-start WRAPPER, which has no handler for RTMIN+17 — catch it between
+  # backgrounding the launcher and exec'ing the main bar and the main bar never
+  # arrives. Matching on `waybar --config` would avoid the wrapper but miss a
+  # bar launched without arguments, leaving its widget stuck on a stale phase.
+  pokeWidget = "${pkgs.procps}/bin/pkill -RTMIN+17 -f 'bin/waybar( |$)' 2>/dev/null || true";
 
   # ---- per-application colour files ---------------------------------------
   # Apps that read their config only at launch — or, like kitty, can be poked
@@ -544,6 +518,13 @@ let
       esac
     }
 
+    # Snapshot what each output is currently showing, once. The applier is also
+    # called from the 5-minute reconciler — so a monitor powered on after login
+    # still gets its image — and re-setting an identical wallpaper would restart
+    # awww's fade for nothing. `awww query` reports the RESOLVED store path, so
+    # the comparison needs readlink -f on the symlink we hand it.
+    QUERY=$(${pkgs.awww}/bin/awww query 2>/dev/null || true)
+
     warned=0
     try_set() {   # $1 identifier, $2 day path, $3 night path
       if [ "$SIDE" = night ]; then IMG="$3"; else IMG="$2"; fi
@@ -559,6 +540,23 @@ let
       fi
       OUT=$(resolve "$1")
       [ -z "$OUT" ] && return 0
+
+      # Drop the outputs that already show this image. resolve() can yield a
+      # comma-separated list (a `desc:` prefix matching two panels), so filter
+      # per-output rather than all-or-nothing.
+      WANT=$(${pkgs.coreutils}/bin/readlink -f "$IMG")
+      NEED=""
+      OLDIFS=$IFS; IFS=,
+      for o in $OUT; do
+        CUR=$(printf '%s\n' "$QUERY" \
+          | ${pkgs.gnugrep}/bin/grep -m1 -F " $o: " \
+          | ${pkgs.gnused}/bin/sed -n 's/.*currently displaying: image: //p')
+        [ "$CUR" = "$WANT" ] || NEED="''${NEED:+$NEED,}$o"
+      done
+      IFS=$OLDIFS
+      [ -z "$NEED" ] && return 0
+      OUT="$NEED"
+
       if [ "$DUR" = 0 ]; then
         ${pkgs.awww}/bin/awww img -o "$OUT" "$IMG" --resize crop -t none >/dev/null 2>&1 || true
       else
@@ -619,6 +617,13 @@ let
       BEFORE=$(${pkgs.coreutils}/bin/cksum "${paletteLive}" 2>/dev/null || echo none)
       ${applyStep} "$TARGET" || true
       AFTER=$(${pkgs.coreutils}/bin/cksum "${paletteLive}" 2>/dev/null || echo none)
+      # Wallpapers too, for a different reason than the keywords: the image is
+      # otherwise only set at login and at a boundary, so a monitor that was off
+      # or unplugged at login (the TV, typically) keeps awww's default black
+      # forever. The applier skips any output already showing the right image,
+      # so in the normal case this costs one `awww query`.
+      if [ "$TARGET" = 0 ]; then SIDE=day; else SIDE=night; fi
+      ${wallpaperScript}/bin/century-wallpaper-apply "$SIDE" 0 || true
       # A restart and a poke are MUTUALLY EXCLUSIVE: a freshly started waybar
       # has not installed its RTMIN+17 handler yet, and an unhandled realtime
       # signal kills it. The restart already brings the bar up on current
