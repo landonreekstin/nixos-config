@@ -755,8 +755,13 @@ with lib;
       text-dark:      ${p.bg-primary};
       warning-red:    ${p.warning-red};
       metal:          ${p.metal};
-      /* matched characters inside a selected row — was a literal #ffffff */
-      highlight-match: ${p.rofi-match};
+
+      /* Highlight values carry the WHOLE "bold <colour>" compound. rasi rejects
+         a @reference INSIDE a compound value — `highlight: bold @accent-amber`
+         is a parse error that takes down the entire theme — but a reference as
+         the complete value resolves fine. */
+      hl-accent:      bold ${p.accent-amber};
+      hl-match:       bold ${p.rofi-match};
     }
   '';
 

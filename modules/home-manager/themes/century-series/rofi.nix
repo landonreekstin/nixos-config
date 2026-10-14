@@ -130,7 +130,7 @@ in {
 
         element-text = {
           text-color = mkLiteral "inherit";
-          highlight = mkLiteral "bold @accent-amber";
+          highlight = mkLiteral "@hl-accent";
         };
 
         element-icon = {
@@ -163,7 +163,7 @@ in {
 
         "element-text selected.normal" = {
           text-color = mkLiteral "@text-dark";
-          highlight = mkLiteral "bold @highlight-match";
+          highlight = mkLiteral "@hl-match";
         };
 
         "element selected.active" = {
@@ -174,7 +174,7 @@ in {
 
         "element-text selected.active" = {
           text-color = mkLiteral "@text-dark";
-          highlight = mkLiteral "bold @highlight-match";
+          highlight = mkLiteral "@hl-match";
         };
 
         "element selected.urgent" = {
@@ -185,7 +185,7 @@ in {
 
         "element-text selected.urgent" = {
           text-color = mkLiteral "@text-dark";
-          highlight = mkLiteral "bold @highlight-match";
+          highlight = mkLiteral "@hl-match";
         };
 
         # Alternate row styling (subtle)

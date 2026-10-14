@@ -222,10 +222,39 @@ let
   # bar — which is exactly what happened. Only the real bars carry
   # `waybar --config <path>` in their argv, so -f on that is precise.
   reloadWaybar = pkgs.writeShellScript "century-night-reload-waybar" ''
+    # No compositor, nothing to restart. The systemd user manager outlives a
+    # Hyprland session and keeps a stale XDG_CURRENT_DESKTOP=Hyprland, so the
+    # callers' own guard does not catch this — without the check a reconcile
+    # after logout would spawn a waybar that has nothing to attach to.
+    [ -n "$(${pkgs.coreutils}/bin/ls -A "''${XDG_RUNTIME_DIR:-/run/user/$(${pkgs.coreutils}/bin/id -u)}/hypr" 2>/dev/null)" ] || exit 0
+
+    # Serialised with flock. Two restarts can legitimately overlap — a toggle
+    # that starts a ramp while the 5-minute reconciler is mid-re-assert, say —
+    # and without the lock each one spawns its own waybar-start, leaving
+    # DUPLICATE bars stacked on screen.
+    exec 9>"''${XDG_RUNTIME_DIR:-/tmp}/century-night-waybar.lock"
+    ${pkgs.util-linux}/bin/flock 9
+
+    # Kill the bars AND any waybar-start still between backgrounding the
+    # launcher and exec'ing the main bar; otherwise that wrapper goes on to
+    # spawn bars after we have already started our own.
     ${pkgs.procps}/bin/pkill -f 'waybar --config' 2>/dev/null || true
-    ${pkgs.coreutils}/bin/sleep 0.5
+    ${pkgs.procps}/bin/pkill -f 'bin/waybar-start' 2>/dev/null || true
+
+    # Wait for them to actually exit rather than guessing at a sleep: starting
+    # a new bar while an old one still holds its layer surface is what produced
+    # the stacked bars in the first place.
+    for _ in $(seq 1 40); do
+      ${pkgs.procps}/bin/pgrep -f 'waybar --config' >/dev/null 2>&1 || break
+      ${pkgs.coreutils}/bin/sleep 0.1
+    done
+
     ${pkgs.util-linux}/bin/setsid "$HOME/.local/bin/waybar-start" \
       > "''${XDG_RUNTIME_DIR:-/tmp}/waybar-start.log" 2>&1 &
+
+    # Hold the lock until the wrapper has exec'd into the main bar, so a waiter
+    # sees the new processes and does not race this one.
+    ${pkgs.coreutils}/bin/sleep 1.5
   '';
 
   # Refresh the custom/century-night widget. SEPARATE from reloadWaybar: that
@@ -623,7 +652,21 @@ let
     # Unknown phase: assume we are at the opposite end so the walk is visible.
     CUR=$(cat "$PHASE_FILE" 2>/dev/null || echo "")
     if [ -z "$CUR" ]; then CUR=$(( LAST - TARGET )); fi
-    [ "$CUR" = "$TARGET" ] && exit 0
+
+    # Already there by the phase file's reckoning. Do NOT just exit: the phase
+    # records what was applied, and it can be stale — if nothing was running to
+    # apply it, or a previous ramp was cut short. Exiting here is what made an
+    # explicit click look like it did nothing AND skipped the wallpaper, since
+    # the awww call lives further down. Apply the target once, no animation, so
+    # a request always takes effect; everything below is idempotent anyway.
+    if [ "$CUR" = "$TARGET" ]; then
+      if [ "$TARGET" = 0 ]; then SIDE=day; else SIDE=night; fi
+      ${applyStep} "$TARGET" || true
+      ${wallpaperScript}/bin/century-wallpaper-apply "$SIDE" 0 || true
+      echo "$TARGET" > "$PHASE_FILE"
+      ${reloadWaybar}
+      exit 0
+    fi
 
     if [ "$TARGET" -gt "$CUR" ]; then DIR=1; N=$(( TARGET - CUR )); else DIR=-1; N=$(( CUR - TARGET )); fi
     INTERVAL=$(${pkgs.gawk}/bin/awk -v t=${toString cfg.transitionSeconds} -v n="$N" \
@@ -738,8 +781,18 @@ let
         fi
         ;;
       toggle)
-        P=$(cat "$PHASE_FILE" 2>/dev/null || echo 0)
-        if [ "$P" -ge $(( LAST / 2 + 1 )) ]; then pin day; else pin night; fi
+        # Decide from the MODE, not the phase file. Phase records what is
+        # applied, and it can legitimately disagree with what you are looking at
+        # — most obviously when no session was running to apply it, which leaves
+        # a stale index behind. Keying off it made a click pin the side you were
+        # already on, so the first click appeared to do nothing and only worked
+        # after a right-click (auto) had resynced. From the mode this is always
+        # the opposite of what is in effect.
+        case "$MODE" in
+          night) pin day ;;
+          day)   pin night ;;
+          *)     if [ "$(${isDay})" = "1" ]; then pin night; else pin day; fi ;;
+        esac
         ;;
       reconcile)
         if ! ${systemctl} --user start --no-block century-night-schedule.service 2>/dev/null; then

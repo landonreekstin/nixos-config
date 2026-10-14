@@ -127,6 +127,33 @@ Gecko reads only at startup, so it lands on the next browser launch.
 > off in the theme rather than enabling both.
 
 
+#### Gotchas found after first live use
+
+Four bugs that only showed up once the widget and keybind were in a real session:
+
+- **rasi rejects a `@reference` INSIDE a compound value.** `highlight: bold @accent-amber;`
+  is a parse error that takes down the *entire* rofi theme — rofi then refuses to launch
+  and shows an error window. A reference as the **complete** value is fine, so the whole
+  `bold <colour>` compound lives in the variable (`hl-accent`, `hl-match`) instead.
+  **Validate any rasi change headlessly** — it needs no display and would have caught
+  this immediately:
+  ```bash
+  rofi -dump-theme -theme ~/.local/share/rofi/themes/custom.rasi
+  ```
+- **The waybar restart must be serialised.** Two restarts can legitimately overlap — a
+  toggle starting a ramp while the 5-minute reconciler is mid-re-assert — and without a
+  lock each spawns its own `waybar-start`, leaving **duplicate bars stacked on screen**.
+  It now takes an `flock`, kills any in-flight wrapper as well as the bars, waits for
+  them to actually exit, and holds the lock until the new wrapper has `exec`ed.
+- **`toggle` must decide from the MODE, not the phase file.** Phase records what was
+  *applied* and can be stale — most obviously when no session was running to apply it.
+  Keying off it made a click pin the side you were already on, so the first left-click
+  appeared to do nothing and only worked after a right-click (`auto`) had resynced.
+- **The ramp must not no-op when phase already equals target.** It used to `exit 0`
+  there, which skipped the wallpaper call further down — so an explicit request changed
+  nothing *and* left the wallpaper behind. It now applies the target once, without
+  animation, since everything it does is idempotent.
+
 ### Wallpaper engine
 
 `customConfig.desktop.hyprland.wallpaperEngine` picks the daemon, and defaults to
