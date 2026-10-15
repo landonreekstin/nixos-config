@@ -305,6 +305,39 @@ let
       # would silently fall through to plain wine, losing Proton's 32-bit D3D9 support.
       STATE_DIR="''${XDG_STATE_HOME:-$HOME/.local/state}/iw4x"
       MARKER="$STATE_DIR/last-sync"
+
+      # Why there is a cache at all.
+      #
+      # The launcher fetches its payload into `iw4x/` and `zone/dlc/`, and the IW4x client
+      # RELOCATES that payload into `main/iw4x/x86/` and `zone/iw4x/x86/dlc/` the first
+      # time it runs. On the next launch the launcher checks its own paths, finds them
+      # empty, and re-downloads ~730 MB -- every time, forever. It is never a real update;
+      # the files are right there under the client's layout.
+      #
+      # So keep a copy of what the launcher placed, and put it back before asking it to
+      # check. It then hashes files that are already current and downloads nothing, while a
+      # genuine upstream update still shows up as a hash mismatch. That turns the update
+      # check from a 730 MB download into a local copy.
+      CACHE_DIR="${cfg.installDir}.payload-cache"
+      PAYLOAD_DIRS=(iw4x zone/dlc)
+
+      restore_payload() {
+        [ -d "$CACHE_DIR" ] || return 0
+        for d in "''${PAYLOAD_DIRS[@]}"; do
+          [ -d "$CACHE_DIR/$d" ] || continue
+          mkdir -p "$INSTALL_DIR/$d"
+          # -n: never clobber. Anything already in place is at least as new as the cache.
+          cp -an "$CACHE_DIR/$d/." "$INSTALL_DIR/$d/" 2>/dev/null || true
+        done
+      }
+
+      save_payload() {
+        for d in "''${PAYLOAD_DIRS[@]}"; do
+          [ -d "$INSTALL_DIR/$d" ] || continue
+          mkdir -p "$CACHE_DIR/$d"
+          cp -a "$INSTALL_DIR/$d/." "$CACHE_DIR/$d/" 2>/dev/null || true
+        done
+      }
       MAX_AGE=${toString (cfg.updateMaxAgeHours * 3600)}
 
       FORCE_UPDATE=0
@@ -344,8 +377,12 @@ let
         # Say so up front. Launched from the menu this is several minutes of complete
         # silence otherwise, which is indistinguishable from the icon being broken --
         # exactly how this looked on 2026-09-23.
-        say "Updating IW4x -- this downloads ~730 MB and takes a few minutes."
+        # Put the payload back where the launcher expects it before it looks, so the check
+        # is a local hash rather than a download.
+        restore_payload
+        say "Checking for IW4x updates..."
         if iw4x-launcher --update --skip-self-update --path "$INSTALL_DIR" </dev/null; then
+          save_payload
           mkdir -p "$STATE_DIR"
           date +%s > "$MARKER"
         else
@@ -429,6 +466,9 @@ in
       description = ''
         Skip the IW4x update check if the last successful sync is newer than this many
         hours. 0 checks on every launch.
+
+        With the payload cache below this check is cheap -- a local copy and a hash pass,
+        no download -- so a short interval is fine.
 
         This exists because the launcher re-downloads roughly 730 MB EVERY time
         otherwise, which is a launcher/client disagreement rather than a real update:
