@@ -59,8 +59,27 @@ let
     `cutter`, `gdb`, `objdump`, `imhex`, `wine`, `objdiff`, mingw/gcc/clang, `nasm`,
     and `python3` with pwntools, capstone, keystone, unicorn, lief, pyelftools and
     rzpipe. The mingw compilers link as-is (no `-L` for mcfgthread needed) and
-    `WINEPATH` already holds the mingw runtime DLLs. Missing a tool? It belongs in
-    `~/nixos-config/modules/nixos/development/reverse-engineering.nix`.
+    `WINEPATH` already holds the mingw runtime DLLs. `SDL2` + `pkg-config` for native
+    front ends (`gcc main.c $(pkg-config --cflags --libs sdl2)`). Missing a tool? It
+    belongs in `~/nixos-config/modules/nixos/development/reverse-engineering.nix`.
+
+    ## Console / embedded ROMs (headerless, odd CPUs)
+
+    - `mame` is the reference implementation: run the original (`mame -listfull <set>`
+      to identify it), its debugger, `-debugscript`, tracing and Lua for harnesses.
+      `$MAME_SRC` is the source of that exact MAME version (drivers and chip emulation:
+      `src/mame/`, `src/devices/`).
+    - `unidasm <file> -arch <cpu>` disassembles any CPU MAME emulates (`unidasm -h`
+      lists them). Little-endian 16-bit ISAs need `-xchbytes`.
+    - `naken_asm` assembles many small ISAs (`.unsp`, `.6502`, `.msp430`, ...), for
+      checking that a reading of the code round-trips to the same bytes.
+    - Ghidra ships extra processors here: **Sunplus µ'nSP** (`unsp:LE:16:default`, SPG2xx
+      plug-and-play games; community module, incomplete). REA's raw-binary loader only
+      knows its own CPU list, so load these with Ghidra directly:
+      `ghidra-analyzeHeadless <projdir> <name> -import rom.bin -loader BinaryLoader
+      -processor unsp:LE:16:default -postScript <script>` (the project dir must not sit
+      under a dot-directory). µ'nSP space is word-addressed: use `toAddr("0x5dcd")`,
+      not a byte offset. The `ghidra` GUI has the same processors.
   '';
 
   # Real files, not home.file symlinks into the store: direnv needs to update the

@@ -25,8 +25,55 @@ let
   };
 
   # REA admits only Ghidra 12.1.x; 26.05 ships 12.0.x.
-  ghidra = pkgs.unstable.ghidra;
+  ghidraBase = pkgs.unstable.ghidra;
+
+  # Sunplus µ'nSP (SPG2xx plug-and-play TV games). Ghidra ships no processor for it.
+  # Community SLEIGH module, incomplete but usable; the .sla is compiled here because
+  # Ghidra would otherwise try to compile it on first use, inside the read-only store.
+  ghidraUnsp = ghidraBase.buildGhidraExtension {
+    pname = "ghidra-unsp";
+    version = "0-unstable-2023-07-08";
+    src = pkgs.fetchFromGitHub {
+      owner = "SamuelWAnderson45";
+      repo = "ghidra-unSP";
+      rev = "058b4cc48bf3f76bff1d0d84d8d73c26b67cc0d5";
+      hash = "sha256-LC2L5jtmIu3QJb3dtdZfle64lw6cGQr3R0eBfu6smOo=";
+    };
+    postInstall = ''
+      ext=$out/lib/ghidra/Ghidra/Extensions/ghidra-unsp
+      rm -f $ext/.dbDirLock
+      ${ghidraBase}/lib/ghidra/support/sleigh -a $ext/data/languages
+    '';
+  };
+  # withExtensions does not build a new install dir: the launchers find extensions
+  # through NIX_GHIDRAHOME, which REA's headless runs get from reaEnv below.
+  ghidra = ghidraBase.withExtensions (_: [ ghidraUnsp ]);
   jdk = pkgs.openjdk21; # what nixpkgs builds Ghidra with; REA wants a full JDK (javac)
+
+  # MAME's tools output (unidasm, chdman, romcmp, ...) links sdl2-compat, which dlopens
+  # SDL3 and does not find it. unidasm -arch unsp12 -xchbytes disassembles SPG2xx ROMs.
+  mameTools = pkgs.symlinkJoin {
+    name = "mame-tools-${pkgs.mame.version}";
+    paths = [ pkgs.mame.tools ];
+    nativeBuildInputs = [ pkgs.makeWrapper ];
+    postBuild = ''
+      for tool in $out/bin/*; do
+        wrapProgram "$tool" --prefix LD_LIBRARY_PATH : ${lib.getLib pkgs.sdl3}/lib
+      done
+    '';
+  };
+
+  # Assembler for many small ISAs incl. µ'nSP (`.unsp`), for round-tripping asm.
+  nakenAsm = pkgs.stdenv.mkDerivation {
+    pname = "naken_asm";
+    version = "0-unstable-2026-05-30";
+    src = pkgs.fetchFromGitHub {
+      owner = "mikeakohn";
+      repo = "naken_asm";
+      rev = "247c23706909f09bac77c587780b8a826bbda27c";
+      hash = "sha256-yU5wXuvjzFFtvct7/PIFlKR8nHJdT7fxI42AKox9sfc=";
+    };
+  };
 
   python = pkgs.python3.withPackages (ps: with ps; [
     pwntools       # REA's ELF layout / recorded-crash tools (REA_PWNTOOLS_PYTHON)
@@ -57,13 +104,17 @@ let
     sigrok-cli
     mitmproxy
     android-tools
+    mame           # reference emulator: debugger, tracing, Lua; covers plug-and-play/arcade targets
+    mameTools
+    nakenAsm
     jdk
     python
   ];
 
   # Every value is absolute so the server behaves the same whatever PATH Claude has.
   reaEnv = {
-    GHIDRA_INSTALL_DIR = "${ghidra}/lib/ghidra";
+    GHIDRA_INSTALL_DIR = "${ghidraBase}/lib/ghidra";
+    NIX_GHIDRAHOME = "${ghidra}/lib/ghidra/Ghidra"; # base modules + ghidra-unsp
     JAVA_HOME = "${jdk}/lib/openjdk";
     GHIDRA_HEADLESS_MAXMEM = "8G";
     REA_GHIDRA_STARTUP_TIMEOUT_MS = "900000";
@@ -146,6 +197,9 @@ let
   recompEnv = {
     WINEPATH = lib.concatStringsSep ";"
       (mingwDllDirs pkgs.pkgsCross.mingw32 ++ mingwDllDirs pkgs.pkgsCross.mingwW64);
+    # Source of the MAME packaged above, for reading drivers and chip emulation as a
+    # reference (e.g. src/devices/cpu/unsp, src/devices/machine/spg2xx*).
+    MAME_SRC = "${pkgs.mame.src}";
   };
   recompExports = lib.concatStringsSep "\n"
     (lib.mapAttrsToList (k: v: "export ${k}=${lib.escapeShellArg v}") recompEnv);
@@ -163,6 +217,8 @@ let
     gnumake
     wineWow64Packages.stable  # run original Windows binaries (32- and 64-bit) for differential tests; the cached build
     unstable.objdiff        # function-level byte diff, recompile vs original
+    SDL2          # front ends for reconstructed games (sdl2-compat, on SDL3)
+    pkg-config
     upx
     patchelf
     ltrace
@@ -255,6 +311,8 @@ let
         export PATH=${lib.makeBinPath (analysisTools ++ recompTools ++ [ rea ])}:"$PATH"
         ${reaExports}
         ${recompExports}
+        # mkShell builds this from its inputs; here only the front-end libraries need it.
+        export PKG_CONFIG_PATH=${lib.makeSearchPath "lib/pkgconfig" [ (lib.getDev pkgs.SDL2) ]}''${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}
         export DEV_ENV_NAME="reverse-engineering"
         exec claude --plugin-dir ${reaPlugin} "$@"
       }
