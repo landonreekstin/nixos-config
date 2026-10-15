@@ -29,12 +29,29 @@ automatically at sunset and back at sunrise, animated over `transitionSeconds`.
 
 ```nix
 customConfig.homeManager.themes.centurySeries.night = {
-  enable = true;          # default
-  mode = "auto";          # auto | day | night (initial seed only)
-  transitionSeconds = 90;
-  steps = 10;             # interpolation steps; 1 = effectively instant
+  enable = true;                 # default
+  mode = "auto";                 # auto | day | night (initial seed only)
+  transitionSeconds = 90;        # the ramp the SUN triggers
+  manualTransitionSeconds = 10;  # the ramp a PERSON triggers
+  steps = 10;                    # interpolation steps; 1 = effectively instant
 };
 ```
+
+**Two ramps, deliberately.** Waybar cannot be restyled gradually (see the traps below),
+so the bar crosses over exactly once, and *when* is the only lever:
+
+| Trigger | Duration | Waybar crosses |
+|---|---|---|
+| the sun | `transitionSeconds` (90) | the midpoint, so the swap sits inside the compositor fade |
+| a person | `manualTransitionSeconds` (10) | the **first step** — measured ~2s to the bar changing |
+
+Nobody is watching a sunset; someone who just clicked the widget is. Crossing at the
+midpoint of even the short ramp measured ~10s, because each step's `hyprctl` work costs
+more than the sleep between steps — shortening the ramp alone was not enough.
+
+Whoever *starts* the ramp writes `manual` or `sun` to `~/.cache/century-night-trigger`,
+because the ramp service is started identically either way and nothing inside it knows
+whether a person is waiting. `century-night now day|night` skips the ramp entirely.
 
 A `custom/century-night` waybar widget sits beside the hyprsunset one — the two are
 the layered halves of the same idea, so seeing both states together tells you which is

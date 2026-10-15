@@ -658,13 +658,27 @@ in
         #                      shell whose argv merely mentions waybar; and
         #                      `pkill -x waybar` matches nothing at all, because
         #                      the comm of the wrapped binary is .waybar-wrapped.
+        BARS=$(${pkgs.procps}/bin/pgrep -f 'bin/waybar( |$)' 2>/dev/null || true)
         ${pkgs.procps}/bin/pkill -f 'bin/waybar-start' 2>/dev/null || true
         ${pkgs.procps}/bin/pkill -f 'bin/waybar( |$)' 2>/dev/null || true
 
         # Wait for them to actually exit — a new bar that starts while the old
         # one still holds its layer surface comes up mis-sized.
+        #
+        # Wait on the PIDs we just killed, NOT on the pattern. Any process whose
+        # argv merely contains "bin/waybar " — a grep, an editor, a Claude shell
+        # — keeps a pattern re-check true and burns the whole 4s budget on every
+        # single restart, which is most of what made a manual toggle feel slow.
+        # Measured: 0.67s to kill, then nothing on screen until 5.61s.
+        # A zombie counts as gone; it holds no layer surface.
         for _ in $(${pkgs.coreutils}/bin/seq 1 40); do
-          ${pkgs.procps}/bin/pgrep -f 'bin/waybar( |$)' >/dev/null 2>&1 || break
+          alive=0
+          for p in $BARS; do
+            state=$(${pkgs.gnused}/bin/sed -e 's/.*) //' -e 's/ .*//' \
+              /proc/"$p"/stat 2>/dev/null || true)
+            [ -n "$state" ] && [ "$state" != Z ] && alive=1
+          done
+          [ "$alive" = 0 ] && break
           ${pkgs.coreutils}/bin/sleep 0.1
         done
 

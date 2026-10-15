@@ -477,7 +477,23 @@ in
         transitionSeconds = mkOption {
           type = types.int;
           default = 90;
-          description = "Wall-clock length of the animated day<->night ramp.";
+          description = ''
+            Wall-clock length of the ramp the SUN triggers. Nobody is watching
+            this one, so it is long and cinematic.
+          '';
+        };
+        manualTransitionSeconds = mkOption {
+          type = types.int;
+          default = 10;
+          description = ''
+            Wall-clock length of a ramp a PERSON triggered — the widget, the
+            keybind, or `century-night day|night|toggle`. Separate from
+            transitionSeconds because the two want opposite things: someone who
+            just clicked is waiting for feedback. A manual ramp also crosses
+            waybar over on its FIRST step rather than its midpoint, since the
+            bar can only cross once and that is the part being watched. Use
+            `century-night now day|night` to skip the ramp entirely.
+          '';
         };
         steps = mkOption {
           type = types.int;

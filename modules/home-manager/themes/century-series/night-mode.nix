@@ -71,6 +71,11 @@ let
   phaseFile = "${homeDir}/.cache/century-night-phase";
   targetFile = "${homeDir}/.cache/century-night-target";
   shaderFile = "${homeDir}/.cache/century-night-shader";
+  # Who asked for the ramp currently in flight: `manual` or `sun`. Written by
+  # the caller, because the ramp service is started identically either way and
+  # nothing inside it can tell whether a person is waiting on the result. It
+  # picks both the duration AND where waybar crosses over.
+  triggerFile = "${homeDir}/.cache/century-night-trigger";
   # Runtime dir, not ~/.cache: this warning is per-session, and a fresh session
   # is exactly what clears the condition.
   wallpaperWarnFile = "\${XDG_RUNTIME_DIR:-/tmp}/century-night-wallpaper-warned";
@@ -644,6 +649,9 @@ let
     fi
 
     echo "$TARGET" > "$TARGET_FILE"
+    # Nobody asked for this one — it is the sun crossing a boundary — so it gets
+    # the long cinematic ramp rather than whatever a previous click left behind.
+    echo sun > "${triggerFile}"
     ${systemctl} --user restart --no-block century-night-ramp.service
   '';
 
@@ -673,16 +681,31 @@ let
       exit 0
     fi
 
+    # Whoever started us left behind who asked. Default to the sun, which is the
+    # conservative side: slow and crossing over in the middle.
+    TRIG=$(cat "${triggerFile}" 2>/dev/null || echo sun)
+    case "$TRIG" in manual) DUR=${toString cfg.manualTransitionSeconds} ;;
+                    *) TRIG=sun; DUR=${toString cfg.transitionSeconds} ;; esac
+
     if [ "$TARGET" -gt "$CUR" ]; then DIR=1; N=$(( TARGET - CUR )); else DIR=-1; N=$(( CUR - TARGET )); fi
-    INTERVAL=$(${pkgs.gawk}/bin/awk -v t=${toString cfg.transitionSeconds} -v n="$N" \
+    INTERVAL=$(${pkgs.gawk}/bin/awk -v t="$DUR" -v n="$N" \
       'BEGIN { printf "%.3f", (n > 0 ? t / n : 0) }')
-    MID=$(( (CUR + TARGET) / 2 ))
+
+    # Where waybar crosses over. It can only do it ONCE (see reloadWaybar), so
+    # this is the single choice of when the bar stops lying about the palette.
+    #   sun    — the midpoint, so the swap sits inside the compositor fade and
+    #            the whole thing reads as one event. Nobody is watching.
+    #   manual — the FIRST step. Someone clicked and is waiting for the bar to
+    #            answer; at the midpoint of even the short ramp that took ~10s,
+    #            measured, because each step's hyprctl work costs more than the
+    #            sleep between steps. The compositor keeps fading underneath.
+    if [ "$TRIG" = manual ]; then CROSS=$(( CUR + DIR )); else CROSS=$(( (CUR + TARGET) / 2 )); fi
     RELOADED=0
 
     # Fire the wallpaper crossfade ONCE, up front: awww animates it itself over
     # the same wall-clock duration, so it runs alongside the compositor walk.
     if [ "$TARGET" = 0 ]; then SIDE=day; else SIDE=night; fi
-    ${wallpaperScript}/bin/century-wallpaper-apply "$SIDE" ${toString cfg.transitionSeconds} || true
+    ${wallpaperScript}/bin/century-wallpaper-apply "$SIDE" "$DUR" || true
 
     i=$CUR
     while [ "$i" != "$TARGET" ]; do
@@ -690,19 +713,17 @@ let
       # Compositor only: the interpolated part, every step.
       ${applyStep} "$i" live || true
       echo "$i" > "$PHASE_FILE"
-      # Poke the widget — but NOT on the midpoint step, which restarts the bar
+      # Poke the widget — but NOT on the crossover step, which restarts the bar
       # just below. A restart and a poke are mutually exclusive: a freshly
       # started waybar has not installed its RTMIN+17 handler yet, and an
       # unhandled realtime signal kills it.
-      if [ "$i" != "$MID" ] || [ "$RELOADED" != 0 ]; then
+      if [ "$i" != "$CROSS" ] || [ "$RELOADED" != 0 ]; then
         ${pokeWidget}
       fi
 
-      # Waybar crosses over ONCE, halfway through, straight to the target
-      # palette — a reload per step is what made both bars vanish. Doing it at
-      # the midpoint rather than at the end keeps it inside the compositor fade
-      # so the whole thing still reads as one event.
-      if [ "$i" = "$MID" ] && [ "$RELOADED" = 0 ]; then
+      # Waybar crosses over ONCE, straight to the target palette — a reload per
+      # step is what made both bars vanish.
+      if [ "$i" = "$CROSS" ] && [ "$RELOADED" = 0 ]; then
         ${applyStep} "$TARGET" files || true
         ${reloadWaybar}
         RELOADED=1
@@ -753,6 +774,8 @@ let
       ${computeTarget}
       stop_ramp
       echo "$TARGET" > "$TARGET_FILE"
+      # A person is waiting on this one: short ramp, bar crosses on step one.
+      echo manual > "${triggerFile}"
       if ! ${systemctl} --user restart --no-block century-night-ramp.service 2>/dev/null; then
         apply_now "$TARGET"
       fi
