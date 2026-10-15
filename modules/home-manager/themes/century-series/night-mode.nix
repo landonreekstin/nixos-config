@@ -576,6 +576,66 @@ let
     ${wallpaperLines}
   '';
 
+  # ---- monitor hotplug ----------------------------------------------------
+  # A monitor that is off, asleep, or simply slower than the session never gets
+  # a wallpaper at login: `awww img -o <name>` fails for an output awww does not
+  # know yet, and that failure is deliberately swallowed so the monitors that
+  # ARE up still get theirs. `resolve` cannot catch it either — a plain
+  # connector name is passed straight through without asking whether it exists.
+  # The TV is the usual victim; it wakes long after the session does.
+  #
+  # The 5-minute reconciler recovers it, but a black TV for up to five minutes
+  # after every reboot is not a fix. Hyprland announces the output on its event
+  # socket the moment it appears, so react to that and repaint in about a
+  # second. Observed 2026-10-15: booted 16:44, HDMI-A-1 still `color: 000000` at
+  # 16:49 with the single reconcile pass having run at 16:45:07.
+  monitorWatchScript = pkgs.writeShellScriptBin "century-night-monitor-watch" ''
+    set -u
+
+    # Deliberately NOT gated on $XDG_CURRENT_DESKTOP, unlike the one-shot
+    # scripts in this module. This unit is pulled in by graphical-session.target,
+    # which can be reached BEFORE hyprland/functional.nix's exec-once runs
+    # `dbus-update-activation-environment`. An env check here would therefore be
+    # a coin flip at boot, and losing it would exit 0 and leave the watcher dead
+    # for the whole session — the very class of boot race this exists to fix.
+    # The socket is the real precondition, so wait for that instead.
+    #
+    # The signature is also re-resolved every pass: it changes when Hyprland
+    # restarts, and a signature captured once would leave this polling a path
+    # that will never come back.
+    RUNTIME="''${XDG_RUNTIME_DIR:-/run/user/$(${pkgs.coreutils}/bin/id -u)}"
+
+    while true; do
+      SIG="''${HYPRLAND_INSTANCE_SIGNATURE:-}"
+      if [ -z "$SIG" ] || [ ! -S "$RUNTIME/hypr/$SIG/.socket2.sock" ]; then
+        SIG=$(${pkgs.coreutils}/bin/ls -t "$RUNTIME/hypr" 2>/dev/null | ${pkgs.coreutils}/bin/head -n1)
+      fi
+      SOCK="$RUNTIME/hypr/$SIG/.socket2.sock"
+      if [ -z "$SIG" ] || [ ! -S "$SOCK" ]; then ${pkgs.coreutils}/bin/sleep 5; continue; fi
+      ${pkgs.socat}/bin/socat -U - UNIX-CONNECT:"$SOCK" 2>/dev/null \
+        | while IFS= read -r line; do
+        case "$line" in
+          monitoradded*)
+            # Let Hyprland finish bringing the output up and awww notice it.
+            ${pkgs.coreutils}/bin/sleep 1
+            PHASE=$(${pkgs.coreutils}/bin/cat "${phaseFile}" 2>/dev/null || echo 0)
+            if [ "$PHASE" = 0 ]; then SIDE=day; else SIDE=night; fi
+            # Hand down the session context we just proved. The applier bails
+            # out on a missing XDG_CURRENT_DESKTOP, and resolves `desc:`
+            # identifiers with hyprctl, which needs the signature — neither is
+            # guaranteed to be in this unit's environment at boot, which would
+            # make the applier a silent no-op exactly when it is needed.
+            # Idempotent: every output already showing the right image is
+            # skipped, so this repaints only the one that just arrived.
+            XDG_CURRENT_DESKTOP=Hyprland HYPRLAND_INSTANCE_SIGNATURE="$SIG" \
+              ${wallpaperScript}/bin/century-wallpaper-apply "$SIDE" 0 || true
+            ;;
+        esac
+      done
+      ${pkgs.coreutils}/bin/sleep 2
+    done
+  '';
+
   # ---- shared shell fragments ---------------------------------------------
   readState = ''
     STATE_FILE="${stateFile}"
@@ -908,6 +968,22 @@ in {
         # would vanish. Same reasoning as hyprsunset-transition.service.
         KillMode = "process";
       };
+    };
+
+    systemd.user.services.century-night-monitor-watch = {
+      Unit = {
+        Description = "Re-apply century-series wallpapers when a monitor appears";
+        PartOf = [ "graphical-session.target" ];
+      };
+      Service = {
+        ExecStart = "${monitorWatchScript}/bin/century-night-monitor-watch";
+        # The watcher follows the compositor's event socket; if Hyprland goes
+        # away the socat pipeline ends, the script's own loop retries, and a
+        # hard failure still gets picked up rather than silently staying dead.
+        Restart = "on-failure";
+        RestartSec = 5;
+      };
+      Install.WantedBy = [ "graphical-session.target" ];
     };
 
     systemd.user.timers.century-night-schedule = {
