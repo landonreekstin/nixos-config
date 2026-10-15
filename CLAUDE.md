@@ -27,6 +27,7 @@ in `docs/` — read the matching file when the task calls for it:
 | [docs/subtitles.md](docs/subtitles.md) | subtitles for Jellyfin, Bazarr config/providers, or the `bazarr-provision` unit |
 | [docs/music.md](docs/music.md) | anything music: Lidarr, Navidrome, Ombi requests, slskd/Soulseek, or the `soularr` bridge |
 | [docs/parallel-sessions.md](docs/parallel-sessions.md) | another session is working on this config at the same time, or a `rebuild` was REFUSED because another worktree owns the live system |
+| [docs/reverse-engineering.md](docs/reverse-engineering.md) | REA / Ghidra, the `re` launcher or `~/reverse-engineering` workspace, or bumping the pinned `rea-agents` version |
 
 ## Choosing the Right Host to Work On
 

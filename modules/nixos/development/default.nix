@@ -11,5 +11,6 @@
     ./emulation.nix
     ./vibe-python.nix
     ./vibe-web.nix
+    ./reverse-engineering.nix
   ];
 }
