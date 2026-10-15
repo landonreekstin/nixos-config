@@ -38,6 +38,18 @@ in
           lib.genAttrs cfg.packages.unstable-override (p: final.unstable.${p})
         )
 
+        # --- claude-code from unstable: keep its alsa-lib on stable ---
+        # The claude-code wrapper prefixes LD_LIBRARY_PATH with alsa-lib, and every
+        # command a Claude session runs inherits it. From unstable that alsa-lib needs
+        # unstable's newer glibc, so any stable binary that loads libasound from a
+        # Claude session (mame, wine audio, SDL front ends) dies with
+        # "GLIBC_2.43 not found". glibc is backward compatible, so stable's alsa-lib
+        # loads fine into the unstable claude-code and into everything it spawns.
+        (final: prev:
+          lib.optionalAttrs (lib.elem "claude-code" cfg.packages.unstable-override) {
+            claude-code = prev.claude-code.override { alsa-lib = prev.alsa-lib; };
+          })
+
         # --- signal-desktop version floor ---
         # Signal's on-disk database only moves forward: opening it with a newer
         # release migrates ~/.config/Signal to a higher schema, and older builds
