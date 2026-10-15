@@ -12,6 +12,10 @@ let
   hasVpnClient = customConfig.services.wireguard.client.enable;
   hasWeather = customConfig.desktop.hyprland.weather.enable;
   hasHyprsunset = customConfig.homeManager.services.hyprsunset.enable;
+  # The widget calls `century-night`, which only exists when the century-series
+  # theme is active AND its night mode is on.
+  hasCenturyNight = customConfig.homeManager.themes.hyprland == "century-series"
+    && customConfig.homeManager.themes.centurySeries.night.enable;
   hyprsunsetDayTemp = toString customConfig.homeManager.services.hyprsunset.dayTemp;
   systemctlUser = "${pkgs.systemd}/bin/systemctl --user";
   # The same day/night predicate the schedule timer uses, so the widget and the
@@ -476,6 +480,7 @@ in
               ++ lib.optionals hasBattery [ "battery" ]
               ++ lib.optionals hasWeather [ "custom/weather" ]
               ++ lib.optionals hasHyprsunset [ "custom/hyprsunset" ]
+              ++ lib.optionals hasCenturyNight [ "custom/century-night" ]
               ++ [
               "custom/audio-sink"
               "cpu"
@@ -538,6 +543,21 @@ in
             on-scroll-up = "${gammastepAdjustScript} up";
             on-scroll-down = "${gammastepAdjustScript} down";
             smooth-scrolling-threshold = 1;
+          };
+
+          # century-series day/night palette. Sits next to the hyprsunset widget
+          # on purpose: the two are the layered halves of the same idea, and
+          # seeing both states side by side is how you tell which one is
+          # responsible for what you are looking at.
+          "custom/century-night" = lib.mkIf hasCenturyNight {
+            exec = "century-night json";
+            return-type = "json";
+            # The switcher pokes RTMIN+17 on every phase change, so the interval
+            # is only a safety net for a missed signal.
+            interval = 300;
+            signal = 17;
+            on-click = "century-night toggle";
+            on-click-right = "century-night auto";
           };
 
           battery = lib.mkIf hasBattery {

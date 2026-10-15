@@ -83,4 +83,25 @@
     [ -n "$CMD_PIPE" ] && echo "rgb $SCALED" > "$CMD_PIPE"
     pkill -RTMIN+14 waybar 2>/dev/null || true
   '';
+
+  # Apply whatever is already in the state file, changing nothing. Used by
+  # night mode, which writes the index it wants and then needs the keyboard to
+  # catch up — the cycle script can't be reused because it advances first.
+  applyCurrentScript = pkgs.writeShellScript "ckb-apply-current" ''
+    COLORS=("39ff14" "ff7a1a" "cc0000" "00c8b4")
+    STATE_FILE="$HOME/.cache/ckb-color-state"
+    [ ! -f "$STATE_FILE" ] && exit 0
+    STATE=$(cat "$STATE_FILE")
+    IDX="''${STATE%%:*}"
+    BRIGHT="''${STATE##*:}"
+    [[ "$IDX" =~ ^[0-3]$ ]]         || IDX=0
+    [[ "$BRIGHT" =~ ^[0-9]+$ ]] && [ "$BRIGHT" -le 100 ] || BRIGHT=80
+    COLOR="''${COLORS[$IDX]}"
+    R=$(( 0x''${COLOR:0:2} * BRIGHT / 100 ))
+    G=$(( 0x''${COLOR:2:2} * BRIGHT / 100 ))
+    B=$(( 0x''${COLOR:4:2} * BRIGHT / 100 ))
+    SCALED=$(printf "%02x%02x%02x" "$R" "$G" "$B")
+    CMD_PIPE=$(ls /dev/input/ckb*/cmd 2>/dev/null | grep -v '/ckb0/' | head -1)
+    [ -n "$CMD_PIPE" ] && echo "rgb $SCALED" > "$CMD_PIPE"
+  '';
 }
