@@ -983,7 +983,12 @@ in {
         Restart = "on-failure";
         RestartSec = 5;
       };
-      Install.WantedBy = [ "graphical-session.target" ];
+      # NOT WantedBy graphical-session.target: this machine never reaches it
+      # (Hyprland runs with systemd.enable = false), so such a unit is simply
+      # never started — which is how ckb-next-set-lighting.service came to be
+      # dead at every boot. The theme's hyprland.nix starts this from exec-once
+      # instead, matching services/swayidle.nix.
+      Install.WantedBy = [ ];
     };
 
     systemd.user.timers.century-night-schedule = {

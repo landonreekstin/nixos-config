@@ -75,14 +75,21 @@ let
   # Color palette must stay in sync with century-series/ckb-scripts.nix:
   #   0=39ff14 (RADAR), 1=ff7a1a (AMBER), 2=cc0000 (RED), 3=00c8b4 (MIG)
   ckbLightingScript = pkgs.writeShellScript "ckb-next-set-lighting" ''
-    # Wait for the ckb-next GUI to start (max 30s, 300ms polling).
+    # Wait for the ckb-next GUI to start (max 120s, 300ms polling).
     # NixOS wraps binaries so the process comm is ".ckb-next-wrapp", not "ckb-next".
     # Use pgrep -a (full cmdline) and exclude the daemon to detect the GUI.
+    #
+    # The budget is generous because this unit is pulled in by default.target,
+    # which the user manager reaches as soon as the session starts — long before
+    # the compositor has launched the GUI. Measured on gaming-pc: boot 17:05:00,
+    # ckb daemon 17:05:16, GUI only 17:05:39. The old 30s budget was a coin flip
+    # against that, and falling through early means applying to a device node
+    # that does not exist yet.
     i=0
     while ! ${pkgs.procps}/bin/pgrep -a ckb-next | grep -qv daemon; do
       sleep 0.3
       i=$((i + 1))
-      if [ "$i" -ge 100 ]; then break; fi  # fall through if GUI not running
+      if [ "$i" -ge 400 ]; then break; fi  # fall through if GUI not running
     done
     # The GUI appears well before it has restored its profile, and a single
     # override cannot win that race. ckb-next PERSISTS whatever colour was last
@@ -243,12 +250,23 @@ in
     };
 
     # === User-level service to apply declarative lighting after session starts ===
-    # Fires at graphical-session.target; the script waits for the ckb-next GUI
-    # to appear and load its saved profile before overriding with the declared color.
+    # The script waits for the ckb-next GUI to appear and load its saved profile,
+    # then re-asserts the declared colour over it.
+    #
+    # default.target, NOT graphical-session.target. Hyprland here runs with
+    # systemd.enable = false and nothing ever activates graphical-session.target,
+    # so this unit had never run at ANY boot — which is why the keyboard simply
+    # kept whatever colour ckb-next had persisted, no matter what the state file
+    # (and waybar) said. Verified 2026-10-15: `systemctl --user is-active
+    # graphical-session.target` => inactive, and the unit had no journal entries
+    # for the boot. services/swayidle.nix hit this first and documents it.
+    #
+    # default.target rather than a Hyprland exec-once because the keyboard should
+    # light up in a KDE session too; the script's own GUI wait covers the fact
+    # that this target is reached long before any compositor.
     systemd.user.services.ckb-next-set-lighting = lib.mkIf cfg.ckb-next.enable {
       description = "Apply ckb-next keyboard color after graphical session starts";
-      wantedBy = [ "graphical-session.target" ];
-      after = [ "graphical-session.target" ];
+      wantedBy = [ "default.target" ];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = ckbLightingScript;

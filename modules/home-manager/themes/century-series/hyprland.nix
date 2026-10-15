@@ -249,6 +249,13 @@ in {
         # to know this theme has a night mode.
         exec-once = century-night init
 
+        # Start the monitor-hotplug watcher explicitly, the same way
+        # services/swayidle.nix does and for the same reason: this machine never
+        # reaches graphical-session.target, so a unit that is only WantedBy that
+        # target silently never runs. ckb-next-set-lighting.service had been
+        # dead at every single boot for exactly this reason.
+        exec-once = systemctl --user start century-night-monitor-watch
+
         # Toolkit theming
         env = QT_QPA_PLATFORMTHEME,qt5ct
         env = QT_STYLE_OVERRIDE,adwaita-dark
