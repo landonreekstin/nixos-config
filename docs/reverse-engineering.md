@@ -61,6 +61,25 @@ Ghidra comes from `pkgs.unstable`: REA admits **only Ghidra 12.1.x**, and 26.05 
 - Byte-exact recompilation needs the original's compiler. mingw/gcc/clang are here;
   old MSVC/Borland/Watcom are not.
 
+## Console and embedded ROMs
+
+For headerless ROMs on CPUs REA does not know (first case: the JAKKS Pacific *Batman* TV
+game, Sunplus SPG2xx / µ'nSP):
+
+| Tool | Role |
+|---|---|
+| `mame` | reference emulator for the original (debugger, tracing, Lua); `MAME_SRC` = its source |
+| `unidasm` (+ chdman, romcmp, ...) | MAME's disassembler for every CPU it emulates. Wrapped: `pkgs.mame.tools` links sdl2-compat, which cannot find SDL3 on its own |
+| `naken_asm` | assembler for many small ISAs; packaged here (not in nixpkgs) |
+| Ghidra `ghidra-unsp` | community SLEIGH module ([SamuelWAnderson45/ghidra-unSP](https://github.com/SamuelWAnderson45/ghidra-unSP)), `.sla` precompiled at build time |
+
+Ghidra extensions: `ghidra.withExtensions` builds no new install dir, it sets
+`NIX_GHIDRAHOME` in its launchers. REA runs `$GHIDRA_INSTALL_DIR/support/analyzeHeadless`
+itself, so `reaEnv` exports `NIX_GHIDRAHOME` too (`launch.sh` only *defaults* it).
+REA's `--target-format raw-binary` accepts only its own architecture list, and
+`REA_GHIDRA_LANGUAGE_ID` does not get a headerless file past its format check, so
+µ'nSP work goes through `ghidra-analyzeHeadless` directly.
+
 ## mingw outside `nix develop`
 
 The nixpkgs mingw gcc uses mcfgthread as its thread model and only finds its headers and
