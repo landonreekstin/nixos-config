@@ -8,5 +8,6 @@
     ./cpp-practice.nix
     ./emulation.nix
     ./vibe-projects.nix
+    ./reverse-engineering.nix
   ];
 }

@@ -313,6 +313,9 @@
       vibe-python = referenceHostConfig.customConfig.profiles.development.vibe-python.devShell;
 
       vibe-web = referenceHostConfig.customConfig.profiles.development.vibe-web.devShell;
+
+      # ~/reverse-engineering workspace (REA + recompilation toolchains).
+      reverse-engineering = referenceHostConfig.customConfig.profiles.development.reverse-engineering.devShell;
     };
 
   };
