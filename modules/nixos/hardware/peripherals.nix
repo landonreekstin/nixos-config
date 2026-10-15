@@ -84,32 +84,57 @@ let
       i=$((i + 1))
       if [ "$i" -ge 100 ]; then break; fi  # fall through if GUI not running
     done
-    # Wait for the GUI to finish connecting to the daemon and restoring its profile.
-    # The process appears quickly but profile restoration takes a few seconds.
-    sleep 6
-
+    # The GUI appears well before it has restored its profile, and a single
+    # override cannot win that race. ckb-next PERSISTS whatever colour was last
+    # applied, so at every boot the GUI restores the PREVIOUS session's colour --
+    # after a night-mode session that is red -- and whichever of us writes last
+    # wins. Observed 2026-10-15: daemon up at 16:44:45, GUI only at 16:45:10, we
+    # applied green ~6s later, the GUI's restore landed after that and the
+    # keyboard sat on red while ~/.cache/ckb-color-state (and so waybar) said
+    # RADAR green.
+    #
+    # So re-assert instead of applying once. The state file is re-read every
+    # pass, which is what keeps this from fighting the user: a SUPER+CTRL+K
+    # cycle during the window writes the state file and the next pass carries
+    # that colour, not the one we started with. Writing the same rgb value
+    # repeatedly is invisible, so the only cost is a pipe write every 2s for
+    # half a minute after login.
     COLORS=("39ff14" "ff7a1a" "cc0000" "00c8b4")
     STATE_FILE="$HOME/.cache/ckb-color-state"
-    [ ! -f "$STATE_FILE" ] && echo "0:80" > "$STATE_FILE"
-    STATE=$(cat "$STATE_FILE")
-    IDX="''${STATE%%:*}"
-    BRIGHT="''${STATE##*:}"
-    [[ "$IDX" =~ ^[0-3]$ ]]         || IDX=0
-    [[ "$BRIGHT" =~ ^[0-9]+$ ]] && [ "$BRIGHT" -le 100 ] || BRIGHT=80
 
-    CMD_PIPE=$(ls /dev/input/ckb*/cmd 2>/dev/null | grep -v '/ckb0/' | head -1)
-    if [ -z "$CMD_PIPE" ]; then
+    apply_state() {
+      [ ! -f "$STATE_FILE" ] && echo "0:80" > "$STATE_FILE"
+      STATE=$(cat "$STATE_FILE")
+      IDX="''${STATE%%:*}"
+      BRIGHT="''${STATE##*:}"
+      [[ "$IDX" =~ ^[0-3]$ ]]         || IDX=0
+      [[ "$BRIGHT" =~ ^[0-9]+$ ]] && [ "$BRIGHT" -le 100 ] || BRIGHT=80
+
+      # Resolved every pass: the device node can appear after we start, and it
+      # changes if the keyboard is replugged.
+      CMD_PIPE=$(ls /dev/input/ckb*/cmd 2>/dev/null | grep -v '/ckb0/' | head -1)
+      [ -z "$CMD_PIPE" ] && return 1
+
+      # Scale each RGB channel by brightness (avoids relying on the `brightness`
+      # CMD pipe command which is unreliable after an `rgb` command).
+      COLOR="''${COLORS[$IDX]}"
+      R=$(( 0x''${COLOR:0:2} * BRIGHT / 100 ))
+      G=$(( 0x''${COLOR:2:2} * BRIGHT / 100 ))
+      B=$(( 0x''${COLOR:4:2} * BRIGHT / 100 ))
+      SCALED=$(printf "%02x%02x%02x" "$R" "$G" "$B")
+      echo "rgb $SCALED" > "$CMD_PIPE"
+    }
+
+    APPLIED=0
+    for _ in $(seq 1 16); do
+      if apply_state; then APPLIED=1; fi
+      sleep 2
+    done
+
+    if [ "$APPLIED" = 0 ]; then
       echo "ckb-next-set-lighting: no device cmd pipe found" >&2
       exit 1
     fi
-    # Scale each RGB channel by brightness (avoids relying on the `brightness`
-    # CMD pipe command which is unreliable after an `rgb` command).
-    COLOR="''${COLORS[$IDX]}"
-    R=$(( 0x''${COLOR:0:2} * BRIGHT / 100 ))
-    G=$(( 0x''${COLOR:2:2} * BRIGHT / 100 ))
-    B=$(( 0x''${COLOR:4:2} * BRIGHT / 100 ))
-    SCALED=$(printf "%02x%02x%02x" "$R" "$G" "$B")
-    echo "rgb $SCALED" > "$CMD_PIPE"
   '';
 
 in
