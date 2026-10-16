@@ -76,6 +76,7 @@ language choice belongs to the session, after it knows what the app is for.
 | **The rules** (`~/projects/CLAUDE.md`) + `~/projects/README.md` | `modules/home-manager/development/vibe-projects.nix` |
 | The language toolchains | `modules/nixos/development/vibe-python.nix`, `vibe-web.nix` |
 | Enabled for the host | `hosts/blaney-pc/{apps,profiles}.nix`, mirrored in `hosts/vm-blaney/` |
+| Reverse-engineering mode (REA launcher, scaffold, shared RE rules) | `modules/nixos/development/reverse-engineering.nix`, `modules/home-manager/development/reverse-engineering-rules.nix` — see [below](#reverse-engineering-projects) |
 
 `vibe-prepare` is a root-only store script, never advertised in `blaney-help`, that `vibe`
 calls once per launch via `sudo`. It does two things that need root and are best done in a
@@ -94,6 +95,49 @@ lando's. Anything that wants Blaney in a vibe project has to **tell him to type 
 which is the one place handing him a command is correct: it is the entry point to a
 different session, not a chore being offloaded. `docs/runbooks/blaney/06-build-your-first-app.md`
 is written that way.
+
+## Reverse-engineering projects
+
+Where `customConfig.profiles.development.reverse-engineering.enable` is on (blaney-pc),
+`vibe` offers a third choice: **take apart a program or game**. It is the `re` setup from
+[reverse-engineering.md](../reverse-engineering.md) (REA's MCP server and skill, Ghidra,
+MAME, wine, the mingw compilers) applied to a vibe project, with every vibe rule unchanged.
+On a host without the profile, the menu has no third entry and `vibe`'s closure holds no
+RE store paths.
+
+- **Same directory, different marker.** An RE project is `~/projects/<slug>` with
+  `kind=re` (and `shell=reverse-engineering`) in `.vibe-project`. Keeping it under
+  `~/projects` is the point: `~/projects/CLAUDE.md` is the file parent discovery already
+  loads on every session, `-c`/`-r` included. The RE rules are a section at the end of that
+  file, emitted only when the profile is on and scoped to `kind=re` projects. The second
+  half of that section is `reverse-engineering-rules.nix`, the same text lando's
+  `~/reverse-engineering/CLAUDE.md` uses, so the two cannot drift. The pick list labels
+  these projects `(taking apart)`.
+- **Every launch goes through the launcher, resumed chats included.** The
+  `reverse-engineering.launcher` option is the `re-claude` store script that `re` itself
+  now execs. It puts the toolchain on PATH, exports `reaEnv`, and runs
+  `claude --plugin-dir <rea plugin>`. `vibe` calls `sudo <launcher> [-c|-r|prompt]`. The
+  wrapper has to run *after* sudo because sudo's `env_reset` would drop `GHIDRA_INSTALL_DIR`
+  and the rest. A plain `sudo claude -c` in an RE project would resume the chat with no REA
+  tools.
+- **The layout comes from `re`'s own scaffold.** `reverse-engineering.scaffold`
+  (`re-scaffold <dir>`) creates `target/ notes/ evidence/ recomp/ tests/`, the
+  target-ignoring `.gitignore` and `recomp/Makefile`. `vibe` then appends its own
+  `.gitignore` lines and writes its own CLAUDE.md template.
+- **Targets run as him, not root.** On gaming-pc RE sessions run as lando on purpose,
+  because REA executes and debugs the binaries under study. Here the session must be root,
+  since his Claude login only exists for root. So the rules require every target, `wine`,
+  `mame` or reconstruction test to run as `runuser -u insideabush -- <cmd>`. runuser keeps
+  PATH and `WINEPATH` (checked) and gives the command his HOME, so a wine prefix lands in
+  his home. **Residual risk:** REA's own dynamic tools (gdb and so on) still run as root.
+- **`workspace.enable = false` on blaney-pc.** That hides `re` and does not create
+  `~/reverse-engineering`. `re` runs Claude without sudo, where he has no login, and the
+  workspace rules talk about lando's setup. Ghidra, Cutter, ImHex and `rea` stay installed.
+
+Everything the profile pulls in is in cache.nixos.org (checked when this was added: mame,
+mame.tools, unstable ghidra/unblob/objdiff, both mingw gccs, mcfgthreads, wine, cutter,
+imhex, jadx). Only small local derivations build on blaney-pc: ghidra-unsp, naken_asm and
+the wrappers.
 
 ## Adding a language toolchain
 

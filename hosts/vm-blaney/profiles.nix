@@ -10,5 +10,12 @@
     # Mirrors blaney-pc so the `vibe` command can be exercised in this VM.
     development.vibe-python.enable = true;
     development.vibe-web.enable = true;
+    # REA for the "take apart a program or game" projects in `vibe`. Only the tools:
+    # `re` and ~/reverse-engineering run Claude without sudo, and his Claude login is
+    # root's. See docs/hosts/blaney-vibe-projects.md.
+    development.reverse-engineering = {
+      enable = true;
+      workspace.enable = false;
+    };
   };
 }

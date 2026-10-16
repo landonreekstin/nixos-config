@@ -9,6 +9,46 @@ let
   projectsDir = cfg.dir;
   userDirenv = "/etc/profiles/per-user/${userName}/bin/direnv";
   shellList = lib.concatStringsSep ", " cfg.shells;
+  reEnabled = customConfig.profiles.development.reverse-engineering.enable;
+
+  # Rules for the reverse-engineering projects `vibe` offers where the REA profile is on.
+  # They live in this same file rather than one of their own because this is the file
+  # parent discovery is already proven to load, on every session including `-c`/`-r`.
+  # The body after the vibe-specific part is shared with lando's ~/reverse-engineering
+  # workspace, so the two never drift apart.
+  reRulesText = ''
+
+    ## Reverse-engineering projects (`kind=re` in `.vibe-project`)
+
+    This section applies **only** to projects whose `.vibe-project` has `kind=re`. In
+    those, ${userName} is taking an existing program or game apart to see how it works,
+    change it, or rebuild it. Everything above still applies; this adds to it.
+
+    - **`vibe` opened this session with REA loaded**: its MCP tools and the
+      `reverse-engineer-anything` skill, plus every tool listed below on PATH. Do not use
+      `nix develop` for them, and do not run `rea setup`. If REA's tools are missing, tell
+      him in one sentence to close this and open the project again through `vibe`.
+    - **He decides what to look at and what the result should do or look like.** You
+      decide how. Explain what you find in plain English — what a piece of the program
+      does, not its addresses and registers — and keep the technical detail in `notes/`.
+    - The original program goes in `target/`, which is gitignored. **Never commit it**:
+      it is someone else's code. Copy it there yourself when he tells you where it is.
+    - Everything in this project is still committed to `main` freely, like an app.
+
+    Everything from here to the end of this file is about reverse-engineering projects
+    only.
+
+  '' + import ./reverse-engineering-rules.nix {
+    runTargetRule = ''
+      - **Never run a target as root.** This session is root, and the program being
+        taken apart may be hostile. Run every target — and `wine`, `mame`, or a test of
+        the reconstruction — as him: `runuser -u ${userName} -- <command>`. Prefer
+        reading the code to running it, and never run something outside a test you set up
+        on purpose.'';
+    missingToolRule = ''
+      If a tool is missing, do not install anything; tell him in one sentence to close
+      this and run `ccn` to ask for it.'';
+  };
 
   # THE rules for any Claude session in a vibe project, and the reason they live one
   # directory ABOVE the projects: Claude Code collects CLAUDE.md from the working
@@ -138,7 +178,7 @@ let
       covers; if that is impossible, say so and point him at `ccn`.
     - Keep anything long in the project's `docs/` folder, and keep its `CLAUDE.md` current.
       A future session starts by reading them.
-  '';
+  '' + lib.optionalString reEnabled reRulesText;
 
   readmeText = ''
     # Your apps
@@ -151,6 +191,11 @@ let
         vibe
 
     It gives you a numbered list — pick a number and Claude opens on that app.
+  '' + lib.optionalString reEnabled ''
+
+    The same list also lets you take apart a program or game someone else made, to see
+    how it works or to change it. Those projects live in here too.
+  '' + ''
 
     Don't rename or move the folders in here by hand: `vibe` finds your apps by looking for
     a small `.vibe-project` file inside each one, and Claude's saved chats are remembered
