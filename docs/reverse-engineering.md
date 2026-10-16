@@ -34,6 +34,13 @@ don't use it.** Instead:
 | REA plugin | a store-path Claude Code plugin: `.mcp.json` running `rea mcp`, and the `reverse-engineer-anything` skill copied from the **same npm tarball**. |
 | `re` | launcher: `cd` into the project, put engines + recomp toolchains on PATH, `exec claude --plugin-dir <plugin>`. Only these sessions see REA's ~150 tools. |
 | dev shell | `nix develop ~/nixos-config#reverse-engineering`, or direnv in `~/reverse-engineering`. Same tools and env as `re`, for working without Claude. |
+| `launcher` / `scaffold` | read-only internal options: the `re-claude` script (env + `exec claude --plugin-dir …`) and `re-scaffold <dir>` (project layout). `re` uses both, and so does the reverse-engineering mode of Blaney's `vibe` — see [hosts/blaney-vibe-projects.md](hosts/blaney-vibe-projects.md#reverse-engineering-projects). |
+
+`workspace.enable` (default `true`) gates `re` and the `~/reverse-engineering` workspace.
+blaney-pc sets it `false`: there REA is reached only through `vibe`. The project rules are
+split between `modules/home-manager/development/reverse-engineering-rules.nix`, which is
+shared with `vibe`'s `~/projects/CLAUDE.md`, and the `re`-specific header in
+`reverse-engineering.nix`.
 
 Why not `buildNpmPackage`: REA's build is a turbo pipeline with prebuilt node-pty /
 frida addons. The npx pin is REA's own recommended MCP registration and mirrors how

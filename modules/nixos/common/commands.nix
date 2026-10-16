@@ -952,6 +952,7 @@ in
 
       BUILD YOUR OWN APPS
         vibe                   Start a new app of your own, or carry on with one
+                               (also: take apart a program or game)
 
       OTHER
         rebuild-test   Try a rebuild temporarily (undone on reboot)

@@ -273,6 +273,31 @@ let
     .PHONY: clean
   '';
 
+  # Every entry point into a REA session goes through this: `re` below, and the
+  # reverse-engineering mode of `vibe` (modules/nixos/programs/vibe-projects.nix). Its own
+  # store script rather than a function inside `re` because `vibe` runs it under `sudo`,
+  # which resets the environment — the exports have to happen after sudo, not before.
+  launcher = pkgs.writeShellScript "re-claude" ''
+    # Same env as the dev shell, without the nix-develop round trip.
+    export PATH=${lib.makeBinPath (analysisTools ++ recompTools ++ [ rea ])}:"$PATH"
+    ${reaExports}
+    ${recompExports}
+    # mkShell builds this from its inputs; here only the front-end libraries need it.
+    export PKG_CONFIG_PATH=${lib.makeSearchPath "lib/pkgconfig" [ (lib.getDev pkgs.SDL2) ]}''${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}
+    export DEV_ENV_NAME="reverse-engineering"
+    exec claude --plugin-dir ${reaPlugin} "$@"
+  '';
+
+  # Lays out a project directory. Shared with `vibe` for the same reason as `launcher`;
+  # each caller writes its own CLAUDE.md and runs its own `git init`.
+  scaffold = pkgs.writeShellScript "re-scaffold" ''
+    set -eu
+    dir="$1"
+    mkdir -p "$dir"/target "$dir"/notes "$dir"/evidence "$dir"/recomp/src "$dir"/tests
+    install -m 644 ${projectGitignore} "$dir/.gitignore"
+    install -m 644 ${projectMakefile} "$dir/recomp/Makefile"
+  '';
+
   re = pkgs.writeShellApplication {
     name = "re";
     runtimeInputs = with pkgs; [ coreutils git findutils ];
@@ -295,10 +320,8 @@ let
           echo "re: project names are letters, digits, '.', '_' and '-' only" >&2; exit 1
         fi
         if [ -e "$dir" ]; then echo "re: $dir already exists" >&2; exit 1; fi
-        mkdir -p "$dir"/{target,notes,evidence,recomp/src,tests}
-        install -m 644 ${projectGitignore} "$dir/.gitignore"
+        ${scaffold} "$dir"
         install -m 644 ${projectClaudeMd} "$dir/CLAUDE.md"
-        install -m 644 ${projectMakefile} "$dir/recomp/Makefile"
         git -C "$dir" init -q -b main
         echo "Created $dir — put the binary you want to study in $dir/target/"
       }
@@ -307,14 +330,7 @@ let
         local dir="$ws/$1"; shift
         if [ ! -d "$dir" ]; then echo "re: no project '$1' in $ws (re new <name>)" >&2; exit 1; fi
         cd "$dir"
-        # Same env as the dev shell, without the nix-develop round trip.
-        export PATH=${lib.makeBinPath (analysisTools ++ recompTools ++ [ rea ])}:"$PATH"
-        ${reaExports}
-        ${recompExports}
-        # mkShell builds this from its inputs; here only the front-end libraries need it.
-        export PKG_CONFIG_PATH=${lib.makeSearchPath "lib/pkgconfig" [ (lib.getDev pkgs.SDL2) ]}''${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}
-        export DEV_ENV_NAME="reverse-engineering"
-        exec claude --plugin-dir ${reaPlugin} "$@"
+        exec ${launcher} "$@"
       }
 
       projects() { find "$ws" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -printf '%f\n' | sort; }
@@ -364,14 +380,41 @@ in
     '';
   };
 
+  options.customConfig.profiles.development.reverse-engineering.workspace.enable = with lib; mkOption {
+    type = types.bool;
+    default = true;
+    description = ''
+      Install the `re` command and create the ~/reverse-engineering workspace. Turn this
+      off where REA is only reached through `vibe` (blaney-pc): `re` runs Claude without
+      sudo, and that user's Claude login exists only for root.
+    '';
+  };
+
+  # Read-only hooks for `vibe` (modules/nixos/programs/vibe-projects.nix), so its
+  # reverse-engineering projects open in exactly the environment `re` sets up.
+  options.customConfig.profiles.development.reverse-engineering.launcher = lib.mkOption {
+    type = lib.types.package;
+    internal = true;
+    readOnly = true;
+    default = launcher;
+    description = "`claude` wrapper with REA's plugin, engines and recomp toolchains.";
+  };
+
+  options.customConfig.profiles.development.reverse-engineering.scaffold = lib.mkOption {
+    type = lib.types.package;
+    internal = true;
+    readOnly = true;
+    default = scaffold;
+    description = "Script that lays out a reverse-engineering project directory.";
+  };
+
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [
       rea
-      re
       ghidra      # GUI, for looking at what REA found by hand
       pkgs.cutter
       pkgs.imhex
-    ];
+    ] ++ lib.optional cfg.workspace.enable re;
 
     customConfig.profiles.development.reverse-engineering.devShell = pkgs.mkShell {
       name = "reverse-engineering";

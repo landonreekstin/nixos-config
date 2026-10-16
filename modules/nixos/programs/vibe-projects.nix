@@ -10,6 +10,12 @@ let
   configDir = "${cfg.user.home}/nixos-config";
   projectsDir = vibeCfg.dir;
 
+  # Reverse-engineering projects ("take apart a program or game") are offered only where
+  # the REA profile is on. Every reference to its store paths sits behind this flag, so a
+  # host without it does not pull Ghidra and friends into its closure through `vibe`.
+  reCfg = cfg.profiles.development.reverse-engineering;
+  reEnabled = reCfg.enable;
+
   # --- Text assets -----------------------------------------------------------------
   # Every multi-line text below is a writeText store file that the script `cat`s or
   # `install`s, not a heredoc inside the script. `blaney-todo` builds its prompt with an
@@ -42,6 +48,29 @@ let
 
     *(Fill this in: the language and why, how the files are laid out, how to run it, how to
     test it. Record the dev shell on the `shell=` line of `.vibe-project` too.)*
+  '';
+
+  # The reverse-engineering counterpart. The "Reverse-engineering projects" section of
+  # ../CLAUDE.md is what applies here; it is selected by `kind=re` in .vibe-project.
+  reProjectClaudeMd = pkgs.writeText "vibe-re-project-CLAUDE.md" ''
+    *Created by the `vibe` command as a reverse-engineering project (`kind=re` in
+    `.vibe-project`). Keep the two sections below current — a future session starts by
+    reading them.*
+
+    > **The rules for working here are in `../CLAUDE.md`** (one directory up), including
+    > its "Reverse-engineering projects" section. They are loaded automatically; if for any
+    > reason they are not in your context, read that file before doing anything else.
+
+    ## What we're taking apart
+
+    *(Fill this in: the program or game in `target/`, where he got it, its SHA-256, and
+    what he wants out of it — to understand how it works, to change something, or to
+    rebuild it. That last part is his call.)*
+
+    ## Status
+
+    *(What has been worked out, what is reconstructed in `recomp/`, and how closely it
+    matches the original — tests passing, functions byte-identical.)*
   '';
 
   projectGitignore = pkgs.writeText "vibe-gitignore" ''
@@ -123,6 +152,11 @@ let
     PROJECTS_DIR="${projectsDir}"
     SESSION_RULES="${sessionRules}"
 
+    # Empty where the reverse-engineering profile is off; every RE path checks for that.
+    RE_LAUNCHER="${lib.optionalString reEnabled "${reCfg.launcher}"}"
+    RE_SCAFFOLD="${lib.optionalString reEnabled "${reCfg.scaffold}"}"
+    RE_CLAUDE_MD="${lib.optionalString reEnabled "${reProjectClaudeMd}"}"
+
     mkdir -p "$PROJECTS_DIR"
 
     # --- helpers ---------------------------------------------------------------
@@ -141,8 +175,9 @@ let
     }
 
     # .vibe-project is what makes a folder a vibe project: title= is his own plain-English
-    # name, shell= is the dev shell Claude picked for it (empty until it has). Read with
-    # sed and never sourced — the title is arbitrary text he typed.
+    # name, shell= is the dev shell Claude picked for it (empty until it has), and kind=re
+    # marks a reverse-engineering project (absent means an ordinary app). Read with sed
+    # and never sourced — the title is arbitrary text he typed.
     marker_field() {
       sed -n "s/^$2=//p" "$1/.vibe-project" 2>/dev/null | head -n1
     }
@@ -159,23 +194,47 @@ let
       esac
     }
 
+    # run_claude <dir> <kind> [claude args...]
+    # A reverse-engineering project must ALWAYS open through the launcher, resumed chats
+    # included: it is what loads REA's tools (--plugin-dir) and puts Ghidra, the
+    # compilers etc. on PATH. A resumed chat started with plain `claude` would have none.
+    # The launcher sets that environment itself, after sudo has reset it.
+    run_claude() {
+      local dir="$1" kind="$2"
+      shift 2
+      cd "$dir" || exit 1
+      if [ "$kind" = re ]; then
+        if [ -z "$RE_LAUNCHER" ]; then
+          echo "Taking programs apart isn't set up on this computer any more — tell Lando."
+          exit 1
+        fi
+        exec sudo "$RE_LAUNCHER" "$@"
+      fi
+      exec sudo claude "$@"
+    }
+
     launch() {
-      # launch <dir> <extra prompt text>
-      local dir="$1" extra="$2" prompt
+      # launch <dir> <kind> <extra prompt text>
+      local dir="$1" kind="$2" extra="$3" prompt
       prompt="$(cat "$SESSION_RULES")
 
     --- THIS SESSION ---
     $extra"
-      cd "$dir" || exit 1
-      exec sudo claude "$prompt"
+      run_claude "$dir" "$kind" "$prompt"
     }
 
     # --- new project -----------------------------------------------------------
 
     new_project() {
-      local title slug dir
+      # new_project [app|re]
+      local kind="''${1:-app}" title slug dir noun
+      if [ "$kind" = re ]; then noun="project"; else noun="app"; fi
       echo
-      read -rp "What do you want to call your app? " title
+      if [ "$kind" = re ]; then
+        read -rp "What do you want to call this project? (the name of the program or game is fine) " title
+      else
+        read -rp "What do you want to call your app? " title
+      fi
       title=$(trim "$title")
       if [ -z "$title" ]; then
         echo "You didn't type a name — nothing started."
@@ -189,8 +248,8 @@ let
       dir="$PROJECTS_DIR/$slug"
       if [ -e "$dir" ]; then
         echo
-        echo "You already have an app in $dir."
-        echo "Pick a different name, or run vibe again and choose the app you already started."
+        echo "You already have a $noun in $dir."
+        echo "Pick a different name, or run vibe again and choose the one you already started."
         exit 1
       fi
 
@@ -206,10 +265,19 @@ let
       git -C "$dir" config user.name "${userName}"
       git -C "$dir" config user.email "${userEmail}"
 
-      printf 'title=%s\nslug=%s\nshell=\n' "$title" "$slug" > "$dir/.vibe-project"
       # install, not cp: store files are read-only and Claude has to be able to edit these.
-      install -m 0644 "${projectGitignore}" "$dir/.gitignore"
-      { printf '# %s\n\n' "$title"; cat "${projectClaudeMd}"; } > "$dir/CLAUDE.md"
+      if [ "$kind" = re ]; then
+        # The same layout `re new` makes (target/ notes/ evidence/ recomp/ tests/, the
+        # target-ignoring .gitignore and recomp/Makefile), plus the vibe .gitignore lines.
+        "$RE_SCAFFOLD" "$dir" || { echo "Couldn't set the project up — tell Lando."; exit 1; }
+        { printf '\n'; cat "${projectGitignore}"; } >> "$dir/.gitignore"
+        printf 'title=%s\nslug=%s\nshell=reverse-engineering\nkind=re\n' "$title" "$slug" > "$dir/.vibe-project"
+        { printf '# %s\n\n' "$title"; cat "$RE_CLAUDE_MD"; } > "$dir/CLAUDE.md"
+      else
+        install -m 0644 "${projectGitignore}" "$dir/.gitignore"
+        printf 'title=%s\nslug=%s\nshell=\n' "$title" "$slug" > "$dir/.vibe-project"
+        { printf '# %s\n\n' "$title"; cat "${projectClaudeMd}"; } > "$dir/CLAUDE.md"
+      fi
       chmod 0644 "$dir/CLAUDE.md"
 
       git -C "$dir" add -A
@@ -217,7 +285,27 @@ let
 
       prepare_dir "$dir"
       echo "Done. Starting Claude on it now."
-      launch "$dir" "The app is called: $title
+      if [ "$kind" = re ]; then
+        launch "$dir" re "The project is called: $title
+    Its folder is: $dir
+
+    This is a REVERSE-ENGINEERING project (kind=re in .vibe-project): he wants to take an
+    existing program or game apart. The \"Reverse-engineering projects\" section of
+    ../CLAUDE.md applies on top of everything else there. REA's MCP tools and skill, Ghidra,
+    the compilers and the rest of the toolchain are already loaded in this session.
+
+    It is brand new. The folder is a git repo on main with one commit: the empty project
+    layout (target/, notes/, evidence/, recomp/, tests/), a .gitignore that keeps target/
+    out of git, and a CLAUDE.md whose two sections are still to be filled in. Nothing has
+    been analysed yet.
+
+    Start by asking him, in plain English, what program or game this is and where the file
+    is on his computer (most likely Downloads). Copy it into target/ yourself and record its
+    SHA-256. Then ask him what he wants out of it — to see how it works, to change
+    something about it, or to rebuild it — because that part is his call. Fill in the two
+    sections of CLAUDE.md, then begin."
+      else
+        launch "$dir" app "The app is called: $title
     Its folder is: $dir
 
     It is brand new. The folder is a git repo on main with one commit, a .gitignore, a
@@ -228,12 +316,16 @@ let
     part is his call. Then pick the language yourself, write .envrc for the matching dev
     shell, record that shell on the shell= line of .vibe-project, allow direnv on his
     behalf, fill in the two sections of CLAUDE.md, and build a first version he can try."
+      fi
     }
 
     # --- existing project ------------------------------------------------------
 
     open_project() {
-      local dir="$1" title="$2" choice
+      local dir="$1" title="$2" kind choice noun
+      kind=$(marker_field "$dir" kind)
+      [ "$kind" = re ] || kind=app
+      if [ "$kind" = re ]; then noun="project"; else noun="app"; fi
       prepare_dir "$dir"
 
       echo
@@ -241,12 +333,12 @@ let
 
       local -a labels=() actions=()
       if [ "$SESSIONS" -gt 0 ]; then
-        labels+=("Pick up where you left off")       ; actions+=(continue)
-        labels+=("Start a fresh chat about this app"); actions+=(fresh)
-        labels+=("Look through your older chats")    ; actions+=(resume)
+        labels+=("Pick up where you left off")          ; actions+=(continue)
+        labels+=("Start a fresh chat about this $noun") ; actions+=(fresh)
+        labels+=("Look through your older chats")       ; actions+=(resume)
       else
         # `claude -c` errors out where there is no saved chat, so it must not be offered.
-        labels+=("Start working on it")              ; actions+=(fresh)
+        labels+=("Start working on it")                 ; actions+=(fresh)
       fi
 
       local i
@@ -265,49 +357,66 @@ let
 
       case "''${actions[$((choice - 1))]}" in
         continue)
-          cd "$dir" || exit 1
-          exec sudo claude -c
+          run_claude "$dir" "$kind" -c
           ;;
         resume)
-          cd "$dir" || exit 1
-          exec sudo claude -r
+          run_claude "$dir" "$kind" -r
           ;;
         fresh)
-          launch "$dir" "The app is called: $title
+          if [ "$kind" = re ]; then
+            launch "$dir" re "The project is called: $title
+    Its folder is: $dir
+
+    This is a REVERSE-ENGINEERING project (kind=re in .vibe-project). The
+    \"Reverse-engineering projects\" section of ../CLAUDE.md applies on top of everything
+    else there. REA's MCP tools and skill and the toolchain are already loaded in this
+    session.
+
+    It already exists. Read its CLAUDE.md, notes/ and anything in docs/ before you do
+    anything else, and look at the git log to see where it was left. Then tell him in a
+    sentence or two where things stand, and ask him what he wants to do next."
+          else
+            launch "$dir" app "The app is called: $title
     Its folder is: $dir
 
     This app already exists. Read its CLAUDE.md and anything in docs/ before you do anything
     else, and look at the git log to see where it was left. Then ask him what he wants to
     change or add next."
+          fi
           ;;
       esac
     }
 
     pick_project() {
-      local -a dirs=() titles=() shells=()
-      local m d t s
+      local -a dirs=() titles=() labels=()
+      local m d t s k label
       for m in "$PROJECTS_DIR"/*/.vibe-project; do
         [ -f "$m" ] || continue
         d=$(dirname "$m")
         t=$(marker_field "$d" title); [ -n "$t" ] || t=$(basename "$d")
         s=$(marker_field "$d" shell)
-        dirs+=("$d"); titles+=("$t"); shells+=("$s")
+        k=$(marker_field "$d" kind)
+        label="$t"
+        if [ "$k" = re ]; then
+          label="$label  (taking apart)"
+        elif [ -n "$s" ]; then
+          label="$label  (''${s#vibe-})"
+        fi
+        dirs+=("$d"); titles+=("$t"); labels+=("$label")
       done
 
       if [ "''${#dirs[@]}" -eq 0 ]; then
         echo
         echo "You don't have any apps yet — let's start your first one."
-        new_project
+        new_project app
         return
       fi
 
-      local i label choice
+      local i choice
       echo
-      echo "Which app?"
-      for i in "''${!titles[@]}"; do
-        label="''${titles[$i]}"
-        [ -n "''${shells[$i]}" ] && label="$label  (''${shells[$i]#vibe-})"
-        printf "  %d) %s\n" $((i + 1)) "$label"
+      echo "Which one?"
+      for i in "''${!labels[@]}"; do
+        printf "  %d) %s\n" $((i + 1)) "''${labels[$i]}"
       done
       echo
 
@@ -324,29 +433,48 @@ let
 
     # --- top level -------------------------------------------------------------
 
-    # Nothing yet? Skip the menu entirely and get him straight into his first app.
     shopt -s nullglob
     EXISTING=("$PROJECTS_DIR"/*/.vibe-project)
     shopt -u nullglob
 
-    if [ "''${#EXISTING[@]}" -eq 0 ]; then
+    # Nothing yet and nothing else to offer? Skip the menu and get him straight into his
+    # first app. With reverse engineering available there is a real choice to make, so the
+    # menu is shown even then.
+    if [ "''${#EXISTING[@]}" -eq 0 ] && [ -z "$RE_LAUNCHER" ]; then
       echo "This is where you build your own apps. You don't have any yet."
-      new_project
+      new_project app
       exit 0
+    fi
+
+    declare -a TOP_LABELS=() TOP_ACTIONS=()
+    if [ "''${#EXISTING[@]}" -gt 0 ]; then
+      TOP_LABELS+=("Work on something you already started"); TOP_ACTIONS+=(pick)
+    fi
+    TOP_LABELS+=("Start a brand new app"); TOP_ACTIONS+=(new-app)
+    if [ -n "$RE_LAUNCHER" ]; then
+      TOP_LABELS+=("Take apart a program or game to see how it works (reverse engineering)")
+      TOP_ACTIONS+=(new-re)
     fi
 
     echo
     echo "What do you want to do?"
-    echo "  1) Work on an app you already started"
-    echo "  2) Start a brand new app"
+    for i in "''${!TOP_LABELS[@]}"; do
+      printf "  %d) %s\n" $((i + 1)) "''${TOP_LABELS[$i]}"
+    done
     echo
 
     read -rp "Enter a number (or q to cancel): " TOP
-    case "$TOP" in
-      q) echo "Cancelled — nothing started."; exit 0 ;;
-      1) pick_project ;;
-      2) new_project ;;
-      *) echo "That wasn't a valid choice. Nothing started."; exit 1 ;;
+    [ "$TOP" = q ] && { echo "Cancelled — nothing started."; exit 0; }
+    if ! [[ "$TOP" =~ ^[0-9]+$ ]] || [ "$TOP" -lt 1 ] \
+         || [ "$TOP" -gt "''${#TOP_LABELS[@]}" ]; then
+      echo "That wasn't a valid choice. Nothing started."
+      exit 1
+    fi
+
+    case "''${TOP_ACTIONS[$((TOP - 1))]}" in
+      pick) pick_project ;;
+      new-app) new_project app ;;
+      new-re) new_project re ;;
     esac
   '';
 in
