@@ -48,9 +48,11 @@ in
         privateKeyFile = config.sops.secrets.wg-nas-private-key.path;
         peer = {
           publicKey = "Z1ZtZiXE59cBZvmjkvcWr5nlEtmHVJJ16P0pb4QtFiY=";
-          # 10.10.0.1: optiplex-fw itself, which forwards The Batman's online players
-          # here and NATs them to this address (programs/batman.nix).
-          allowedIPs = [ "192.168.100.76/32" "10.10.0.1/32" ];
+          # 10.10.0.0/24: the VPN peers, whom optiplex-fw forwards to this host for The
+          # Batman's online games (programs/batman.nix). They arrive with their own
+          # addresses (pf can't NAT a packet that leaves wg0 the way it came in), so the
+          # tunnel has to accept them and carry the replies back.
+          allowedIPs = [ "192.168.100.76/32" "10.10.0.0/24" ];
           endpoint = "192.168.1.189:51822";
           persistentKeepalive = 25;
         };
