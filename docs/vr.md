@@ -64,6 +64,15 @@ evaluation fails with the `nix-prefetch-url` command to run. Add the new hash to
 Verified 2026-10-18: 72 Hz (WiVRn settings → Refresh rate, automatic off), default scale and
 bitrate. The MiG-21 flew smoothly in VR with the HOTAS. Raise refresh/scale/bitrate from here only if frame time allows.
 
+### Desktop windows / browser while flying
+- To show the wayvr overlays, **double-tap Y**. To open the **dashboard**, look at your left wrist and click the watch's wayvr button.
+- A mirrored *desktop* window (e.g. Firefox on Hyprland) shows fine, but it gets clicks only
+  through the real mouse cursor, which DCS keeps locked. So the controller trigger does nothing there.
+- For anything you need to click, launch **Firefox (VR)** from the dashboard's app list. It is a separate Firefox instance
+  (`vr-browser`, own profile under `~/.local/share/vr-browser`) running in wayvr's nested
+  display, which takes controller input directly. It has to be a separate instance: otherwise the launch is
+  handed to the desktop Firefox and the window opens on Hyprland. Verified in DCS 2026-10-18.
+
 ### Gotchas
 - **Connect the headset before launching DCS.** WiVRn only provides the OpenXR runtime while a
   headset is connected. Without one, DCS logs `XR_ERROR_RUNTIME_UNAVAILABLE` and starts flat on the desktop.

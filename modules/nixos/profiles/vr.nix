@@ -287,6 +287,26 @@ let
     exec steam "steam://launch/${dcsAppId}/VR"
   '';
 
+  # A browser for wayvr's own nested display (launch it from wayvr's app list).
+  # Windows there take controller input directly; a mirrored *desktop* window only
+  # gets clicks through the real cursor, which a focused game (DCS) holds locked.
+  # Separate profile + --new-instance, or the launch is handed to the desktop
+  # Firefox and the window opens on Hyprland instead.
+  vr-browser = pkgs.writeShellScriptBin "vr-browser" ''
+    profile="''${XDG_DATA_HOME:-$HOME/.local/share}/vr-browser"
+    mkdir -p "$profile"
+    exec firefox --new-instance --profile "$profile" --name vr-browser "''${@:-https://www.youtube.com}"
+  '';
+
+  vr-browser-desktop = pkgs.makeDesktopItem {
+    name = "vr-browser";
+    desktopName = "Firefox (VR)";
+    comment = "Separate Firefox for wayvr's in-headset display; controller clicks work during games";
+    exec = "${vr-browser}/bin/vr-browser %U";
+    icon = "firefox";
+    categories = [ "Network" "WebBrowser" ];
+  };
+
   dcs-vr-desktop = pkgs.makeDesktopItem {
     name = "dcs-vr";
     desktopName = "DCS World (VR)";
@@ -342,6 +362,8 @@ in
       dcs-vr-setup
       dcs-vr
       dcs-vr-desktop
+      vr-browser
+      vr-browser-desktop
     ];
 
     # Plug in the headset → vr-connect runs in the seat user's session.
