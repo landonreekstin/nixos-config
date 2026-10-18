@@ -23,7 +23,11 @@ game ──OpenXR──▶ WiVRn server (Monado + NVENC h265 10-bit) ──adb r
    avahi announcement) and port 9757 isn't opened in the firewall. Fallback if a session
    stutters: airplane mode for that session, to rule out background downloads.
 2. Plug the USB-C cable in. A notification says "Headset detected" → "VR connected".
-3. Launch the game from Steam on the desktop, or from the WiVRn/wayvr launcher in the headset.
+3. **DCS: click "DCS World (VR)"** in the app launcher (or run `dcs-vr`), then put the headset on
+   when the notification asks. It starts WiVRn if needed and waits for a headset session,
+   re-sending the connect intent every 10 s (the Quest ignores it while off-head). Then it runs
+   `steam://launch/223750/VR`, which skips Steam's OpenXR/Oculus picker. Verified with the
+   headset plugged in first. Other games: launch from Steam with the headset already streaming.
 
 Manual fallbacks: `vr-connect` (same thing the udev rule runs), `vr-client-install`,
 `journalctl --user -u wivrn -u vr-connect`.

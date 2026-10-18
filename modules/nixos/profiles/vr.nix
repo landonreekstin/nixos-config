@@ -238,6 +238,63 @@ let
     echo
     echo "Done. Recommended in-game VR settings are in ~/nixos-config/docs/vr.md."
   '';
+
+  # One click from the desktop: make sure the headset is streaming, then start DCS
+  # in VR. DCS fails over to flat if no headset is connected when it starts, because
+  # WiVRn only provides the OpenXR runtime during a headset session.
+  dcs-vr = pkgs.writeShellScriptBin "dcs-vr" ''
+    set -uo pipefail
+    notify() { ${pkgs.libnotify}/bin/notify-send -a "DCS VR" -i steam_icon_${dcsAppId} "$@" 2>/dev/null || true; echo "$*"; }
+
+    if pgrep -u "$(id -u)" -f 'DCSWorld/bin/DCS.exe' >/dev/null; then
+      notify "DCS is already running"; exit 0
+    fi
+
+    # A headset session = wivrn-server has forked its per-client server process.
+    streaming() {
+      local main; main=$(systemctl --user show wivrn.service -p MainPID --value)
+      [ "''${main:-0}" != 0 ] && pgrep -P "$main" >/dev/null
+    }
+
+    if ! streaming; then
+      systemctl --user start wivrn.service
+      if ! ${adb} get-state 2>/dev/null | grep -qx device; then
+        notify "Plug in the headset" "Waiting for the Quest on USB…"
+        # The udev rule starts vr-connect once it appears.
+        timeout 120 ${adb} wait-for-usb-device || { notify "No headset found" "Gave up after 2 minutes."; exit 1; }
+      elif ! systemctl --user is-active --quiet vr-connect.service; then
+        systemctl --user start vr-connect.service
+      else
+        # Tunnel is up but the app isn't connected (e.g. it was closed): reopen it.
+        ${adb} shell am start -a android.intent.action.VIEW -d "wivrn+tcp://localhost" ${clientPackage} >/dev/null
+      fi
+      notify "Put the headset on" "Waiting for WiVRn to connect…"
+      # The headset ignores the connect intent while it's off your head (the app
+      # cold-starts without it), so keep re-sending it until the stream is up.
+      for i in $(seq 120); do
+        streaming && break
+        if [ $((i % 10)) = 0 ]; then
+          ${adb} shell am start -a android.intent.action.VIEW -d "wivrn+tcp://localhost" ${clientPackage} >/dev/null 2>&1
+        fi
+        sleep 1
+      done
+      streaming || { notify "Headset didn't connect" "Open WiVRn in the headset and run dcs-vr again."; exit 1; }
+    fi
+
+    # launch/<appid>/VR skips Steam's launch-option picker and runs the default
+    # entry, which our launch options (dcs-vr-setup) turn into OpenXR VR.
+    notify "Starting DCS World in VR"
+    exec steam "steam://launch/${dcsAppId}/VR"
+  '';
+
+  dcs-vr-desktop = pkgs.makeDesktopItem {
+    name = "dcs-vr";
+    desktopName = "DCS World (VR)";
+    comment = "Connect the Quest over USB and start DCS World in VR";
+    exec = "${dcs-vr}/bin/dcs-vr";
+    icon = "steam_icon_${dcsAppId}";
+    categories = [ "Game" ];
+  };
 in
 {
   options.customConfig.profiles.vr = with lib; {
@@ -283,6 +340,8 @@ in
       vr-connect
       vr-client-install
       dcs-vr-setup
+      dcs-vr
+      dcs-vr-desktop
     ];
 
     # Plug in the headset → vr-connect runs in the seat user's session.
