@@ -954,6 +954,10 @@ in
         vibe                   Start a new app of your own, or carry on with one
                                (also: take apart a program or game)
 
+      GAMES
+        batman join    The Batman: play Robin in Lando's game (homelab VPN on)
+        batman coop    The Batman: two players on this PC (also in the start menu)
+
       OTHER
         rebuild-test   Try a rebuild temporarily (undone on reboot)
         ipr            Open the input-remapper (button remap) app

@@ -57,6 +57,15 @@
     programs = {
       partydeck.enable = true;
 
+      # The Batman (JAKKS TV game, native), and hosting its online co-op: players join
+      # 192.168.1.76:7845, which optiplex-fw forwards to this host through wg-nas
+      # (see modules/nixos/programs/batman.nix and networking.nix).
+      batman = {
+        enable = true;
+        host = true;
+        hostInterfaces = [ "wg-nas" ];
+      };
+
       # IW4x needs a full MW2 (2009) install under it; `mw2-install` builds one from the
       # two ISOs on the NAS. /mnt/games has the room -- / is at 83%, and the install plus
       # its unpacking staging wants ~25 GB. See docs/runbooks/mw2-iw4x-source.md.

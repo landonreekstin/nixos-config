@@ -4,6 +4,16 @@
 
 # Companion Repositories
 
+## jakks-batman-recomp
+
+Source: `github:landonreekstin/jakks-batman-recomp`
+Package: `pkgs/batman/default.nix`, used by `modules/nixos/programs/batman.nix`
+
+Pinned with `fetchFromGitHub`, and bumped like hyprland-keys below: use the repo path
+`/home/lando/reverse-engineering/jakks-batman-recomp` and repo name `jakks-batman-recomp`.
+Online players must run the same build (the host refuses any other), so gaming-pc and
+blaney-pc both need to be on the new pin. Bump `version` (the date) too.
+
 ## hyprland-keys
 
 Source: `github:landonreekstin/hyprland-keys`
