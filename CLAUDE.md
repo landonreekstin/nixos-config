@@ -27,6 +27,7 @@ in `docs/` — read the matching file when the task calls for it:
 | [docs/subtitles.md](docs/subtitles.md) | subtitles for Jellyfin, Bazarr config/providers, or the `bazarr-provision` unit |
 | [docs/music.md](docs/music.md) | anything music: Lidarr, Navidrome, Ombi requests, slskd/Soulseek, or the `soularr` bridge |
 | [docs/parallel-sessions.md](docs/parallel-sessions.md) | another session is working on this config at the same time, or a `rebuild` was REFUSED because another worktree owns the live system |
+| [docs/vr.md](docs/vr.md) | the Quest 2 / WiVRn VR setup on gaming-pc, `vr-connect`, `dcs-vr-setup`, or a WiVRn version bump failing eval |
 | [docs/reverse-engineering.md](docs/reverse-engineering.md) | REA / Ghidra, the `re` launcher or `~/reverse-engineering` workspace, or bumping the pinned `rea-agents` version |
 
 ## Choosing the Right Host to Work On
@@ -170,7 +171,7 @@ split across several modules go in that domain's `options.nix` instead.
 | `desktop.*` | `desktop/{kde,hyprland,xrdp,display-manager,custom-sddm-theme}.nix`; the rest in `desktop/options.nix` |
 | `hardware.*` | `hardware/{nvidia,peripherals}.nix`; the rest in `hardware/options.nix` |
 | `services.*` | `services/{ssh,vscode-server,wireguard-client,wireguard-server,airplay-receiver}.nix`; `autoUpdate` in `common/auto-update.nix` |
-| `profiles.*` | `profiles/gaming.nix` and each `development/*.nix` — no `options.nix` |
+| `profiles.*` | `profiles/{gaming,vr}.nix` and each `development/*.nix` — no `options.nix` |
 | `programs.*` | `programs/{partydeck,claude-code}.nix`; `flatpak` in `programs/options.nix` |
 | `apps.*` | `apps/programs.nix` (registry + `mkAppRole`), `apps/xdg-defaults.nix` (MIME) |
 | `bootloader`, `networking`, `homeManager` (incl. `homeManager.browser`) | `common/{bootloader,networking,home-manager}.nix` |
