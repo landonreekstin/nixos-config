@@ -63,6 +63,7 @@
         obs-studio
         notes
         CuboCore.corepaint
+        kdePackages.kolourpaint
         kdePackages.kdenlive
         desmume
         mgba
