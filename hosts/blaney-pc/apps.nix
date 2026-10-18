@@ -27,6 +27,9 @@
       # shells its .envrc files point at (customConfig.profiles.development.vibe-* in
       # ./profiles.nix). See docs/hosts/blaney-vibe-projects.md.
       vibeProjects.enable = true;
+      # The Batman (JAKKS TV game) with Lando: "The Batman: Join Online Game" in the start
+      # menu, with the homelab VPN on. modules/nixos/programs/batman.nix.
+      batman.enable = true;
       # Call of Duty: Modern Warfare 2 (2009) on community servers. The game itself is
       # not packaged -- the module ships `mw2-install` (builds MW2 from its install ISOs)
       # and `iw4x` (syncs the IW4x client, then launches it). installDir defaults to
