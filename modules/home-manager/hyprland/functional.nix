@@ -183,6 +183,22 @@ in
 
   config = lib.mkIf ((customConfig.desktop.enable) && (lib.elem "hyprland" customConfig.desktop.environments)) {
 
+    # KDE's kded6 "gtkconfig" module rewrites ~/.gtkrc-2.0, gtk-{3,4}.0/colors.css,
+    # gtk-3.0/gtk.css and xsettingsd.conf each time kded6 starts, and any KDE app
+    # opened under Hyprland (Ark, Dolphin, ...) starts it. Every running GTK client
+    # reloads on that and crashed in the file-monitor callback (2026-10-19: both
+    # waybars, nm-applet and the GTK portal at once). It also replaces home-manager's
+    # ~/.gtkrc-2.0 symlink, so the next activation trips over the backup. GTK theming
+    # is home-manager's job here (gtk.*), so switch the module off. kwriteconfig6
+    # sets the one key and keeps the file writable for the rest of KDE. Note that
+    # kded6 (KF 6.26) still reads kded5rc: the same key in kded6rc is ignored.
+    home.activation.disableKdedGtkconfig = lib.mkIf config.gtk.enable (
+      lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        run ${pkgs.kdePackages.kconfig}/bin/kwriteconfig6 --file kded5rc \
+          --group Module-gtkconfig --key autoload false
+      ''
+    );
+
     # -------------------------------------------------------------------------- #
     # Functional Services
     # -------------------------------------------------------------------------- #
