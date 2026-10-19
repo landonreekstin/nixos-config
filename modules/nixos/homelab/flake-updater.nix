@@ -45,7 +45,25 @@ let
     # otherwise-good update for a week. The retry is near-free: everything
     # that already built is in the store, so only the failed fetch reruns.
     # A TIMEOUT is never retried — that would just double an already-capped run.
+    #
+    # NIX_DL_OPTS is what makes that retry reachable. The global nix settings
+    # (common/nix-settings.nix) are tuned so a dead LAN cache never blocks a
+    # desktop rebuild: download-attempts=1, stalled-download-timeout=20 and
+    # fallback=true. Behind the Mullvad tunnel that combination turned one
+    # stalled NAR into a 3h TIMEOUT: nix disables cache.nixos.org for the rest
+    # of the invocation after a single failed download, and fallback then
+    # compiles everything still missing (qtbase, ffmpeg-full, firefox, …) here.
+    # 2026-W42 and W43 lost gaming-pc and optiplex that way. So the updater
+    # retries downloads, waits out short stalls, and with fallback off a dead
+    # substituter is a fast FAIL — the retry then starts a fresh nix process
+    # with the cache re-enabled and only fetches what is still missing.
     # ---------------------------------------------------------------
+    NIX_DL_OPTS=(
+      --option fallback false
+      --option download-attempts 5
+      --option stalled-download-timeout 90
+    )
+
     declare -A BUILD_STATUS
 
     build_host() {
@@ -65,7 +83,7 @@ let
         # `fi` would silently capture 0 instead of the build's exit code.
         if timeout "''${BUILD_TIMEOUT}" \
             nix build ".#nixosConfigurations.''${host}.config.system.build.toplevel" \
-            --no-link --max-jobs auto --cores 0 \
+            --no-link --max-jobs auto --cores 0 "''${NIX_DL_OPTS[@]}" \
             > "''${logfile}" 2>&1; then
           BUILD_STATUS["''${host}"]="PASS"
           if [ "''${attempt}" -eq 1 ]; then
@@ -85,6 +103,8 @@ let
           if [ "''${attempt}" -eq 1 ]; then
             log "''${host} build failed (exit ''${ec}) — retrying once in 60s (transient DNS/network is the usual cause)"
             tail -5 "''${logfile}" | sed 's/^/    /' >&2
+            # The retry overwrites the log; keep the first attempt's evidence.
+            cp "''${logfile}" "''${logfile%.log}.attempt1.log"
             sleep 60
           fi
         fi
@@ -377,6 +397,8 @@ in
       description = "Weekly NixOS flake update orchestrator";
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
+      # A rebuild of this host mid-run must not kill a multi-hour update run.
+      restartIfChanged = false;
       path = with pkgs; [ nix git openssh gnutar gzip coreutils gnugrep gnused ];
       environment = {
         NIXPKGS_ALLOW_UNFREE = "1";
