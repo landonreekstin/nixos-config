@@ -31,6 +31,22 @@ sudo systemctl start flake-updater
 journalctl -u flake-updater -f
 ```
 
+## Reading a FAIL / TIMEOUT
+
+Per-host logs are `/tmp/flake-updater-build-<host>.log` on optiplex-nas (a retried host
+also leaves `…<host>.attempt1.log`). Before assuming the update is broken, grep the log
+for `unable to download` / `substituter 'https://cache.nixos.org' is disabled`. Those
+are network blips through the Mullvad tunnel, not bad packages. In 2026-W42/W43 they
+became 3h TIMEOUTs: one stalled NAR disabled the cache for the whole invocation and the
+global `fallback = true` compiled qtbase/firefox locally. The updater now builds with
+`fallback=false` and more download attempts, so a blip becomes a fast FAIL that the retry
+absorbs. To confirm a host really builds, build it on the NAS by hand. It should finish
+in minutes from cache:
+```bash
+NIXPKGS_ALLOW_UNFREE=1 nix build --impure --no-link --option fallback false \
+  "git+file:///home/lando/nixos-config?ref=update/YYYY-WNN#nixosConfigurations.<host>.config.system.build.toplevel"
+```
+
 ## Beta host behavior
 
 On gaming-pc, running `update` when an `update/*` branch exists on remote will automatically switch to it. When no update branch exists (post-merge), `update` falls back to main. This is transparent — no user action needed.
