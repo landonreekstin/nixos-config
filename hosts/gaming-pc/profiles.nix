@@ -4,6 +4,8 @@
 {
   customConfig.profiles = {
     gaming.enable = true;
+    # Quest 2 over USB via WiVRn (DCS World first). See docs/vr.md.
+    vr.enable = true;
     development = {
       fpga-ice40.enable = true;
       kernel.enable = true;
