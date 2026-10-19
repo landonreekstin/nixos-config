@@ -264,6 +264,17 @@ let
       echo "Get it from https://github.com/GloriousEggroll/proton-ge-custom/releases" >&2
       exit 1
     fi
+    # Without Valve's Proton BattlEye Runtime the game starts, but online play
+    # refuses with "anti-cheat is not loaded". Steam passes PROTON_BATTLEYE_RUNTIME
+    # to the game by itself once it is installed (in any library).
+    be=$(ls "$STEAM"/steamapps/appmanifest_1161040.acf \
+      $(sed -n 's/^\s*"path"\s*"\(.*\)"/\1\/steamapps\/appmanifest_1161040.acf/p' "$STEAM/steamapps/libraryfolders.vdf") \
+      2>/dev/null | head -n1 || true)
+    if [ -z "$be" ]; then
+      echo "Missing the Proton BattlEye Runtime (online matches will refuse to start)." >&2
+      echo "Start Steam, run: steam steam://install/1161040 — then re-run wt-vr-setup." >&2
+      exit 1
+    fi
     # Steam maps games by the tool's internal name, not the directory name.
     tool=$(sed -n 's/^\s*"\([^"]*\)"\s*\/\/ Internal name.*/\1/p' "$dir/compatibilitytool.vdf")
     echo "== Steam: $tool + VR launch options"

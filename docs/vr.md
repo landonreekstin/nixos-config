@@ -89,7 +89,9 @@ bitrate. The MiG-21 flew smoothly in VR with the HOTAS. Raise refresh/scale/bitr
 
 ## War Thunder (Steam appid 236390)
 The native Linux client has no VR, so this uses the **Windows client under GE-Proton**. Gaijin
-doesn't support Proton. BattlEye runs under it, though (`aces_BE.exe`).
+doesn't support Proton. BattlEye runs under it via Valve's Proton BattlEye Runtime (see setup).
+Online play passing BattlEye under Proton is Gaijin's server-side opt-in. If a game update
+brings back "anti-cheat is not loaded", that is why, and the native client (no VR) is the fallback.
 The Windows client speaks **OpenXR natively** (`win64/openxr_loader.dll`), so it talks to
 WiVRn through wineopenxr like DCS does; xrizer is not involved.
 
@@ -106,8 +108,12 @@ passes `enableVR:b=no` and always starts flat.
    ([releases](https://github.com/GloriousEggroll/proton-ge-custom/releases); nixpkgs'
    `proton-ge-bin` was still 11-7 on 2026-10-18). The tarball's directory name is fine as is,
    because Steam maps games by the tool's *internal* name (`GE-Proton11-9-x86_64`).
-3. Quit Steam, run `wt-vr-setup`. It maps the game to the newest GE-Proton11 and sets the launch
-   options to `XR_SRGB_FIX=1 %command%`.
+3. Install the **Proton BattlEye Runtime**: `steam steam://install/1161040`. Without it the game
+   runs but online play refuses with "anti-cheat is not loaded". Once it's installed, Steam passes
+   `PROTON_BATTLEYE_RUNTIME` to the game by itself. With it installed (2026-10-19), sim battles
+   queued. A full match had not been played yet.
+4. Quit Steam, run `wt-vr-setup`. It checks for the BattlEye runtime, maps the game to the newest
+   GE-Proton11, and sets the launch options to `XR_SRGB_FIX=1 %command%`.
 
 No registry keys or winetricks are needed: GE-Proton 11 writes the `HKCU\Software\Wine\VR`
 keys itself at start-up, provided WiVRn is reachable.
