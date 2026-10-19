@@ -20,7 +20,8 @@
 #
 # Online: the host listens on TCP and UDP port 7845. Restricted VPN peers (Blaney) can only
 # reach 192.168.1.76, so optiplex-fw forwards 192.168.1.76:7845 from wg0 to gaming-pc's
-# wg-nas address 10.10.0.11 (pf.conf in openbsd-dotfiles, "The Batman netplay"). Both
+# wg-nas address 10.10.0.11 (pf.conf in openbsd-dotfiles, "The Batman netplay"), and
+# gaming-pc's wg-nas routes the VPN subnet so the replies go back the same way. Both
 # players must run the same build, so hosts that play together need the same pin.
 let
   cfg = config.customConfig.programs.batman;

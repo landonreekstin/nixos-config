@@ -181,18 +181,24 @@ doas wg show wg0 dump     # detailed peer info
 
 Online co-op for The Batman (`modules/nixos/programs/batman.nix`) is hosted on gaming-pc. Any
 VPN peer joins it at **`192.168.1.76:7845`** (TCP + UDP), because that is the one address
-restricted peers route. Two rules in `/etc/pf.conf` make it work (added 2026-10-18; the
-pre-change file is `/etc/pf.conf.bak-before-batman`):
+restricted peers route. `/etc/pf.conf` has one rule for it, placed before the
+`<restricted_peers>` block:
 
-- **`pass in quick on wg0 … from 10.10.0.0/24 to $nas_legacy_ip port $batman_port rdr-to 10.10.0.11`**,
-  placed before the `<restricted_peers>` block. It forwards the traffic to gaming-pc's
-  **wg-nas** address, which is fixed; its LAN address comes from DHCP.
-- **`match out on wg0 … to 10.10.0.11 port $batman_port nat-to (wg0)`**: the joining peer
-  appears as `10.10.0.1`. Without it, gaming-pc's replies to `10.10.0.x` would leave by its
-  default route and be lost.
+```
+pass in quick on wg0 proto { tcp udp } from 10.10.0.0/24 to $nas_legacy_ip port $batman_port rdr-to 10.10.0.11
+```
 
-For this, gaming-pc's wg-nas peer also routes `10.10.0.1/32`, and the module opens 7845 on the
-`wg-nas` interface only (`programs.batman.hostInterfaces`).
+It forwards to gaming-pc's **wg-nas** address, which is fixed; its LAN address comes from DHCP.
+The players arrive at gaming-pc with their own VPN addresses. **gaming-pc's wg-nas peer
+therefore routes `10.10.0.0/24`.** Otherwise WireGuard drops the packets: their source isn't in
+the peer's allowed IPs. The replies go back through the tunnel, and pf turns them back into
+`192.168.1.76`. The module opens 7845 on `wg-nas` only (`programs.batman.hostInterfaces`).
+
+**NAT doesn't work here.** The first version NATed the players to `10.10.0.1` with
+`match out on wg0 … nat-to (wg0)`. The packet leaves on wg0, the interface it came in on, under
+the state the inbound rdr created. The outbound rules never see it, so the nat-to never
+applied. That rule was removed on 2026-10-18. The file from before any of this is
+`/etc/pf.conf.bak-before-batman`.
 
 ### Hairpin NAT Limitation
 
