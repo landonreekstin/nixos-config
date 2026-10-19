@@ -14,6 +14,7 @@ game ──OpenXR──▶ WiVRn server (Monado + NVENC h265 10-bit) ──adb r
 | wayvr | Desktop/overlay in the headset; WiVRn starts it when the headset connects. |
 | udev → `vr-connect.service` | Plugging in the headset (USB vendor `2833`) waits for adb, installs/upgrades the matching headset app, `adb reverse tcp:9757`, opens the app on `wivrn+tcp://localhost`. |
 | `amd_x3d_vcache` mode | `vr-connect` sets `cache` (scheduler prefers the V-Cache CCD `0-5,12-17`) for the whole headset session and `frequency` on unplug. Not via `gamemoderun`: it is a /nix/store bash script that dies inside Steam's runtime (`undefined symbol: __pointer_chk_guard`), so a Proton game exits within a second. gamemode's start/end hooks do the same flip for games that can use `gamemoderun`. |
+| `xr-srgb-fix` (OpenXR layer, opt-in via `XR_SRGB_FIX=1`) | Undoes Proton's double sRGB encode for D3D11 games (War Thunder's washed-out colours). See [War Thunder](#war-thunder-steam-appid-236390). |
 | `/etc/nvidia/nvidia-application-profiles-rc.d/50-wivrn.json` | Stops CUDA (NVENC) holding the GPU in P2 instead of P0 (upstream `docs/nvenc.md`). |
 
 ## Daily use
@@ -27,7 +28,9 @@ game ──OpenXR──▶ WiVRn server (Monado + NVENC h265 10-bit) ──adb r
    when the notification asks. It starts WiVRn if needed and waits for a headset session,
    re-sending the connect intent every 10 s (the Quest ignores it while off-head). Then it runs
    `steam://launch/223750/VR`, which skips Steam's OpenXR/Oculus picker. Verified with the
-   headset plugged in first. Other games: launch from Steam with the headset already streaming.
+   headset plugged in first. **War Thunder: "War Thunder (VR)"** (`wt-vr`), the same flow; see
+   [War Thunder](#war-thunder-steam-appid-236390). Other games: launch from Steam with the headset
+   already streaming.
 
 Manual fallbacks: `vr-connect` (same thing the udev rule runs), `vr-client-install`,
 `journalctl --user -u wivrn -u vr-connect`.
@@ -84,7 +87,80 @@ bitrate. The MiG-21 flew smoothly in VR with the HOTAS. Raise refresh/scale/bitr
 - Pairing lives in `~/.config/wivrn/known_keys.json` (`wivrnctl list-paired`); the unit creates
   the directory, because the server doesn't and would otherwise forget the headset on every restart.
 
-## War Thunder (follow-up, not done)
-The native Linux client has no VR. VR needs the Windows client under GE-Proton through
-xrizer (already configured here). Gaijin doesn't support Proton, but BattlEye supports it.
-Reports describe position jitter and breakage on game updates.
+## War Thunder (Steam appid 236390)
+The native Linux client has no VR, so this uses the **Windows client under GE-Proton**. Gaijin
+doesn't support Proton. BattlEye runs under it, though (`aces_BE.exe`).
+The Windows client speaks **OpenXR natively** (`win64/openxr_loader.dll`), so it talks to
+WiVRn through wineopenxr like DCS does; xrizer is not involved.
+
+**Daily use:** plug the headset in, then click **"War Thunder (VR)"** (or run `wt-vr`). It is the same
+launcher as DCS's (`mkVrLauncher` in vr.nix): it waits for the headset session, then runs
+`steam://launch/236390/VR`. That is Steam's own hidden VR entry,
+`beac_wt_mlauncher.exe -config:gameplay/enableVR:b=yes`. Steam's normal "Launch Game" entry
+passes `enableVR:b=no` and always starts flat.
+
+**One-time setup:**
+1. In Steam → War Thunder → Properties → Compatibility, pick a GE-Proton so Steam downloads the
+   Windows client (~90 GB).
+2. Install **GE-Proton11-9 or newer** into `~/.local/share/Steam/compatibilitytools.d`
+   ([releases](https://github.com/GloriousEggroll/proton-ge-custom/releases); nixpkgs'
+   `proton-ge-bin` was still 11-7 on 2026-10-18). The tarball's directory name is fine as is,
+   because Steam maps games by the tool's *internal* name (`GE-Proton11-9-x86_64`).
+3. Quit Steam, run `wt-vr-setup`. It maps the game to the newest GE-Proton11 and sets the launch
+   options to `XR_SRGB_FIX=1 %command%`.
+
+No registry keys or winetricks are needed: GE-Proton 11 writes the `HKCU\Software\Wine\VR`
+keys itself at start-up, provided WiVRn is reachable.
+
+Verified 2026-10-18: a test flight in VR on DX11 at 72 Hz with correct colours, mouse working,
+no stutter.
+
+### Why each piece is needed (all found the hard way)
+- **GE-Proton 11-9+, not 10-x or 11-7.** War Thunder calls `xrConvertWin32PerformanceCounterToTimeKHR`
+  every frame to locate the eyes. wineopenxr in GE-Proton10-34 and 11-7 stubs it out (`FIXME`,
+  `XR_ERROR_INITIALIZATION_FAILED`). The game then gets no pose, `xrLocateViews` returns
+  `XR_ERROR_TIME_INVALID`, and the headset *and* the mirror stay black while sound plays.
+  Proton 11 implements it ([Proton#9347](https://github.com/ValveSoftware/Proton/pull/9347)).
+- **DX11 (the default `driver:t="auto"`).** DX12 refuses under Wine ("Unsupported OS") and falls back
+  to DX11. `driver:t="vulkan"` does reach the headset, but tracking jitters badly and the mirror is black.
+- **`xr-srgb-fix` (washed-out colours).** Windows runtimes give D3D11 apps *typeless* swapchain
+  textures. wineopenxr gives them typed `*_SRGB` ones, so War Thunder's own gamma is encoded a
+  second time: the headset looks pale while the desktop mirror looks right.
+  `modules/nixos/profiles/vr-srgb-fix/` is a host-side OpenXR API layer that runs between
+  wineopenxr and WiVRn. On each `xrReleaseSwapchainImage` of an 8-bit sRGB colour swapchain it
+  copies the image to a UNORM scratch image, runs one sRGB→linear compute pass, and copies it back.
+  - It is an implicit layer, enabled only when `XR_SRGB_FIX` is set (per-game launch option), so
+    DCS is untouched. `XR_SRGB_FIX_DISABLE=1` turns it off for a run.
+  - It runs on the Linux side, outside the game's Windows process, so BattlEye never sees a
+    modified file. The alternative, patching `wineopenxr.dll` to return typeless textures, was
+    rejected for that reason.
+  - It must **never block** in release. wineopenxr holds DXVK's submission lock during the call,
+    and an unbounded `vkWaitForFences` there froze the game on its first frames: black headset,
+    then Gaijin's "Freeze" crash report. If a previous pass is still running, it skips that frame
+    and logs a count.
+  - Hiding the sRGB formats instead (forcing a UNORM swapchain) doesn't work: War Thunder then
+    silently never starts VR.
+  - The manifest is linked into `~/.local/share/openxr/1/api_layers/implicit.d/` by a user tmpfiles
+    rule, because Steam's container sees `$HOME` and `/nix/store` but not the host's `/etc/xdg`.
+    The link is refreshed at login; after a rebuild that changes the layer, run
+    `systemd-tmpfiles --user --create`.
+- **XWayland primary output.** XWayland lists outputs in its own order, with no primary set, so
+  the fullscreen Wine window opened on a side monitor. The mouse then only worked there and the
+  game window was the wrong size. Hyprland's `exec-once` now runs `xrandr --output <main> --primary`
+  (the monitor named `main`, as in the XFCE config). Run it by hand if Hyprland was started from an
+  older generation.
+
+### Gotchas
+- **The headset must be streaming before the game starts**, as with DCS. GE-Proton 11 removes
+  its OpenXR registry keys when the runtime isn't reachable at start-up
+  (`get_vulkan_extensions ... status 0x2` in a `PROTON_LOG=1` log). The game then runs flat.
+- **The login session must carry `PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1`.** If Hyprland was
+  started under a generation without the VR profile (e.g. another worktree owned the live
+  system at boot), Steam can't see WiVRn and every game starts flat. Log out and back in. To fix it
+  live instead: `hyprctl keyword env PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES,1`, then
+  `systemctl --user set-environment PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1`, then restart Steam.
+- War Thunder's logs (`.game_logs/*.clog`) are XOR-obfuscated with a 128-byte repeating key. To
+  read them, recover the key from byte frequency: per position mod 128, assume the most common
+  plaintext byte is a space. Look for `[XR][device]` lines.
+- Reports elsewhere mention breakage after game updates. If VR stops working after a patch, check the
+  `.clog` for `[XR]` errors first.

@@ -102,7 +102,8 @@ let
 
     import vdf
 
-    steam, appid, launch_opts, tool = sys.argv[1:5]
+    # keep: a compat tool already mapped whose name starts with this is left alone.
+    steam, appid, launch_opts, tool, keep = sys.argv[1:6]
 
 
     def child(d, key):
@@ -136,10 +137,10 @@ let
     def compat(data):
         m = child(child(child(child(child(data, "InstallConfigStore"),
                   "Software"), "Valve"), "Steam"), "CompatToolMapping")
-        # Keep a GE-Proton build picked by hand in Steam (e.g. GE-Proton10-34
-        # from protonup-qt); only fall back to the Nix-provided one.
+        # Keep a build picked by hand in Steam (e.g. GE-Proton10-34 from
+        # protonup-qt) when it matches `keep`.
         current = m.get(appid, {}).get("name", "")
-        if current.startswith("GE-Proton"):
+        if current.startswith(keep):
             print("keeping compat tool", current)
             return
         put(m, appid, {"name": tool, "config": "", "priority": "250"})
@@ -190,7 +191,7 @@ let
     echo "DCS library: $LIB"
 
     echo "== Steam: GE-Proton + $MODE launch options"
-    ${vdfEdit} "$STEAM" "$APPID" "$OPTS" GE-Proton
+    ${vdfEdit} "$STEAM" "$APPID" "$OPTS" GE-Proton GE-Proton
 
     PREFIX="$LIB/steamapps/compatdata/$APPID/pfx"
     if [ ! -d "$PREFIX/drive_c" ]; then
@@ -239,15 +240,51 @@ let
     echo "Done. Recommended in-game VR settings are in ~/nixos-config/docs/vr.md."
   '';
 
-  # One click from the desktop: make sure the headset is streaming, then start DCS
-  # in VR. DCS fails over to flat if no headset is connected when it starts, because
-  # WiVRn only provides the OpenXR runtime during a headset session.
-  dcs-vr = pkgs.writeShellScriptBin "dcs-vr" ''
-    set -uo pipefail
-    notify() { ${pkgs.libnotify}/bin/notify-send -a "DCS VR" -i steam_icon_${dcsAppId} "$@" 2>/dev/null || true; echo "$*"; }
+  # War Thunder (Steam appid 236390), Windows client under GE-Proton.
+  #
+  # * It needs GE-Proton 11-9 or newer: older wineopenxr leaves
+  #   xrConvertWin32PerformanceCounterToTimeKHR unimplemented, the game calls it every
+  #   frame for its head pose, and the headset stays black (sound only).
+  # * Steam already has a hidden "vr" launch entry (beac_wt_mlauncher.exe
+  #   -config:gameplay/enableVR:b=yes); steam://launch/236390/VR runs it.
+  # * XR_SRGB_FIX turns on xr-srgb-fix (below) for this game only.
+  wtAppId = "236390";
+  wt-vr-setup = pkgs.writeShellScriptBin "wt-vr-setup" ''
+    set -euo pipefail
+    STEAM="$HOME/.local/share/Steam"
+    if pgrep -u "$(id -u)" steamwebhelper >/dev/null; then
+      echo "Steam is running — it rewrites its config on exit. Quit Steam fully and re-run." >&2
+      exit 1
+    fi
+    # Newest GE-Proton 11 in compatibilitytools.d (protonup-qt / GitHub tarball).
+    dir=$(ls -d "$STEAM"/compatibilitytools.d/GE-Proton11-* 2>/dev/null | sort -V | tail -n1 || true)
+    ver=$(basename "''${dir:-none}" | sed -n 's/^GE-Proton11-\([0-9]*\).*/\1/p')
+    if [ -z "$ver" ] || [ "$ver" -lt 9 ]; then
+      echo "Needs GE-Proton11-9 or newer in $STEAM/compatibilitytools.d (found: ''${dir:-none})." >&2
+      echo "Get it from https://github.com/GloriousEggroll/proton-ge-custom/releases" >&2
+      exit 1
+    fi
+    # Steam maps games by the tool's internal name, not the directory name.
+    tool=$(sed -n 's/^\s*"\([^"]*\)"\s*\/\/ Internal name.*/\1/p' "$dir/compatibilitytool.vdf")
+    echo "== Steam: $tool + VR launch options"
+    ${vdfEdit} "$STEAM" ${wtAppId} "XR_SRGB_FIX=1 %command%" "$tool" "$tool"
+    echo "Done. Start it with the War Thunder (VR) launcher (or wt-vr)."
+  '';
 
-    if pgrep -u "$(id -u)" -f 'DCSWorld/bin/DCS.exe' >/dev/null; then
-      notify "DCS is already running"; exit 0
+  # OpenXR layer that undoes Proton's double sRGB encode (washed-out colours in
+  # War Thunder). Runs on the Linux side, outside the game's anti-cheat-watched
+  # Windows process; only active when XR_SRGB_FIX is set.
+  xr-srgb-fix = pkgs.callPackage ./vr-srgb-fix { };
+
+  # One click from the desktop: make sure the headset is streaming, then start the
+  # game in VR. Games fail over to flat if no headset is connected when they start,
+  # because WiVRn only provides the OpenXR runtime during a headset session.
+  mkVrLauncher = { name, title, appId, process }: pkgs.writeShellScriptBin name ''
+    set -uo pipefail
+    notify() { ${pkgs.libnotify}/bin/notify-send -a "${title} VR" -i steam_icon_${appId} "$@" 2>/dev/null || true; echo "$*"; }
+
+    if pgrep -u "$(id -u)" -f '${process}' >/dev/null; then
+      notify "${title} is already running"; exit 0
     fi
 
     # A headset session = wivrn-server has forked its per-client server process.
@@ -278,14 +315,29 @@ let
         fi
         sleep 1
       done
-      streaming || { notify "Headset didn't connect" "Open WiVRn in the headset and run dcs-vr again."; exit 1; }
+      streaming || { notify "Headset didn't connect" "Open WiVRn in the headset and run ${name} again."; exit 1; }
     fi
 
-    # launch/<appid>/VR skips Steam's launch-option picker and runs the default
-    # entry, which our launch options (dcs-vr-setup) turn into OpenXR VR.
-    notify "Starting DCS World in VR"
-    exec steam "steam://launch/${dcsAppId}/VR"
+    # launch/<appid>/VR skips Steam's launch-option picker. DCS: runs the default
+    # entry, which dcs-vr-setup's launch options turn into OpenXR VR. War Thunder:
+    # runs its own "vr" entry.
+    notify "Starting ${title} in VR"
+    exec steam "steam://launch/${appId}/VR"
   '';
+
+  mkVrDesktop = { name, title, appId, launcher }: pkgs.makeDesktopItem {
+    inherit name;
+    desktopName = "${title} (VR)";
+    comment = "Connect the Quest over USB and start ${title} in VR";
+    exec = "${launcher}/bin/${name}";
+    icon = "steam_icon_${appId}";
+    categories = [ "Game" ];
+  };
+
+  dcs-vr = mkVrLauncher { name = "dcs-vr"; title = "DCS World"; appId = dcsAppId; process = "DCSWorld/bin/DCS.exe"; };
+  wt-vr = mkVrLauncher { name = "wt-vr"; title = "War Thunder"; appId = wtAppId; process = "win64.aces.exe"; };
+  dcs-vr-desktop = mkVrDesktop { name = "dcs-vr"; title = "DCS World"; appId = dcsAppId; launcher = dcs-vr; };
+  wt-vr-desktop = mkVrDesktop { name = "wt-vr"; title = "War Thunder"; appId = wtAppId; launcher = wt-vr; };
 
   # A browser for wayvr's own nested display (launch it from wayvr's app list).
   # Windows there take controller input directly; a mirrored *desktop* window only
@@ -305,15 +357,6 @@ let
     exec = "${vr-browser}/bin/vr-browser %U";
     icon = "firefox";
     categories = [ "Network" "WebBrowser" ];
-  };
-
-  dcs-vr-desktop = pkgs.makeDesktopItem {
-    name = "dcs-vr";
-    desktopName = "DCS World (VR)";
-    comment = "Connect the Quest over USB and start DCS World in VR";
-    exec = "${dcs-vr}/bin/dcs-vr";
-    icon = "steam_icon_${dcsAppId}";
-    categories = [ "Game" ];
   };
 in
 {
@@ -362,6 +405,9 @@ in
       dcs-vr-setup
       dcs-vr
       dcs-vr-desktop
+      wt-vr-setup
+      wt-vr
+      wt-vr-desktop
       vr-browser
       vr-browser-desktop
     ];
@@ -378,6 +424,12 @@ in
     # it (with config.json from the store nothing else does), so every pairing was
     # dropped ("Failed to save keys") and the PIN came back on each server restart.
     systemd.user.services.wivrn.serviceConfig.ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p %E/wivrn";
+
+    # Implicit OpenXR layers are found under XDG dirs; Steam's container doesn't see
+    # the host's /etc/xdg but does see $HOME (and /nix/store), so link it there.
+    systemd.user.tmpfiles.rules = [
+      "L+ %h/.local/share/openxr/1/api_layers/implicit.d/XR_APILAYER_NIXOS_srgb_fix.json - - - - ${xr-srgb-fix}/share/openxr/1/api_layers/implicit.d/XR_APILAYER_NIXOS_srgb_fix.json"
+    ];
 
     systemd.user.services.vr-connect = {
       description = "Connect a USB-attached headset to WiVRn";

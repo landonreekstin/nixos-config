@@ -5,6 +5,19 @@
 let
   apps = customConfig.apps.programs;
 
+  # XWayland's primary output, by the same rule as xfce/monitors.nix: the monitor
+  # named "main", else the first enabled one. XWayland sets no primary itself and
+  # lists outputs in its own order, so Wine games (War Thunder) opened fullscreen on
+  # whichever came first — on gaming-pc a portrait side monitor. Connector names only:
+  # xrandr can't resolve a `desc:` identifier.
+  xwaylandPrimary =
+    let
+      enabled = lib.filter (m: m.enabled) customConfig.desktop.monitors;
+      main = lib.findFirst (m: m.name == "main") null enabled;
+      mon = if main != null then main else if enabled != [ ] then lib.head enabled else null;
+    in
+    if mon != null && !(lib.hasPrefix "desc:" mon.identifier) then mon.identifier else null;
+
   # KDE apps resolve a file's default handler through ksycoca — KDE's binary
   # service cache — and NOT through mimeapps.list. kbuildsycoca6 enumerates the
   # installed applications by walking ''${XDG_MENU_PREFIX}applications.menu, so
@@ -248,6 +261,9 @@ in
              else "${pkgs.hyprpaper}/bin/hyprpaper &")
             "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1 &"
             "${pkgs.networkmanagerapplet}/bin/nm-applet &"
+          ]
+          ++ lib.optionals (xwaylandPrimary != null) [
+            "sleep 3 && ${pkgs.xrandr}/bin/xrandr --output ${xwaylandPrimary} --primary"
           ]
         );
 
