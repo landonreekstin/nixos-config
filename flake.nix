@@ -291,6 +291,7 @@
       spotatui = pkgs.callPackage ./pkgs/spotatui { };
       tuisic = pkgs.callPackage ./pkgs/tuisic { };
       gamarr = pkgs.callPackage ./pkgs/gamarr { };
+      quiver-launcher = pkgs.callPackage ./pkgs/quiver-launcher { };
     };
 
     # Development Shells provided by this flake

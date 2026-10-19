@@ -66,6 +66,9 @@
         hostInterfaces = [ "wg-nas" ];
       };
 
+      # PC ports and recomps from the Quiver catalog (modules/nixos/programs/quiver.nix).
+      quiver.enable = true;
+
       # IW4x needs a full MW2 (2009) install under it; `mw2-install` builds one from the
       # two ISOs on the NAS. /mnt/games has the room -- / is at 83%, and the install plus
       # its unpacking staging wants ~25 GB. See docs/runbooks/mw2-iw4x-source.md.
