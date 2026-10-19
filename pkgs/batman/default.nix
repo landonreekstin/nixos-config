@@ -26,8 +26,8 @@ stdenv.mkDerivation {
   src = fetchFromGitHub {
     owner = "landonreekstin";
     repo = "jakks-batman-recomp";
-    rev = "87c501b2d2e5607c964d7ce50deb693dbac5e664";
-    hash = "sha256-ULeeAPYg9lWJpyTNdJU7p1WWRfHT9Q3qAScFCwGaGTw=";
+    rev = "d8311639dda723265325b23320efd48b1a8865f1";
+    hash = "sha256-hvoYcHh0j1v21nvkTORbKK9MSNXYM0uFSYb/IkaB3xw=";
   };
 
   nativeBuildInputs = [ pkg-config ];
