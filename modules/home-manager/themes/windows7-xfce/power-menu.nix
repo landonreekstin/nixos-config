@@ -108,8 +108,9 @@ let
 
     class Guarded:
         # Wraps an action that must clear `shutdown-guard` before it runs
-        # (modules/home-manager/services/shutdown-guard.nix). The guard is silent and instant
-        # unless an automated update is due shortly, in which case it asks the user what to do
+        # (modules/home-manager/services/shutdown-guard.nix). The guard is silent (after a
+        # few-second bounded git fetch) unless main has new commits or blaney-todo tasks wait,
+        # in which case it asks the user what to do
         # and a non-zero status means "don't". Only Shut Down is wrapped: a restart or log off
         # leaves the machine powered on, so the update still happens.
         def __init__(self, fn):

@@ -427,15 +427,10 @@ in
           type = types.bool;
           default = false;
           description = ''
-            Warn before a desktop shutdown that would cancel an imminent automated update.
-            Only meaningful alongside `customConfig.services.autoUpdate.enable`; the guard is
-            silent (and exits "go ahead") whenever no update is due inside the warning window.
+            Before a desktop shutdown, offer to install updates first whenever origin/main has
+            commits the config checkout doesn't ("Update now, then shut down" runs
+            `update-shutdown`). Silent (exits "go ahead") when there is nothing new.
           '';
-        };
-        warnWithinHours = mkOption {
-          type = types.int;
-          default = 12;
-          description = "Show the warning only when the next automated update is due within this many hours.";
         };
         offerTasks = mkOption {
           type = types.bool;

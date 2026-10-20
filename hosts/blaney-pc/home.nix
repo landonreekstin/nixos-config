@@ -6,10 +6,8 @@
     enable = true; # Enable Home Manager for this host
     # Notify at next login if a walk-away `rebuild-shutdown` failed.
     services.rebuildShutdownNotify.enable = true;
-    # Warn before a shutdown that would cancel the weekly unattended update
-    # (customConfig.services.autoUpdate in ./networking.nix — this host powers off afterwards,
-    # so it has to be left on). Silent unless the update is due within warnWithinHours —
-    # or, with offerTasks, while blaney-todo runbooks are waiting (offers a walk-away run).
+    # Offer "update now, then shut down" at shutdown whenever origin/main has new commits,
+    # and (offerTasks) a walk-away blaney-todo run while runbooks are waiting. Silent otherwise.
     services.shutdownGuard = {
       enable = true;
       offerTasks = true;
