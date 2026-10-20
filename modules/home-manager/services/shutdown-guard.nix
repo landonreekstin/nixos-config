@@ -2,13 +2,9 @@
 { config, pkgs, lib, customConfig, ... }:
 let
   cfg = customConfig.homeManager.services.shutdownGuard;
-  auto = customConfig.services.autoUpdate;
 
-  # The unit whose schedule the guard reads (modules/nixos/common/auto-update.nix).
-  timerUnit = "nixos-auto-update.timer";
-
-  # Where blaney-todo reads its runbooks from (modules/nixos/common/commands.nix), and the
-  # file blaney-todo-unattended records finished ones in, so they are not offered twice.
+  # The config checkout `update` pulls (modules/nixos/common/commands.nix) — the guard asks
+  # whether origin/main has commits it doesn't — and where blaney-todo reads its runbooks.
   repoDir = "${customConfig.user.home}/nixos-config";
   runbookDir = "docs/runbooks/blaney";
 
@@ -24,8 +20,9 @@ let
   # titlebar, where zenity 4.x is GTK4/libadwaita and would render as stock Adwaita.
   pyEnv = pkgs.python3.withPackages (ps: [ ps.pygobject3 ]);
 
-  # Called with two arguments: when the update is due ("" if it isn't due soon) and how many
-  # of Lando's tasks are waiting ("0" if none). The wrapper only calls it if one applies.
+  # Called with two arguments: how many new commits origin/main has that this checkout
+  # doesn't, and how many of Lando's tasks are waiting. The wrapper only calls it when at
+  # least one is non-zero.
   # Exit status contract, shared with the wrapper below:
   #   0  -> go ahead with the shutdown
   #   10 -> do not shut down (cancelled, or "Update now" / "Have Claude do a task" was
@@ -41,23 +38,22 @@ let
     PROCEED, HOLD = 0, 10
 
     TERMINAL = "${terminalCmd}"
-    WHEN = sys.argv[1] if len(sys.argv) > 1 else "soon"
-    try:
-        TASKS = int(sys.argv[2]) if len(sys.argv) > 2 else 0
-    except ValueError:
-        TASKS = 0
 
+    def count(i):
+        try:
+            return int(sys.argv[i]) if len(sys.argv) > i else 0
+        except ValueError:
+            return 0
+
+    UPDATES, TASKS = count(1), count(2)
+
+    HEADING = "Before you shut down\u2026"
     paras = []
-    if WHEN:
-        HEADING = "Are you sure you want to shut down?"
+    if UPDATES:
         paras.append(
-            "This PC is scheduled to update itself around %s"
-            "${lib.optionalString auto.shutdownAfterRebuild " and will shut itself off when it is done"}"
-            ".\n\nIt needs to be left powered on for that to happen. "
-            "You do not need to be logged in." % WHEN
+            "Lando has sent new updates for this PC that are not installed yet. "
+            "It can install them now and shut itself off when it is done."
         )
-    else:
-        HEADING = "Before you shut down\u2026"
     if TASKS:
         paras.append(
             "Lando left you %d task%s. Claude can do %s by itself while you are away, "
@@ -82,7 +78,7 @@ let
         dlg.set_position(Gtk.WindowPosition.CENTER)
         dlg.add_button("Cancel", RESP_CANCEL)
         dlg.add_button("Shut down anyway", RESP_SHUTDOWN)
-        if WHEN:
+        if UPDATES:
             dlg.add_button("Update now, then shut down", RESP_UPDATE)
         if TASKS:
             dlg.add_button("Have Claude do a task, then shut down", RESP_TASK)
@@ -132,35 +128,24 @@ let
   };
 
   # Callers reduce to `shutdown-guard || exit`: status 0 means go ahead, 1 means don't.
-  # Silent and instant whenever no automated update is due inside the warning window, so it
-  # is safe to put in front of every shutdown path.
+  # Silent whenever there is nothing new to install and no task waiting, so it is safe to
+  # put in front of every shutdown path.
   guard = pkgs.writeShellApplication {
     name = "shutdown-guard";
-    runtimeInputs = [ pkgs.systemd pkgs.coreutils pkgs.git pkgs.gnugrep ];
+    runtimeInputs = [ pkgs.coreutils pkgs.git pkgs.gnugrep pkgs.openssh ];
     text = ''
-      # NextElapseUSecRealtime already folds in the timer's RandomizedDelaySec, so the time
-      # it reports is the real expected wake-up (hence "around" in the dialog wording).
-      # --timestamp=unix is required: plain --value pretty-prints the timestamp ("Mon
-      # 2026-09-28 03:12:04 CDT") rather than a number. It yields "@<seconds>", seconds
-      # despite the property's USec name.
-      # --- Is the weekly update due inside the warning window? -> $when ("" if not) ---------
-      when=""
-      raw=$(systemctl show --timestamp=unix --property=NextElapseUSecRealtime --value ${timerUnit} 2>/dev/null || true)
-      due=''${raw#@}
-
-      # Unit absent, never scheduled, or not a realtime timer -> nothing to warn about.
-      case "$due" in
-        "" | *[!0-9]* ) due=0 ;;
-      esac
-      now=$(date +%s)
-      if [ "$due" -gt "$now" ] && [ "$(( due - now ))" -le $(( ${toString cfg.warnWithinHours} * 3600 )) ]; then
-        when=$(date -d "@$due" '+%A at %-I:%M %p')
-      fi
+      # --- Does origin/main have commits this checkout doesn't? -> $updates -------------
+      # A short, bounded fetch first so the answer is current; offline or slow, it gives up
+      # within 4 seconds (the Start menu waits on this) and the last-fetched origin/main is used instead. BatchMode and
+      # GIT_TERMINAL_PROMPT=0 so a credential problem fails rather than waiting on input.
+      GIT_TERMINAL_PROMPT=0 GIT_SSH_COMMAND="ssh -o BatchMode=yes -o ConnectTimeout=3" \
+        timeout 4 git -C ${repoDir} fetch --quiet origin main >/dev/null 2>&1 || true
+      updates=$(git -C ${repoDir} rev-list --count HEAD..origin/main 2>/dev/null) || updates=0
+      case "$updates" in "" | *[!0-9]* ) updates=0 ;; esac
 
       # --- How many of Lando's runbooks are waiting? -> $tasks ---------------------------
-      # Read from the last-fetched origin/main with no network access, so the guard stays
-      # instant offline; blaney-todo fetches fresh when it actually runs. Runbooks a
-      # walk-away run already finished are not counted. Any git error counts as none.
+      # Read from the origin/main just fetched above. Runbooks a walk-away run already
+      # finished are not counted. Any git error counts as none.
       tasks=0
       ${lib.optionalString cfg.offerTasks ''
         # An empty pattern list (no done file yet) filters nothing out. Under pipefail a grep
@@ -171,14 +156,14 @@ let
         case "$tasks" in "" | *[!0-9]* ) tasks=0 ;; esac
       ''}
 
-      if [ -z "$when" ] && [ "$tasks" -eq 0 ]; then
+      if [ "$updates" -eq 0 ] && [ "$tasks" -eq 0 ]; then
         exit 0
       fi
 
       # Fail open: only an explicit "hold" status blocks the shutdown, so a broken or
       # unreachable dialog can never leave the machine unable to power off.
       rc=0
-      ${dialog}/bin/shutdown-guard-dialog "$when" "$tasks" || rc=$?
+      ${dialog}/bin/shutdown-guard-dialog "$updates" "$tasks" || rc=$?
       if [ "$rc" -eq 10 ]; then
         exit 1
       fi
@@ -187,7 +172,7 @@ let
   };
 in
 {
-  config = lib.mkIf (cfg.enable && auto.enable) {
+  config = lib.mkIf cfg.enable {
     home.packages = [ guard ];
   };
 }

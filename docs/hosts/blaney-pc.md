@@ -52,24 +52,23 @@ When running on the `blaney-pc` host, apply these additional guidelines:
 ## The shutdown guard
 
 blaney-pc updates itself unattended every Monday at 03:00 and powers off afterwards
-(`customConfig.services.autoUpdate` in `hosts/blaney-pc/networking.nix`). The machine has
-to be left **on** for that, and `persistent = false` means a missed Monday is lost for a
-week — so a Sunday-night shutdown silently costs an update, and because the host is meant
-to end up off anyway, nothing looks wrong afterwards.
+(`customConfig.services.autoUpdate` in `hosts/blaney-pc/networking.nix`), but only if it
+was left on — and anything lando pushes mid-week would otherwise wait for that. So every
+shutdown is a chance to install what's new.
 
 `customConfig.homeManager.services.shutdownGuard` (declared in
 `modules/nixos/common/home-manager.nix`, implemented in
 `modules/home-manager/services/shutdown-guard.nix`) installs a `shutdown-guard` command
-that every shutdown path runs first. It reads `nixos-auto-update.timer`'s next elapse and
-does nothing at all unless the update is due within `warnWithinHours` (default 12) **or**
-(with `offerTasks`, on for blaney-pc) runbooks are waiting in
-[`blaney-todo`](#runbooks-as-blaney-pc-tasks). Otherwise it shows a themed GTK3 dialog:
-**Cancel**, **Shut down anyway**, **Update now, then shut down** (only when the update is
-due; runs `update-shutdown` in a terminal) and **Have Claude do a task, then shut down**
-(only when tasks are waiting; runs `blaney-todo --unattended` in a terminal — see
-[Walk-away runs](#walk-away-runs)). The waiting-task count is read from the last-fetched
-`origin/main` with no network access, so the guard stays instant offline, and runbooks a
-walk-away run already finished are not counted.
+that every shutdown path runs first. It does a bounded `git fetch origin main` (gives up
+after 4s offline, falling back to the last-fetched ref) and does nothing at all unless
+`HEAD..origin/main` has commits **or** (with `offerTasks`, on for blaney-pc) runbooks are
+waiting in [`blaney-todo`](#runbooks-as-blaney-pc-tasks). Otherwise it shows a themed GTK3
+dialog: **Cancel**, **Shut down anyway**, **Update now, then shut down** (only when there
+are new commits; runs `update-shutdown` in a terminal) and **Have Claude do a task, then
+shut down** (only when tasks are waiting; runs `blaney-todo --unattended` in a terminal —
+see [Walk-away runs](#walk-away-runs)). Runbooks a walk-away run already finished are not
+counted. The comparison is against `HEAD`, so on a `blaney/` branch that is behind main the
+update button keeps appearing — `update` pulls the branch, not main.
 
 Paths that run the guard:
 
@@ -80,7 +79,7 @@ Paths that run the guard:
 | The case's power button | `XF86PowerOff` → the flyout, with `services.logind.settings.Login.HandlePowerKey = "ignore"` in `hosts/blaney-pc/system.nix` |
 
 Restart, Log Off and Sleep are **not** guarded: they leave the machine powered on, so the
-timer still fires.
+weekly timer still fires.
 
 Two things to keep in mind when touching this:
 

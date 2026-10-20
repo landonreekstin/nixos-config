@@ -61,11 +61,12 @@ missed window is simply lost until the following week. blaney-pc makes this wors
 looks normal and nobody notices the update never ran.
 
 `customConfig.homeManager.services.shutdownGuard.enable` closes that gap. It installs a
-`shutdown-guard` command that reads `nixos-auto-update.timer`'s next elapse and, only when
-that is within `warnWithinHours` (default 12), shows a GTK dialog offering **Shut down
-anyway** / **Update now, then shut down** / **Cancel**. Outside the window — or on a host
-with no auto-update timer — it exits silently and instantly. Every shutdown path the user
-can reach runs it first; see [hosts/blaney-pc.md](hosts/blaney-pc.md#the-shutdown-guard).
+`shutdown-guard` command that, whenever `origin/main` has commits the checkout doesn't
+(after a bounded fetch), shows a GTK dialog offering **Shut down anyway** / **Update now,
+then shut down** / **Cancel** — so a desktop picks up new commits at any shutdown, not only
+when the weekly timer happens to catch it on. With nothing new it exits silently. Every
+shutdown path the user can reach runs it first; see
+[hosts/blaney-pc.md](hosts/blaney-pc.md#the-shutdown-guard).
 
 The "update now" button runs **`update-shutdown`**, which is also a plain CLI command on
 every host: git pull → rebuild → power off, i.e. the weekly run on demand. (Do not confuse

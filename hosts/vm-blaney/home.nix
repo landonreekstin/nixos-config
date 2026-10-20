@@ -6,7 +6,7 @@
     enable = true;
     # Mirror blaney-pc: notify at next login if a walk-away rebuild-shutdown failed.
     services.rebuildShutdownNotify.enable = true;
-    # Mirror blaney-pc: warn before a shutdown that would cancel the weekly update.
+    # Mirror blaney-pc: offer to update first at shutdown when main has new commits.
     services.shutdownGuard.enable = true;
     themes = {
       plasmaOverride = true;
