@@ -42,7 +42,17 @@ in
 
     initExtra = ''
       ccnc() {
-        cd "$HOME/nixos-config" && sudo claude -c
+        cd "$HOME/nixos-config" || return
+        # `claude remote-control` drops an empty <uuid>.jsonl into this project's
+        # history every time the server starts, and `claude -c` "continues" the
+        # newest file even when it is empty — a fresh session after every
+        # boot/rebuild. Resume the newest session that has a user message instead.
+        local last
+        last=$(sudo sh -c 'cd "$1" 2>/dev/null || exit 0
+          for f in $(ls -t -- *.jsonl 2>/dev/null); do
+            grep -q "\"type\":\"user\"" "$f" && { echo "''${f%.jsonl}"; exit 0; }
+          done' _ "/root/.claude/projects/$(pwd -P | sed 's/[^a-zA-Z0-9]/-/g')")
+        if [ -n "$last" ]; then sudo claude -r "$last"; else sudo claude -c; fi
       }
       ccn() {
         cd "$HOME/nixos-config" && sudo claude
