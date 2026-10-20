@@ -4,10 +4,35 @@
 #         light.nightstand_lamp (Cync, color_temp + rgb)
 #
 # Schedule:
+#   Pre-dawn (Mon/Tue/Wed/Thu): Standing lamp on deep red 5% at 5:45 AM
 #   Morning (Mon/Tue/Wed/Thu): On 100% warm white at 6:14 AM, off at 7:15 AM
 #   Evening (every day): On 100% warm white 1hr before sunset
-#   Sun/Mon/Tue/Wed: Shift warm white -> amber -> orange -> deep red by 8 PM, dim to 25% by 10 PM
-#   Thu/Fri/Sat: Shift warm white -> orange by 9 PM, no dimming
+#   Every day: Shift warm white -> amber -> orange -> deep red by dusk, dim to 25% from 9-10 PM
+
+# ==================== PRE-DAWN LAMP (Mon/Tue/Wed/Thu) ====================
+
+- id: predawn_standing_lamp
+  alias: "Pre-Dawn Standing Lamp"
+  description: "Turn on the standing lamp deep red at 5% at 5:45 AM on Mon/Tue/Wed/Thu"
+  triggers:
+    - trigger: time
+      at: "05:45:00"
+  conditions:
+    - condition: time
+      weekday:
+        - mon
+        - tue
+        - wed
+        - thu
+  actions:
+    - service: light.turn_on
+      target:
+        entity_id: light.standing_lamp
+      data:
+        hs_color:
+          - 0
+          - 100
+        brightness_pct: 5
 
 # ==================== MORNING LIGHTS (Mon/Tue/Wed/Thu) ====================
 
@@ -86,30 +111,28 @@
           - 40
         brightness_pct: 100
 
-# ==================== EVENING COLOR SHIFT Mon/Tue/Wed ====================
+# ==================== EVENING COLOR SHIFT (Every Day) ====================
 # Gradual shift: warm white (hs 40,40) -> amber -> orange -> deep red (hs 0,100)
-# Starts 5 min after evening lights on, arrives at deep red by 8:00 PM
+# Starts 5 min after evening lights on, arrives at deep red by civil dusk
+# (sun 6 degrees below the horizon, i.e. dark outside) — ~5:15 PM in
+# December, ~9:00 PM at the June solstice.
 
-- id: evening_color_shift_mon_wed
-  alias: "Evening Color Shift (Mon-Wed)"
-  description: "Gradually shift from warm white to deep red by 8 PM"
+- id: evening_color_shift
+  alias: "Evening Color Shift"
+  description: "Gradually shift from warm white to deep red by dusk"
   triggers:
     - trigger: sun
       event: sunset
       offset: "-00:55:00"
-  conditions:
-    - condition: time
-      weekday:
-        - sun
-        - mon
-        - tue
-        - wed
   mode: restart
   actions:
     - variables:
-        end_seconds: "{{ 20 * 3600 }}"
-        now_seconds: "{{ now().hour * 3600 + now().minute * 60 + now().second }}"
-        total_seconds: "{{ [(end_seconds - now_seconds) | int, 300] | max }}"
+        # Fired before sunset, so sensor.sun_next_dusk is still today's dusk.
+        # Falls back to 90 min out if the sun sensor is unavailable.
+        total_seconds: >
+          {% set dusk = states('sensor.sun_next_dusk') | as_datetime(none) %}
+          {% set secs = (dusk - now()).total_seconds() if dusk else 5400 %}
+          {{ [[secs | int, 300] | max, 10800] | min }}
         step_seconds: 300
         total_steps: "{{ (total_seconds / step_seconds) | int }}"
     - repeat:
@@ -135,24 +158,20 @@
           - delay:
               seconds: "{{ step_seconds }}"
 
-# ==================== EVENING DIMMING Mon/Tue/Wed ====================
-# Deep red is reached at 8:00 PM; hold it, then dim 100% -> 25% between 9-10 PM
+# ==================== EVENING DIMMING (Every Day) ====================
+# Hold deep red, then dim 100% -> 25% from 9-10 PM. Near the June solstice dusk
+# lands right around 9 PM, so wait for the color shift to finish first.
 
-- id: evening_dim_mon_wed
-  alias: "Evening Dim (Mon-Wed)"
-  description: "Gradually dim lights from 100% to 25% between 9-10 PM"
+- id: evening_dim
+  alias: "Evening Dim"
+  description: "Gradually dim lights from 100% to 25% starting at 9 PM"
   triggers:
     - trigger: time
       at: "21:00:00"
-  conditions:
-    - condition: time
-      weekday:
-        - sun
-        - mon
-        - tue
-        - wed
   mode: restart
   actions:
+    - wait_template: "{{ state_attr('automation.evening_color_shift', 'current') | int(0) == 0 }}"
+      timeout: "01:00:00"
     - variables:
         total_steps: 12
         step_seconds: 300
@@ -172,55 +191,6 @@
                 - 0
                 - 100
               brightness_pct: "{{ brightness }}"
-              transition: 5
-          - delay:
-              seconds: "{{ step_seconds }}"
-
-# ==================== EVENING COLOR SHIFT Thu/Fri/Sat ====================
-# Gradual shift: warm white (hs 40,40) -> orange (hs 25,100)
-# Starts 5 min after evening lights on, arrives at orange by 9:00 PM
-# No dimming after
-
-- id: evening_color_shift_thu_sun
-  alias: "Evening Color Shift (Thu-Sat)"
-  description: "Gradually shift from warm white to orange by 9 PM"
-  triggers:
-    - trigger: sun
-      event: sunset
-      offset: "-00:55:00"
-  conditions:
-    - condition: time
-      weekday:
-        - thu
-        - fri
-        - sat
-  mode: restart
-  actions:
-    - variables:
-        end_seconds: "{{ 21 * 3600 }}"
-        now_seconds: "{{ now().hour * 3600 + now().minute * 60 + now().second }}"
-        total_seconds: "{{ [(end_seconds - now_seconds) | int, 300] | max }}"
-        step_seconds: 300
-        total_steps: "{{ (total_seconds / step_seconds) | int }}"
-    - repeat:
-        count: "{{ total_steps }}"
-        sequence:
-          - variables:
-              progress: "{{ repeat.index / total_steps}}"
-              # Hue: 40 (warm/amber) -> 25 (orange)
-              hue: "{{ (40 - 15 * progress) | round(1)}}"
-              # Saturation: 40 (soft) -> 100 (vivid)
-              sat: "{{ (40 + 60 * progress) | round(1)}}"
-          - service: light.turn_on
-            target:
-              entity_id: >
-                {{ ['light.right_desk_lamp', 'light.standing_lamp', 'light.nightstand_lamp']
-                   | select('is_state', 'on') | list }}
-            data:
-              hs_color:
-                - "{{ hue }}"
-                - "{{ sat }}"
-              brightness_pct: 100
               transition: 5
           - delay:
               seconds: "{{ step_seconds }}"
