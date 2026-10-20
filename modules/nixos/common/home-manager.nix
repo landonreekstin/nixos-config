@@ -437,6 +437,15 @@ in
           default = 12;
           description = "Show the warning only when the next automated update is due within this many hours.";
         };
+        offerTasks = mkOption {
+          type = types.bool;
+          default = false;
+          description = ''
+            Also show the dialog whenever blaney-todo runbooks are waiting, with a "Have Claude
+            do a task, then shut down" button that runs `blaney-todo --unattended`. Only for
+            hosts that have the blaney-todo command (blaney-pc).
+          '';
+        };
       };
     };
     themes = {
