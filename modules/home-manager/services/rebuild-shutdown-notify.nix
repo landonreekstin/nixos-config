@@ -14,6 +14,24 @@ let
         2>/dev/null || true
       rm -f "$MARKER"
     fi
+
+    # Written by `blaney-todo-unattended` (same file): "ok|<title>|<pr url>" or "fail|<title>|".
+    RESULT="$HOME/.local/state/blaney-todo-result"
+    if [ -f "$RESULT" ]; then
+      IFS='|' read -r status title _url < "$RESULT" || true
+      if [ "$status" = ok ]; then
+        ${pkgs.libnotify}/bin/notify-send --icon=dialog-information \
+          "Claude finished a task" \
+          "Claude finished \"$title\" while you were away. Lando will look at it." \
+          2>/dev/null || true
+      else
+        ${pkgs.libnotify}/bin/notify-send --urgency=critical --icon=dialog-error \
+          "Claude couldn't finish a task" \
+          "Claude couldn't finish \"$title\". Try blaney-todo again, or tell Lando." \
+          2>/dev/null || true
+      fi
+      rm -f "$RESULT"
+    fi
   '';
 in
 {

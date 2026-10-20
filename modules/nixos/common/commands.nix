@@ -884,10 +884,21 @@ in
         TITLES+=("$t")
       done
 
+      # `--unattended` (what the shutdown dialog runs) skips the "how?" question below and
+      # goes straight to the walk-away mode.
+      UNATTENDED=0
+      [ "''${1:-}" = "--unattended" ] && UNATTENDED=1
+
+      # Runbooks a walk-away run already finished stay in the menu until Lando merges the PR
+      # and deletes them; blaney-todo-unattended records them here so they can be labelled.
+      DONE_FILE="$HOME/.local/state/blaney-todo-done"
+
       echo
       echo "What do you want Claude to work on?"
       for i in "''${!TITLES[@]}"; do
-        printf "  %d) %s\n" $((i + 1)) "''${TITLES[$i]}"
+        mark=""
+        grep -qxF "''${FILES[$i]}" "$DONE_FILE" 2>/dev/null && mark="  (done, waiting for Lando)"
+        printf "  %d) %s%s\n" $((i + 1)) "''${TITLES[$i]}" "$mark"
       done
       echo
 
@@ -901,11 +912,36 @@ in
       TARGET="''${FILES[$((CHOICE - 1))]}"
       TITLE="''${TITLES[$((CHOICE - 1))]}"
 
+      if [ "$UNATTENDED" -eq 0 ]; then
+        echo
+        echo "How do you want to do it?"
+        echo "  1) Work on it together with Claude"
+        echo "  2) Let Claude do it on its own, then shut the PC down (you can walk away)"
+        echo
+        read -rp "Enter a number (or q to cancel): " MODE
+        case "$MODE" in
+          1) ;;
+          2) UNATTENDED=1 ;;
+          q) echo "Cancelled — nothing started."; exit 0 ;;
+          *) echo "That wasn't a valid choice. Nothing started."; exit 1 ;;
+        esac
+      fi
+
+      if [ "$UNATTENDED" -eq 1 ]; then
+        echo
+        echo "Claude will do \"$TITLE\" by itself, send it to Lando to look at,"
+        echo "then get the latest updates and shut the PC down."
+        echo "Type your password below, then you can walk away."
+        echo
+        exec sudo blaney-todo-unattended "$TARGET" "$TITLE"
+      fi
+
       echo
       echo "Starting Claude on: $TITLE"
       echo
 
-      # Preface prompt — keep in sync with the blaney-pc rules in CLAUDE.md.
+      # Preface prompt — keep in sync with the blaney-pc rules in CLAUDE.md (and with the
+      # walk-away version in blaney-todo-unattended below).
       # No backticks in here: the heredoc is unquoted so $TARGET expands.
       PROMPT=$(cat <<EOF
       Work on the runbook at $TARGET. Read it first with: git show origin/main:$TARGET
@@ -928,6 +964,113 @@ in
       exec sudo claude "$PROMPT"
     '')
 
+    # The walk-away half of blaney-todo: Claude works the runbook with nobody present, opens
+    # a PR, then the repo goes back to main and `update-shutdown` pulls, rebuilds and powers
+    # off. Run as root via `sudo` from blaney-todo, so the one password prompt happens while
+    # insideabush is still at the keyboard and nothing later can hang on another. Same
+    # conventions as update-shutdown: no `set -e`, every path must reach poweroff.
+    # Results go to the user's ~/.local/state (resolved from SUDO_USER — $HOME under sudo is
+    # not reliable) for modules/home-manager/services/rebuild-shutdown-notify.nix to report
+    # at the next login.
+    (pkgs.writeShellScriptBin "blaney-todo-unattended" ''
+      #!${pkgs.stdenv.shell}
+      set -uo pipefail
+      TARGET="''${1:?runbook path}"
+      TITLE="''${2:-$TARGET}"
+      REPO="${nixosConfigDir}"
+      if [ "$(id -u)" -ne 0 ]; then
+        exec sudo "$0" "$@"
+      fi
+
+      RUN_USER="''${SUDO_USER:-${userName}}"
+      USER_HOME=$(getent passwd "$RUN_USER" | cut -d: -f6)
+      [ -n "$USER_HOME" ] || USER_HOME="${cfg.user.home}"
+      STATE="$USER_HOME/.local/state"
+      LOG="$STATE/blaney-todo-unattended.log"
+      RESULT="$STATE/blaney-todo-result"
+      DONE_FILE="$STATE/blaney-todo-done"
+      mkdir -p "$STATE"
+      rm -f "$RESULT"
+
+      cd "$REPO" || { systemctl poweroff; exit 1; }
+
+      # No questions are possible, so the prompt says so and the permission settings enforce
+      # it: auto mode decides each action, and anything that would still prompt is refused
+      # rather than waiting forever for an answer nobody will give.
+      # No backticks in here: the heredoc is unquoted so $TARGET expands.
+      PROMPT=$(cat <<EOF
+      Work on the runbook at $TARGET. Read it first with: git show origin/main:$TARGET
+      (it may not exist on the branch you are currently on). Then carry out the task it
+      describes end to end. This is a blaney-pc session — follow all blaney-pc rules in
+      CLAUDE.md: branch prefix blaney/, never push to main, never merge into a branch that
+      does not start with blaney/. Do not edit, move, or delete the runbook file itself.
+
+      THIS RUN IS UNATTENDED. The user started it and walked away; nobody will read or answer
+      anything until it is over. Never ask a question and never wait for input. Make every
+      decision yourself, including how things look and behave — where the runbook leaves
+      that open, pick what fits his current setup best (his Windows 7 look on XFCE) and
+      record the choice. Verify the change yourself instead of asking him to: branch off the
+      latest origin/main, make the change, chown the repo to ${userName}, rebuild, then check it
+      with commands, logs, or the headless VM screenshot procedure in docs/test-vms-and-ci.md.
+      Then commit, push the blaney/ branch, and open a PR with gh pr create. The PR body must
+      include a section "Decisions I made for Blaney" and a section "Needs checking in
+      person" listing anything you could not verify. If part of the task physically needs him
+      (signing in to an account, typing a password, plugging in hardware), do everything else
+      and open the PR as a draft (gh pr create --draft) that says exactly what is left. Do not
+      reboot, power off, or log out — a wrapper shuts the machine down after you finish. Leave
+      the repo on your blaney/ branch when done. Finish by printing the PR URL. If anything in
+      the runbook conflicts with the blaney-pc rules in CLAUDE.md, the rules win. Lando
+      reviews and approves all PRs, so make the best call and proceed.
+      EOF
+      )
+
+      {
+        echo "=== blaney-todo: Claude is working on \"$TITLE\" by itself. You can walk away. ==="
+        echo "=== Started $(date). When it is done the PC updates and shuts itself off. ==="
+      } | tee "$LOG"
+
+      # Keep the machine from sleeping (XFCE idle) or being powered off by the case button
+      # mid-task. `timeout` bounds a run that never finishes so the PC still ends up off.
+      systemd-inhibit --what=sleep:idle:handle-power-key --who=blaney-todo \
+        --why="Claude is doing a task for Blaney" \
+        timeout --kill-after=5m 4h \
+        claude -p "$PROMPT" --permission-mode auto --permission-prompts none \
+        2>&1 | tee -a "$LOG"
+      CLAUDE_RC=''${PIPESTATUS[0]}
+
+      BRANCH=$(git branch --show-current 2>/dev/null || true)
+      PR_URL=""
+      case "$BRANCH" in
+        blaney/*) PR_URL=$(gh pr view "$BRANCH" --json url --jq .url 2>/dev/null || true) ;;
+      esac
+
+      # One line, "|"-separated: status|title|url (url empty on failure).
+      SAFE_TITLE=$(printf '%s' "$TITLE" | tr '|' '/')
+      if [ -n "$PR_URL" ]; then
+        echo "Done — sent to Lando: $PR_URL" | tee -a "$LOG"
+        printf 'ok|%s|%s\n' "$SAFE_TITLE" "$PR_URL" > "$RESULT"
+        grep -qxF "$TARGET" "$DONE_FILE" 2>/dev/null || echo "$TARGET" >> "$DONE_FILE"
+      else
+        echo "Claude did not finish (exit $CLAUDE_RC, branch ''${BRANCH:-none}, no PR found)." | tee -a "$LOG"
+        printf 'fail|%s|\n' "$SAFE_TITLE" > "$RESULT"
+      fi
+
+      # Back to main so update-shutdown pulls and rebuilds main; the work lives on in the PR.
+      # Anything Claude left uncommitted is stashed, tagged with its branch, not thrown away.
+      if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+        git stash push -u -m "blaney-todo:''${BRANCH:-unknown}" >> "$LOG" 2>&1 || true
+      fi
+      git checkout main >> "$LOG" 2>&1 || true
+
+      chown -R "$RUN_USER:${userGroup}" "$REPO" "$STATE" 2>/dev/null || true
+
+      # update-shutdown powers off on every path; the poweroff after it is the backstop in
+      # case it is missing or returns.
+      HOME="$USER_HOME" update-shutdown 2>&1 | tee -a "$LOG"
+      chown "$RUN_USER:${userGroup}" "$LOG" 2>/dev/null || true
+      systemctl poweroff
+    '')
+
     (pkgs.writeShellScriptBin "blaney-help" ''
       #!${pkgs.stdenv.shell}
       cat <<'EOF'
@@ -945,6 +1088,7 @@ in
 
       FIX THINGS WITH CLAUDE
         blaney-todo            See tasks Lando left you and have Claude do one
+                               (with you, or on its own and then shut down)
         ccn                    Open Claude in the config folder
         ccnc                   Open Claude and continue your last chat
         ccnr                   Open Claude and pick a past chat to resume

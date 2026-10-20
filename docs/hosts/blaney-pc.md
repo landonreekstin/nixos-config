@@ -61,9 +61,15 @@ to end up off anyway, nothing looks wrong afterwards.
 `modules/nixos/common/home-manager.nix`, implemented in
 `modules/home-manager/services/shutdown-guard.nix`) installs a `shutdown-guard` command
 that every shutdown path runs first. It reads `nixos-auto-update.timer`'s next elapse and
-does nothing at all unless the update is due within `warnWithinHours` (default 12); inside
-that window it shows a themed GTK3 dialog with three choices — **Shut down anyway**,
-**Update now, then shut down** (runs `update-shutdown` in a terminal), and **Cancel**.
+does nothing at all unless the update is due within `warnWithinHours` (default 12) **or**
+(with `offerTasks`, on for blaney-pc) runbooks are waiting in
+[`blaney-todo`](#runbooks-as-blaney-pc-tasks). Otherwise it shows a themed GTK3 dialog:
+**Cancel**, **Shut down anyway**, **Update now, then shut down** (only when the update is
+due; runs `update-shutdown` in a terminal) and **Have Claude do a task, then shut down**
+(only when tasks are waiting; runs `blaney-todo --unattended` in a terminal — see
+[Walk-away runs](#walk-away-runs)). The waiting-task count is read from the last-fetched
+`origin/main` with no network access, so the guard stays instant offline, and runbooks a
+walk-away run already finished are not counted.
 
 Paths that run the guard:
 
@@ -118,4 +124,28 @@ Notes:
   filtered out.
 - This is separate from `TASKS.md`, which remains lando's own list.
 - When working *on* a blaney runbook: never edit, move, or delete the runbook file itself.
+
+### Walk-away runs
+
+After picking a task, `blaney-todo` asks whether to work on it together or let Claude do it
+on its own (`blaney-todo --unattended` skips that question; the shutdown dialog uses it).
+The walk-away path asks for the sudo password once, while insideabush is still there, then
+runs `blaney-todo-unattended` as root:
+
+1. `claude -p` with `--permission-mode auto --permission-prompts none` and a walk-away
+   variant of the preface prompt: no questions, Claude makes the visual calls too, verifies
+   by itself, and opens the PR with "Decisions I made for Blaney" / "Needs checking in
+   person" sections (as a **draft** if part of the task physically needs him). Bounded by a
+   4h `timeout`, under `systemd-inhibit` so XFCE idle can't suspend mid-task.
+2. Success = the repo is on a `blaney/*` branch with a PR. That writes
+   `~/.local/state/blaney-todo-result` (reported by `rebuild-shutdown-notify` at the next
+   login) and appends the runbook to `~/.local/state/blaney-todo-done`, which labels it
+   "(done, waiting for Lando)" in the menu and drops it from the shutdown dialog's count.
+3. Leftover uncommitted files are stashed (`blaney-todo:<branch>`), the repo goes back to
+   `main`, and `update-shutdown` pulls, rebuilds main and powers off — so the machine boots
+   into main while the PR waits, and the weekly update isn't missed.
+
+The full transcript is in `~/.local/state/blaney-todo-unattended.log`. When writing a
+runbook, assume it may run this way: say what "done" looks like in terms Claude can check
+itself, and leave any must-be-there-in-person step clearly separate.
 

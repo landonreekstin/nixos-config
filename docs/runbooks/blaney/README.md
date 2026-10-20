@@ -28,6 +28,10 @@ This is separate from `TASKS.md` in the repo root — that stays lando's own lis
 - **Leave visual/UX choices open on purpose** if you want Blaney to decide them — the
   preface prompt tells Claude to ask him about look and feel, but never about anything
   technical.
+- **It may run with nobody there.** Blaney can pick "let Claude do it on its own", which
+  runs it unattended and shuts the PC down after (see `docs/hosts/blaney-pc.md`, Walk-away
+  runs). Give acceptance criteria Claude can check itself, and keep any step that needs
+  Blaney in person (a login, hardware) clearly separate so it can end in a draft PR.
 - Don't include steps that need LAN/VPN access to the homelab; blaney-pc is remote and
   only reaches GitHub.
 
