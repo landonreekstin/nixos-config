@@ -38,9 +38,18 @@ let
   # background-layer surface (and its cached century wallpaper) under or over
   # the blades, depending on which mapped first.
   isWallpaperDaemon = line: lib.hasInfix "awww-daemon" line || lib.hasInfix "bin/hyprpaper" line;
+  # The default session's locker and logout menu become this rice's own lock
+  # screen and Turn Off Console blade (SUPER+Escape, SUPER+BackSpace).
+  qsCall = fn: "${pkgs.quickshell}/bin/qs -c xbox360 ipc call ui ${fn}";
+  rebind = b: builtins.replaceStrings
+    [ ", exec, swaylock" ", exec, ${pkgs.wlogout}/bin/wlogout" ", exec, wlogout" ]
+    [ ", exec, ${qsCall "lock"}" ", exec, ${qsCall "power"}" ", exec, ${qsCall "power"}" ] b;
   mergedSettings =
     let s = mergeWith hyprOpts.settings settings;
-    in s // { "exec-once" = lib.filter (l: !isWallpaperDaemon l) (s."exec-once" or [ ]); };
+    in s // {
+      "exec-once" = lib.filter (l: !isWallpaperDaemon l) (s."exec-once" or [ ]);
+      bind = map rebind (s.bind or [ ]);
+    };
 
   rgb = hex: "rgb(${hex})";
   bladeBorder = name:
@@ -147,6 +156,7 @@ let
     downloads = "PageDownloads.qml";
     games = "PageGames.qml";
     videos = "PageVideos.qml";
+    updates = "PageUpdates.qml";
   };
 
   # The user's own picture for the gamer card, if they have one.
@@ -196,12 +206,13 @@ let
     var statusCmd = "${statusCmd}";
     var volumeCmd = "${pkgs.wireplumber}/bin/wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@";
     var networkEditor = "${pkgs.networkmanagerapplet}/bin/nm-connection-editor";
+    var updatesCmd = "${updatesCmd}";
+    var terminal = ${builtins.toJSON (appCmd "terminal")};
     var gamesCmd = "${gamesCmd}/bin/xbox360-games";
     var gamesConfig = ${builtins.toJSON gamesConfig};
     var jellyfinUrl = ${builtins.toJSON (if xcfg.jellyfinUrl == null then "" else xcfg.jellyfinUrl)};
     var jellyfinPlay = "${jellyfinPlay}/bin/xbox360-jellyfin-play ${pkgs.mpv}/bin/mpv";
     var hostname = ${builtins.toJSON customConfig.system.hostName};
-    var lockCmd = "swaylock";
     var hyprctl = "${pkgs.hyprland}/bin/hyprctl";
     var downloadsCmd = "${downloadsCmd}";
     var silver = ${builtins.toJSON c.silver};
@@ -290,6 +301,29 @@ let
       printf '"network": %s' "$(${pkgs.networkmanager}/bin/nmcli -t -f NAME connection show --active 2>/dev/null | grep -v '^lo$' | head -n 1 | $jq -R . 2>/dev/null || echo null)"
       echo '}'
     } | $jq -c . 2>/dev/null || echo '{}'
+  '';
+
+  # ---- Marketplace -> System Update ----------------------------------------
+  # Where the configuration stands, as JSON. Local git only (no fetch): it
+  # shows what the last `update` or the weekly updater saw.
+  updatesCmd = pkgs.writeShellScript "xbox360-updates" ''
+    export PATH=${lib.makeBinPath [ pkgs.git pkgs.jq pkgs.coreutils pkgs.gh ]}
+    repo=${config.home.homeDirectory}/nixos-config
+    g() { git -C "$repo" "$@" 2>/dev/null; }
+    branch=$(g rev-parse --abbrev-ref HEAD)
+    commit=$(g rev-parse --short HEAD)
+    committed=$(g log -1 --format=%ct)
+    behind=$(g rev-list --count HEAD..origin/main || echo null)
+    # The symlink's own time is the switch; its target is a store path (epoch 1).
+    built=$(stat -c %Y /run/current-system 2>/dev/null || echo 0)
+    pr=$(timeout 8 gh pr list --repo landonreekstin/nixos-config --label flake-update \
+          --json number,labels --jq '.[0] | if . == null then null else {number, blocked: ([.labels[].name] | index("update-blocked") != null)} end' \
+          2>/dev/null || echo '"unknown"')
+    [ -n "$pr" ] || pr=null
+    jq -cn --arg branch "$branch" --arg commit "$commit" --argjson committed "''${committed:-0}" \
+      --argjson behind "''${behind:-null}" --argjson built "$built" --argjson pr "$pr" \
+      '{branch: $branch, commit: $commit, committed: $committed, behind: $behind, built: $built,
+        pr: (if $pr == "unknown" then false else $pr end)}'
   '';
 
   # ---- Games Library and Videos -------------------------------------------

@@ -33,11 +33,8 @@ in
   # ---- Marketplace: keeping this console up to date -------------------------
   ([
     (row "System Update" "system-software-update"
-      "Pull the latest configuration and rebuild this console, the same as the weekly automatic update."
-      (inTerminal "System Update" "update"))
-    (row "Rebuild" "view-refresh"
-      "Rebuild this console from the configuration it already has."
-      (inTerminal "Rebuild" "rebuild"))
+      "Is this console up to date? See where its configuration stands and the weekly update, then update, rebuild, or update and turn off."
+      (page "updates" "System Update"))
   ] ++ lib.optional (downloadsUrl != null)
     (row "Downloads" "folder-download"
       "See what the media server is downloading, and how far along it is."

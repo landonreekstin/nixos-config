@@ -38,7 +38,7 @@ Singleton {
     // ---- app workspaces ----------------------------------------------------
     // id -> { title, blade, seen }: `seen` once a window has appeared, so an
     // app that is still loading is not mistaken for one that has quit.
-    // Achievements are a later milestone; the card shows this meanwhile.
+    // Steam hours played, set by Games.qml.
     property int gamerscore: 0
 
     property var meta: ({})
@@ -205,8 +205,11 @@ Singleton {
     }
     onPowerRequested: powerPrompt()
 
-    // The Guide's X: lock, the console's "sign out" of a profile.
-    function signOut() { Quickshell.execDetached(["sh", "-c", Cfg.lockCmd]); }
+    // The Guide's X: lock, the console's "sign out" of a profile (LockScreen.qml).
+    property bool locked: false
+    function signOut() { guideOpen = false; locked = true; }
+    // Which screen carries the dashboard (set by shell.qml).
+    property string primaryName: ""
 
     // Running apps for the Guide's Open Apps: each app workspace with windows.
     readonly property var apps: {
@@ -232,8 +235,11 @@ Singleton {
     }
 
     function padLine(line) {
+        padSeen = Date.now();
         const p = line.trim().split(" ");
         switch (p[0]) {
+        case "hello": padLinked = true; padSend("ui " + (uiActive ? 1 : 0)); break;
+        case "ping": break;
         case "btn": input(p[1]); break;
         case "guide": guide(); break;
         case "dashboard": dashboard(); break;
@@ -244,27 +250,46 @@ Singleton {
     signal powerRequested()
 
     function padSend(msg) {
-        if (pad.connected) {
+        if (padLinked && pad) {
             pad.write(msg + "\n");
             pad.flush();
         }
     }
 
-    Socket {
-        id: pad
-        path: Quickshell.env("XDG_RUNTIME_DIR") + "/xbox360-pad.sock"
-        connected: true
-        parser: SplitParser { onRead: data => state.padLine(data) }
-        onConnectedChanged: if (connected) state.padSend("ui " + (state.uiActive ? 1 : 0))
+    // The link is up only once the daemon says "hello". A Socket that failed
+    // to connect does not retry, and toggling its `connected` did not make it
+    // try again either (seen in the VM: one error at boot, then silence), so
+    // each retry is a brand-new Socket, made with createObject (a Loader, being a
+    // visual Item, never instantiated anything in this non-visual singleton).
+    property bool padLinked: false
+    property real padSeen: 0
+    property var pad: null
+    function padReconnect() {
+        if (pad) pad.destroy();
+        pad = padSocket.createObject(state);
     }
-    // The daemon may start after the shell, or restart: keep trying. A failed
-    // connect leaves `connected` false with the TARGET still true, so setting
-    // true again is a no-op — the target has to be cycled.
+    Component {
+        id: padSocket
+        Socket {
+            path: Quickshell.env("XDG_RUNTIME_DIR") + "/xbox360-pad.sock"
+            parser: SplitParser { onRead: data => state.padLine(data) }
+            // Connect once the path is set: as a plain `connected: true` binding
+            // the attempt could run before `path` was assigned.
+            Component.onCompleted: connected = true
+        }
+    }
+    // The link is judged ONLY by the daemon's ping (every 2 s): a dead daemon is
+    // not always reported as a disconnect, and a replaced Socket reports its
+    // own teardown after the new one is already up — reacting to that flapped
+    // a good link down and tore it out (seen in the VM). Retry while unlinked.
     Timer {
         interval: 2000
-        running: !pad.connected
+        running: true
         repeat: true
-        onTriggered: { pad.connected = false; pad.connected = true; }
+        onTriggered: {
+            if (state.padLinked && Date.now() - state.padSeen > 5000) state.padLinked = false;
+            if (!state.padLinked) state.padReconnect();
+        }
     }
     // ---- bookkeeping ---------------------------------------------------------
     // The active border follows the blade colour of whatever is on screen.
