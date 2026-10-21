@@ -6,7 +6,7 @@
 # A row is { label; icon; desc; action; } where action is one of
 #   { type = "launch"; cmd; title; }  — run on a fresh app workspace
 #   { type = "page"; page; title; }   — open a full-screen page (Config.pages)
-{ lib, apps, pkgs, downloadsUrl }:
+{ lib, apps, pkgs, downloadsUrl, jellyfinUrl }:
 
 let
   cmd = role: apps.${role}.command or "";
@@ -58,7 +58,15 @@ in
       (launch "YouTube" "${cmd "browser"} --new-window https://www.youtube.com")))
 
   # ---- Games ---------------------------------------------------------------
-  (lib.optional (has "gaming")
+  (lib.optionals (has "gaming" || has "gamingAlt") [
+    (row "Games Library" "applications-games"
+      "Every game on this console, from Steam and Heroic, with the ones you played last at the top."
+      (page "games" "My Games"))
+    (row "Last Played Game" "media-playback-start"
+      "Jump straight back into the game you played last."
+      { type = "lastPlayed"; })
+  ]
+  ++ lib.optional (has "gaming")
     (row "Steam Big Picture" "steam"
       "Steam's own controller interface: your whole library, the store and friends."
       (launch "Steam" "${cmd "gaming"} steam://open/bigpicture"))
@@ -76,10 +84,14 @@ in
     (row "Pictures" "folder-pictures"
       "Show your pictures."
       (launch "Pictures" "${cmd "fileManager"} $HOME/Pictures"))
-  ++ lib.optional (has "fileManager")
+  ++ (if jellyfinUrl != null then [
+    (row "Videos" "folder-videos"
+      "Movies and shows from your media server. Pick up where you left off."
+      (page "videos" "Videos"))
+  ] else lib.optional (has "fileManager")
     (row "Videos" "folder-videos"
       "Your own video files."
-      (launch "Videos" "${cmd "fileManager"} $HOME/Videos"))
+      (launch "Videos" "${cmd "fileManager"} $HOME/Videos")))
   ++ lib.optional (has "audioVisualizer")
     (row "Visualizer" "audio-x-generic"
       "Watch the music."
