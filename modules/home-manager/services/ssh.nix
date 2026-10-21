@@ -32,6 +32,15 @@ in
                 proxyJump = "fw";
             };
 
+            # Over the homelab VPN, only while Blaney has it switched on. Lands in the
+            # separate `lando` admin account (nixos/services/remote-admin.nix), not his.
+            # Agent forwarding is so git push works from the clone there.
+            "blaney" = {
+                hostname = "10.10.0.5";
+                user = "lando";
+                forwardAgent = true;
+            };
+
             "atl-mini-pc" = {
                 hostname = "192.168.1.206";
                 user = "heather";
