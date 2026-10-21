@@ -12,6 +12,12 @@
       enable = true;
       offerTasks = true;
     };
+    # His headphones sit heavier on the left; matches the 50L/67R balance he set on Windows.
+    services.audioBalance = {
+      enable = true;
+      left = 50;
+      right = 67;
+    };
     themes = {
       plasmaOverride = true;
       kde = "windows7-alt";
