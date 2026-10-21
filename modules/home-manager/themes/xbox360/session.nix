@@ -187,6 +187,7 @@ let
     var curveDepth = ${toString c.curve.depth};
     var gamerpic = ${builtins.toJSON gamerpic};
     var zone = "Couch";
+    var wtype = "${pkgs.wtype}/bin/wtype";
     var hyprctl = "${pkgs.hyprland}/bin/hyprctl";
     var downloadsCmd = "${downloadsCmd}";
     var silver = ${builtins.toJSON c.silver};
@@ -214,6 +215,27 @@ let
       -o $out/blade.frag.qsb ${bladeFrag}
   '';
 
+  # ---- the controller daemon (pad/xbox360-pad.py) -----------------------
+  padPython = pkgs.python3.withPackages (ps: [ ps.evdev ]);
+  pad = pkgs.writeScriptBin "xbox360-pad"
+    ("#!${padPython}/bin/python3\n" + builtins.readFile ./pad/xbox360-pad.py);
+  padConfig = pkgs.writeText "xbox360-pad.json" (builtins.toJSON {
+    hyprctl = "${pkgs.hyprland}/bin/hyprctl";
+    # Window classes that read the controller themselves: they get it
+    # untouched (anything fullscreen does too). Everything else gets the
+    # desktop emulation.
+    passthrough = [
+      "^steam_app_" "^steam$" "^gamescope" "^mpv$" "^heroic$" "^retroarch"
+      "^org\\.jellyfin" "^com\\.github\\.iwalton3\\.jellyfin" "^dolphin-emu$"
+      "^PCSX2" "^Ryujinx" "^Cemu" "^com\\.moonlight_stream" "^Moonlight"
+    ];
+    # B is "back" (Alt+Left) in these rather than Escape.
+    browsers = [ "^firefox" "^chromium" "^librewolf" "^brave" "^google-chrome" ];
+    swapXY = false;
+    pointerSpeed = 1500;
+    scrollSpeed = 14;
+  });
+
   # Startup and session-only lines, appended after the functional extraConfig.
   extraConfig = ''
 
@@ -222,6 +244,7 @@ let
     # Start on the dashboard: a named workspace with nothing tiled on it.
     exec-once = ${pkgs.hyprland}/bin/hyprctl dispatch workspace name:dashboard
     exec-once = ${pkgs.quickshell}/bin/qs -c xbox360 > /tmp/xbox360-shell.log 2>&1
+    exec-once = ${pad}/bin/xbox360-pad ${padConfig} > /tmp/xbox360-pad.log 2>&1
     exec-once = ${pkgs.pipewire}/bin/pw-play ${assets}/share/sounds/xbox360/select-a.wav
   '';
 

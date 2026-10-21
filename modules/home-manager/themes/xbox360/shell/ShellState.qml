@@ -144,21 +144,69 @@ Singleton {
     }
 
     // ---- input routing -----------------------------------------------------
-    // Whatever is on top (the dashboard menu now; the Guide, the keyboard and
-    // the notification blade later) registers a handler; the keyboard, the
-    // controller daemon and IPC all send buttons here. Returns whether
-    // something took it.
+    // Whatever is on screen (the dashboard menu, the Guide, the keyboard, a
+    // dialog) registers a handler { active, priority, handle(btn) }; the
+    // keyboard, the controller daemon and IPC all send buttons to input(), and
+    // the highest-priority active handler gets them. Returns whether one did.
     property var handlers: []
     function pushHandler(h) { handlers = handlers.concat([h]); }
     function removeHandler(h) { handlers = handlers.filter(x => x !== h); }
     function input(btn) {
-        for (let i = handlers.length - 1; i >= 0; i--) {
+        let best = null;
+        for (let i = 0; i < handlers.length; i++) {
             const h = handlers[i];
-            if (h.active && h.handle(btn)) return true;
+            if (h.active && (best === null || (h.priority || 0) >= (best.priority || 0))) best = h;
         }
-        return false;
+        return best !== null && best.handle(btn);
+    }
+    // Whether the shell's own UI has the controller right now. The daemon
+    // grabs the pads while it does, so the app underneath doesn't also react.
+    readonly property bool uiActive: handlers.some(h => h.active)
+    onUiActiveChanged: padSend("ui " + (uiActive ? 1 : 0))
+
+    // ---- the controller daemon (pad/xbox360-pad.py) -------------------------
+    property bool keyboardOpen: false
+
+    // What a Guide tap does. The Guide blade replaces this in a later milestone;
+    // until then it is the dashboard <-> last-app toggle.
+    function guide() {
+        if (onDashboard) resume();
+        else dashboard();
     }
 
+    function padLine(line) {
+        const p = line.trim().split(" ");
+        switch (p[0]) {
+        case "btn": input(p[1]); break;
+        case "guide": guide(); break;
+        case "dashboard": dashboard(); break;
+        case "keyboard": keyboardOpen = !keyboardOpen; break;
+        case "power": powerRequested(); break;
+        }
+    }
+    signal powerRequested()
+
+    function padSend(msg) {
+        if (pad.connected) {
+            pad.write(msg + "\n");
+            pad.flush();
+        }
+    }
+
+    Socket {
+        id: pad
+        path: Quickshell.env("XDG_RUNTIME_DIR") + "/xbox360-pad.sock"
+        connected: true
+        parser: SplitParser { onRead: data => state.padLine(data) }
+        onConnectedChanged: if (connected) state.padSend("ui " + (state.uiActive ? 1 : 0))
+    }
+    // The daemon may start after the shell, or restart: keep trying.
+    Timer {
+        interval: 2000
+        running: !pad.connected
+        repeat: true
+        onTriggered: pad.connected = true
+    }
     // ---- bookkeeping ---------------------------------------------------------
     // The active border follows the blade colour of whatever is on screen.
     function applyBorder(bladeIndex) {

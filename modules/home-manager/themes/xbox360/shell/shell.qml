@@ -25,6 +25,14 @@ ShellRoot {
         return names.length > 0 ? names[0] : "";
     }
 
+    readonly property var primaryScreen: Quickshell.screens.find(s => s.name === primaryName) || null
+
+    // The on-screen keyboard, on the primary screen, over everything.
+    LazyLoader {
+        active: shell.primaryScreen !== null
+        Keyboard { screen: shell.primaryScreen }
+    }
+
     Variants {
         model: Quickshell.screens
         delegate: Frame {
@@ -50,5 +58,6 @@ ShellRoot {
             else ShellState.dashboard();
         }
         function launch(cmd: string, title: string): void { ShellState.launch(cmd, title, 5); }
+        function keyboard(): void { ShellState.keyboardOpen = !ShellState.keyboardOpen; }
     }
 }
