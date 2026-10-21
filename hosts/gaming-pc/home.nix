@@ -7,6 +7,8 @@
     services.updateNotification.enable = true;
     themes = {
       hyprland = "century-series";
+      # Second Hyprland rice, as its own "Xbox 360 Dashboard" entry at the Ly greeter.
+      hyprlandExtraSessions = [ "xbox360" ];
       xfce = "windows7";   # X11 desktop option; pick "Xfce Session" at the Ly greeter
       wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
       xfcePanel.trayApplets = [ "network" "bluetooth" "power" "clipboard" "nightlight" ];

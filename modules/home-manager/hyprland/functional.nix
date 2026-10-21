@@ -614,6 +614,11 @@ in
         # Launch waybar, splitting launcherBar into a separate process so it can be
         # toggled independently with toggle-launchbar (SUPER+CTRL+B).
 
+        # A session-scoped rice (themes/xbox360) draws its own shell instead of
+        # waybar. $XDG_RUNTIME_DIR/hypr-rice is written by that session's launcher
+        # and removed again when the default session starts.
+        [ -s "''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/hypr-rice" ] && exit 0
+
         CONFIG_SOURCE="$HOME/.config/waybar/config"
         STYLE="$HOME/.config/waybar/style.css"
         MAIN_CONFIG="/tmp/waybar-main-config.json"
@@ -671,6 +676,9 @@ in
         #!/usr/bin/env bash
         # Restart waybar through waybar-start. Never launch a bare `waybar`:
         # the wrapper is what splits the config into the main and launcher bars.
+
+        # No waybar to restart under a session-scoped rice — see waybar-start.
+        [ -s "''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/hypr-rice" ] && exit 0
 
         # Serialize — two callers at once (a monitor toggle during a palette
         # ramp) would otherwise each spawn their own waybar-start.

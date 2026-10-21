@@ -165,6 +165,11 @@ let
       fi
       [ -z "''${HYPRLAND_INSTANCE_SIGNATURE:-}" ] && exit 0
 
+      # A session-scoped rice (themes/xbox360) is live: these borders, blur and
+      # shader values belong to the default session, so leave its compositor be.
+      # The palette FILES above are still written, ready for the next century login.
+      [ -s "''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/hypr-rice" ] && exit 0
+
       # One batch so all four land in the same frame. NOTE: deliberately NOT
       # ramping `windowrule border_color` — `hyprctl keyword windowrule`
       # APPENDS rather than replaces, so ramping it would leak ~48 dead rules
@@ -480,6 +485,8 @@ let
     SIDE="''${1:-day}"
     DUR="''${2:-0}"
     [ "''${XDG_CURRENT_DESKTOP:-}" != "Hyprland" ] && exit 0
+    # A session-scoped rice (themes/xbox360) owns the wallpaper while it is live.
+    [ -s "''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/hypr-rice" ] && exit 0
     ${lib.optionalString (customConfig.desktop.hyprland.wallpaperEngine != "awww") ''
       # Not the awww engine — hyprpaper owns the wallpaper and cannot change it
       # at runtime, so there is nothing to do.
