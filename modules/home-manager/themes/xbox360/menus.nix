@@ -6,7 +6,7 @@
 # A row is { label; icon; desc; action; } where action is one of
 #   { type = "launch"; cmd; title; }  — run on a fresh app workspace
 #   { type = "page"; page; title; }   — open a full-screen page (Config.pages)
-{ lib, apps, pkgs, downloadsUrl, jellyfinUrl }:
+{ lib, apps, pkgs, downloadsUrl, jellyfinUrl, jellyfinApp }:
 
 let
   cmd = role: apps.${role}.command or "";
@@ -77,6 +77,10 @@ in
   # ---- Media ---------------------------------------------------------------
   (roleRow "music" "Music" "spotify-client"
       "Play music with Spotify."
+  ++ lib.optional jellyfinApp
+    (row "Jellyfin" "org.jellyfin.JellyfinDesktop"
+      "The full Jellyfin app in its TV mode: music libraries, live TV and everything else on the server."
+      (launch "Jellyfin" "jellyfin-desktop --tv --fullscreen"))
   ++ lib.optional (has "fileManager")
     (row "Pictures" "folder-pictures"
       "Show your pictures."

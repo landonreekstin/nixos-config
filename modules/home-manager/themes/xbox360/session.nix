@@ -149,6 +149,8 @@ let
     apps = customConfig.apps.programs;
     downloadsUrl = xcfg.transmissionUrl;
     jellyfinUrl = xcfg.jellyfinUrl;
+    # The Jellyfin desktop client, when the host installs it system-wide.
+    jellyfinApp = lib.any (p: (p.pname or "") == "jellyfin-desktop") customConfig.packages.nixos;
   };
 
   # Full-screen pages a menu row can open, by id.
