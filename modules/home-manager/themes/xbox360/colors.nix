@@ -57,6 +57,17 @@ rec {
       ink = "1f0f33";
       rule = "a17dc6";
     };
+    # Not a console blade: what the panel becomes on a workspace past the
+    # five (6-10, named ones like the stream wall). Neutral, on the same
+    # radial structure as the others.
+    steel = {
+      title = "Workspace";
+      stops = [ "d3d8de" "b3bac3" "939ca7" "747e8b" ];
+      base = "b3bac3";
+      tab = [ "7d858f" "d3d8de" "959da7" ];
+      ink = "1c2128";
+      rule = "c9ced4";
+    };
   };
 
   # Everything that is not the open blade is neutral silver.
@@ -71,5 +82,27 @@ rec {
   buttons = { a = "43b039"; b = "fa3a2f"; x = "1e5c86"; y = "cbd527"; };
 
   # One shared tempo for every blade move: 350 ms, cubic-bezier(.4,0,.2,1).
-  motion = { ms = 350; bezier = "0.4, 0.0, 0.2, 1.0"; };
+  motion = { ms = 350; bezier = "0.4, 0.0, 0.2, 1.0"; points = [ 0.4 0.0 0.2 1.0 ]; };
+
+  # Blade geometry on the console's 1280x720 reference frame (DESIGN.md §1).
+  layout = {
+    leftStackX = 152;   # left edge of the first tab
+    tabWidth = 44;
+    tabPitch = 48;      # tab width + the 4 px gap
+    panelWidth = 708;   # the open blade, on every blade
+    contentTop = 26;    # top of the title band
+    headerBottom = 84;  # windows tile below this
+    footerHeight = 30;  # ...and above this
+    titleInset = 30;
+    titleSize = 34;
+    statusSize = 20;
+    tabLabelSize = 20;
+  };
+
+  # The "lazy S" every edge follows: x offset per y stop, at 90% of the
+  # reference bow/flare. Geometry.js and blade.frag both interpolate these.
+  curve = {
+    y = [ 0 130 250 380 510 625 720 ];
+    d = map (v: v * 0.9) [ 0 (-13) (-19) (-13) (-7) 30 85 ];
+  };
 }
