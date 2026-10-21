@@ -17,7 +17,7 @@ let
   enabled = lib.elem "hyprland" customConfig.desktop.environments
     && lib.elem "xbox360" customConfig.homeManager.themes.hyprlandExtraSessions;
 
-  c = import ./colors.nix { };
+  c = import ./colors.nix { inherit lib; };
   assets = pkgs.callPackage ../../../../pkgs/xbox360-assets { };
 
   hyprOpts = options.wayland.windowManager.hyprland;
@@ -140,7 +140,7 @@ let
     var pwPlay = "${pkgs.pipewire}/bin/pw-play";
     var sounds = "${assets}/share/sounds/xbox360";
     var font = "Convection";
-    var blades = ${builtins.toJSON (map (n: { inherit (c.blades.${n}) title stops tab; }) bladeOrder)};
+    var blades = ${builtins.toJSON (map (n: { inherit (c.blades.${n}) title stops tab ink; }) bladeOrder)};
     var silver = ${builtins.toJSON c.silver};
     var motionMs = ${toString c.motion.ms};
     var motionBezier = ${builtins.toJSON (c.motion.points ++ [ 1 1 ])};
@@ -153,8 +153,9 @@ let
   # the same curve Geometry.js draws. Floats spelled out: GLSL wants 130.0.
   glslFloats = xs: lib.concatMapStringsSep ", " (x: toString (x * 1.0)) xs;
   bladeFrag = pkgs.writeText "blade.frag" (lib.replaceStrings
-    [ "@N@" "@KY@" "@KD@" ]
-    [ (toString (lib.length c.curve.y)) (glslFloats c.curve.y) (glslFloats c.curve.d) ]
+    [ "@N@" "@KY@" "@KD@" "@HB@" "@FT@" "@CI@" "@CR@" ]
+    ([ (toString (lib.length c.curve.y)) (glslFloats c.curve.y) (glslFloats c.curve.d) ]
+      ++ map (k: glslFloats [ c.layout.${k} ]) [ "headerBottom" "footerTop" "cardInset" "cardRadius" ])
     (builtins.readFile ./blade.frag.in));
 
   shellConfig = pkgs.runCommand "xbox360-quickshell" { } ''

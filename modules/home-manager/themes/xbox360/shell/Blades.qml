@@ -100,10 +100,10 @@ Scope {
     readonly property var zones: {
         const l = Geo.layout(target);
         return {
-            left:   Math.round((l.L + Geo.WAIST) * sx),
-            right:  Math.round(screen.width - (l.R - Geo.WAIST) * sx),
+            left:   Math.round((l.L + Geo.WAIST + Cfg.cardInset) * sx),
+            right:  Math.round(screen.width - (l.R - Geo.WAIST - Cfg.cardInset) * sx),
             top:    Math.round(Cfg.headerBottom * sy),
-            bottom: Math.round(Cfg.footerHeight * sy)
+            bottom: Math.round((720 - Cfg.footerTop) * sy)
         };
     }
 
@@ -199,19 +199,20 @@ Scope {
                 }
             }
 
-            // Layer 2: the panel's rim — a 2.5 px silver line down each edge.
+            // Layer 2: the panel's rim — the same dark line the captures show
+            // between every band, here down each side of the open panel.
             Shape {
                 anchors.fill: parent
                 preferredRendererType: Shape.CurveRenderer
                 ShapePath {
-                    strokeColor: Qt.rgba(0.94, 0.94, 0.94, 0.7)
-                    strokeWidth: 2.5
+                    strokeColor: Qt.rgba(0.25, 0.25, 0.25, 0.7)
+                    strokeWidth: 1.6
                     fillColor: "transparent"
                     PathPolyline { path: Geo.edge(root.shown.L, -1, stage.sx, stage.sy) }
                 }
                 ShapePath {
-                    strokeColor: Qt.rgba(0.94, 0.94, 0.94, 0.7)
-                    strokeWidth: 2.5
+                    strokeColor: Qt.rgba(0.25, 0.25, 0.25, 0.7)
+                    strokeWidth: 1.6
                     fillColor: "transparent"
                     PathPolyline { path: Geo.edge(root.shown.R, 1, stage.sx, stage.sy) }
                 }
@@ -226,9 +227,10 @@ Scope {
                     k: index
                     title: root.blade(index).title
                     topX: root.shown.tabs[index]
+                    bandWidth: root.shown.widths[index]
                     mirror: root.shown.mirror[index]
                     weight: root.shown.weight[index]
-                    tabStops: root.blade(index).tab
+                    blade: root.blade(index)
                     sx: stage.sx
                     sy: stage.sy
                     onHovered: root.play("select")

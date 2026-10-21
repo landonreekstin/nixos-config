@@ -7,7 +7,7 @@
 # David-Lazaro-Fernandez/Audio-Visualizer (the same pinned commit the assets come
 # from — pkgs/xbox360-assets). Not yet cross-checked against console captures;
 # if a blade reads wrong against a real screenshot, fix it here.
-{ }:
+{ lib }:
 
 rec {
   # Left-to-right blade order on the console, which is also workspace 1-5.
@@ -26,7 +26,7 @@ rec {
       rule = "c97a45";
     };
     live = {
-      title = "Xbox Live";
+      title = "Xbox LIVE";
       stops = [ "f8cd5e" "f3ae3c" "e4952b" "cf7b1d" ];
       base = "f3ae3c";
       tab = [ "c67a1a" "f8c85e" "e39a2b" ];
@@ -71,10 +71,13 @@ rec {
   };
 
   # Everything that is not the open blade is neutral silver.
+  # Sampled from the captures: light bands, a mid-grey label box on each,
+  # dark grey labels, and the same silver backdrop outside the outermost band.
   silver = {
-    tab = [ "a9a9a9" "fbfbfb" "dcdcdc" "b6b6b6" ];
-    label = "7d7d7d";
-    gutter = [ "c9c9c9" "ececec" "c4c4c4" ];
+    tab = [ "cfcfcf" "f1f1f1" "e3e3e3" "c6c6c6" ];
+    box = [ "b4b4b4" "c9c9c9" "c4c4c4" "adadad" ];
+    label = "5a5a5a";
+    gutter = [ "c8c8c8" "eeeeee" "c6c6c6" ];
     rim = "f0f0f0";
   };
 
@@ -84,25 +87,42 @@ rec {
   # One shared tempo for every blade move: 350 ms, cubic-bezier(.4,0,.2,1).
   motion = { ms = 350; bezier = "0.4, 0.0, 0.2, 1.0"; points = [ 0.4 0.0 0.2 1.0 ]; };
 
-  # Blade geometry on the console's 1280x720 reference frame (DESIGN.md §1).
+  # Blade geometry on the console's 1280x720 reference frame, measured off
+  # real dashboard captures (Captures/xbox360-examples on the NAS; the
+  # 738x414 frames scale by 1.734): collapsed bands ~28 px apart there, the
+  # open blade's own tab ~33, the open panel ~513 wide, ~30 px of backdrop
+  # outside the outermost band.
   layout = {
-    leftStackX = 152;   # left edge of the first tab
-    tabWidth = 44;
-    tabPitch = 48;      # tab width + the 4 px gap
-    panelWidth = 708;   # the open blade, on every blade
-    contentTop = 26;    # top of the title band
-    headerBottom = 84;  # windows tile below this
-    footerHeight = 30;  # ...and above this
-    titleInset = 30;
-    titleSize = 34;
-    statusSize = 20;
-    tabLabelSize = 20;
+    leftStackX = 60;    # backdrop margin before the first band (both sides)
+    tabPitch = 48;      # collapsed bands touch: width = pitch
+    activeTabWidth = 56;
+    panelWidth = 912;   # 1280 - 2*60 - 4*48 - 56: the stacks fill the screen
+    headerBottom = 92;  # the darker header band holding the title
+    footerTop = 650;    # ...and the footer band with the legend
+    cardInset = 6;      # content card inside the panel's curved edges
+    cardRadius = 30;
+    titleInset = 40;
+    titleCentre = 50;   # title's vertical centre in the header band
+    titleSize = 30;
+    footerSize = 19;
+    tabLabelSize = 19;
+    tabBoxTop = 150;    # the grey label box on each collapsed band...
+    tabBoxTopActive = 118;  # ...sits higher on the open blade's tab
+    tabBoxStep = 500;   # where the box S-curves back into the band
+    tabBoxEnd = 565;
+    tabBoxRadius = 14;
+    tabBoxInset = 0.35; # fraction of the band left as the light outer strip
   };
 
-  # The "lazy S" every edge follows: x offset per y stop, at 90% of the
-  # reference bow/flare. Geometry.js and blade.frag both interpolate these.
-  curve = {
-    y = [ 0 130 250 380 510 625 720 ];
-    d = map (v: v * 0.9) [ 0 (-13) (-19) (-13) (-7) 30 85 ];
+  # Every edge — each band and both sides of the open panel — is one smooth,
+  # even arc down the whole screen, bowing toward the centre at mid-height by
+  # 24 reference px (14 px in the captures): the inside of a cylinder. A
+  # parabola sampled every 60 px; Geometry.js and blade.frag interpolate the
+  # same knots. Negative = toward the centre for the left stack, which is
+  # mirrored (see Geometry.js).
+  curve = rec {
+    depth = 24;
+    y = map (i: i * 60) (lib.range 0 12);
+    d = map (yy: let u = (yy - 360) / 360.0; in -depth * (1 - u * u)) y;
   };
 }

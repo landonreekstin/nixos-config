@@ -2,7 +2,7 @@
 // The blade surface: the open section's radial gradient, its concentric sheen,
 // two slow ripple rings and the top-down gloss. The gradient covers the whole
 // surface; sheen, ripples and gloss belong to the open panel only, masked by
-// the same lazy-S curve Geometry.js draws (the @KY@/@KD@ knots are substituted
+// the same arc Geometry.js draws (the @KY@/@KD@ knots are substituted
 // from Config at build time, so the two cannot drift).
 //
 // Works in sRGB with no tone mapping, like the CSS it recreates.
@@ -27,6 +27,10 @@ layout(std140, binding = 0) uniform buf {
 const int N = @N@;
 const float KY[N] = float[N](@KY@);
 const float KD[N] = float[N](@KD@);
+const float HEADER_BOTTOM = @HB@;
+const float FOOTER_TOP = @FT@;
+const float CARD_INSET = @CI@;
+const float CARD_RADIUS = @CR@;
 
 // Catmull-Rom through the knots, clamped — identical to Geometry.js curve().
 float curve(float y) {
@@ -70,11 +74,29 @@ void main() {
     // edge the plain one.
     float d = curve(ref.y);
     float L = panelL - d, R = panelR + d;
+    float aa = 1280.0 / res.x;
     float inside = 1.0;
+    float card = 1.0;
     if (masked > 0.5) {
-        float aa = 1280.0 / res.x;
         inside = smoothstep(L - aa, L + aa, ref.x) * (1.0 - smoothstep(R - aa, R + aa, ref.x));
+
+        // The panel is a darker header band (holding the title) and footer
+        // band (the legend) around a lighter, rounded content card whose
+        // sides follow the panel's own curved edges.
+        float dx = min(ref.x - (L + CARD_INSET), (R - CARD_INSET) - ref.x);
+        float dy = min(ref.y - HEADER_BOTTOM, FOOTER_TOP - ref.y);
+        if (dx < 0.0 || dy < 0.0) {
+            card = 1.0 - smoothstep(-aa, aa, max(-dx, -dy));
+        } else if (dx < CARD_RADIUS && dy < CARD_RADIUS) {
+            float k = length(vec2(CARD_RADIUS - dx, CARD_RADIUS - dy)) - CARD_RADIUS;
+            card = 1.0 - smoothstep(-aa, aa, k);
+        }
     }
+
+    // The bands: the section's deep stops, lighter toward the top like the
+    // console's, with a faint rim of light where they meet the card.
+    vec3 band = mix(c2.rgb, c3.rgb, 0.55 + 0.3 * (ref.y / 720.0));
+    col = mix(band, col, card);
 
     // Concentric sheen: alternating light and dark rings around the focal
     // point, fading toward the edges. Measured in screen PIXELS (in units of
@@ -89,13 +111,13 @@ void main() {
     float rip = ripple(rs, fract(time / 9.0), pxPerUnit, 0.30)
               + ripple(rs, fract(time / 9.0 + 0.5), pxPerUnit, 0.22);
 
-    col += inside * (vec3(sheen) + vec3(rip));
+    col += inside * card * (vec3(sheen) + vec3(rip));
 
     // Specular gloss: white, 30% at the top -> 5% at 45% -> 0.
     float gy = ref.y / 720.0;
     float g = gy < 0.45 ? mix(0.30, 0.05, gy / 0.45)
                         : mix(0.05, 0.0, clamp((gy - 0.45) / 0.25, 0.0, 1.0));
-    col = mix(col, vec3(1.0), inside * g);
+    col = mix(col, vec3(1.0), inside * g * mix(0.5, 1.0, card));
 
     // Dither away the banding a wide gradient shows.
     col += (hash(px) - 0.5) / 255.0;
