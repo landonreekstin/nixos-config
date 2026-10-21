@@ -24,6 +24,21 @@ in
       persistent = false;            # don't fire a surprise rebuild+shutdown on next boot
     };
 
+    # lando's SSH access for nix work, over the homelab VPN only (so only while Blaney has
+    # it switched on). A separate `lando` account — never insideabush's — with sudo limited
+    # to an allowlist and a desktop notification here on every connect/disconnect. See
+    # modules/nixos/services/remote-admin.nix.
+    remoteAdmin = lib.mkIf blaneyWgVpn {
+      enable = true;
+      interface = "wg-homelab";
+      authorizedKeys = [
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOIskZoPWjwNZiMshj1N4qsotaRneJH7Noa195EiZj3e lando@gaming-pc"
+      ];
+      # Own file, not blaney-pc.yaml: it can be created from any host with just the public
+      # keys, while editing an existing sops file needs the admin key (asus-laptop only).
+      passwordSopsFile = ../../secrets/blaney-pc-admin.yaml;
+    };
+
     # Homelab VPN. Gated by blaneyWgVpn at the top of this file.
     wireguard.nmClient = lib.mkIf blaneyWgVpn {
       enable = true;
@@ -41,7 +56,11 @@ in
       peer = {
         publicKey = "Z1ZtZiXE59cBZvmjkvcWr5nlEtmHVJJ16P0pb4QtFiY=";
         endpoint = "68.184.198.204:51822";
-        allowedIPs = "192.168.1.76/32;";  # restricted: NAS only
+        # restricted: NAS only — plus lando's two gaming-pc peers (10.10.0.2 roaming,
+        # 10.10.0.11 wg-nas), so his SSH into this host (remoteAdmin above) is accepted
+        # by WireGuard and the replies go back into the tunnel. optiplex-fw passes only
+        # tcp/22 from those two to 10.10.0.5; this host still can't reach them.
+        allowedIPs = "192.168.1.76/32;10.10.0.2/32;10.10.0.11/32;";
         persistentKeepalive = 25;         # he's behind NAT; keep the mapping alive
       };
     };

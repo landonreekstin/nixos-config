@@ -95,6 +95,29 @@ Two things to keep in mind when touching this:
   `update-shutdown`, the auto-update service itself) are deliberately never guarded —
   blocking those would break the automation the guard exists to protect.
 
+## Lando over SSH
+
+lando can `ssh blaney` from gaming-pc to do nix work, but only while Blaney has the homelab
+VPN switched on (`autoconnect = false`). It is built so lando never needs to touch
+insideabush's files (`modules/nixos/services/remote-admin.nix`):
+
+- **A separate `lando` account**, key-only (gaming-pc's key), `AllowUsers lando`, sshd open
+  only on `wg-homelab`. insideabush gets no authorized keys. `customConfig.services.ssh`
+  stays off on purpose: it would put the admin keys on *his* account.
+- **sudo is an allowlist**, not `wheel`: `nixos-rebuild`, `systemctl`, `journalctl`,
+  `nix-collect-garbage`, with the password from `lando-password-hash` in
+  `secrets/blaney-pc-admin.yaml`. This is a guardrail against casual access, not a wall, since a
+  rebuild can do anything as root. The backstop is visibility: Blaney gets a desktop
+  notification on every connect and disconnect (a pam_exec rule on sshd), and every sudo
+  command is in the journal.
+- **Work in your own clone**, `/home/lando/nixos-config` on blaney-pc, never in his. `rebuild`
+  and `wt` there resolve to *his* tree (`MAIN_CONFIG`), so from the admin account rebuild
+  with `sudo nixos-rebuild switch --flake ~/nixos-config#$(hostname) --impure`. Push a branch
+  (the shortcut forwards your agent); his weekly update pulls `main` again afterwards.
+- **The path in:** gaming-pc routes `10.10.0.0/24` into `wg-nas`; optiplex-fw passes tcp/22
+  from 10.10.0.2/10.10.0.11 to 10.10.0.5 ahead of the `<restricted_peers>` block; and his
+  NM profile's `allowed-ips` include those two addresses so WireGuard accepts them.
+
 ## His own app projects
 
 Separate from everything above: insideabush also builds his own small apps, with the `vibe`
