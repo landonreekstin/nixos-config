@@ -31,7 +31,7 @@ creation_rules:
     key_groups:
       - age: [*optiplex, *lando]
 
-  - path_regex: secrets/blaney-pc\.yaml$
+  - path_regex: secrets/blaney-pc(-admin)?\.yaml$
     key_groups:
       - age: [*blaney-pc, *lando]
 

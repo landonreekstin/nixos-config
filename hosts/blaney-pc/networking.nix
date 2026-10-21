@@ -34,7 +34,9 @@ in
       authorizedKeys = [
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOIskZoPWjwNZiMshj1N4qsotaRneJH7Noa195EiZj3e lando@gaming-pc"
       ];
-      passwordSopsFile = ../../secrets/blaney-pc.yaml;
+      # Own file, not blaney-pc.yaml: it can be created from any host with just the public
+      # keys, while editing an existing sops file needs the admin key (asus-laptop only).
+      passwordSopsFile = ../../secrets/blaney-pc-admin.yaml;
     };
 
     # Homelab VPN. Gated by blaneyWgVpn at the top of this file.

@@ -106,7 +106,7 @@ insideabush's files (`modules/nixos/services/remote-admin.nix`):
   stays off on purpose: it would put the admin keys on *his* account.
 - **sudo is an allowlist**, not `wheel`: `nixos-rebuild`, `systemctl`, `journalctl`,
   `nix-collect-garbage`, with the password from `lando-password-hash` in
-  `secrets/blaney-pc.yaml`. This is a guardrail against casual access, not a wall, since a
+  `secrets/blaney-pc-admin.yaml`. This is a guardrail against casual access, not a wall, since a
   rebuild can do anything as root. The backstop is visibility: Blaney gets a desktop
   notification on every connect and disconnect (a pam_exec rule on sshd), and every sudo
   command is in the journal.
