@@ -167,11 +167,68 @@ Singleton {
     // ---- the controller daemon (pad/xbox360-pad.py) -------------------------
     property bool keyboardOpen: false
 
-    // What a Guide tap does. The Guide blade replaces this in a later milestone;
-    // until then it is the dashboard <-> last-app toggle.
-    function guide() {
-        if (onDashboard) resume();
-        else dashboard();
+    // ---- the Guide, messages and power ----------------------------------------
+    property bool guideOpen: false
+
+    // A tap of the Guide button: open or close the Guide, as on the console.
+    function guide() { guideOpen = !guideOpen; }
+
+    // What the notification blade shows: { title, icon, body, actions: [{ label, run }] }.
+    property var message: null
+    function openMessage(m) { message = m; }
+    function closeMessage() { message = null; }
+
+    function showNotification(n) {
+        const acts = n.actions.map(a => ({ label: a.text, run: () => a.invoke() }));
+        openMessage({
+            title: n.summary,
+            icon: n.image !== "" ? n.image : n.appIcon,
+            body: n.body,
+            actions: acts.concat([{ label: "Dismiss", run: () => n.dismiss() }])
+        });
+    }
+
+    // Holding Guide, or the Guide's last row.
+    function powerPrompt() {
+        play("notification");
+        openMessage({
+            title: "Turn Off Console",
+            icon: "system-shutdown",
+            body: "Turn off the console, restart it, or sign out of this session.",
+            actions: [
+                { label: "Turn off", run: () => Quickshell.execDetached(["systemctl", "poweroff"]) },
+                { label: "Restart", run: () => Quickshell.execDetached(["systemctl", "reboot"]) },
+                { label: "Sign out", run: () => Hyprland.dispatch("exit") },
+                { label: "Cancel", run: () => {} }
+            ]
+        });
+    }
+    onPowerRequested: powerPrompt()
+
+    // The Guide's X: lock, the console's "sign out" of a profile.
+    function signOut() { Quickshell.execDetached(["sh", "-c", Cfg.lockCmd]); }
+
+    // Running apps for the Guide's Open Apps: each app workspace with windows.
+    readonly property var apps: {
+        const out = [];
+        for (const ws of Hyprland.workspaces.values) {
+            if (!isApp(ws)) continue;
+            const tl = ws.toplevels ? ws.toplevels.values : [];
+            if (tl.length === 0) continue;
+            const m = metaFor(ws);
+            const cls = tl[0].lastIpcObject && tl[0].lastIpcObject.class ? tl[0].lastIpcObject.class : "";
+            const entry = cls !== "" ? DesktopEntries.heuristicLookup(cls) : null;
+            out.push({ id: ws.id, title: m.title, windows: tl.length, icon: entry ? entry.icon : "" });
+        }
+        return out.sort((a, b) => a.id - b.id);
+    }
+    readonly property int appCount: apps.length
+
+    function closeApp(id) {
+        const ws = workspaceById(id);
+        if (!ws) return;
+        for (const t of ws.toplevels.values)
+            Hyprland.dispatch("closewindow address:" + (String(t.address).startsWith("0x") ? "" : "0x") + t.address);
     }
 
     function padLine(line) {
@@ -200,12 +257,14 @@ Singleton {
         parser: SplitParser { onRead: data => state.padLine(data) }
         onConnectedChanged: if (connected) state.padSend("ui " + (state.uiActive ? 1 : 0))
     }
-    // The daemon may start after the shell, or restart: keep trying.
+    // The daemon may start after the shell, or restart: keep trying. A failed
+    // connect leaves `connected` false with the TARGET still true, so setting
+    // true again is a no-op — the target has to be cycled.
     Timer {
         interval: 2000
         running: !pad.connected
         repeat: true
-        onTriggered: pad.connected = true
+        onTriggered: { pad.connected = false; pad.connected = true; }
     }
     // ---- bookkeeping ---------------------------------------------------------
     // The active border follows the blade colour of whatever is on screen.
