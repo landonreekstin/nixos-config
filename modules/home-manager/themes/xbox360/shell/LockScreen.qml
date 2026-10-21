@@ -65,10 +65,10 @@ Scope {
 
             BladeSurface {
                 anchors.fill: parent
-                c0: "#" + Cfg.blades[5].stops[0]
-                c1: "#" + Cfg.blades[5].stops[1]
-                c2: "#" + Cfg.blades[5].stops[2]
-                c3: "#" + Cfg.blades[5].stops[3]
+                c0: "#" + Theme.blades[5].stops[0]
+                c1: "#" + Theme.blades[5].stops[1]
+                c2: "#" + Theme.blades[5].stops[2]
+                c3: "#" + Theme.blades[5].stops[3]
                 panelL: Cfg.frameMargin
                 panelR: surface.g.W - Cfg.frameMargin
                 curveAmt: 0

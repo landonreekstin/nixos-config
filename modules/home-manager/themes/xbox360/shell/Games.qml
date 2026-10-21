@@ -32,7 +32,7 @@ Singleton {
                 try {
                     const d = JSON.parse(text);
                     games.list = d.games;
-                    // The gamer card's Gamerscore is your Steam hours played.
+                    // The gamer card's Gamerscore is your hours played (Steam and Heroic).
                     ShellState.gamerscore = d.hours;
                 } catch (e) {}
                 games.loaded = true;

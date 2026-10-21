@@ -21,6 +21,7 @@ ShaderEffect {
     property bool animating: true
 
     property size res: Qt.size(width, height)
+    property real glow: Theme.glow
     property real time: 0
 
     fragmentShader: Qt.resolvedUrl("blade.frag.qsb")

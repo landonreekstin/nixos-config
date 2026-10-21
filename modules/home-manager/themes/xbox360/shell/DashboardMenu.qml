@@ -24,7 +24,7 @@ PanelWindow {
     readonly property real s: frame.g0.s
     readonly property var card: Geo.cardRect(frame.toLayout.L, frame.toLayout.R, frame.toLayout.cf, frame.g0)
     readonly property int bladeIndex: frame.mode === "page" ? ShellState.pageBlade : ShellState.blade
-    readonly property var bladeSpec: Cfg.blades[bladeIndex]
+    readonly property var bladeSpec: Theme.blades[bladeIndex]
 
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore
@@ -48,10 +48,15 @@ PanelWindow {
     function handle(btn) {
         if (frame.mode === "page") return pageLoader.item ? pageLoader.item.handle(btn) : false;
         switch (btn) {
-        case "left": case "lb":
+        case "left": case "right":
+            if (bladeMenu.handle(btn)) return true;
+            if (btn === "left") { if (ShellState.blade > 0) ShellState.blade--; return true; }
+            if (ShellState.blade < 4) ShellState.blade++;
+            return true;
+        case "lb":
             if (ShellState.blade > 0) ShellState.blade--;
             return true;
-        case "right": case "rb":
+        case "rb":
             if (ShellState.blade < 4) ShellState.blade++;
             return true;
         default:

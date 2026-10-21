@@ -151,6 +151,7 @@ let
     jellyfinUrl = xcfg.jellyfinUrl;
     # The Jellyfin desktop client, when the host installs it system-wide.
     jellyfinApp = lib.any (p: (p.pname or "") == "jellyfin-desktop") customConfig.packages.nixos;
+    hasTv = tvMonitor != null;
   };
 
   # Full-screen pages a menu row can open, by id.
@@ -195,6 +196,15 @@ let
     var sounds = "${assets}/share/sounds/xbox360";
     var font = "Convection";
     var blades = ${builtins.toJSON (map (n: { inherit (c.blades.${n}) title stops tab ink base rule; }) bladeOrder)};
+    var bladesNight = ${builtins.toJSON (map (n: { inherit (c.night.blades.${n}) title stops tab ink base rule; }) bladeOrder)};
+    var silverNight = ${builtins.toJSON c.night.silver};
+    var guideNight = ${builtins.toJSON c.night.guide};
+    var backdropNight = "${c.night.backdrop}";
+    var washInkNight = "${c.night.washInk}";
+    // Night mode's "auto": century-series' own sunset reckoning when the
+    // host has it (it prints sun=day|night), else the clock.
+    var nightStatusCmd = "command -v century-night >/dev/null && century-night status";
+    var tvCmd = "${if tvMonitor == null then "" else "${tvScript}"}";
     var buttons = ${builtins.toJSON c.buttons};
     var menus = ${builtins.toJSON menus};
     var pages = ${builtins.toJSON pages};
@@ -216,6 +226,7 @@ let
     var jellyfinPlay = "${jellyfinPlay}/bin/xbox360-jellyfin-play ${pkgs.mpv}/bin/mpv";
     var hostname = ${builtins.toJSON customConfig.system.hostName};
     var hyprctl = "${pkgs.hyprland}/bin/hyprctl";
+    var gameClasses = ${builtins.toJSON gameClasses};
     var downloadsCmd = "${downloadsCmd}";
     var silver = ${builtins.toJSON c.silver};
     var motionMs = ${toString c.motion.ms};
@@ -238,7 +249,7 @@ let
     mkdir -p $out
     cp ${./shell}/* $out/
     cp ${configJs} $out/Config.js
-    ${lib.getBin pkgs.qt6.qtshadertools}/bin/qsb --glsl "100 es,120,150" --hlsl 50 --msl 12 \
+    ${lib.getBin pkgs.qt6.qtshadertools}/bin/qsb --glsl "300 es,100 es,120,150,330" --hlsl 50 --msl 12 \
       -o $out/blade.frag.qsb ${bladeFrag}
   '';
 
@@ -328,6 +339,80 @@ let
         pr: (if $pr == "unknown" then false else $pr end)}'
   '';
 
+  # ---- TV mode -------------------------------------------------------------
+  # The whole session on the TV alone (the host's monitor named "tv"), and its
+  # HDMI audio with it; off puts back the monitors and the sound output from
+  # before. It works through the same state file as century-series' monitor
+  # toggles (toggle-monitor.nix), which monitor-state-watcher re-applies after
+  # every config reload — so a rebuild mid-match doesn't undo it.
+  tvMonitor = lib.findFirst (m: m.name == "tv" && m.enabled) null customConfig.desktop.monitors;
+  # Hyprland's name for a monitor, as hyprland/functional.nix spells it.
+  monitorId = m:
+    if lib.hasPrefix "desc:" m.identifier then m.identifier
+    else if lib.hasInfix " " m.identifier || lib.hasInfix "." m.identifier then "desc:${m.identifier}"
+    else m.identifier;
+  monitorRule = m: "${monitorId m}, ${m.resolution}, ${m.position}, ${m.scale}"
+    + lib.optionalString (m.transform != null) ", transform,${m.transform}";
+  otherMonitors = lib.filter (m: m.enabled && m.identifier != tvMonitor.identifier) customConfig.desktop.monitors;
+  tvScript = pkgs.writeShellScript "xbox360-tv" ''
+    export PATH=${lib.makeBinPath [ pkgs.hyprland pkgs.jq pkgs.coreutils pkgs.gnugrep pkgs.pulseaudio ]}:$PATH
+    state=$HOME/.local/state/hypr/disabled-monitors
+    saved=$HOME/.local/state/hypr/xbox360-tv
+    tvAudio=${lib.escapeShellArg (if tvMonitor.edid == null then "" else tvMonitor.edid)}
+    mkdir -p "$(dirname "$state")" "$saved"
+    # Sinks are matched by alsa.name (the monitor's own name over HDMI/DP):
+    # the pro-audio sink NUMBERS move whenever outputs come and go.
+    sinkNamed() {
+      pactl -f json list sinks 2>/dev/null \
+        | jq -r --arg n "$1" '.[] | select(.properties["alsa.name"] == $n) | .name' | head -n 1
+    }
+    case "''${1:-status}" in
+      status)
+        [ -e "$saved/on" ] && echo on || echo off ;;
+      on)
+        [ -e "$saved/on" ] && exit 0
+        cp "$state" "$saved/disabled-monitors" 2>/dev/null || : > "$saved/disabled-monitors"
+        pactl -f json list sinks 2>/dev/null | jq -r --arg d "$(pactl get-default-sink)" \
+          '.[] | select(.name == $d) | .properties["alsa.name"] // ""' > "$saved/sink"
+        touch "$saved/on"
+        hyprctl keyword monitor ${lib.escapeShellArg (monitorRule tvMonitor)} >/dev/null
+        : > "$state"
+        ${lib.concatMapStrings (m: ''
+          echo ${lib.escapeShellArg (monitorId m)} >> "$state"
+          hyprctl keyword monitor ${lib.escapeShellArg "${monitorId m},disable"} >/dev/null
+        '') otherMonitors}
+        # The TV's HDMI sink appears once the output is lit.
+        if [ -n "$tvAudio" ]; then
+          for _ in $(seq 20); do
+            s=$(sinkNamed "$tvAudio"); [ -n "$s" ] && { pactl set-default-sink "$s"; break; }
+            sleep 0.5
+          done
+        fi
+        ;;
+      off)
+        [ -e "$saved/on" ] || exit 0
+        cp "$saved/disabled-monitors" "$state" 2>/dev/null || : > "$state"
+        ${lib.concatMapStrings (m: ''
+          if grep -qxF ${lib.escapeShellArg (monitorId m)} "$state"; then
+            hyprctl keyword monitor ${lib.escapeShellArg "${monitorId m},disable"} >/dev/null
+          else
+            hyprctl keyword monitor ${lib.escapeShellArg (monitorRule m)} >/dev/null
+          fi
+        '') (lib.filter (m: m.enabled) customConfig.desktop.monitors)}
+        prev=$(cat "$saved/sink" 2>/dev/null)
+        rm -f "$saved/on"
+        if [ -n "$prev" ]; then
+          for _ in $(seq 20); do
+            s=$(sinkNamed "$prev"); [ -n "$s" ] && { pactl set-default-sink "$s"; break; }
+            sleep 0.5
+          done
+        fi
+        ;;
+      toggle)
+        if [ -e "$saved/on" ]; then "$0" off; else "$0" on; fi ;;
+    esac
+  '';
+
   # ---- Games Library and Videos -------------------------------------------
   gamesCmd = pkgs.writeScriptBin "xbox360-games"
     ("#!${pkgs.python3}/bin/python3\n" + builtins.readFile ./pad/xbox360-games.py);
@@ -339,13 +424,22 @@ let
   padPython = pkgs.python3.withPackages (ps: [ ps.evdev ]);
   pad = pkgs.writeScriptBin "xbox360-pad"
     ("#!${padPython}/bin/python3\n" + builtins.readFile ./pad/xbox360-pad.py);
+  # Window classes that are games themselves (not launchers): the controller
+  # passes straight through, and the shell gives one its own app workspace
+  # when it opens over Steam or Heroic.
+  gameClasses = [
+    "^steam_app_" "^gamescope"
+    # Windows games under Wine/Proton outside Steam (Heroic: Epic, GOG)
+    # are classed by their executable, e.g. rocketleague.exe.
+    "\\.exe$"
+  ];
   padConfig = pkgs.writeText "xbox360-pad.json" (builtins.toJSON {
     hyprctl = "${pkgs.hyprland}/bin/hyprctl";
     # Window classes that read the controller themselves: they get it
     # untouched (anything fullscreen does too). Everything else gets the
     # desktop emulation.
-    passthrough = [
-      "^steam_app_" "^steam$" "^gamescope" "^heroic$" "^retroarch"
+    passthrough = gameClasses ++ [
+      "^steam$" "^heroic$" "^retroarch"
       "^org\\.jellyfin" "^com\\.github\\.iwalton3\\.jellyfin" "^dolphin-emu$"
       "^PCSX2" "^Ryujinx" "^Cemu" "^com\\.moonlight_stream" "^Moonlight"
     ];
@@ -416,8 +510,12 @@ in
     # The default session forgets any rice a previous session left behind, so
     # waybar-start, century-night and friends (which check this file) run again.
     # extraConfig, not exec-once: see the note on `settings` above.
+    # It also leaves TV Mode: that is the rice's, and the monitor state it
+    # writes is shared with century-series' monitor toggles.
     wayland.windowManager.hyprland.extraConfig = ''
       exec-once = rm -f "$XDG_RUNTIME_DIR/hypr-rice"
+    '' + lib.optionalString (tvMonitor != null) ''
+      exec-once = ${tvScript} off
     '';
   };
 }

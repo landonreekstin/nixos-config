@@ -14,7 +14,7 @@ Item {
     id: page
 
     property real s: 1
-    property var bladeSpec: Cfg.blades[2]
+    property var bladeSpec: Theme.blades[2]
     readonly property color ink: "#" + bladeSpec.ink
 
     Component.onCompleted: Games.refresh()
@@ -161,7 +161,7 @@ Item {
                         text: row.modelData.name
                         font.family: Cfg.font
                         font.pixelSize: Cfg.rowSize * page.s
-                        color: page.ink
+                        color: row.selected ? Theme.onWash(page.ink) : page.ink
                     }
                 }
             }

@@ -5,6 +5,7 @@
 // what the buttons do right now. Legend entries can be clicked.
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 import "Config.js" as Cfg
 import "Geometry.js" as Geo
 
@@ -26,7 +27,7 @@ Item {
     readonly property real footerTop: g.H - Cfg.footerHeight
 
     // What each footer slot says in each mode. A legend entry is
-    // { btns: [...], label, action }.
+    // { btns: [...], label, action }; `centre` is optional.
     readonly property var legend: {
         if (mode === "blades") return {
             left: [ ShellState.resumeTitle !== ""
@@ -44,6 +45,8 @@ Item {
         return {
             left: [ { btns: ["guide", "y"], label: "Xbox Dashboard", action: () => ShellState.dashboard() },
                     { btns: ["guide"], label: "Guide" } ],
+            centre: [ { btns: ["guide", "back"], label: "Close", action: () => Hyprland.dispatch("killactive") },
+                      { btns: ["guide", "start"], label: "Full Screen", action: () => Hyprland.dispatch("fullscreen") } ],
             right: [ { btns: ["guide", "lb", "rb"], label: "Switch" },
                      { btns: ["guide", "dpad"], label: "Window" } ]
         };
@@ -165,6 +168,22 @@ Item {
         }
         Behavior on x {
             NumberAnimation { duration: Cfg.motionMs; easing.type: Easing.BezierSpline; easing.bezierCurve: Cfg.motionBezier }
+        }
+    }
+
+    // The app frame's middle column: closing and fullscreen, the two chords
+    // with no button of their own on screen.
+    Column {
+        x: (bands.leftAt(footerTop + 30) + bands.rightAt(footerTop + 30) - width) / 2
+        y: (bands.footerTop + 6) * bands.s
+        spacing: 2 * bands.s
+        visible: bands.legend.centre !== undefined
+        Repeater {
+            model: bands.legend.centre || []
+            delegate: LegendEntry {
+                required property var modelData
+                spec: modelData
+            }
         }
     }
 

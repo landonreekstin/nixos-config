@@ -17,7 +17,7 @@ Item {
     id: page
 
     property real s: 1
-    property var bladeSpec: Cfg.blades[3]
+    property var bladeSpec: Theme.blades[3]
     readonly property color ink: "#" + bladeSpec.ink
 
     // ---- data -----------------------------------------------------------------
@@ -264,7 +264,7 @@ Item {
                             text: page.label(row.modelData)
                             font.family: Cfg.font
                             font.pixelSize: 21 * page.s
-                            color: page.ink
+                            color: row.selected ? Theme.onWash(page.ink) : page.ink
                         }
                         Text {   // watched
                             anchors.right: parent.right

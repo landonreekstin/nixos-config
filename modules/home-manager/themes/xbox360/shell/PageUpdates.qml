@@ -15,7 +15,7 @@ Item {
     id: page
 
     property real s: 1
-    property var bladeSpec: Cfg.blades[0]
+    property var bladeSpec: Theme.blades[0]
     readonly property color ink: "#" + bladeSpec.ink
     property var st: null
     property int current: 0

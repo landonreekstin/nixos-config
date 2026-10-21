@@ -44,6 +44,17 @@ Item {
     readonly property var rows: {
         const st = status;
         const out = [];
+        out.push({
+            label: "Night Mode", icon: "weather-clear-night", value: Theme.modeText,
+            detail: "Dark blades for the evening. Auto follows sunset and sunrise. Left and right choose Auto, On or Off.",
+            adjust: dir => ShellState.changeSetting("night", dir),
+            run: () => ShellState.changeSetting("night", 1)
+        });
+        if (Cfg.tvCmd !== "") out.push({
+            label: "TV Mode", icon: "video-television", value: ShellState.tvMode ? "On" : "Off",
+            detail: "Play on the TV: the whole console moves to the TV, sound included, and the monitors switch off. A again to come back.",
+            run: () => ShellState.changeSetting("tv", 1)
+        });
         const vol = st.volume;
         out.push({
             label: "Volume", icon: "audio-volume-high",

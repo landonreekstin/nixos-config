@@ -69,10 +69,10 @@ Item {
                 y1: 0
                 x2: (tab.topX + tab.bandWidth) * tab.g.s
                 y2: 0
-                GradientStop { position: 0.0;  color: tab.blend(Cfg.silver.tab, tab.bandColoured, 0) }
-                GradientStop { position: 0.32; color: tab.blend(Cfg.silver.tab, tab.bandColoured, 1) }
-                GradientStop { position: 0.62; color: tab.blend(Cfg.silver.tab, tab.bandColoured, 2) }
-                GradientStop { position: 1.0;  color: tab.blend(Cfg.silver.tab, tab.bandColoured, 3) }
+                GradientStop { position: 0.0;  color: tab.blend(Theme.silver.tab, tab.bandColoured, 0) }
+                GradientStop { position: 0.32; color: tab.blend(Theme.silver.tab, tab.bandColoured, 1) }
+                GradientStop { position: 0.62; color: tab.blend(Theme.silver.tab, tab.bandColoured, 2) }
+                GradientStop { position: 1.0;  color: tab.blend(Theme.silver.tab, tab.bandColoured, 3) }
             }
             PathPolyline {
                 path: Geo.ribbon(tab.topX, tab.mirror, tab.topX + tab.bandWidth, tab.mirror, tab.g)
@@ -88,10 +88,10 @@ Item {
                 y1: 0
                 x2: (tab.topX + tab.bandWidth) * tab.g.s
                 y2: 0
-                GradientStop { position: 0.0;  color: tab.blend(Cfg.silver.box, tab.boxColoured, 0) }
-                GradientStop { position: 0.32; color: tab.blend(Cfg.silver.box, tab.boxColoured, 1) }
-                GradientStop { position: 0.62; color: tab.blend(Cfg.silver.box, tab.boxColoured, 2) }
-                GradientStop { position: 1.0;  color: tab.blend(Cfg.silver.box, tab.boxColoured, 3) }
+                GradientStop { position: 0.0;  color: tab.blend(Theme.silver.box, tab.boxColoured, 0) }
+                GradientStop { position: 0.32; color: tab.blend(Theme.silver.box, tab.boxColoured, 1) }
+                GradientStop { position: 0.62; color: tab.blend(Theme.silver.box, tab.boxColoured, 2) }
+                GradientStop { position: 1.0;  color: tab.blend(Theme.silver.box, tab.boxColoured, 3) }
             }
             PathPolyline {
                 path: Geo.tabBox(tab.topX, tab.bandWidth, tab.mirror, tab.boxTop, tab.g)
@@ -105,8 +105,8 @@ Item {
         text: tab.title.toLowerCase()
         font.family: Cfg.font
         font.pixelSize: Cfg.tabLabelSize * tab.g.s
-        color: area.containsMouse && tab.weight < 0.5 ? "#2e2e2e"
-             : tab.mixColor(tab.c(Cfg.silver.label), tab.c(tab.blade.ink), tab.weight)
+        color: area.containsMouse && tab.weight < 0.5 ? (Theme.night ? "#f2f2f2" : "#2e2e2e")
+             : tab.mixColor(tab.c(Theme.silver.label), tab.c(tab.blade.ink), tab.weight)
         rotation: 90
         transformOrigin: Item.TopLeft
         x: tab.boxCentreX + height / 2

@@ -90,7 +90,7 @@ SidePanel {
             font.family: Cfg.font
             font.pixelSize: 22 * blade.s
             lineHeight: 1.1
-            color: "#" + Cfg.guide.ink
+            color: "#" + Theme.guide.ink
         }
 
         Column {
@@ -105,8 +105,8 @@ SidePanel {
                     width: rows.width
                     height: 40 * blade.s
                     s: blade.s
-                    ink: "#" + Cfg.guide.ink
-                    rule: "#" + Cfg.guide.rule
+                    ink: "#" + Theme.guide.ink
+                    rule: "#" + Theme.guide.rule
                     label: modelData.label
                     icon: ""
                     selected: blade.cur === index

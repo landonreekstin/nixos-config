@@ -14,7 +14,7 @@ Item {
     id: page
 
     property real s: 1
-    property var bladeSpec: Cfg.blades[0]
+    property var bladeSpec: Theme.blades[0]
     readonly property color ink: "#" + bladeSpec.ink
 
     property var items: []
@@ -131,7 +131,7 @@ Item {
                         text: row.modelData.name
                         font.family: Cfg.font
                         font.pixelSize: 19 * page.s
-                        color: page.ink
+                        color: row.selected ? Theme.onWash(page.ink) : page.ink
                     }
                     // Progress: a slim bar along the bottom of the row.
                     Rectangle {

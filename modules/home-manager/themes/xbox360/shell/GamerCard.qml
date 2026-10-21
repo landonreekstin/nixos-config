@@ -12,9 +12,10 @@ Rectangle {
     property real s: 1
 
     radius: 8 * s
-    color: Qt.rgba(1, 1, 1, 0.38)
+    // Frosted white by day; at night a smoked panel with light text.
+    color: Theme.night ? Qt.rgba(0, 0, 0, 0.32) : Qt.rgba(1, 1, 1, 0.38)
     border.width: 1.5
-    border.color: Qt.rgba(1, 1, 1, 0.7)
+    border.color: Theme.night ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(1, 1, 1, 0.7)
     clip: true
 
     // The gamertag strip.
@@ -89,7 +90,7 @@ Rectangle {
                 text: parent.label
                 font.family: Cfg.font
                 font.pixelSize: 19 * card.s
-                color: "#1d1d1d"
+                color: Theme.night ? "#e4e6e9" : "#1d1d1d"
             }
             Text {
                 anchors.right: parent.right
@@ -97,7 +98,7 @@ Rectangle {
                 text: parent.value
                 font.family: Cfg.font
                 font.pixelSize: 19 * card.s
-                color: "#1d1d1d"
+                color: Theme.night ? "#e4e6e9" : "#1d1d1d"
             }
         }
 

@@ -128,6 +128,49 @@ rec {
     tabBoxInset = 0.35; # fraction of the band left as the light outer strip
   };
 
+  # ---- night ---------------------------------------------------------------
+  # The same keys with night values (Theme.qml swaps them at runtime), so no
+  # consumer changes: each blade keeps its hue as a deep tint on near-black,
+  # with light ink, and the silver goes graphite. Derived, not hand-picked, so
+  # a day colour fixed above fixes its night twin too.
+  night =
+    let
+      hex = h: map (i: lib.fromHexString (lib.substring i 2 h)) [ 0 2 4 ];
+      byte = v: let x = lib.toLower (lib.toHexString (lib.max 0 (lib.min 255 v))); in
+        if lib.stringLength x == 1 then "0" + x else x;
+      # a -> b by t, in sRGB (these are near-greys and tints: no hue arc).
+      mix = a: b: t: lib.concatMapStrings byte
+        (lib.zipListsWith (x: y: builtins.floor (x + (y - x) * t + 0.5)) (hex a) (hex b));
+      black = "0a0b0d";
+      white = "ffffff";
+      blade = b: b // {
+        stops = lib.imap0 (i: c: mix c black (lib.elemAt [ 0.66 0.71 0.76 0.82 ] i)) b.stops;
+        base = mix b.base black 0.45;
+        tab = map (c: mix c black 0.55) b.tab;
+        ink = mix (lib.head b.stops) white 0.82;
+        rule = mix (lib.elemAt b.stops 1) black 0.35;
+      };
+    in
+    {
+      blades = lib.mapAttrs (_: blade) blades;
+      silver = {
+        tab = [ "2a2c30" "3b3e43" "34373b" "26282b" ];
+        box = [ "1e2023" "2b2d31" "28292d" "1b1c1f" ];
+        label = "b4b8be";
+        gutter = [ "1c1e21" "2c2f33" "1a1c1f" ];
+        rim = "474a4f";
+      };
+      guide = {
+        stops = map (c: mix c black 0.72) guide.stops;
+        ink = "f4e6b8";
+        rule = mix (lib.elemAt guide.stops 2) black 0.4;
+      };
+      # The flat colour behind everything, and the white wash under the
+      # highlighted row is kept — so text on it goes dark.
+      backdrop = "1b1c1f";
+      washInk = "16181b";
+    };
+
   # Every edge — each band and both sides of the open panel — is one smooth,
   # even arc down the whole screen, bowing toward the centre at mid-height by
   # 24 reference px (14 px in the captures): the inside of a cylinder. A
