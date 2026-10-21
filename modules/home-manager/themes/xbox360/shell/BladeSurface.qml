@@ -1,5 +1,6 @@
 // ~/nixos-config/modules/home-manager/themes/xbox360/shell/BladeSurface.qml
-// The blade's painted surface (blade.frag): gradient, sheen, ripples, gloss.
+// The blade's painted surface (blade.frag): gradient, bands, card, sheen,
+// ripples, gloss.
 import QtQuick
 
 ShaderEffect {
@@ -10,10 +11,12 @@ ShaderEffect {
     property color c1
     property color c2
     property color c3
-    // Panel edges in reference units; masked = 0 paints the whole surface.
+    // Panel edges in reference units; masked = 0 paints a plain surface.
     property real panelL: 0
     property real panelR: 1280
+    property real curveAmt: 1
     property real masked: 1
+    property size refSize: Qt.size(1280, 720)
     // Freeze the ripples (e.g. behind a fullscreen game) to cost nothing.
     property bool animating: true
 

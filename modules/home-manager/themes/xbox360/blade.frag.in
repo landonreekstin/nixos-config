@@ -1,11 +1,14 @@
 // ~/nixos-config/modules/home-manager/themes/xbox360/blade.frag.in
-// The blade surface: the open section's radial gradient, its concentric sheen,
-// two slow ripple rings and the top-down gloss. The gradient covers the whole
-// surface; sheen, ripples and gloss belong to the open panel only, masked by
-// the same arc Geometry.js draws (the @KY@/@KD@ knots are substituted
-// from Config at build time, so the two cannot drift).
+// The blade surface: the open section's radial gradient, its header and footer
+// bands around a rounded content card, the card's concentric sheen and two
+// slow ripple rings, and the top-down gloss. The gradient covers the whole
+// surface; everything else belongs to the open panel, masked by the same arc
+// Geometry.js draws (the @KY@/@KD@ knots are substituted from Config at build
+// time, so the two cannot drift).
 //
-// Works in sRGB with no tone mapping, like the CSS it recreates.
+// Coordinates are the shell's reference frame (Geometry.js): `ref` is W x H
+// reference units, 1280 x 720 on a 16:9 screen. Works in sRGB with no tone
+// mapping, like the console's own art.
 #version 440
 layout(location = 0) in vec2 qt_TexCoord0;
 layout(location = 0) out vec4 fragColor;
@@ -14,10 +17,12 @@ layout(std140, binding = 0) uniform buf {
     mat4 qt_Matrix;
     float qt_Opacity;
     vec2 res;       // surface size in pixels
+    vec2 refSize;   // the reference frame, W x H
     float time;     // seconds, for the ripples
-    float panelL;   // panel edges, reference units (1280x720 frame)
+    float panelL;   // panel edges, reference units
     float panelR;
-    float masked;   // 1: sheen/ripples/gloss inside the panel only; 0: everywhere
+    float curveAmt; // 1 on the dashboard, 0 for the straight app/page frame
+    float masked;   // 1: bands/card/sheen/gloss in the panel only; 0: plain surface
     vec4 c0;        // gradient stops at 0 / 30 / 62 / 100 %
     vec4 c1;
     vec4 c2;
@@ -28,7 +33,7 @@ const int N = @N@;
 const float KY[N] = float[N](@KY@);
 const float KD[N] = float[N](@KD@);
 const float HEADER_BOTTOM = @HB@;
-const float FOOTER_TOP = @FT@;
+const float FOOTER_HEIGHT = @FH@;
 const float CARD_INSET = @CI@;
 const float CARD_RADIUS = @CR@;
 
@@ -59,22 +64,24 @@ float ripple(float rs, float phase, float pxPerUnit, float strength) {
 
 void main() {
     vec2 px = qt_TexCoord0 * res;
-    vec2 ref = vec2(qt_TexCoord0.x * 1280.0, qt_TexCoord0.y * 720.0);
+    vec2 ref = qt_TexCoord0 * refSize;
+    float H = refSize.y;
+    float footerTop = H - FOOTER_HEIGHT;
 
     // radial-gradient(90% 80% at 50% 44%) of the panel.
     float w = max(panelR - panelL, 1.0);
-    vec2 centre = vec2((panelL + panelR) * 0.5, 0.44 * 720.0);
-    float r = length((ref - centre) / vec2(0.9 * w, 0.8 * 720.0));
+    vec2 centre = vec2((panelL + panelR) * 0.5, 0.44 * H);
+    float r = length((ref - centre) / vec2(0.9 * w, 0.8 * H));
     vec3 col;
     if (r < 0.30)      col = mix(c0.rgb, c1.rgb, r / 0.30);
     else if (r < 0.62) col = mix(c1.rgb, c2.rgb, (r - 0.30) / 0.32);
     else               col = mix(c2.rgb, c3.rgb, clamp((r - 0.62) / 0.38, 0.0, 1.0));
 
     // Inside the open panel? Its left edge is the mirrored curve, its right
-    // edge the plain one.
-    float d = curve(ref.y);
+    // edge the plain one; the arc always spans the full height.
+    float d = curveAmt * curve(ref.y * 720.0 / H);
     float L = panelL - d, R = panelR + d;
-    float aa = 1280.0 / res.x;
+    float aa = refSize.x / res.x;
     float inside = 1.0;
     float card = 1.0;
     if (masked > 0.5) {
@@ -82,9 +89,9 @@ void main() {
 
         // The panel is a darker header band (holding the title) and footer
         // band (the legend) around a lighter, rounded content card whose
-        // sides follow the panel's own curved edges.
+        // sides follow the panel's own edges.
         float dx = min(ref.x - (L + CARD_INSET), (R - CARD_INSET) - ref.x);
-        float dy = min(ref.y - HEADER_BOTTOM, FOOTER_TOP - ref.y);
+        float dy = min(ref.y - HEADER_BOTTOM, footerTop - ref.y);
         if (dx < 0.0 || dy < 0.0) {
             card = 1.0 - smoothstep(-aa, aa, max(-dx, -dy));
         } else if (dx < CARD_RADIUS && dy < CARD_RADIUS) {
@@ -93,28 +100,24 @@ void main() {
         }
     }
 
-    // The bands: the section's deep stops, lighter toward the top like the
-    // console's, with a faint rim of light where they meet the card.
-    vec3 band = mix(c2.rgb, c3.rgb, 0.55 + 0.3 * (ref.y / 720.0));
+    // The bands: the section's deep stops, lighter toward the top.
+    vec3 band = mix(c2.rgb, c3.rgb, 0.55 + 0.3 * (ref.y / H));
     col = mix(band, col, card);
 
-    // Concentric sheen: alternating light and dark rings around the focal
-    // point, fading toward the edges. Measured in screen PIXELS (in units of
-    // the screen height) so the rings stay circular on any aspect ratio — the
-    // reference frame is stretched to fit, which made them ellipses at 16:10.
-    vec2 centrePx = centre / vec2(1280.0, 720.0) * res;
+    // Concentric sheen: light and dark rings around the focal point, fading
+    // toward the edges; circular in screen pixels whatever the aspect.
+    vec2 centrePx = centre / refSize * res;
     float rs = length(px - centrePx) / res.y;
     float sheen = 0.03 * sin(rs * 34.0) * (1.0 - smoothstep(0.15, 0.9, rs));
 
     // Two ripples half a period apart, 9 s each.
-    float pxPerUnit = res.y;
-    float rip = ripple(rs, fract(time / 9.0), pxPerUnit, 0.30)
-              + ripple(rs, fract(time / 9.0 + 0.5), pxPerUnit, 0.22);
+    float rip = ripple(rs, fract(time / 9.0), res.y, 0.30)
+              + ripple(rs, fract(time / 9.0 + 0.5), res.y, 0.22);
 
     col += inside * card * (vec3(sheen) + vec3(rip));
 
     // Specular gloss: white, 30% at the top -> 5% at 45% -> 0.
-    float gy = ref.y / 720.0;
+    float gy = ref.y / H;
     float g = gy < 0.45 ? mix(0.30, 0.05, gy / 0.45)
                         : mix(0.05, 0.0, clamp((gy - 0.45) / 0.25, 0.0, 1.0));
     col = mix(col, vec3(1.0), inside * g * mix(0.5, 1.0, card));

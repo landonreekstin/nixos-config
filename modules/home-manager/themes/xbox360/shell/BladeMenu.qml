@@ -1,0 +1,158 @@
+// ~/nixos-config/modules/home-manager/themes/xbox360/shell/BladeMenu.qml
+// One blade's menu, laid out like the console's (Captures/xbox360-examples,
+// dashboard-*-blade.png): the gamer card at the top left, the menu rows below
+// it, the blade's logo top right and the highlighted row's description beside
+// the rows, and a wide pill along the bottom — the console's "Open Tray",
+// here "Resume" for the last app.
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import Quickshell
+import "Config.js" as Cfg
+
+Item {
+    id: menu
+
+    property int blade: 0
+    property real s: 1
+
+    readonly property var spec: Cfg.blades[blade]
+    readonly property var rows: Cfg.menus[Math.min(blade, Cfg.menus.length - 1)]
+    readonly property int current: Math.min(ShellState.rows[blade], Math.max(0, rows.length - 1))
+    readonly property color ink: "#" + spec.ink
+
+    readonly property real leftW: width * 0.47
+    readonly property real rowH: Cfg.rowHeight * s
+    readonly property real rowsTop: (Cfg.gamerCardHeight + 22) * s
+
+    function select(i) {
+        if (i < 0 || i >= rows.length || i === current) return;
+        ShellState.setRow(blade, i);
+        ShellState.play("select");
+    }
+
+    function activate(i) {
+        const r = rows[i];
+        if (!r) return;
+        const a = r.action;
+        ShellState.play("select-a");
+        if (a.type === "launch") ShellState.launch(a.cmd, a.title, blade);
+        else if (a.type === "page") ShellState.openPage(a.page, a.title, blade);
+        else if (a.type === "ipc") ShellState.input(a.btn);
+    }
+
+    function handle(btn) {
+        switch (btn) {
+        case "up": select(current - 1); return true;
+        case "down": select(current + 1); return true;
+        case "lt": select(0); return true;
+        case "rt": select(rows.length - 1); return true;
+        case "a": activate(current); return true;
+        case "y": ShellState.resume(); return true;
+        }
+        return false;
+    }
+
+    // ---- left column: gamer card and rows ---------------------------------
+    GamerCard {
+        x: 0
+        y: 0
+        width: menu.leftW
+        height: Cfg.gamerCardHeight * menu.s
+        s: menu.s
+    }
+
+    Column {
+        id: rowsCol
+        x: 0
+        y: menu.rowsTop
+        width: menu.leftW
+
+        Repeater {
+            model: menu.rows
+            delegate: MenuRow {
+                required property var modelData
+                required property int index
+                width: rowsCol.width
+                height: menu.rowH
+                s: menu.s
+                ink: menu.ink
+                rule: "#" + menu.spec.rule
+                label: modelData.label
+                icon: modelData.icon
+                selected: index === menu.current
+                onHovered: menu.select(index)
+                onClicked: menu.activate(index)
+            }
+        }
+    }
+
+    // ---- right column: logo and description ---------------------------------
+    BladeLogo {
+        x: menu.leftW + 30 * menu.s
+        y: 4 * menu.s
+        width: menu.width - x
+        height: Cfg.gamerCardHeight * menu.s
+        blade: menu.blade
+        s: menu.s
+    }
+
+    Text {
+        x: menu.leftW + 30 * menu.s
+        y: menu.rowsTop + 6 * menu.s
+        width: menu.width - x
+        text: menu.rows.length > 0 ? menu.rows[menu.current].desc : ""
+        wrapMode: Text.WordWrap
+        font.family: Cfg.font
+        font.pixelSize: Cfg.descSize * menu.s
+        lineHeight: 1.1
+        color: menu.ink
+    }
+
+    // ---- bottom pill: Resume ----------------------------------------------------
+    Rectangle {
+        id: pill
+        readonly property bool live: ShellState.resumeTitle !== ""
+        x: 0
+        width: parent.width
+        height: 40 * menu.s
+        anchors.bottom: parent.bottom
+        radius: height / 2
+        color: Qt.rgba(1, 1, 1, pillArea.containsMouse && live ? 0.22 : 0.12)
+        border.width: 1.5
+        border.color: Qt.rgba(1, 1, 1, 0.45)
+
+        Rectangle {
+            width: parent.height * 1.3
+            height: width
+            radius: width / 2
+            anchors.verticalCenter: parent.verticalCenter
+            x: -parent.height * 0.15
+            color: Qt.rgba(1, 1, 1, 0.12)
+            border.width: 1.5
+            border.color: Qt.rgba(1, 1, 1, 0.45)
+            Text {
+                anchors.centerIn: parent
+                text: "▶"
+                font.pixelSize: 14 * menu.s
+                color: Qt.rgba(0, 0, 0, 0.35)
+            }
+        }
+        Text {
+            x: parent.height * 1.4
+            anchors.verticalCenter: parent.verticalCenter
+            text: pill.live ? "Resume " + ShellState.resumeTitle : "Nothing to resume"
+            opacity: pill.live ? 1 : 0.5
+            font.family: Cfg.font
+            font.pixelSize: Cfg.rowSize * menu.s
+            color: menu.ink
+        }
+        MouseArea {
+            id: pillArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: pill.live ? Qt.PointingHandCursor : Qt.ArrowCursor
+            onClicked: ShellState.resume()
+        }
+    }
+}
