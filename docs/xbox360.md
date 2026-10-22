@@ -69,9 +69,15 @@ emulators, Moonlight, Jellyfin players) and anything fullscreen get the pad unto
 The emulation is one `uinput` device; `modules/nixos/desktop/hyprland.nix` loads `uinput`
 and tags it `uaccess` when the rice is enabled, so it never depends on Steam's udev rules.
 
-The link: the daemon serves `$XDG_RUNTIME_DIR/xbox360-pad.sock`; the shell connects
-(`ShellState`, retrying every 2 s) and reads `btn <name>`, `guide`, `power`, `dashboard`,
-`keyboard`; it writes `ui 1|0` whenever any input handler becomes (in)active.
+The link: the daemon serves `$XDG_RUNTIME_DIR/xbox360-pad.sock`, greets each client with
+`hello` and pings every 2 s; it sends `btn <name>`, `guide`, `power`, `dashboard`, `keyboard`.
+The shell writes `ui 1|0` whenever any input handler becomes (in)active. The shell judges
+the link **only by the ping** (5 s of silence = down) and retries every 2 s with a **brand-new
+Socket from `createObject`** — three things that did not work, all seen in the VM: a failed
+Socket never retries; toggling its `connected` does not make it; a `Loader` inside the
+non-visual `ShellState` singleton never instantiates; and reacting to a replaced Socket's
+`connected` going false tore down the good new link, because the old one reports its
+teardown late. The virtual device only releases keys it pressed.
 
 X/Y: xpad and xpadneo report X as `BTN_X` (== `BTN_NORTH`) and Y as `BTN_Y` — the
 opposite of the gamepad spec's compass names. `swapXY` in the config flips it if a driver
@@ -103,6 +109,24 @@ focused window with `wtype`; its layer never takes keyboard focus, so the app ke
   **profiles** (`padConfig.profiles`) — mpv gets A pause, B quit, X subtitles, Y progress,
   D-pad seek, LB/RB chapters, LT/RT volume, even fullscreen (a profiled app is never
   "a fullscreen game: hands off").
+
+## Lock screen, System Update, Gamerscore
+
+- **Lock** (`LockScreen.qml`): a real `ext-session-lock` (`WlSessionLock`) drawn as the
+  console's profile sign-in, password checked by PAM through the `swaylock` service. Reached
+  from the Guide's X (Sign Out), SUPER+Escape (the rice's config rewrites the functional
+  `swaylock` bind to `qs … ipc call ui lock`; SUPER+BackSpace goes to Turn Off Console
+  instead of wlogout), and swayidle: `services/swayidle.nix` locks through a script that
+  asks the rice's shell when `$XDG_RUNTIME_DIR/hypr-rice` names one, else runs swaylock.
+  That call needs `qs ipc --any-display`: a unit may not carry `WAYLAND_DISPLAY`, and `qs ipc`
+  otherwise only finds shells on the caller's display. Unlock needs a keyboard.
+- **Marketplace → System Update** (`PageUpdates.qml`): branch and commit of
+  `~/nixos-config`, how far behind `origin/main` (as last fetched — no network), when
+  `/run/current-system` last changed (the symlink's own time; its target is epoch 1), and the
+  open `flake-update` PR via `gh`; Update now / Rebuild / Update and turn off run in a
+  terminal on an app workspace.
+- **Gamerscore** on the gamer card = total Steam hours played (`Playtime` in every
+  `userdata/*/config/localconfig.vdf`), from the games scanner.
 
 ## Shell layout (`themes/xbox360/shell/`)
 
@@ -176,3 +200,9 @@ POSTs) and point the shell's `Config.js` `jellyfinUrl` at it. The VM's software 
 makes mpv's default output assert (`vo_x11_init`); the helper takes the mpv binary as its
 first argument, so test with a wrapper adding `--vo=wlshm`. And **never `pkill -f`/`pgrep -f`
 a name that also appears in the same ssh command line** — it matches the remote shell itself.
+
+If the fake pad misbehaves (inputs repeating on their own — it once replayed a tap every
+130 ms), restart it and check the daemon by logging raw `EV_KEY` events before suspecting
+the shell: that loop looked exactly like "A opens a page AND triggers its first row".
+Restarting the daemon with `pgrep -f … | head -1` left a second daemon reading the same pad;
+kill every match.

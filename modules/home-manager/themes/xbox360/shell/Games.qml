@@ -29,7 +29,12 @@ Singleton {
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
-                try { games.list = JSON.parse(text); } catch (e) {}
+                try {
+                    const d = JSON.parse(text);
+                    games.list = d.games;
+                    // The gamer card's Gamerscore is your Steam hours played.
+                    ShellState.gamerscore = d.hours;
+                } catch (e) {}
                 games.loaded = true;
             }
         }

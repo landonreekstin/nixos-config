@@ -6,7 +6,7 @@
 # A row is { label; icon; desc; action; } where action is one of
 #   { type = "launch"; cmd; title; }  — run on a fresh app workspace
 #   { type = "page"; page; title; }   — open a full-screen page (Config.pages)
-{ lib, apps, pkgs, downloadsUrl, jellyfinUrl }:
+{ lib, apps, pkgs, downloadsUrl, jellyfinUrl, jellyfinApp }:
 
 let
   cmd = role: apps.${role}.command or "";
@@ -33,11 +33,8 @@ in
   # ---- Marketplace: keeping this console up to date -------------------------
   ([
     (row "System Update" "system-software-update"
-      "Pull the latest configuration and rebuild this console, the same as the weekly automatic update."
-      (inTerminal "System Update" "update"))
-    (row "Rebuild" "view-refresh"
-      "Rebuild this console from the configuration it already has."
-      (inTerminal "Rebuild" "rebuild"))
+      "Is this console up to date? See where its configuration stands and the weekly update, then update, rebuild, or update and turn off."
+      (page "updates" "System Update"))
   ] ++ lib.optional (downloadsUrl != null)
     (row "Downloads" "folder-download"
       "See what the media server is downloading, and how far along it is."
@@ -80,6 +77,10 @@ in
   # ---- Media ---------------------------------------------------------------
   (roleRow "music" "Music" "spotify-client"
       "Play music with Spotify."
+  ++ lib.optional jellyfinApp
+    (row "Jellyfin" "org.jellyfin.JellyfinDesktop"
+      "The full Jellyfin app in its TV mode: music libraries, live TV and everything else on the server."
+      (launch "Jellyfin" "jellyfin-desktop --tv --fullscreen"))
   ++ lib.optional (has "fileManager")
     (row "Pictures" "folder-pictures"
       "Show your pictures."

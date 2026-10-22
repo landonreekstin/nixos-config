@@ -154,6 +154,8 @@ class Shell:
     async def client(self, reader, writer):
         self.writers.add(writer)
         log("shell connected")
+        # The shell treats the link as up only once it hears this.
+        writer.write(b"hello\n")
         try:
             while line := await reader.readline():
                 msg = line.decode().strip()
@@ -170,6 +172,13 @@ class Shell:
                 if self.on_ui_change:
                     self.on_ui_change()
             log("shell disconnected")
+
+    async def heartbeat(self):
+        """A ping every 2 s: a closed socket is not always reported to the
+        shell, which treats 5 s of silence as a lost link and reconnects."""
+        while True:
+            await asyncio.sleep(2)
+            self.send("ping")
 
     @property
     def connected(self):
@@ -198,8 +207,19 @@ class Virtual:
             E.EV_KEY: KEYS,
             E.EV_REL: [E.REL_X, E.REL_Y, E.REL_WHEEL, E.REL_HWHEEL],
         }, name=VIRTUAL_NAME)
+        self.held = set()
 
     def key(self, code, down):
+        # Only release what this device pressed: a stray release (a button let
+        # go while the shell had the pad) reached the dashboard window, which
+        # holds the keyboard, as an Enter — opening a page AND triggering its
+        # first row from one press of A.
+        if down:
+            self.held.add(code)
+        elif code in self.held:
+            self.held.discard(code)
+        else:
+            return
         self.ui.write(E.EV_KEY, code, 1 if down else 0)
         self.ui.syn()
 
@@ -518,7 +538,8 @@ class Daemon:
 
     async def main(self):
         self.loop = asyncio.get_running_loop()
-        await asyncio.gather(self.shell.serve(), self.focus.watch(), self.scan(), self.analog())
+        await asyncio.gather(self.shell.serve(), self.shell.heartbeat(), self.focus.watch(),
+                             self.scan(), self.analog())
 
 
 if __name__ == "__main__":

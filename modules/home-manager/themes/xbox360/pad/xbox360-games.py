@@ -6,7 +6,8 @@ librarycache (the capsule, the header, the small icon).
 Heroic: Epic (legendary) and GOG installs, minus DLC; icons from Heroic's
 icon cache, covers from its store cache.
 
-Output, newest-played first: [{ id, name, source, lastPlayed, icon, art, cmd }].
+Output: { games: [{ id, name, source, lastPlayed, icon, art, cmd }] newest-played
+first, hours: total Steam hours played }.
 Argument: a JSON config { steam: <launch command or "">, heroic: <...> }.
 """
 
@@ -113,5 +114,17 @@ def heroic_games():
 
 
 games = steam_games() + heroic_games()
+def steam_hours():
+    """Total hours played across Steam accounts on this machine (the gamer
+    card's Gamerscore)."""
+    minutes = 0
+    for cfg in glob.glob(os.path.join(STEAM, "userdata/*/config/localconfig.vdf")):
+        try:
+            minutes += sum(int(m) for m in vdf_values(open(cfg, errors="replace").read(), "Playtime"))
+        except (OSError, ValueError):
+            pass
+    return minutes // 60
+
+
 games.sort(key=lambda g: (-g["lastPlayed"], g["name"].lower()))
-print(json.dumps(games))
+print(json.dumps({"games": games, "hours": steam_hours()}))

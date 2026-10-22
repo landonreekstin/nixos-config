@@ -12,6 +12,18 @@ let
   pactlBin = "${pkgs.pulseaudio}/bin/pactl";
   grepBin = "${pkgs.gnugrep}/bin/grep";
   pidofBin = "${pkgs.procps}/bin/pidof";
+  # Lock now. A session-scoped rice (themes/xbox360, see docs/theming.md) has its
+  # own lock screen: $XDG_RUNTIME_DIR/hypr-rice names it, and its shell locks. The
+  # profile path is absolute because swayidle runs with a minimal PATH.
+  lockScript = pkgs.writeShellScript "lock-now" ''
+    rice=$(cat "''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/hypr-rice" 2>/dev/null)
+    qs=/etc/profiles/per-user/$(id -un)/bin/qs
+    if [ -n "$rice" ] && [ -x "$qs" ]; then
+      # --any-display: a locker started from a unit may not carry WAYLAND_DISPLAY.
+      exec "$qs" ipc --any-display -c "$rice" call ui lock
+    fi
+    ${pidofBin} swaylock || exec ${swaylockBin}
+  '';
   # Script that skips locking if any MPRIS player is active (Spotify, browser media,
   # Jellyfin in Librewolf, etc.), if audio is actively playing, or if a mic is open.
   # All binaries use full nix store paths — swayidle runs with a minimal PATH (bash only).
@@ -23,10 +35,10 @@ let
     # Skip if any app has an active microphone input (Discord/video calls)
     ${pactlBin} list short source-outputs 2>/dev/null | ${grepBin} -q . && exit 0
     # Lock if not already locked
-    ${pidofBin} swaylock || ${swaylockBin} &
+    ${lockScript} &
   '';
   # Unconditional lock (before-sleep, explicit lock events)
-  lockNow = "${pidofBin} swaylock || ${swaylockBin} &";
+  lockNow = "${lockScript} &";
 in
 {
   # On Hyprland with systemd.enable=false, WAYLAND_DISPLAY isn't in the systemd environment

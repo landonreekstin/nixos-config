@@ -42,6 +42,10 @@ ShellRoot {
         Toast { screen: shell.primaryScreen }
     }
 
+    // The session lock (Sign Out, SUPER+Escape, swayidle).
+    LockScreen {}
+    Binding { target: ShellState; property: "primaryName"; value: shell.primaryName }
+
     // The on-screen keyboard, on the primary screen, over everything.
     LazyLoader {
         active: shell.primaryScreen !== null
@@ -74,6 +78,7 @@ ShellRoot {
         }
         function launch(cmd: string, title: string): void { ShellState.launch(cmd, title, 5); }
         function guide(): void { ShellState.guide(); }
+        function lock(): void { ShellState.signOut(); }
         function power(): void { ShellState.powerPrompt(); }
         function keyboard(): void { ShellState.keyboardOpen = !ShellState.keyboardOpen; }
     }
