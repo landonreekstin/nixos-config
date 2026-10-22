@@ -492,6 +492,26 @@ in
           See docs/theming.md "Session-scoped rices".
         '';
       };
+      xbox360 = {
+        transmissionUrl = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          example = "http://transmission.lan/transmission/rpc";
+          description = ''
+            Transmission RPC endpoint the xbox360 rice's Marketplace -> Downloads
+            page polls. null hides the Downloads row.
+          '';
+        };
+        jellyfinUrl = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          example = "http://jellyfin.lan";
+          description = ''
+            Jellyfin server the xbox360 rice's Media -> Videos library browses.
+            null hides the Videos library.
+          '';
+        };
+      };
       centurySeries.night = {
         enable = mkOption {
           type = types.bool;

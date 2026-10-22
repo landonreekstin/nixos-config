@@ -98,7 +98,13 @@ rec {
     activeTabWidth = 56;
     panelWidth = 912;   # 1280 - 2*60 - 4*48 - 56: the stacks fill the screen
     headerBottom = 92;  # the darker header band holding the title
-    footerTop = 650;    # ...and the footer band with the legend
+    footerHeight = 70;  # ...and the footer band with the legend, at the bottom
+    frameMargin = 8;    # the full-width frame around apps and pages
+    contentPad = 22;    # menu content inside the card
+    gamerCardHeight = 118;
+    rowHeight = 44;
+    rowSize = 22;
+    descSize = 21;
     cardInset = 6;      # content card inside the panel's curved edges
     cardRadius = 30;
     titleInset = 40;

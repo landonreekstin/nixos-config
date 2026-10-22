@@ -1,7 +1,11 @@
 // ~/nixos-config/modules/home-manager/themes/xbox360/shell/shell.qml
 // Xbox 360 "Blades" dashboard shell, started by the xbox360 Hyprland session
-// as `qs -c xbox360`. The blades live on the primary monitor; every other
-// monitor gets the blade surface as its backdrop.
+// as `qs -c xbox360`. Every screen gets a Frame; the primary one also carries
+// the dashboard (workspace name:dashboard). Shared state lives in ShellState.
+//
+// Icons come from Papirus, which the century-series theme installs; without
+// a pragma Quickshell would use Qt's (empty) default theme.
+//@ pragma IconTheme Papirus
 pragma ComponentBehavior: Bound
 
 import QtQuick
@@ -23,40 +27,28 @@ ShellRoot {
 
     Variants {
         model: Quickshell.screens
-        delegate: Scope {
-            id: perScreen
+        delegate: Frame {
             required property ShellScreen modelData
-            readonly property bool primary: modelData.name === shell.primaryName
-
-            LazyLoader {
-                active: perScreen.primary
-                Blades { screen: perScreen.modelData }
-            }
-            LazyLoader {
-                active: !perScreen.primary
-                Backdrop { screen: perScreen.modelData }
-            }
+            screen: modelData
+            primary: modelData.name === shell.primaryName
         }
     }
 
-    // `qs -c xbox360 ipc call blades <fn>` — what the controller daemon and
-    // any keybind use to move between blades.
+    // `qs -c xbox360 ipc call ui <fn>` — keybinds, scripts and the controller
+    // daemon all come in here.
     IpcHandler {
-        target: "blades"
+        target: "ui"
 
-        function current(): int {
-            const ws = Hyprland.focusedWorkspace;
-            return ws && ws.id >= 1 && ws.id <= 5 ? ws.id : 0;
+        // A controller button (a b x y up down left right lb rb lt rt start
+        // back): "taken" if the shell's UI used it, "pass" if nothing is open.
+        function input(btn: string): string { return ShellState.input(btn) ? "taken" : "pass"; }
+        function dashboard(): void { ShellState.dashboard(); }
+        function resume(): void { ShellState.resume(); }
+        // Toggle between the dashboard and the last app.
+        function home(): void {
+            if (ShellState.onDashboard) ShellState.resume();
+            else ShellState.dashboard();
         }
-        function go(n: int): void { Hyprland.dispatch("workspace " + n); }
-        function next(): void {
-            const c = current();
-            if (c < 5) Hyprland.dispatch("workspace " + (c + 1));
-        }
-        function prev(): void {
-            const c = current();
-            if (c > 1) Hyprland.dispatch("workspace " + (c - 1));
-            else if (c === 0) Hyprland.dispatch("workspace 5");
-        }
+        function launch(cmd: string, title: string): void { ShellState.launch(cmd, title, 5); }
     }
 }
