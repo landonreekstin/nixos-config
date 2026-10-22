@@ -139,11 +139,14 @@ let
     inherit lib pkgs;
     apps = customConfig.apps.programs;
     downloadsUrl = xcfg.transmissionUrl;
+    jellyfinUrl = xcfg.jellyfinUrl;
   };
 
   # Full-screen pages a menu row can open, by id.
   pages = {
     downloads = "PageDownloads.qml";
+    games = "PageGames.qml";
+    videos = "PageVideos.qml";
   };
 
   # The user's own picture for the gamer card, if they have one.
@@ -193,6 +196,11 @@ let
     var statusCmd = "${statusCmd}";
     var volumeCmd = "${pkgs.wireplumber}/bin/wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@";
     var networkEditor = "${pkgs.networkmanagerapplet}/bin/nm-connection-editor";
+    var gamesCmd = "${gamesCmd}/bin/xbox360-games";
+    var gamesConfig = ${builtins.toJSON gamesConfig};
+    var jellyfinUrl = ${builtins.toJSON (if xcfg.jellyfinUrl == null then "" else xcfg.jellyfinUrl)};
+    var jellyfinPlay = "${jellyfinPlay}/bin/xbox360-jellyfin-play ${pkgs.mpv}/bin/mpv";
+    var hostname = ${builtins.toJSON customConfig.system.hostName};
     var lockCmd = "swaylock";
     var hyprctl = "${pkgs.hyprland}/bin/hyprctl";
     var downloadsCmd = "${downloadsCmd}";
@@ -284,6 +292,13 @@ let
     } | $jq -c . 2>/dev/null || echo '{}'
   '';
 
+  # ---- Games Library and Videos -------------------------------------------
+  gamesCmd = pkgs.writeScriptBin "xbox360-games"
+    ("#!${pkgs.python3}/bin/python3\n" + builtins.readFile ./pad/xbox360-games.py);
+  gamesConfig = builtins.toJSON { steam = appCmd "gaming"; heroic = appCmd "gamingAlt"; };
+  jellyfinPlay = pkgs.writeScriptBin "xbox360-jellyfin-play"
+    ("#!${pkgs.python3}/bin/python3\n" + builtins.readFile ./pad/xbox360-jellyfin-play.py);
+
   # ---- the controller daemon (pad/xbox360-pad.py) -----------------------
   padPython = pkgs.python3.withPackages (ps: [ ps.evdev ]);
   pad = pkgs.writeScriptBin "xbox360-pad"
@@ -294,10 +309,20 @@ let
     # untouched (anything fullscreen does too). Everything else gets the
     # desktop emulation.
     passthrough = [
-      "^steam_app_" "^steam$" "^gamescope" "^mpv$" "^heroic$" "^retroarch"
+      "^steam_app_" "^steam$" "^gamescope" "^heroic$" "^retroarch"
       "^org\\.jellyfin" "^com\\.github\\.iwalton3\\.jellyfin" "^dolphin-emu$"
       "^PCSX2" "^Ryujinx" "^Cemu" "^com\\.moonlight_stream" "^Moonlight"
     ];
+    # Apps that get their own key map instead: nixpkgs' mpv has no SDL, so it
+    # cannot read a controller itself (the Videos library plays in it).
+    profiles = [{
+      match = "^mpv$";
+      keys = {
+        a = "KEY_SPACE"; b = "KEY_Q"; x = "KEY_J"; y = "KEY_O"; start = "KEY_SPACE";
+        left = "KEY_LEFT"; right = "KEY_RIGHT"; up = "KEY_UP"; down = "KEY_DOWN";
+        lb = "KEY_PAGEDOWN"; rb = "KEY_PAGEUP"; lt = "KEY_9"; rt = "KEY_0"; back = "KEY_TAB";
+      };
+    }];
     # B is "back" (Alt+Left) in these rather than Escape.
     browsers = [ "^firefox" "^chromium" "^librewolf" "^brave" "^google-chrome" ];
     swapXY = false;

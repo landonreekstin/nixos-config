@@ -44,6 +44,11 @@ SOCK = os.path.join(RUNTIME, "xbox360-pad.sock")
 VIRTUAL_NAME = "xbox360-pad virtual input"
 
 PASSTHROUGH = [re.compile(p) for p in CFG.get("passthrough", [])]
+# Per-app key maps: { "match": regex, "keys": { button: "KEY_NAME", ... } }.
+# A focused app matching one gets exactly those keys (e.g. mpv, which nixpkgs
+# builds without SDL and so cannot read a controller itself).
+PROFILES = [(re.compile(p["match"]), {b: getattr(E, k) for b, k in p["keys"].items()})
+            for p in CFG.get("profiles", [])]
 BROWSERS = [re.compile(p) for p in CFG.get("browsers", [])]
 
 # xpad and xpadneo both report X as BTN_X (== BTN_NORTH) and Y as BTN_Y
@@ -121,6 +126,12 @@ class Focus:
     def browser(self):
         return any(p.search(self.cls) for p in BROWSERS)
 
+    def profile(self):
+        for rx, keys in PROFILES:
+            if rx.search(self.cls):
+                return keys
+        return None
+
 
 # ---------------------------------------------------------------------------
 # The shell link
@@ -177,7 +188,8 @@ class Shell:
 # ---------------------------------------------------------------------------
 KEYS = [E.KEY_ENTER, E.KEY_ESC, E.KEY_BACKSPACE, E.KEY_UP, E.KEY_DOWN, E.KEY_LEFT,
         E.KEY_RIGHT, E.KEY_TAB, E.KEY_LEFTCTRL, E.KEY_LEFTSHIFT, E.KEY_LEFTALT,
-        E.BTN_LEFT, E.BTN_RIGHT, E.BTN_MIDDLE]
+        E.BTN_LEFT, E.BTN_RIGHT, E.BTN_MIDDLE] + sorted(
+    {c for _, keys in PROFILES for c in keys.values()})
 
 
 class Virtual:
@@ -429,12 +441,19 @@ class Daemon:
 
     # -- desktop emulation ----------------------------------------------------
     def emulating(self):
-        return not self.focus.passthrough()
+        # A profiled app (mpv) gets its keys even fullscreen, which otherwise
+        # means "a game: hands off".
+        return self.focus.profile() is not None or not self.focus.passthrough()
 
     def app_press(self, btn):
         if not self.emulating():
             return
         v = self.virtual
+        prof = self.focus.profile()
+        if prof is not None:
+            if btn in prof:
+                v.key(prof[btn], True)
+            return
         arrows = {"up": E.KEY_UP, "down": E.KEY_DOWN, "left": E.KEY_LEFT, "right": E.KEY_RIGHT}
         if btn in arrows:
             v.key(arrows[btn], True)
@@ -464,6 +483,10 @@ class Daemon:
         # Release whatever this button may have pressed — harmless if it
         # pressed nothing, and safe across a focus change mid-press.
         v = self.virtual
+        prof = self.focus.profile()
+        if prof is not None and btn in prof:
+            v.key(prof[btn], False)
+            return
         codes = {"up": E.KEY_UP, "down": E.KEY_DOWN, "left": E.KEY_LEFT, "right": E.KEY_RIGHT,
                  "a": E.KEY_ENTER, "b": E.KEY_ESC, "x": E.KEY_BACKSPACE,
                  "rt": E.BTN_LEFT, "lt": E.BTN_RIGHT, "rs": E.BTN_MIDDLE}
@@ -475,7 +498,7 @@ class Daemon:
         acc_v = acc_h = 0.0
         while True:
             await asyncio.sleep(1 / 60)
-            if self.shell.ui or self.guide_down or not self.emulating():
+            if self.shell.ui or self.guide_down or not self.emulating() or self.focus.profile() is not None:
                 continue
             for p in list(self.pads.values()):
                 rx, ry = p.stick(E.ABS_RX, E.ABS_RY)

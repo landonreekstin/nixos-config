@@ -37,8 +37,8 @@ geometry in `themes/xbox360/colors.nix` `layout` was measured off them.
 |---|---|
 | Marketplace | System Update, Rebuild (in a terminal), Downloads (page: NAS Transmission) |
 | Xbox LIVE | the browsers, YouTube |
-| Games | Steam Big Picture, Steam, the alt launcher |
-| Media | Music (Spotify), Pictures, Videos, Visualizer |
+| Games | Games Library (page), Last Played Game, Steam Big Picture, Steam, the alt launcher |
+| Media | Music (Spotify), Pictures, Videos (page: Jellyfin, when `jellyfinUrl` is set), Visualizer |
 | System | File Manager, Terminal, Task Manager, Audio, Bluetooth, Network |
 
 A row whose role has no command on the host is dropped. Per-host options:
@@ -81,6 +81,28 @@ ever follows the spec.
 focused window with `wtype`; its layer never takes keyboard focus, so the app keeps it.
 
 **Testing without a controller**: a fake pad over uinput in the VM — see "Testing".
+
+## Games Library and Videos
+
+- **Games Library** (`PageGames.qml`, layout of `games-submenu.png`): `pad/xbox360-games.py`
+  lists every installed game as JSON — Steam from each library in `libraryfolders.vdf`
+  (`appmanifest_*.acf`, minus Proton/runtimes/redistributables, art from Steam's own
+  `appcache/librarycache`, which newer Steam keeps in hashed subdirectories) and Heroic
+  (Epic/GOG `installed.json`, minus DLC, icons from `~/.config/heroic/icons`). Newest-played
+  first; LB/RB switch the filter tabs; A launches via `steam://rungameid/<id>` or
+  `heroic --no-gui 'heroic://launch?appName=…&runner=…'` on a new app workspace.
+- **Videos** (`PageVideos.qml`, `Jellyfin.qml`): signs in with **Quick Connect** (a
+  six-digit code approved from any signed-in Jellyfin — no typing on a couch); the token
+  lives in Quickshell's state dir (`jellyfin.json`), tied to the server URL. Tabs: Continue
+  Watching, Next Up, then each movie/show library; a show drills into its episodes,
+  starting at the first unwatched. A plays through `pad/xbox360-jellyfin-play.py`: mpv from
+  the resume point with the item's external (Bazarr) subtitles, reporting
+  `/Sessions/Playing`, `…/Progress` every 10 s (position read every 2 s) and `…/Stopped`, so
+  Jellyfin keeps the resume point and marks it watched past ~90 %.
+- **mpv has no SDL in nixpkgs**, so it can't read a pad itself: the daemon has per-app
+  **profiles** (`padConfig.profiles`) — mpv gets A pause, B quit, X subtitles, Y progress,
+  D-pad seek, LB/RB chapters, LT/RT volume, even fullscreen (a profiled app is never
+  "a fullscreen game: hands off").
 
 ## Shell layout (`themes/xbox360/shell/`)
 
@@ -144,3 +166,13 @@ Testing the controller in the VM: create a fake Xbox pad inside the guest with p
 `tap a` / `down guide` / `axis rx 30000` style commands through a FIFO. The daemon picks
 it up like real hardware. It proves the routing, the grab, the chords and the emulation —
 not xpadneo's real button codes, which still need a real controller.
+
+Testing Games/Videos in the VM: copy a few real `appmanifest_*.acf` files and their
+`librarycache/<appid>` dirs into the guest's `~/.local/share/Steam`; for Jellyfin run a tiny
+fake server in the guest (Quick Connect auto-approving after a few polls, canned
+libraries/episodes, a generated mp4 **with HTTP Range support** — mp4 seeking needs it, and
+without it mpv exits "Errors when loading file" — and a log of the `/Sessions/Playing*`
+POSTs) and point the shell's `Config.js` `jellyfinUrl` at it. The VM's software renderer
+makes mpv's default output assert (`vo_x11_init`); the helper takes the mpv binary as its
+first argument, so test with a wrapper adding `--vo=wlshm`. And **never `pkill -f`/`pgrep -f`
+a name that also appears in the same ssh command line** — it matches the remote shell itself.

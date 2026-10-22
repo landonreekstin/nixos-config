@@ -39,6 +39,7 @@ Item {
         if (a.type === "launch") ShellState.launch(a.cmd, a.title, blade);
         else if (a.type === "page") ShellState.openPage(a.page, a.title, blade);
         else if (a.type === "ipc") ShellState.input(a.btn);
+        else if (a.type === "lastPlayed" && Games.list.length > 0) Games.play(Games.list[0]);
     }
 
     function handle(btn) {
@@ -101,7 +102,14 @@ Item {
         x: menu.leftW + 30 * menu.s
         y: menu.rowsTop + 6 * menu.s
         width: menu.width - x
-        text: menu.rows.length > 0 ? menu.rows[menu.current].desc : ""
+        text: {
+            const r = menu.rows[menu.current];
+            if (!r) return "";
+            // Last Played names the game it will start.
+            if (r.action.type === "lastPlayed")
+                return Games.list.length > 0 ? Games.list[0].name + ".\n\n" + r.desc : "No games played yet.";
+            return r.desc;
+        }
         wrapMode: Text.WordWrap
         font.family: Cfg.font
         font.pixelSize: Cfg.descSize * menu.s
