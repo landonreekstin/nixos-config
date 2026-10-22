@@ -27,6 +27,21 @@ ShellRoot {
 
     readonly property var primaryScreen: Quickshell.screens.find(s => s.name === primaryName) || null
 
+    // The Guide (left), the notification blade (right) and the toasts, on
+    // the primary screen. Touching Notifications here starts the server.
+    LazyLoader {
+        active: shell.primaryScreen !== null
+        Guide { screen: shell.primaryScreen }
+    }
+    LazyLoader {
+        active: shell.primaryScreen !== null
+        NotificationBlade { screen: shell.primaryScreen }
+    }
+    LazyLoader {
+        active: shell.primaryScreen !== null && Notifications.count >= 0
+        Toast { screen: shell.primaryScreen }
+    }
+
     // The on-screen keyboard, on the primary screen, over everything.
     LazyLoader {
         active: shell.primaryScreen !== null
@@ -58,6 +73,8 @@ ShellRoot {
             else ShellState.dashboard();
         }
         function launch(cmd: string, title: string): void { ShellState.launch(cmd, title, 5); }
+        function guide(): void { ShellState.guide(); }
+        function power(): void { ShellState.powerPrompt(); }
         function keyboard(): void { ShellState.keyboardOpen = !ShellState.keyboardOpen; }
     }
 }

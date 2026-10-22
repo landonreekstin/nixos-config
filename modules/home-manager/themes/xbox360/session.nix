@@ -109,9 +109,9 @@ let
 
     misc.force_default_wallpaper = lib.mkForce 0;
 
-    # SUPER+Space and SUPER+Home: to the dashboard, or back to the last app
-    # from it. (The Guide takes SUPER+Space over once it exists.)
-    "$menu" = lib.mkForce "${pkgs.quickshell}/bin/qs -c xbox360 ipc call ui home";
+    # SUPER+Space opens the Guide, like the Guide button; SUPER+Home goes to
+    # the dashboard, or back to the last app from it.
+    "$menu" = lib.mkForce "${pkgs.quickshell}/bin/qs -c xbox360 ipc call ui guide";
     bind = [
       "SUPER, Home, exec, ${pkgs.quickshell}/bin/qs -c xbox360 ipc call ui home"
     ];
@@ -188,6 +188,12 @@ let
     var gamerpic = ${builtins.toJSON gamerpic};
     var zone = "Couch";
     var wtype = "${pkgs.wtype}/bin/wtype";
+    var guide = ${builtins.toJSON (c.guide // { messages = appCmd "chatAlt"; party = appCmd "chat"; music = appCmd "music"; })};
+    var widgets = ${builtins.toJSON widgets};
+    var statusCmd = "${statusCmd}";
+    var volumeCmd = "${pkgs.wireplumber}/bin/wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@";
+    var networkEditor = "${pkgs.networkmanagerapplet}/bin/nm-connection-editor";
+    var lockCmd = "swaylock";
     var hyprctl = "${pkgs.hyprland}/bin/hyprctl";
     var downloadsCmd = "${downloadsCmd}";
     var silver = ${builtins.toJSON c.silver};
@@ -213,6 +219,69 @@ let
     cp ${configJs} $out/Config.js
     ${lib.getBin pkgs.qt6.qtshadertools}/bin/qsb --glsl "100 es,120,150" --hlsl 50 --msl 12 \
       -o $out/blade.frag.qsb ${bladeFrag}
+  '';
+
+  # ---- the Guide ----------------------------------------------------------
+  apps = customConfig.apps.programs;
+  appCmd = role: apps.${role}.command or "";
+
+  # Console Settings in the Guide shows century-series' waybar widgets: the
+  # very same scripts, read from the merged waybar config, so the two
+  # sessions can never disagree about what "VPN on" means. A widget the host
+  # doesn't have simply isn't listed.
+  waybarBar =
+    let s = config.programs.waybar.settings;
+    in if builtins.isAttrs s then s.mainBar or { } else { };
+  widgetSpecs = [
+    { id = "custom/audio-sink"; label = "Sound Output"; icon = "audio-speakers";
+      # waybar's click opens a rofi picker, which no controller can drive.
+      click = "cycle-audio-sink next"; right = "toggle-audio-flip"; rightLabel = "swap left and right"; }
+    { id = "custom/hyprsunset"; label = "Night Light"; icon = "weather-clear-night"; rightLabel = "back to automatic"; }
+    { id = "custom/bluetooth"; label = "Bluetooth"; icon = "bluetooth"; rightLabel = "turn Bluetooth on or off"; }
+    { id = "custom/vpn"; label = "VPN"; icon = "network-vpn"; }
+    { id = "custom/weather"; label = "Weather"; icon = "weather-few-clouds"; cache = 600; }
+    { id = "custom/ckb-color"; label = "Keyboard Lights"; icon = "input-keyboard"; }
+    { id = "custom/claude-rwr"; label = "Claude"; icon = "dialog-information"; }
+  ];
+  widgets = map (w:
+    let m = waybarBar.${w.id}; in {
+      inherit (w) id label icon;
+      exec = m.exec;
+      click = w.click or (m.on-click or "");
+      right = w.right or (m.on-click-right or "");
+      rightLabel = w.rightLabel or "";
+      cache = w.cache or 0;
+    })
+    (lib.filter (w: waybarBar ? ${w.id} && (waybarBar.${w.id}.exec or "") != "") widgetSpecs);
+
+  # All of Console Settings' values in one go, as a JSON object keyed by widget
+  # id (plus volume and network). Slow widgets (weather) are cached.
+  statusCmd = pkgs.writeShellScript "xbox360-status" ''
+    export PATH=$PATH:/etc/profiles/per-user/$USER/bin:/run/current-system/sw/bin
+    jq=${pkgs.jq}/bin/jq
+    cache=''${XDG_RUNTIME_DIR:-/tmp}/xbox360-status
+    mkdir -p "$cache"
+    widget() {  # id cache-seconds command
+      f="$cache/$(printf %s "$1" | tr / _)"
+      if [ "$2" -gt 0 ] && [ -s "$f" ] && [ $(( $(date +%s) - $(stat -c %Y "$f") )) -lt "$2" ]; then
+        cat "$f"; return
+      fi
+      out=$(timeout 5 sh -c "$3" 2>/dev/null | tail -n 1)
+      printf %s "$out" | $jq -e . >/dev/null 2>&1 || out=$($jq -cn --arg t "$out" '{text: $t}')
+      printf %s "$out" > "$f"
+      printf %s "$out"
+    }
+    {
+      echo '{'
+      ${lib.concatMapStrings (w: ''
+        printf '%s:' ${lib.escapeShellArg (builtins.toJSON w.id)}
+        widget ${lib.escapeShellArg w.id} ${toString w.cache} ${lib.escapeShellArg w.exec}
+        echo ','
+      '') widgets}
+      printf '"volume": %s,' "$(${pkgs.wireplumber}/bin/wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{print ($2 == "" ? "null" : $2)}')"
+      printf '"network": %s' "$(${pkgs.networkmanager}/bin/nmcli -t -f NAME connection show --active 2>/dev/null | grep -v '^lo$' | head -n 1 | $jq -R . 2>/dev/null || echo null)"
+      echo '}'
+    } | $jq -c . 2>/dev/null || echo '{}'
   '';
 
   # ---- the controller daemon (pad/xbox360-pad.py) -----------------------
@@ -243,6 +312,10 @@ let
     env = HYPR_RICE,xbox360
     # Start on the dashboard: a named workspace with nothing tiled on it.
     exec-once = ${pkgs.hyprland}/bin/hyprctl dispatch workspace name:dashboard
+    # The shell is the notification daemon here. dunst (century-series) is a
+    # D-Bus-activated user service that may still own the name from another
+    # session; two owners means one of them is silently never asked.
+    exec-once = systemctl --user stop dunst.service
     exec-once = ${pkgs.quickshell}/bin/qs -c xbox360 > /tmp/xbox360-shell.log 2>&1
     exec-once = ${pad}/bin/xbox360-pad ${padConfig} > /tmp/xbox360-pad.log 2>&1
     exec-once = ${pkgs.pipewire}/bin/pw-play ${assets}/share/sounds/xbox360/select-a.wav

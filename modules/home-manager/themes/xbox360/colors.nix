@@ -81,6 +81,14 @@ rec {
     rim = "f0f0f0";
   };
 
+  # The Guide and the notification blade: the console's default Guide
+  # theme is this bright yellow (guide.png, notification.png).
+  guide = {
+    stops = [ "ffe873" "f9cf2a" "f0b414" "da9607" ];
+    ink = "2a1f05";
+    rule = "c79a12";
+  };
+
   # Controller buttons are always their physical colours.
   buttons = { a = "43b039"; b = "fa3a2f"; x = "1e5c86"; y = "cbd527"; };
 

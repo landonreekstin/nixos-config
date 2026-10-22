@@ -57,16 +57,19 @@ MouseArea {
         width: 30 * row.s
         height: width
         sourceSize: Qt.size(width * 2, height * 2)
-        // The row's own icon if the theme has it, else a generic one.
+        // The row's own icon if the theme has it, else a generic one; a row
+        // with no icon at all (a dialog choice) shows none.
         source: {
-            const own = row.icon !== "" ? Quickshell.iconPath(row.icon, true) : "";
+            if (row.icon === "") return "";
+            const own = Quickshell.iconPath(row.icon, true);
             return own !== "" ? own : Quickshell.iconPath("application-x-executable", true);
         }
+        visible: row.icon !== ""
         smooth: true
     }
 
     Text {
-        x: iconImg.x + iconImg.width + 14 * row.s
+        x: row.icon !== "" ? iconImg.x + iconImg.width + 14 * row.s : 12 * row.s
         anchors.verticalCenter: parent.verticalCenter
         width: parent.width - x - 8 * row.s
         elide: Text.ElideRight
