@@ -4,6 +4,8 @@
 # you move around by clicking paths, whose objects open his apps). Under Hyprland it runs
 # as a layer-shell surface on the "bottom" layer of every monitor; under X11 as a
 # borderless window kept behind the others. See modules/home-manager/hyprland/glade.nix.
+# It is always night there; its name boards use Departure Mono, the same pixel font as
+# the bar (themes/glade), passed in as GLADE_FONT.
 #
 # The source is VENDORED in ./src. It is his own vibe project, ~/projects/hud on
 # blaney-pc, a local-only repo with no remote (docs/hosts/blaney-vibe-projects.md), so
@@ -20,6 +22,7 @@
   makeWrapper,
   wmctrl,
   xrandr,
+  departure-mono,
 }:
 
 let
@@ -51,6 +54,7 @@ stdenvNoCC.mkDerivation {
       --add-flags $out/share/glade/main.py \
       --set PYTHONDONTWRITEBYTECODE 1 \
       --set PYGAME_HIDE_SUPPORT_PROMPT 1 \
+      --set GLADE_FONT ${departure-mono}/share/fonts/otf/DepartureMono-Regular.otf \
       --prefix PATH : ${lib.makeBinPath [ wmctrl xrandr ]}
   '';
 

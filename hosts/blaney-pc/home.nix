@@ -22,6 +22,9 @@
       plasmaOverride = true;
       kde = "windows7-alt";
       hyprland = "century-series";
+      # He wants it always night: the apps keep their night palette instead of following
+      # the sun, to match the Glade (whose scenes are always night).
+      centurySeries.night.mode = "night";
       # Win7 XFCE session (X11) as a coexisting login choice — pick "Xfce Session" at Ly.
       # Fully declarative: every rebuild re-asserts the declared taskbar/theme.
       xfce = "windows7";

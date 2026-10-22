@@ -309,7 +309,10 @@ Hyprland session into insideabush's **Glade**: his own pixel-art forest scene
 [blaney-vibe-projects.md](hosts/blaney-vibe-projects.md#packaging-a-finished-app)) as the
 desktop on both monitors, and a session he can drive with the **mouse alone**, every
 target labelled in words. He asked for exactly that, and chose "windows like Windows"
-and "everything matches the glade".
+and "everything matches the glade". It is **always night** there (his choice): the light
+comes from glowing moss, mushrooms, lanterns, fireflies and little sky-squid, not the moon,
+so the chrome is night too — and so is the apps' palette (`centurySeries.night.mode =
+"night"` in `hosts/blaney-pc/home.nix`).
 
 It is not a `themes.hyprland` value, on purpose. `themes.hyprland = "century-series"`
 also styles the *apps* (kitty, btop, yazi, …), and kitty's config is shared with his
@@ -321,7 +324,7 @@ everything Hyprland itself draws.
 |---|---|
 | the glade as a layer-shell surface, one per monitor (GTK + gtk-layer-shell; pygame draws off-screen) | `pkgs/glade/src/wayland.py` |
 | what runs, what each click does: autostart, `glade-show`, floating windows + `hyprbars`, click-to-focus, resize from edges, bar layout, rofi single-click, power menu | `modules/home-manager/hyprland/glade.nix` |
-| the look: borders, title bars, bar CSS, rofi and wlogout styling, pixel font (Departure Mono) | `modules/home-manager/themes/glade/` |
+| the look: borders, title bars, bar CSS, rofi and wlogout styling, pixel font (Departure Mono) — the same dark carved-wood boards and glow colours as the name boards in the scene (`colors.nix`) | `modules/home-manager/themes/glade/` |
 | century-series stepping aside | `gladeDesktop` in `themes/century-series/{hyprland,waybar,rofi,wlogout,night-mode}.nix` |
 
 Behaviour worth knowing before changing it:
@@ -331,6 +334,10 @@ Behaviour worth knowing before changing it:
   wallpaper applier warns by notification if awww is missing, so it is left running
   underneath). `-1` so it ignores the bar's reserved strip and keeps its exact 4x scale;
   the bar simply draws over its top.
+- **Every place and app has a fixed name board** drawn by the glade itself (Departure
+  Mono, passed to the package as `GLADE_FONT`); they never move, and the board is
+  clickable as well as the object. The scene's own docs (how the lighting works, what
+  each file holds) are in its `CLAUDE.md` in `~/projects/hud` on blaney-pc.
 - **"Glade" button = `glade-show`.** Hyprland has no minimise, so every monitor that has
   windows moves to a fresh empty workspace (ids from 100, clear of any workspace rule);
   the windows stay where they were and the bar's `wlr/taskbar` list brings them back

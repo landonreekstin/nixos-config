@@ -17,8 +17,8 @@ in
         gaps_in = 6;
         gaps_out = 12;
         border_size = 3;
-        "col.active_border" = "${rgb c.pink} ${rgb c.lav} 45deg";
-        "col.inactive_border" = rgb c.leaf3;
+        "col.active_border" = "${rgb c.pink} ${rgb c.violet} 45deg";
+        "col.inactive_border" = rgb c.board;
       };
 
       decoration = {
@@ -28,7 +28,7 @@ in
           enabled = true;
           range = 18;
           render_power = 3;
-          color = "rgba(2e245466)";
+          color = "rgba(0a061899)";
         };
         blur.enabled = false;
       };
@@ -47,11 +47,11 @@ in
         ];
       };
 
-      # Title bars: cream, with the window's name in the glade's pixel font.
+      # Title bars: a carved wooden board, the window's name in the glade's pixel font.
       plugin.hyprbars = {
         bar_height = 32;
-        bar_color = rgb c.cream;
-        "col.text" = rgb c.ink;
+        bar_color = rgb c.board;
+        "col.text" = rgb c.text;
         bar_text_font = c.font;
         bar_text_size = 14;
         bar_text_align = "left";
@@ -59,7 +59,7 @@ in
         bar_button_padding = 8;
         bar_part_of_window = true;
         bar_precedence_over_border = true;
-        inactive_button_color = rgb c.mist;
+        inactive_button_color = rgb c.boardHi;
       };
     };
   };

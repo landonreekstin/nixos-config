@@ -100,7 +100,7 @@ in
           # R -> L: the close button sits in the far right corner, where he expects it.
           "hyprbars-button" = [
             "${rgb colors.pink}, 22, ✕, hyprctl dispatch killactive, ${rgb colors.ink}"
-            "${rgb colors.leaf2}, 22, ▢, hyprctl dispatch fullscreen 1, ${rgb colors.ink}"
+            "${rgb colors.moss}, 22, ▢, hyprctl dispatch fullscreen 1, ${rgb colors.ink}"
           ];
         };
       };
