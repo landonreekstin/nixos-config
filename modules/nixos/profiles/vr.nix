@@ -278,7 +278,9 @@ let
     # Steam maps games by the tool's internal name, not the directory name.
     tool=$(sed -n 's/^\s*"\([^"]*\)"\s*\/\/ Internal name.*/\1/p' "$dir/compatibilitytool.vdf")
     echo "== Steam: $tool + VR launch options"
-    ${vdfEdit} "$STEAM" ${wtAppId} "XR_SRGB_FIX=1 %command%" "$tool" "$tool"
+    # PROTON_DISABLE_NVAPI: game build 2.59.0.78 (2026-10-20) crashes in dxvk-nvapi's
+    # nvapi64.dll right after DX11 init (seen flat; VR shares that path). DLSS is off anyway.
+    ${vdfEdit} "$STEAM" ${wtAppId} "PROTON_DISABLE_NVAPI=1 XR_SRGB_FIX=1 %command%" "$tool" "$tool"
     echo "Done. Start it with the War Thunder (VR) launcher (or wt-vr)."
   '';
 
