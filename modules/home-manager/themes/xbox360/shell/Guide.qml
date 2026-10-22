@@ -8,7 +8,9 @@
 // music player strip (MPRIS — Spotify when it is running) with Select Music;
 // and the big XBOX 360 button back to the dashboard. Y anywhere is "Xbox
 // Dashboard", as on the console. Rows that open a list widen the blade into a
-// submenu (guide-submenu.png): Open Apps, Console Settings, Notifications.
+// submenu (guide-submenu.png): Open Apps, Console Settings, Notifications,
+// and Controls — what every controller button does, place by place
+// (Controls.js).
 pragma ComponentBehavior: Bound
 
 import QtQuick
@@ -17,14 +19,16 @@ import Quickshell.Io
 import Quickshell.Hyprland
 import Quickshell.Services.Mpris
 import "Config.js" as Cfg
+import "Controls.js" as Controls
 
 SidePanel {
     id: guide
 
     open: ShellState.guideOpen
     fromLeft: true
-    widthRef: page === "" ? 560 : 880
-    title: ({ "": "", apps: "Open Apps", settings: "Console Settings", notifications: "Notifications" })[page]
+    widthRef: page === "" ? 560 : page === "controls" ? 1040 : 880
+    title: ({ "": "", apps: "Open Apps", settings: "Console Settings", notifications: "Notifications",
+              controls: "Controls" })[page]
     bandLabel: Cfg.gamertag
     onDismissed: close()
 
@@ -96,6 +100,8 @@ SidePanel {
           run: () => launch(Cfg.guide.party, "Party Chat") },
         { label: "Notifications", icon: "preferences-desktop-notification", value: String(Notifications.count),
           run: () => { page = "notifications"; cur = 0; } },
+        { label: "Controls", icon: "input-gaming", value: "",
+          run: () => { page = "controls"; cur = 0; } },
         { label: "Console Settings", icon: "preferences-system", value: "",
           run: () => { page = "settings"; cur = 0; } },
         { label: "Turn Off Console", icon: "system-shutdown", value: "",
@@ -274,6 +280,7 @@ SidePanel {
             run: () => { ShellState.guideOpen = false; ShellState.showNotification(n); },
             x: () => n.dismiss() }));
         if (page === "settings") return settings.rows;
+        if (page === "controls") return Controls.sections;
         return [];
     }
 
@@ -288,7 +295,7 @@ SidePanel {
                 ShellState.play("select");
             }
             return true;
-        case "a": if (listItems[cur]) { ShellState.play("select-a"); listItems[cur].run(); } return true;
+        case "a": if (listItems[cur] && listItems[cur].run) { ShellState.play("select-a"); listItems[cur].run(); } return true;
         case "x": if (listItems[cur] && listItems[cur].x) { ShellState.play("select-a"); listItems[cur].x(); } return true;
         }
         return true;
@@ -300,7 +307,7 @@ SidePanel {
 
         Column {
             id: listCol
-            width: parent.width * 0.5
+            width: parent.width * (guide.page === "controls" ? 0.34 : 0.5)
             Repeater {
                 model: guide.listItems
                 delegate: MenuRow {
@@ -329,7 +336,9 @@ SidePanel {
         }
 
         Rectangle {
-            x: parent.width * 0.53
+            id: detailPane
+            readonly property var item: guide.listItems[guide.cur] || null
+            x: listCol.width + parent.width * 0.03
             width: parent.width - x
             height: parent.height
             radius: 8 * guide.s
@@ -337,15 +346,73 @@ SidePanel {
             border.width: 1.5
             border.color: Qt.rgba(1, 1, 1, 0.6)
             visible: guide.listItems.length > 0
-            Text {
+            Column {
                 x: 14 * guide.s
                 y: 12 * guide.s
                 width: parent.width - 28 * guide.s
-                wrapMode: Text.WordWrap
-                text: guide.listItems[guide.cur] ? guide.listItems[guide.cur].detail || "" : ""
-                font.family: Cfg.font
-                font.pixelSize: 20 * guide.s
-                color: "#" + Theme.guide.ink
+                Text {
+                    width: parent.width
+                    wrapMode: Text.WordWrap
+                    text: detailPane.item ? detailPane.item.detail || detailPane.item.about || "" : ""
+                    font.family: Cfg.font
+                    font.pixelSize: 20 * guide.s
+                    color: "#" + Theme.guide.ink
+                    bottomPadding: detailPane.item && detailPane.item.binds ? 8 * guide.s : 0
+                }
+                // Controls: one line per button — its glyphs, then what it does.
+                Repeater {
+                    model: detailPane.item && detailPane.item.binds ? detailPane.item.binds : []
+                    delegate: Item {
+                        id: bind
+                        required property var modelData
+                        width: parent.width
+                        height: 36 * guide.s
+                        Row {
+                            id: glyphs
+                            width: 150 * guide.s
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 4 * guide.s
+                            Repeater {
+                                model: bind.modelData.btns
+                                delegate: Row {
+                                    id: one
+                                    required property string modelData
+                                    readonly property bool joiner: modelData === "+" || modelData === "/"
+                                    Text {
+                                        visible: one.joiner
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: one.modelData
+                                        font.family: Cfg.font
+                                        font.pixelSize: 18 * guide.s
+                                        color: "#" + Theme.guide.ink
+                                    }
+                                    ButtonGlyph {
+                                        visible: !one.joiner
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        btn: one.modelData
+                                        size: 26 * guide.s
+                                    }
+                                }
+                            }
+                        }
+                        Text {
+                            x: glyphs.width + 8 * guide.s
+                            width: parent.width - x
+                            anchors.verticalCenter: parent.verticalCenter
+                            elide: Text.ElideRight
+                            text: bind.modelData.label
+                            font.family: Cfg.font
+                            font.pixelSize: 19 * guide.s
+                            color: "#" + Theme.guide.ink
+                        }
+                        Rectangle {
+                            anchors.bottom: parent.bottom
+                            width: parent.width
+                            height: 1
+                            color: "#" + Theme.guide.rule
+                        }
+                    }
+                }
             }
         }
     }
