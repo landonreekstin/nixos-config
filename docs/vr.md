@@ -113,7 +113,7 @@ passes `enableVR:b=no` and always starts flat.
    `PROTON_BATTLEYE_RUNTIME` to the game by itself. With it installed (2026-10-19), sim battles
    queued. A full match had not been played yet.
 4. Quit Steam, run `wt-vr-setup`. It checks for the BattlEye runtime, maps the game to the newest
-   GE-Proton11, and sets the launch options to `XR_SRGB_FIX=1 %command%`.
+   GE-Proton11, and sets the launch options to `PROTON_DISABLE_NVAPI=1 XR_SRGB_FIX=1 %command%`.
 
 No registry keys or winetricks are needed: GE-Proton 11 writes the `HKCU\Software\Wine\VR`
 keys itself at start-up, provided WiVRn is reachable.
@@ -155,6 +155,13 @@ no stutter.
   game window was the wrong size. Hyprland's `exec-once` now runs `xrandr --output <main> --primary`
   (the monitor named `main`, as in the XFCE config). Run it by hand if Hyprland was started from an
   older generation.
+- **`PROTON_DISABLE_NVAPI=1`.** Game build 2.59.0.78 (2026-10-20) crashes ~2 s in (seen in flat
+  mode; VR goes through the same DX11 start-up):
+  an access violation in `nvapi64.dll` (dxvk-nvapi) right after the `adapter <NVIDIA ...>` log
+  line, before any window opens. 2.59.0.73 ran fine with it on the same GE-Proton11-9. Disabling
+  NVAPI costs DLSS/Reflex, which are off in our settings anyway. Worth retrying without it after a
+  later GE-Proton or game update. To find the faulting module, read the exception stream of the
+  minidump in `.game_logs/reports/`.
 
 ### Gotchas
 - **The headset must be streaming before the game starts**, as with DCS. GE-Proton 11 removes
