@@ -485,6 +485,55 @@ in
             null hides the Videos library.
           '';
         };
+        audioDevices = mkOption {
+          type = types.listOf (types.submodule {
+            options = {
+              label = mkOption {
+                type = types.str;
+                example = "Headphones";
+                description = "Name shown in the Guide's Audio list and in the switch toast.";
+              };
+              icon = mkOption {
+                type = types.str;
+                default = "audio-speakers";
+                description = "Freedesktop icon name for the row.";
+              };
+              output = mkOption {
+                type = types.str;
+                example = "LG ULTRAGEAR";
+                description = ''
+                  Substring matched against "<sink name>|<description>|<alsa.name>" of
+                  each sink, as in desktop.hyprland.audioSinkMappings. On HDMI/DP the
+                  alsa.name is the display's EDID name, which survives the pro-output-N
+                  renumbering.
+                '';
+              };
+              input = mkOption {
+                type = types.str;
+                example = "USB_Condenser_Microphone";
+                description = ''
+                  The microphone that goes with this output: a substring matched
+                  against "<source name>|<description>|<alsa.name>", or "same" for
+                  the input of the output's own sound card (a USB headset's mic).
+                '';
+              };
+              keepOnTv = mkOption {
+                type = types.bool;
+                default = false;
+                description = ''
+                  TV Mode moves the sound to the TV unless this device is the one
+                  in use — for a headset, which goes wherever you sit.
+                '';
+              };
+            };
+          });
+          default = [ ];
+          description = ''
+            The xbox360 rice's Audio choices (Guide -> Audio): each one sets the
+            output AND the microphone in one go. Empty keeps the plain
+            "Sound Output" cycle in Console Settings.
+          '';
+        };
       };
       centurySeries.night = {
         enable = mkOption {

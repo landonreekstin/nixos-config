@@ -32,6 +32,21 @@ Singleton {
         toastTimer.restart();
     }
 
+    // A toast from the shell itself (Guide -> Audio): shown like any other,
+    // but not kept in the Notifications list. One with a `tag` replaces the
+    // toast of the same tag, on screen or waiting — flicking through outputs
+    // should say where the sound IS, not queue up where it has been.
+    function say(summary, body, icon, tag) {
+        const t = { summary: summary, body: body, appName: "", appIcon: icon || "", image: "", tag: tag || "" };
+        if (t.tag !== "" && toast !== null && toast.tag === t.tag) {
+            toast = t;
+            toastTimer.restart();
+            return;
+        }
+        queue = queue.filter(q => t.tag === "" || q.tag !== t.tag).concat([t]);
+        if (toast === null) showNext();
+    }
+
     function dismissAll() {
         list.forEach(n => n.dismiss());
     }

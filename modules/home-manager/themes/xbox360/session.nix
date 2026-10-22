@@ -152,6 +152,7 @@ let
     # The Jellyfin desktop client, when the host installs it system-wide.
     jellyfinApp = lib.any (p: (p.pname or "") == "jellyfin-desktop") customConfig.packages.nixos;
     hasTv = tvMonitor != null;
+    hasAudio = audioCmd != null;
   };
 
   # Full-screen pages a menu row can open, by id.
@@ -217,6 +218,7 @@ let
     var guide = ${builtins.toJSON (c.guide // { messages = appCmd "chatAlt"; party = appCmd "chat"; music = appCmd "music"; })};
     var widgets = ${builtins.toJSON widgets};
     var statusCmd = "${statusCmd}";
+    var audioCmd = "${if audioCmd == null then "" else "${audioCmd}"}";
     var volumeCmd = "${pkgs.wireplumber}/bin/wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@";
     var networkEditor = "${pkgs.networkmanagerapplet}/bin/nm-connection-editor";
     var updatesCmd = "${updatesCmd}";
@@ -285,7 +287,29 @@ let
       rightLabel = w.rightLabel or "";
       cache = w.cache or 0;
     })
-    (lib.filter (w: waybarBar ? ${w.id} && (waybarBar.${w.id}.exec or "") != "") widgetSpecs);
+    (lib.filter (w: waybarBar ? ${w.id} && (waybarBar.${w.id}.exec or "") != ""
+      # Guide -> Audio replaces the plain output cycle when the host lists its devices.
+      && !(w.id == "custom/audio-sink" && audioCmd != null)) widgetSpecs);
+
+  # ---- Audio -----------------------------------------------------------------
+  # Guide -> Audio: the host's audioDevices, each an output + microphone pair
+  # switched in one go (pad/xbox360-audio.py). null when the host lists none.
+  audioCmd = if xcfg.audioDevices == [ ] then null else
+    let
+      script = pkgs.writeScript "xbox360-audio.py"
+        ("#!${pkgs.python3}/bin/python3\n" + builtins.readFile ./pad/xbox360-audio.py);
+      devices = pkgs.writeText "xbox360-audio.json" (builtins.toJSON xcfg.audioDevices);
+    in pkgs.writeShellScript "xbox360-audio" ''
+      # toggle-audio-flip comes from the user's profile.
+      export PATH=${lib.makeBinPath [ pkgs.pulseaudio ]}:$PATH:/etc/profiles/per-user/$USER/bin
+      exec ${script} ${devices} "$@"
+    '';
+  audioSh = if audioCmd == null then "false" else "${audioCmd}";
+  # The device TV Mode switches to: the one on the TV's own HDMI output.
+  tvAudioLabel =
+    let d = lib.findFirst (d: tvMonitor != null && tvMonitor.edid != null && d.output == tvMonitor.edid)
+      null xcfg.audioDevices;
+    in if d == null then "" else d.label;
 
   # All of Console Settings' values in one go, as a JSON object keyed by widget
   # id (plus volume and network). Slow widgets (weather) are cached.
@@ -374,6 +398,7 @@ let
     state=$HOME/.local/state/hypr/disabled-monitors
     saved=$HOME/.local/state/hypr/xbox360-tv
     tvAudio=${lib.escapeShellArg (if tvMonitor.edid == null then "" else tvMonitor.edid)}
+    tvLabel=${lib.escapeShellArg tvAudioLabel}
     mkdir -p "$(dirname "$state")" "$saved"
     # Sinks are matched by alsa.name (the monitor's own name over HDMI/DP):
     # the pro-audio sink NUMBERS move whenever outputs come and go.
@@ -389,6 +414,7 @@ let
         cp "$state" "$saved/disabled-monitors" 2>/dev/null || : > "$saved/disabled-monitors"
         pactl -f json list sinks 2>/dev/null | jq -r --arg d "$(pactl get-default-sink)" \
           '.[] | select(.name == $d) | .properties["alsa.name"] // ""' > "$saved/sink"
+        ${lib.optionalString (audioCmd != null) ''${audioCmd} current > "$saved/audio" 2>/dev/null''}
         touch "$saved/on"
         hyprctl keyword monitor ${lib.escapeShellArg (monitorRule tvMonitor)} >/dev/null
         : > "$state"
@@ -396,8 +422,16 @@ let
           echo ${lib.escapeShellArg (monitorId m)} >> "$state"
           hyprctl keyword monitor ${lib.escapeShellArg "${monitorId m},disable"} >/dev/null
         '') otherMonitors}
-        # The TV's HDMI sink appears once the output is lit.
-        if [ -n "$tvAudio" ]; then
+        # The TV's HDMI sink appears once the output is lit. With Guide -> Audio
+        # the microphone moves too, and a headset in use stays the output.
+        if [ -n "$tvLabel" ]; then
+          if ! ${audioSh} keeps-tv; then
+            for _ in $(seq 20); do
+              ${audioSh} set "$tvLabel" >/dev/null 2>&1 && break
+              sleep 0.5
+            done
+          fi
+        elif [ -n "$tvAudio" ]; then
           for _ in $(seq 20); do
             s=$(sinkNamed "$tvAudio"); [ -n "$s" ] && { pactl set-default-sink "$s"; break; }
             sleep 0.5
@@ -415,8 +449,14 @@ let
           fi
         '') (lib.filter (m: m.enabled) customConfig.desktop.monitors)}
         prev=$(cat "$saved/sink" 2>/dev/null)
-        rm -f "$saved/on"
-        if [ -n "$prev" ]; then
+        prevAudio=$(cat "$saved/audio" 2>/dev/null)
+        rm -f "$saved/on" "$saved/audio"
+        if [ -n "$prevAudio" ]; then
+          for _ in $(seq 20); do
+            ${audioSh} set "$prevAudio" >/dev/null 2>&1 && break
+            sleep 0.5
+          done
+        elif [ -n "$prev" ]; then
           for _ in $(seq 20); do
             s=$(sinkNamed "$prev"); [ -n "$s" ] && { pactl set-default-sink "$s"; break; }
             sleep 0.5

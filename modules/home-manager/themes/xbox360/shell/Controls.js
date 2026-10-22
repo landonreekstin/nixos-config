@@ -47,7 +47,7 @@ var sections = [
             { btns: ["a"], label: "Select" },
             { btns: ["b"], label: "Back / close the Guide" },
             { btns: ["y"], label: "Xbox Dashboard" },
-            { btns: ["x"], label: "Sign Out; in a list: Close App, Dismiss" }
+            { btns: ["x"], label: "Sign Out; in a list: Close App, Dismiss, Swap Left/Right" }
         ]
     },
     {

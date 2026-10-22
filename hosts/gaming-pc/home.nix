@@ -12,6 +12,16 @@
       xbox360 = {
         transmissionUrl = "http://transmission.lan/transmission/rpc";
         jellyfinUrl = "http://jellyfin.lan";
+        # Guide -> Audio. Outputs by EDID name, as in desktop.nix audioSinkMappings.
+        audioDevices = let mic = "USB_Condenser_Microphone"; in [
+          { label = "Speakers";   icon = "audio-speakers";   output = "LG ULTRAGEAR"; input = mic; }
+          { label = "Headphones"; icon = "audio-headphones"; output = "S27R65x";      input = mic; }
+          { label = "TV";         icon = "video-television"; output = "4Series43";    input = mic; }
+          # The USB headset on the long extension cable, for the TV from bed: any
+          # USB output (the condenser mic and the webcam are input-only).
+          # TODO: narrow to its own name once it has been plugged in here.
+          { label = "Headset"; icon = "audio-headset"; output = "alsa_output.usb-"; input = "same"; keepOnTv = true; }
+        ];
       };
       xfce = "windows7";   # X11 desktop option; pick "Xfce Session" at the Ly greeter
       wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;

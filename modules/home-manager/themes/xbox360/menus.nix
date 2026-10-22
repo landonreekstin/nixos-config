@@ -12,7 +12,7 @@
 #   { type = "setting"; setting; }    — a switch shown with its value
 #                                       (ShellState.settingText/changeSetting)
 #   { type = "guide"; page; }         — open the Guide at one of its submenus
-{ lib, apps, pkgs, downloadsUrl, jellyfinUrl, jellyfinApp, hasTv }:
+{ lib, apps, pkgs, downloadsUrl, jellyfinUrl, jellyfinApp, hasTv, hasAudio }:
 
 let
   cmd = role: apps.${role}.command or "";
@@ -121,9 +121,13 @@ in
     (row "Task Manager" "utilities-system-monitor"
       "See what is running and how hard the console is working."
       (inTerminal "Task Manager" (cmd "taskManager")))
+  ++ lib.optional hasAudio
+    (row "Audio" "audio-headset"
+      "Speakers, headphones, the TV or the headset: the sound and the microphone switch together. Also in the Guide, from anywhere."
+      (guidePage "audio"))
   ++ [
-    (row "Audio" "audio-volume-high"
-      "Speakers, headphones and microphones: choose outputs and set levels."
+    (row (if hasAudio then "Volume Mixer" else "Audio") "audio-volume-high"
+      "Speakers, headphones and microphones: every app's level, every device."
       (launch "Audio" "${pkgs.pavucontrol}/bin/pavucontrol"))
     (row "Bluetooth" "bluetooth"
       "Pair headsets and controllers."
