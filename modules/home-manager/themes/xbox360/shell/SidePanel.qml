@@ -25,7 +25,7 @@ PanelWindow {
     property real widthRef: 560          // the blade's width, reference units
     property string title: ""
     property string bandLabel: ""
-    property var stops: Cfg.guide.stops   // 4 hex gradient stops
+    property var stops: Theme.guide.stops   // 4 hex gradient stops
     property var legend: ({ left: [], right: [] })
     property bool exclusiveKeyboard: true
     signal dismissed()                    // clicked outside

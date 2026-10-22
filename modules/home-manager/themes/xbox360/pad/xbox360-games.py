@@ -4,10 +4,11 @@ Steam: every library in libraryfolders.vdf, each appmanifest_*.acf (name,
 LastPlayed), minus Proton/runtimes/redistributables; artwork from Steam's own
 librarycache (the capsule, the header, the small icon).
 Heroic: Epic (legendary) and GOG installs, minus DLC; icons from Heroic's
-icon cache, covers from its store cache.
+icon cache, covers from its store cache, play times from its own record
+(store/timestamp.json: ISO lastPlayed, totalPlayed in minutes).
 
 Output: { games: [{ id, name, source, lastPlayed, icon, art, cmd }] newest-played
-first, hours: total Steam hours played }.
+first, hours: total hours played, Steam and Heroic }.
 Argument: a JSON config { steam: <launch command or "">, heroic: <...> }.
 """
 
@@ -16,6 +17,7 @@ import json
 import os
 import re
 import sys
+from datetime import datetime
 
 CFG = json.loads(sys.argv[1]) if len(sys.argv) > 1 else {}
 HOME = os.path.expanduser("~")
@@ -74,6 +76,27 @@ def steam_games():
     return out
 
 
+def heroic_times():
+    """app_name -> (lastPlayed as epoch seconds, minutes played)."""
+    try:
+        data = json.load(open(os.path.join(HEROIC, "store/timestamp.json")))
+    except (OSError, ValueError):
+        return {}
+    out = {}
+    for app, t in data.items() if isinstance(data, dict) else []:
+        if not isinstance(t, dict):
+            continue
+        try:
+            last = int(datetime.fromisoformat(t.get("lastPlayed", "").replace("Z", "+00:00")).timestamp())
+        except ValueError:
+            last = 0
+        out[app] = (last, int(t.get("totalPlayed") or 0))
+    return out
+
+
+HEROIC_TIMES = heroic_times() if CFG.get("heroic") else {}
+
+
 def heroic_games():
     if not CFG.get("heroic"):
         return []
@@ -104,7 +127,7 @@ def heroic_games():
                 continue
             out.append({
                 "id": runner + ":" + app, "name": g.get("title") or app, "source": label,
-                "lastPlayed": 0,
+                "lastPlayed": HEROIC_TIMES.get(app, (0, 0))[0],
                 "icon": first([os.path.join(HEROIC, "icons", app + ".jpg"),
                                os.path.join(HEROIC, "icons", app + ".png")]),
                 "art": covers.get(app, ""),
@@ -114,10 +137,10 @@ def heroic_games():
 
 
 games = steam_games() + heroic_games()
-def steam_hours():
-    """Total hours played across Steam accounts on this machine (the gamer
-    card's Gamerscore)."""
-    minutes = 0
+def hours_played():
+    """Total hours played across Steam accounts on this machine and in
+    Heroic (the gamer card's Gamerscore)."""
+    minutes = sum(m for _, m in HEROIC_TIMES.values())
     for cfg in glob.glob(os.path.join(STEAM, "userdata/*/config/localconfig.vdf")):
         try:
             minutes += sum(int(m) for m in vdf_values(open(cfg, errors="replace").read(), "Playtime"))
@@ -127,4 +150,4 @@ def steam_hours():
 
 
 games.sort(key=lambda g: (-g["lastPlayed"], g["name"].lower()))
-print(json.dumps({"games": games, "hours": steam_hours()}))
+print(json.dumps({"games": games, "hours": hours_played()}))

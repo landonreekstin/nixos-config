@@ -4,9 +4,14 @@
 # has no row for it (rows whose command is empty are dropped).
 #
 # A row is { label; icon; desc; action; } where action is one of
-#   { type = "launch"; cmd; title; }  — run on a fresh app workspace
+#   { type = "launch"; cmd; title; single; }  — run on a fresh app workspace;
+#                                       `single`: a one-instance app, so an
+#                                       open window is focused instead
+
 #   { type = "page"; page; title; }   — open a full-screen page (Config.pages)
-{ lib, apps, pkgs, downloadsUrl, jellyfinUrl, jellyfinApp }:
+#   { type = "setting"; setting; }    — a switch shown with its value
+#                                       (ShellState.settingText/changeSetting)
+{ lib, apps, pkgs, downloadsUrl, jellyfinUrl, jellyfinApp, hasTv }:
 
 let
   cmd = role: apps.${role}.command or "";
@@ -21,13 +26,18 @@ let
     in
     lib.toUpper (lib.substring 0 1 bare) + lib.substring 1 (-1) bare;
 
-  launch = title: c: { type = "launch"; cmd = c; inherit title; };
+  launch = title: c: { type = "launch"; cmd = c; inherit title; single = false; };
+  # Discord, Spotify, Steam...: launching one again only raises its window.
+  launchOne = title: c: launch title c // { single = true; };
   inTerminal = title: c: launch title "${terminal} -e ${c}";
   page = page: title: { type = "page"; inherit page title; };
+  setting = s: { type = "setting"; setting = s; };
 
   row = label: icon: desc: action: { inherit label icon desc action; };
   roleRow = role: label: icon: desc:
     lib.optional (has role) (row label icon desc (launch label (cmd role)));
+  oneRow = role: label: icon: desc:
+    lib.optional (has role) (row label icon desc (launchOne label (cmd role)));
 in
 [
   # ---- Marketplace: keeping this console up to date -------------------------
@@ -70,17 +80,17 @@ in
   ++ lib.optional (has "gaming")
     (row "Steam" "steam"
       "The Steam client."
-      (launch "Steam" (cmd "gaming")))
-  ++ roleRow "gamingAlt" (prettyName (cmd "gamingAlt")) "applications-games"
+      (launchOne "Steam" (cmd "gaming")))
+  ++ oneRow "gamingAlt" (prettyName (cmd "gamingAlt")) "applications-games"
       "Your other game launcher.")
 
   # ---- Media ---------------------------------------------------------------
-  (roleRow "music" "Music" "spotify-client"
+  (oneRow "music" "Music" "spotify-client"
       "Play music with Spotify."
   ++ lib.optional jellyfinApp
     (row "Jellyfin" "org.jellyfin.JellyfinDesktop"
       "The full Jellyfin app in its TV mode: music libraries, live TV and everything else on the server."
-      (launch "Jellyfin" "jellyfin-desktop --tv --fullscreen"))
+      (launchOne "Jellyfin" "jellyfin-desktop --tv --fullscreen"))
   ++ lib.optional (has "fileManager")
     (row "Pictures" "folder-pictures"
       "Show your pictures."
@@ -119,5 +129,11 @@ in
     (row "Network" "network-wired"
       "Wired, wireless and VPN connections."
       (launch "Network" "${pkgs.networkmanagerapplet}/bin/nm-connection-editor"))
-  ])
+    (row "Night Mode" "weather-clear-night"
+      "Dark blades for the evening. Auto follows sunset and sunrise; A or left and right choose Auto, On or Off."
+      (setting "night"))
+  ] ++ lib.optional hasTv
+    (row "TV Mode" "video-television"
+      "Play on the TV: the whole console moves to the TV, sound included, and the monitors switch off. Again to come back."
+      (setting "tv")))
 ]

@@ -16,7 +16,7 @@ Item {
     property int blade: 0
     property real s: 1
 
-    readonly property var spec: Cfg.blades[blade]
+    readonly property var spec: Theme.blades[blade]
     readonly property var rows: Cfg.menus[Math.min(blade, Cfg.menus.length - 1)]
     readonly property int current: Math.min(ShellState.rows[blade], Math.max(0, rows.length - 1))
     readonly property color ink: "#" + spec.ink
@@ -36,9 +36,10 @@ Item {
         if (!r) return;
         const a = r.action;
         ShellState.play("select-a");
-        if (a.type === "launch") ShellState.launch(a.cmd, a.title, blade);
+        if (a.type === "launch") ShellState.launch(a.cmd, a.title, blade, a.single === true);
         else if (a.type === "page") ShellState.openPage(a.page, a.title, blade);
         else if (a.type === "ipc") ShellState.input(a.btn);
+        else if (a.type === "setting") ShellState.changeSetting(a.setting, 1);
         else if (a.type === "lastPlayed" && Games.list.length > 0) Games.play(Games.list[0]);
     }
 
@@ -49,6 +50,15 @@ Item {
         case "lt": select(0); return true;
         case "rt": select(rows.length - 1); return true;
         case "a": activate(current); return true;
+        case "left": case "right": {
+            // A switch row changes with left/right too; anything else lets the
+            // dashboard page between blades.
+            const r = rows[current];
+            if (!r || r.action.type !== "setting") return false;
+            ShellState.changeSetting(r.action.setting, btn === "right" ? 1 : -1);
+            ShellState.play("select");
+            return true;
+        }
         case "y": ShellState.resume(); return true;
         }
         return false;
@@ -79,7 +89,8 @@ Item {
                 s: menu.s
                 ink: menu.ink
                 rule: "#" + menu.spec.rule
-                label: modelData.label
+                label: modelData.label + (modelData.action.type === "setting"
+                    ? ":  " + ShellState.settingText(modelData.action.setting) : "")
                 icon: modelData.icon
                 selected: index === menu.current
                 onHovered: menu.select(index)

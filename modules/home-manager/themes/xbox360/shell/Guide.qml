@@ -71,7 +71,7 @@ SidePanel {
     }
 
     function handle(btn) {
-        if (btn === "y") { ShellState.guideOpen = false; ShellState.dashboard(); ShellState.play("select-a"); return true; }
+        if (btn === "y") { ShellState.play("select-a"); ShellState.fromGuide(() => ShellState.dashboard()); return true; }
         if (btn === "b") {
             if (page !== "") { page = ""; cur = 0; ShellState.play("back"); }
             else close();
@@ -108,9 +108,8 @@ SidePanel {
     readonly property int bigIndex: rows.length + 2
 
     function launch(cmd, title) {
-        ShellState.guideOpen = false;
         ShellState.play("select-a");
-        ShellState.launch(cmd, title, 1);
+        ShellState.fromGuide(() => ShellState.launch(cmd, title, 1, true));
     }
 
     function mediaAction(i) {
@@ -138,7 +137,7 @@ SidePanel {
             if (cur < rows.length) { ShellState.play("select-a"); rows[cur].run(); }
             else if (cur === stripIndex) mediaAction(mediaCur);
             else if (cur === selectMusicIndex) launch(Cfg.guide.music, "Music");
-            else { ShellState.guideOpen = false; ShellState.dashboard(); ShellState.play("select-a"); }
+            else { ShellState.play("select-a"); ShellState.fromGuide(() => ShellState.dashboard()); }
             return true;
         }
         return true;   // the Guide is modal
@@ -168,8 +167,8 @@ SidePanel {
                     width: rowCol.width
                     height: 40 * guide.s
                     s: guide.s
-                    ink: "#" + Cfg.guide.ink
-                    rule: "#" + Cfg.guide.rule
+                    ink: "#" + Theme.guide.ink
+                    rule: "#" + Theme.guide.rule
                     label: modelData.label + (modelData.value !== "" ? "  (" + modelData.value + ")" : "")
                     icon: modelData.icon
                     selected: guide.cur === index
@@ -236,7 +235,7 @@ SidePanel {
                     : "Select Music"
                 font.family: Cfg.font
                 font.pixelSize: 20 * guide.s
-                color: "#" + Cfg.guide.ink
+                color: selectMusic.hot ? Theme.onWash("#" + Theme.guide.ink) : "#" + Theme.guide.ink
             }
             MouseArea { anchors.fill: parent; onClicked: { guide.cur = guide.selectMusicIndex; guide.handle("a"); } }
         }
@@ -268,7 +267,7 @@ SidePanel {
     readonly property var listItems: {
         if (page === "apps") return ShellState.apps.map(a => ({
             label: a.title, icon: a.icon, detail: a.windows + (a.windows === 1 ? " window" : " windows"),
-            run: () => { ShellState.guideOpen = false; Hyprland.dispatch("workspace " + a.id); },
+            run: () => ShellState.fromGuide(() => Hyprland.dispatch("workspace " + a.id)),
             x: () => ShellState.closeApp(a.id) }));
         if (page === "notifications") return Notifications.list.map(n => ({
             label: n.summary, icon: n.appIcon, detail: (n.appName !== "" ? n.appName + "\n\n" : "") + n.body.replace(/<[^>]*>/g, ""),
@@ -310,8 +309,8 @@ SidePanel {
                     width: listCol.width
                     height: 40 * guide.s
                     s: guide.s
-                    ink: "#" + Cfg.guide.ink
-                    rule: "#" + Cfg.guide.rule
+                    ink: "#" + Theme.guide.ink
+                    rule: "#" + Theme.guide.rule
                     label: modelData.label + (modelData.value ? "    " + modelData.value : "")
                     icon: modelData.icon || ""
                     selected: guide.cur === index
@@ -326,7 +325,7 @@ SidePanel {
             text: guide.page === "apps" ? "Nothing is open." : guide.page === "notifications" ? "No notifications." : ""
             font.family: Cfg.font
             font.pixelSize: 22 * guide.s
-            color: "#" + Cfg.guide.ink
+            color: "#" + Theme.guide.ink
         }
 
         Rectangle {
@@ -346,7 +345,7 @@ SidePanel {
                 text: guide.listItems[guide.cur] ? guide.listItems[guide.cur].detail || "" : ""
                 font.family: Cfg.font
                 font.pixelSize: 20 * guide.s
-                color: "#" + Cfg.guide.ink
+                color: "#" + Theme.guide.ink
             }
         }
     }

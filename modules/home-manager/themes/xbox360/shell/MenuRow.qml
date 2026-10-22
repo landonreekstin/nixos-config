@@ -76,6 +76,6 @@ MouseArea {
         text: row.label
         font.family: Cfg.font
         font.pixelSize: Cfg.rowSize * row.s
-        color: row.ink
+        color: row.selected ? Theme.onWash(row.ink) : row.ink
     }
 }

@@ -27,6 +27,7 @@ layout(std140, binding = 0) uniform buf {
     vec4 c1;
     vec4 c2;
     vec4 c3;
+    float glow;     // 1 by day; night mode dims the gloss, sheen and ripples
 };
 
 const int N = @N@;
@@ -114,13 +115,13 @@ void main() {
     float rip = ripple(rs, fract(time / 9.0), res.y, 0.30)
               + ripple(rs, fract(time / 9.0 + 0.5), res.y, 0.22);
 
-    col += inside * card * (vec3(sheen) + vec3(rip));
+    col += glow * inside * card * (vec3(sheen) + vec3(rip));
 
     // Specular gloss: white, 30% at the top -> 5% at 45% -> 0.
     float gy = ref.y / H;
     float g = gy < 0.45 ? mix(0.30, 0.05, gy / 0.45)
                         : mix(0.05, 0.0, clamp((gy - 0.45) / 0.25, 0.0, 1.0));
-    col = mix(col, vec3(1.0), inside * g * mix(0.5, 1.0, card));
+    col = mix(col, vec3(1.0), glow * inside * g * mix(0.5, 1.0, card));
 
     // Dither away the banding a wide gradient shows.
     col += (hash(px) - 0.5) / 255.0;

@@ -38,7 +38,7 @@ Singleton {
     // ---- app workspaces ----------------------------------------------------
     // id -> { title, blade, seen }: `seen` once a window has appeared, so an
     // app that is still loading is not mistaken for one that has quit.
-    // Steam hours played, set by Games.qml.
+    // Hours played (Steam and Heroic), set by Games.qml.
     property int gamerscore: 0
 
     property var meta: ({})
@@ -90,11 +90,56 @@ Singleton {
     // means the window lands there even when the process that maps it is not
     // the one we started (flatpak, Steam, single-instance apps), which an
     // `exec [workspace n]` rule would miss.
-    function launch(cmd, title, bladeIndex) {
+    //
+    // `single`: the app keeps one instance (Discord, Signal, Spotify, Steam),
+    // so if it already has a window, go to that instead — launching it again
+    // only raises the old window wherever it is, and the new workspace sat on
+    // its loading ring for good.
+    function launch(cmd, title, bladeIndex, single) {
+        if (single) {
+            const t = findRunning(cmd);
+            if (t !== null) {
+                Hyprland.dispatch("focuswindow address:" + (String(t.address).startsWith("0x") ? "" : "0x") + t.address);
+                return;
+            }
+        }
         const n = freeWorkspace();
         setMeta(n, { title: title, blade: bladeIndex, seen: false });
         Hyprland.dispatch("workspace " + n);
         Quickshell.execDetached(["sh", "-c", cmd]);
+    }
+
+    // The program a command runs, as a window class would name it: "discord",
+    // "signal-desktop", a flatpak's last id segment, minus Nix's wrapper dots.
+    function classHint(cmd) {
+        const words = cmd.trim().split(/\s+/).filter(w => !w.startsWith("-") && w.indexOf("=") < 0);
+        let prog = words.length > 0 ? words[0] : "";
+        if (/(^|\/)flatpak$/.test(prog)) {
+            const id = words.find(w => /^[\w-]+(\.[\w-]+){2,}$/.test(w));
+            prog = id ? id.split(".").pop() : "";
+        }
+        return prog.split("/").pop().replace(/^\./, "").replace(/-wrapped$/, "").toLowerCase();
+    }
+    function classOf(t) {
+        const ipc = t.lastIpcObject && t.lastIpcObject.class ? t.lastIpcObject.class : "";
+        return ipc !== "" ? ipc : (t.wayland ? t.wayland.appId : "");
+    }
+    // A window of the app `cmd` runs, or null: the class and the program name
+    // equal, or either containing the other ("signal" in "signal-desktop").
+    function findRunning(cmd) {
+        const hint = classHint(cmd);
+        if (hint.length < 3) return null;
+        const all = Hyprland.toplevels.values;
+        // An exact match first: "steam" is the client, not steam_app_1234.
+        const exact = all.find(t => classOf(t).toLowerCase() === hint);
+        if (exact) return exact;
+        // Then by letters only: jellyfin-desktop is org.jellyfin.JellyfinDesktop.
+        const bare = x => x.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const h = bare(hint);
+        return all.find(t => {
+            const cls = bare(classOf(t));
+            return cls.length >= 3 && (cls.indexOf(h) >= 0 || h.indexOf(cls) >= 0);
+        }) || null;
     }
 
     function dashboard() {
@@ -172,6 +217,23 @@ Singleton {
 
     // A tap of the Guide button: open or close the Guide, as on the console.
     function guide() { guideOpen = !guideOpen; }
+
+    // Leaving the Guide for somewhere else. Its layer holds the keyboard while
+    // it is open, and when it lets go Hyprland hands focus back to the window
+    // that had it — so a workspace switch sent at the same moment was undone,
+    // straight back to the fullscreen game it was meant to leave. Close first,
+    // move once the Guide has slid away.
+    function fromGuide(fn) {
+        guideOpen = false;
+        guideExit.fn = fn;
+        guideExit.restart();
+    }
+    Timer {
+        id: guideExit
+        property var fn: null
+        interval: Cfg.motionMs + 50
+        onTriggered: { const f = fn; fn = null; if (f) f(); }
+    }
 
     // What the notification blade shows: { title, icon, body, actions: [{ label, run }] }.
     property var message: null
@@ -291,10 +353,35 @@ Singleton {
             if (!state.padLinked) state.padReconnect();
         }
     }
+    // ---- switches: Night Mode, TV Mode ----------------------------------------
+    // TV Mode: the whole session on the TV alone, sound included (session.nix
+    // tvScript, which also restores the monitors and the output after).
+    property bool tvMode: false
+    function setTv(on) {
+        tvMode = on;
+        tvProc.command = ["sh", "-c", Cfg.tvCmd + (on ? " on" : " off") + "; " + Cfg.tvCmd + " status"];
+        tvProc.running = true;
+    }
+    Process {
+        id: tvProc
+        command: ["sh", "-c", Cfg.tvCmd + " status"]
+        running: Cfg.tvCmd !== ""
+        stdout: StdioCollector { onStreamFinished: state.tvMode = text.trim() === "on" }
+    }
+    function settingText(what) {
+        if (what === "night") return Theme.modeText;
+        if (what === "tv") return tvMode ? "On" : "Off";
+        return "";
+    }
+    function changeSetting(what, dir) {
+        if (what === "night") Theme.cycle(dir);
+        else if (what === "tv" && Cfg.tvCmd !== "") setTv(!tvMode);
+    }
+
     // ---- bookkeeping ---------------------------------------------------------
     // The active border follows the blade colour of whatever is on screen.
     function applyBorder(bladeIndex) {
-        const b = Cfg.blades[Math.max(0, Math.min(bladeIndex, Cfg.blades.length - 1))];
+        const b = Theme.blades[Math.max(0, Math.min(bladeIndex, Theme.blades.length - 1))];
         Quickshell.execDetached([Cfg.hyprctl, "keyword", "general:col.active_border",
             "rgb(ffffff) rgb(" + b.base + ") rgb(" + b.stops[3] + ") 90deg"]);
     }
@@ -324,18 +411,36 @@ Singleton {
     }
 
     // Anything that opens ON the dashboard (an app started from a terminal
-    // binding, a link from a notification) gets a workspace of its own.
+    // binding, a link from a notification) gets a workspace of its own. So
+    // does a game started from inside Steam or Heroic: it opens over its
+    // launcher, and the Guide's Open Apps then only knew "Heroic".
+    readonly property var gameClasses: Cfg.gameClasses.map(r => new RegExp(r))
+    function isGameClass(cls) { return gameClasses.some(r => r.test(cls)); }
     Connections {
         target: Hyprland
         function onRawEvent(event) {
             if (event.name !== "openwindow") return;
             const p = event.data.split(",");
-            if (p.length < 3 || p[1] !== "dashboard") return;
-            const n = state.freeWorkspace();
-            const entry = DesktopEntries.heuristicLookup(p[2]);
-            state.setMeta(n, { title: entry ? entry.name : p[2], blade: 5, seen: false });
-            Hyprland.dispatch("movetoworkspace " + n + ",address:0x" + p[0]);
+            if (p.length < 3) return;
+            const addr = p[0], wsName = p[1], cls = p[2], title = p.slice(3).join(",");
+            if (wsName === "dashboard") {
+                const entry = DesktopEntries.heuristicLookup(cls);
+                state.moveToOwn(addr, entry ? entry.name : cls, 5);
+            } else if (state.isGameClass(cls)) {
+                const ws = Hyprland.workspaces.values.find(w => w.name === wsName);
+                if (!state.isApp(ws)) return;
+                // Only off a launcher: a game's own second window (a splash, then
+                // the game) stays together.
+                const others = ws.toplevels.values.filter(t => String(t.address).replace(/^0x/, "") !== addr);
+                if (others.length > 0 && !others.some(t => state.isGameClass(state.classOf(t))))
+                    state.moveToOwn(addr, title !== "" ? title : cls, 2);
+            }
         }
+    }
+    function moveToOwn(addr, title, bladeIndex) {
+        const n = freeWorkspace();
+        setMeta(n, { title: title, blade: bladeIndex, seen: false });
+        Hyprland.dispatch("movetoworkspace " + n + ",address:0x" + addr);
     }
 
     // `meta` survives a shell restart, so a reload doesn't strip every open

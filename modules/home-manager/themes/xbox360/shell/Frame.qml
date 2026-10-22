@@ -37,7 +37,7 @@ Scope {
     readonly property int colour: mode === "blades" ? ShellState.blade
                                 : mode === "page" ? ShellState.pageBlade
                                 : appMeta.blade
-    readonly property string title: mode === "blades" ? Cfg.blades[ShellState.blade].title
+    readonly property string title: mode === "blades" ? Theme.blades[ShellState.blade].title
                                   : mode === "page" ? ShellState.pageTitle
                                   : appMeta.title
 
@@ -48,7 +48,7 @@ Scope {
     function targetLayout() {
         return mode === "blades" ? Geo.layout(colour, g0.W) : Geo.frame(colour, g0.W);
     }
-    readonly property string targetKey: mode + ":" + colour + ":" + g0.W + ":" + g0.H
+    readonly property string targetKey: mode + ":" + colour + ":" + g0.W + ":" + g0.H + ":" + Theme.night
 
     property var fromLayout: targetLayout()
     property var toLayout: targetLayout()
@@ -86,7 +86,7 @@ Scope {
     }
 
     function hex(h) { return Qt.color("#" + h); }
-    function blade(i) { return Cfg.blades[Math.max(0, Math.min(i, Cfg.blades.length - 1))]; }
+    function blade(i) { return Theme.blades[Math.max(0, Math.min(i, Theme.blades.length - 1))]; }
     function stopsOf(i) { return blade(i).stops.map(hex); }
     function mixColor(a, b, t) {
         return Qt.rgba(a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t,
@@ -143,7 +143,7 @@ Scope {
         screen: root.screen
         anchors { top: true; bottom: true; left: true; right: true }
         exclusionMode: ExclusionMode.Ignore
-        color: "#9a9a9a"
+        color: Theme.backdrop
         WlrLayershell.layer: WlrLayer.Background
         WlrLayershell.namespace: "xbox360-frame"
 
@@ -162,8 +162,10 @@ Scope {
                 panelR: root.shown.R
                 curveAmt: root.shown.cf
                 refSize: Qt.size(root.g0.W, root.g0.H)
-                // Nothing to look at behind a fullscreen window.
-                animating: !(root.workspace && root.workspace.hasFullscreen)
+                // Only where the card is what you look at. Behind apps the
+                // ripples redrew the whole screen every frame (180 Hz here) for
+                // a sliver of margin — GPU time a windowed game wants.
+                animating: root.mode !== "app"
             }
 
             // Layer 1: the silver backdrop outside the panel. Its inner edge is
@@ -175,9 +177,9 @@ Scope {
                     strokeWidth: -1
                     fillGradient: LinearGradient {
                         x1: 0; y1: 0; x2: 0; y2: stage.height
-                        GradientStop { position: 0.0; color: "#" + Cfg.silver.gutter[0] }
-                        GradientStop { position: 0.45; color: "#" + Cfg.silver.gutter[1] }
-                        GradientStop { position: 1.0; color: "#" + Cfg.silver.gutter[2] }
+                        GradientStop { position: 0.0; color: "#" + Theme.silver.gutter[0] }
+                        GradientStop { position: 0.45; color: "#" + Theme.silver.gutter[1] }
+                        GradientStop { position: 1.0; color: "#" + Theme.silver.gutter[2] }
                     }
                     PathPolyline { path: Geo.ribbon(-400, 0, root.shown.L, -1, root.g) }
                 }
@@ -185,9 +187,9 @@ Scope {
                     strokeWidth: -1
                     fillGradient: LinearGradient {
                         x1: 0; y1: 0; x2: 0; y2: stage.height
-                        GradientStop { position: 0.0; color: "#" + Cfg.silver.gutter[0] }
-                        GradientStop { position: 0.45; color: "#" + Cfg.silver.gutter[1] }
-                        GradientStop { position: 1.0; color: "#" + Cfg.silver.gutter[2] }
+                        GradientStop { position: 0.0; color: "#" + Theme.silver.gutter[0] }
+                        GradientStop { position: 0.45; color: "#" + Theme.silver.gutter[1] }
+                        GradientStop { position: 1.0; color: "#" + Theme.silver.gutter[2] }
                     }
                     PathPolyline { path: Geo.ribbon(root.shown.R, 1, root.g0.W + 400, 0, root.g) }
                 }

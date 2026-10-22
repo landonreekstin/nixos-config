@@ -128,11 +128,28 @@ focused window with `wtype`; its layer never takes keyboard focus, so the app ke
 - **Gamerscore** on the gamer card = total Steam hours played (`Playtime` in every
   `userdata/*/config/localconfig.vdf`), from the games scanner.
 
+## Night Mode and TV Mode
+
+Both are switches on the System blade (left/right or A) and in Guide → Console Settings.
+
+- **Night Mode** (Auto / On / Off, saved in Quickshell's state dir): `colors.nix` derives a
+  `night` palette under the same keys as the day one, and `Theme.qml` hands out whichever
+  applies, so every consumer reads `Theme.blades` / `Theme.silver` / `Theme.guide` instead of
+  `Config`. Highlighted rows keep their white wash, so their text uses `Theme.onWash()`; the
+  shader's gloss, sheen and ripples scale by the `glow` uniform. Auto asks
+  `century-night status` (`sun=day|night`), else the clock (7 pm to 7 am).
+- **TV Mode** (`session.nix` `tvScript`, host monitor named `tv`): the TV alone, with its HDMI
+  sink matched by `alsa.name` == the monitor's `edid`, since pro-audio sink numbers move. It
+  writes the same `~/.local/state/hypr/disabled-monitors` that `toggle-monitor` uses, so
+  `monitor-state-watcher` keeps it through a rebuild's config reload. Off restores the saved
+  monitor state and output; the default session runs `off` at login.
+
 ## Shell layout (`themes/xbox360/shell/`)
 
 | File | Role |
 |---|---|
 | `shell.qml` | root: a `Frame` per screen; `IpcHandler` target `ui` (`input`, `home`, `dashboard`, `resume`, `launch`) |
+| `Theme.qml` | singleton: day/night palette (`Theme.blades`, `.silver`, `.guide`, `onWash`, `glow`) |
 | `ShellState.qml` | singleton: blade/row selection, pages, app-workspace `meta` (persisted to `$XDG_RUNTIME_DIR/xbox360-workspaces.json`), launch/resume, sounds, the input-handler stack |
 | `Frame.qml` | one screen: mode `blades` / `page` / `app`, the morph between them, exclusive zones, loading ring |
 | `DashboardMenu.qml` | TOP-layer window over the card with exclusive keyboard while the dashboard shows; routes buttons |
@@ -154,6 +171,18 @@ time. The app/page frame is the same panel with curve 0 and the bands dealt off-
 which is what makes the dashboard → app transition a morph.
 
 ## Gotchas
+
+- **The shader needs a GLSL ES 3.00 variant.** On NVIDIA, Quickshell's context is GLES, so
+  with only `100 es` in the `.qsb` it picked that one, which rejects the knot arrays. It then
+  retried the compile every frame: no gradient (flat grey), a log growing by hundreds of
+  MB, and the shell leaking to 42 GB of RAM. `qsb --glsl "300 es,100 es,120,150,330"`.
+- **Leaving the Guide for a workspace goes through `ShellState.fromGuide`.** The Guide holds
+  exclusive keyboard focus, and when it lets go Hyprland refocuses the window that had it,
+  undoing a workspace switch made in the same moment. Inside a fullscreen game that meant
+  Open Apps never left the game.
+- **Steam opens Big Picture on the Guide button** unless Steam → Settings → Controller →
+  "Guide Button Focuses Steam" is off. Steam reads the pad through its own driver, so the
+  daemon's evdev grab cannot hide the button from it.
 
 - **Hover selects only on real pointer motion** (`ShellState.pointerMoved`). When a menu
   slides in under a parked pointer, Qt reports motion *relative to the moving item*, so a
