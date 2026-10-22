@@ -186,6 +186,16 @@
     # $XDG_RUNTIME_DIR/hypr-rice tells shared scripts and systemd user units which
     # rice is live — they have no other way to know, since both sessions run the
     # same binaries. The default session deletes it again at startup.
+    # The xbox360 rice's controller daemon emulates a mouse and keyboard for
+    # apps that can't use a controller, through /dev/uinput. Give the seat's
+    # logged-in user access (uaccess), as Steam's own udev rules do — but
+    # without depending on Steam being installed. The gamepads themselves are
+    # already uaccess-tagged by systemd as joysticks.
+    boot.kernelModules = lib.mkIf (lib.elem "xbox360" config.customConfig.homeManager.themes.hyprlandExtraSessions) [ "uinput" ];
+    services.udev.extraRules = lib.mkIf (lib.elem "xbox360" config.customConfig.homeManager.themes.hyprlandExtraSessions) ''
+      KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess", OPTIONS+="static_node=uinput"
+    '';
+
     services.displayManager.sessionPackages = map (rice:
       let
         start = pkgs.writeShellScript "start-hyprland-${rice}" ''

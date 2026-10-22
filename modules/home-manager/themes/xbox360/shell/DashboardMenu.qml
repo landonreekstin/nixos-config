@@ -39,6 +39,7 @@ PanelWindow {
     QtObject {
         id: handler
         property bool active: win.showing
+        property int priority: 0
         function handle(btn) { return win.handle(btn); }
     }
     Component.onCompleted: ShellState.pushHandler(handler)

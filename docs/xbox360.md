@@ -44,6 +44,44 @@ geometry in `themes/xbox360/colors.nix` `layout` was measured off them.
 A row whose role has no command on the host is dropped. Per-host options:
 `themes.xbox360.transmissionUrl` (Downloads) and `themes.xbox360.jellyfinUrl` (Videos).
 
+## Controller (`pad/xbox360-pad.py`)
+
+A Python daemon (python-evdev) started from the rice's `exec-once`, log in
+`/tmp/xbox360-pad.log`. It reads every pad that has both `BTN_SOUTH` and `BTN_MODE`
+(xpad and xpadneo expose Guide as `BTN_MODE`), rescanning every 2 s for hotplug.
+
+| Input | Where | Does |
+|---|---|---|
+| Guide tap | everywhere | the Guide (until the Guide blade exists: dashboard ⇄ last app) |
+| Guide held 1 s | everywhere | `power` to the shell (the turn-off prompt) |
+| Guide + LB / RB | everywhere | previous / next app workspace (numbered, with windows), wrapping |
+| Guide + D-pad / left stick | everywhere | `movefocus` |
+| Guide + Y / X | everywhere | dashboard / on-screen keyboard |
+| Guide + Back / Start | everywhere | close window / toggle fullscreen |
+| everything | shell UI up | to the shell over the socket, directions repeating (300/100 ms); the pads are **grabbed** so the app underneath doesn't also react |
+| right stick, RT/LT, RS click | non-gamepad apps | pointer, left/right click, middle click |
+| left stick, D-pad | non-gamepad apps | scroll, arrow keys |
+| A / B / X / Y | non-gamepad apps | Enter / Escape (browsers: Alt+Left) / Backspace / keyboard |
+| LB / RB | non-gamepad apps | previous / next tab |
+
+Apps in `passthrough` (session.nix `padConfig`: Steam and its games, mpv, Heroic,
+emulators, Moonlight, Jellyfin players) and anything fullscreen get the pad untouched.
+The emulation is one `uinput` device; `modules/nixos/desktop/hyprland.nix` loads `uinput`
+and tags it `uaccess` when the rice is enabled, so it never depends on Steam's udev rules.
+
+The link: the daemon serves `$XDG_RUNTIME_DIR/xbox360-pad.sock`; the shell connects
+(`ShellState`, retrying every 2 s) and reads `btn <name>`, `guide`, `power`, `dashboard`,
+`keyboard`; it writes `ui 1|0` whenever any input handler becomes (in)active.
+
+X/Y: xpad and xpadneo report X as `BTN_X` (== `BTN_NORTH`) and Y as `BTN_Y` — the
+opposite of the gamepad spec's compass names. `swapXY` in the config flips it if a driver
+ever follows the spec.
+
+**The on-screen keyboard** (`Keyboard.qml`, `keyboard.png`) types each key straight into the
+focused window with `wtype`; its layer never takes keyboard focus, so the app keeps it.
+
+**Testing without a controller**: a fake pad over uinput in the VM — see "Testing".
+
 ## Shell layout (`themes/xbox360/shell/`)
 
 | File | Role |
@@ -99,3 +137,10 @@ guest over `ssh -p 2222`, point `~/.config/quickshell/xbox360` at the copy and r
 with `pkill -f 'quickshell-0[.]3'`, **not** `pkill -x qs` — the process is
 `.quickshell-wrapped`, so `-x` misses it, and two shells mean doubled exclusive zones
 (windows squeezed to a sliver) and doubled sounds.
+
+Testing the controller in the VM: create a fake Xbox pad inside the guest with python-evdev
+`UInput` (BTN_SOUTH…BTN_MODE, sticks −32768…32767, triggers 0…1023, hat −1…1, named
+"Xbox Wireless Controller"), using the daemon's own python env (it has evdev), and feed it
+`tap a` / `down guide` / `axis rx 30000` style commands through a FIFO. The daemon picks
+it up like real hardware. It proves the routing, the grab, the chords and the emulation —
+not xpadneo's real button codes, which still need a real controller.
