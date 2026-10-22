@@ -11,6 +11,7 @@
 #   { type = "page"; page; title; }   — open a full-screen page (Config.pages)
 #   { type = "setting"; setting; }    — a switch shown with its value
 #                                       (ShellState.settingText/changeSetting)
+#   { type = "guide"; page; }         — open the Guide at one of its submenus
 { lib, apps, pkgs, downloadsUrl, jellyfinUrl, jellyfinApp, hasTv }:
 
 let
@@ -32,6 +33,7 @@ let
   inTerminal = title: c: launch title "${terminal} -e ${c}";
   page = page: title: { type = "page"; inherit page title; };
   setting = s: { type = "setting"; setting = s; };
+  guidePage = p: { type = "guide"; page = p; };
 
   row = label: icon: desc: action: { inherit label icon desc action; };
   roleRow = role: label: icon: desc:
@@ -129,6 +131,9 @@ in
     (row "Network" "network-wired"
       "Wired, wireless and VPN connections."
       (launch "Network" "${pkgs.networkmanagerapplet}/bin/nm-connection-editor"))
+    (row "Displays" "video-display"
+      "Turn screens on and off and choose which has focus. A screen you turn off stays off, even after a restart. Also in the Guide, from anywhere."
+      (guidePage "displays"))
     (row "Night Mode" "weather-clear-night"
       "Dark blades for the evening. Auto follows sunset and sunrise; A or left and right choose Auto, On or Off."
       (setting "night"))

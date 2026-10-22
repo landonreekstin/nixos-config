@@ -31,7 +31,15 @@ PanelWindow {
     signal dismissed()                    // clicked outside
     default property alias content: card.data
 
-    readonly property var g: Geo.frameFor(screen.width, screen.height)
+    // On a portrait screen the landscape fit (1280 wide) would draw the blade
+    // small: size it for the widest page (Controls, 1040) instead, no bigger
+    // than the turned dashboard beside it.
+    readonly property var g: {
+        const w = screen ? screen.width : 1280, h = screen ? screen.height : 720;
+        if (h <= w) return Geo.frameFor(w, h);
+        const s = Math.min(Geo.verticalFrame(w, h).s, w / 1040);
+        return { s: s, W: w / s, H: h / s, cf: 1 };
+    }
     readonly property real s: g.s
     readonly property real stripW: 40
     // The panel's own edges in its local reference frame: the outer one off

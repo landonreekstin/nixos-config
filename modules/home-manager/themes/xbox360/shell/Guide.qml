@@ -28,22 +28,23 @@ SidePanel {
     fromLeft: true
     widthRef: page === "" ? 560 : page === "controls" ? 1040 : 880
     title: ({ "": "", apps: "Open Apps", settings: "Console Settings", notifications: "Notifications",
-              controls: "Controls" })[page]
+              controls: "Controls", displays: "Displays" })[page]
     bandLabel: Cfg.gamertag
     onDismissed: close()
 
     property string page: ""          // "" = the main page, else a submenu
     property int cur: 0               // focused entry on the current page
     property int mediaCur: 0          // focused button within the music strip
+    property string displaysNote: ""  // why the last Displays toggle didn't happen
 
     legend: page === ""
         ? { left: [{ btn: "y", label: "Xbox Dashboard" }, { btn: "x", label: "Sign Out" }],
             right: [{ btn: "b", label: "Back" }, { btn: "a", label: "Select" }] }
         : { left: [{ btn: "y", label: "Xbox Dashboard" },
-                   { btn: "x", label: page === "apps" ? "Close App" : page === "notifications" ? "Dismiss" : page === "settings" ? "More" : "" }],
+                   { btn: "x", label: page === "apps" ? "Close App" : page === "notifications" ? "Dismiss" : page === "settings" ? "More" : page === "displays" ? "Focus" : "" }],
             right: [{ btn: "b", label: "Back" }, { btn: "a", label: "Select" }] }
 
-    onOpenChanged: if (open) { page = ""; cur = 0; ShellState.play("select-a"); }
+    onOpenChanged: if (open) { page = ShellState.guideStart; ShellState.guideStart = ""; cur = 0; ShellState.play("select-a"); }
 
     function close() {
         ShellState.play("back");
@@ -102,6 +103,8 @@ SidePanel {
           run: () => { page = "notifications"; cur = 0; } },
         { label: "Controls", icon: "input-gaming", value: "",
           run: () => { page = "controls"; cur = 0; } },
+        { label: "Displays", icon: "video-display", value: Displays.onCount + " of " + Displays.list.length,
+          run: () => { page = "displays"; cur = 0; displaysNote = ""; } },
         { label: "Console Settings", icon: "preferences-system", value: "",
           run: () => { page = "settings"; cur = 0; } },
         { label: "Turn Off Console", icon: "system-shutdown", value: "",
@@ -272,13 +275,25 @@ SidePanel {
     // A list on the left, the highlighted item's details on the right.
     readonly property var listItems: {
         if (page === "apps") return ShellState.apps.map(a => ({
-            label: a.title, icon: a.icon, detail: a.windows + (a.windows === 1 ? " window" : " windows"),
+            label: a.title, icon: a.icon,
+            detail: a.windows + (a.windows === 1 ? " window" : " windows")
+                    + (Displays.onCount > 1 && a.display !== "" ? ", on the " + a.display + " screen" : ""),
             run: () => ShellState.fromGuide(() => Hyprland.dispatch("workspace " + a.id)),
             x: () => ShellState.closeApp(a.id) }));
         if (page === "notifications") return Notifications.list.map(n => ({
             label: n.summary, icon: n.appIcon, detail: (n.appName !== "" ? n.appName + "\n\n" : "") + n.body.replace(/<[^>]*>/g, ""),
             run: () => { ShellState.guideOpen = false; ShellState.showNotification(n); },
             x: () => n.dismiss() }));
+        if (page === "displays") return Displays.list.map(d => ({
+            label: d.label, icon: "video-display",
+            value: !d.present ? "Not connected" : d.on ? (d.focused ? "On, focused" : "On") : "Off",
+            detail: d.label + " screen (" + d.id.replace(/^desc:/, "") + ")\n\n"
+                    + (d.on ? "On, " + d.size + "." : d.present ? "Off." : "Not connected.")
+                    + (d.focused ? " This screen has focus: its ring of light is lit." : "")
+                    + "\n\nA turns it on or off, and it stays that way after a restart. X moves focus to it."
+                    + (displaysNote !== "" ? "\n\n" + displaysNote : ""),
+            run: () => { displaysNote = Displays.toggle(d); },
+            x: () => Displays.focus(d) }));
         if (page === "settings") return settings.rows;
         if (page === "controls") return Controls.sections;
         return [];

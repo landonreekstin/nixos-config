@@ -1,7 +1,11 @@
 // ~/nixos-config/modules/home-manager/themes/xbox360/shell/shell.qml
 // Xbox 360 "Blades" dashboard shell, started by the xbox360 Hyprland session
-// as `qs -c xbox360`. Every screen gets a Frame; the primary one also carries
-// the dashboard (workspace name:dashboard). Shared state lives in ShellState.
+// as `qs -c xbox360`. Every screen gets a Frame, and with it its own
+// dashboard (workspace name:dashboard-<connector>). Shared state lives in
+// ShellState.
+//
+// The overlays — Guide, notification blade, toasts, keyboard — open on the
+// display that has focus when they open (ShellState.guideScreen and co.).
 //
 // Icons come from Papirus, which the century-series theme installs; without
 // a pragma Quickshell would use Qt's (empty) default theme.
@@ -26,30 +30,40 @@ ShellRoot {
     }
 
     readonly property var primaryScreen: Quickshell.screens.find(s => s.name === primaryName) || null
+    // A remembered screen that has since gone (a display turned off) is no
+    // place to open anything: fall back to the primary one.
+    function live(scr) { return scr && Quickshell.screens.indexOf(scr) >= 0 ? scr : primaryScreen; }
 
-    // The Guide (left), the notification blade (right) and the toasts, on
-    // the primary screen. Touching Notifications here starts the server.
+    // Each toast on the display focused when it pops up.
+    property var toastScreen: null
+    Connections {
+        target: Notifications
+        function onToastChanged() { if (Notifications.toast !== null) shell.toastScreen = ShellState.focusedScreen(); }
+    }
+
+    // The Guide (left), the notification blade (right) and the toasts.
+    // Touching Notifications here starts the server.
     LazyLoader {
         active: shell.primaryScreen !== null
-        Guide { screen: shell.primaryScreen }
+        Guide { screen: shell.live(ShellState.guideScreen) }
     }
     LazyLoader {
         active: shell.primaryScreen !== null
-        NotificationBlade { screen: shell.primaryScreen }
+        NotificationBlade { screen: shell.live(ShellState.messageScreen) }
     }
     LazyLoader {
         active: shell.primaryScreen !== null && Notifications.count >= 0
-        Toast { screen: shell.primaryScreen }
+        Toast { screen: shell.live(shell.toastScreen) }
     }
 
     // The session lock (Sign Out, SUPER+Escape, swayidle).
     LockScreen {}
     Binding { target: ShellState; property: "primaryName"; value: shell.primaryName }
 
-    // The on-screen keyboard, on the primary screen, over everything.
+    // The on-screen keyboard, over everything.
     LazyLoader {
         active: shell.primaryScreen !== null
-        Keyboard { screen: shell.primaryScreen }
+        Keyboard { screen: shell.live(ShellState.keyboardScreen) }
     }
 
     Variants {
@@ -57,12 +71,12 @@ ShellRoot {
         delegate: Frame {
             required property ShellScreen modelData
             screen: modelData
-            primary: modelData.name === shell.primaryName
+            primary: modelData !== null && modelData.name === shell.primaryName
         }
     }
 
     // `qs -c xbox360 ipc call ui <fn>` — keybinds, scripts and the controller
-    // daemon all come in here.
+    // daemon all come in here. Everything acts on the focused display.
     IpcHandler {
         target: "ui"
 
@@ -80,6 +94,10 @@ ShellRoot {
         function guide(): void { ShellState.guide(); }
         function lock(): void { ShellState.signOut(); }
         function power(): void { ShellState.powerPrompt(); }
-        function keyboard(): void { ShellState.keyboardOpen = !ShellState.keyboardOpen; }
+        function keyboard(): void { ShellState.toggleKeyboard(); }
+        // The focused app to the previous (-1) or next (1) display.
+        function movewin(step: int): void { ShellState.moveToMonitor(step < 0 ? -1 : 1); }
+        // Guide -> Displays.
+        function displays(): void { ShellState.openGuideAt("displays"); }
     }
 }

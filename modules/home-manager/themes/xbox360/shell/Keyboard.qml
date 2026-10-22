@@ -21,7 +21,12 @@ import "Config.js" as Cfg
 PanelWindow {
     id: win
 
-    property real s: Math.min(screen.width / 1280, screen.height / 720)
+    // On a portrait screen the panel keeps its landscape proportions, as wide
+    // as the screen allows, along the bottom: the app you are typing into
+    // stays in view above it.
+    readonly property bool portrait: screen !== null && screen.height > screen.width
+    property real s: !screen ? 1 : portrait ? Math.min(screen.width / 900, screen.height / 720)
+                                            : Math.min(screen.width / 1280, screen.height / 720)
 
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore
@@ -158,9 +163,9 @@ PanelWindow {
         Rectangle {
             id: panel
             x: -radius
-            y: 10 * win.s
+            y: win.portrait ? parent.height - height - 10 * win.s : 10 * win.s
             width: 880 * win.s + radius
-            height: parent.height - 20 * win.s
+            height: win.portrait ? 700 * win.s : parent.height - 20 * win.s
             radius: 26 * win.s
             border.width: 2
             border.color: "#f2f2f2"

@@ -6,8 +6,10 @@ turns it into three things:
   * The GUIDE CHORD, always, even in games — no app ever gets the Guide button:
       tap Guide            open the Guide (the shell decides what that means)
       hold Guide ~1 s      the "turn off" prompt
-      Guide + LB / RB      previous / next app workspace
+      Guide + LB / RB      previous / next app workspace on the focused display
       Guide + D-pad/stick  move focus between tiled windows
+      Guide + right stick  focus the display in that direction
+      Guide + LT / RT      the focused app to the previous / next display
       Guide + Y            the dashboard
       Guide + X            the on-screen keyboard
       Guide + Back         close the focused window
@@ -22,7 +24,8 @@ turns it into three things:
     `passthrough` (and anything fullscreen) get the pad untouched.
 
 The shell connects to $XDG_RUNTIME_DIR/xbox360-pad.sock. Daemon -> shell lines:
-`btn <name>`, `guide`, `power`, `dashboard`, `keyboard`. Shell -> daemon:
+`btn <name>`, `guide`, `power`, `dashboard`, `keyboard`, `movewin -1|1`.
+Shell -> daemon:
 `ui 1` / `ui 0` (whether the shell has the controller).
 
 Configuration is one JSON file, the only argument (built by pad.nix).
@@ -90,6 +93,13 @@ async def hyprjson(what):
         return json.loads(await hyprctl("-j", what))
     except ValueError:
         return None
+
+
+async def dashboard_here():
+    """The focused display's dashboard, without the shell (it isn't up)."""
+    mon = (await hyprjson("activeworkspace") or {}).get("monitor", "")
+    if mon:
+        await hyprctl("dispatch", "focusworkspaceoncurrentmonitor", "name:dashboard-" + mon)
 
 
 class Focus:
@@ -321,6 +331,11 @@ class Pad:
                     elif c in (E.ABS_X, E.ABS_Y):
                         x, y = self.stick(E.ABS_X, E.ABS_Y)
                         self.update_dir("ls-", x, y)
+                    elif c in (E.ABS_RX, E.ABS_RY):
+                        # Only a chord (Guide + right stick: focus a display);
+                        # otherwise the stick is the pointer (Daemon.analog).
+                        x, y = self.stick(E.ABS_RX, E.ABS_RY)
+                        self.update_dir("rs-", x, y, 0.6, 0.35)
                     elif c in (E.ABS_Z, E.ABS_BRAKE):
                         (self.press if self.norm(c) > 0.5 else self.release)("lt")
                     elif c in (E.ABS_RZ, E.ABS_GAS):
@@ -377,6 +392,11 @@ class Daemon:
 
     # -- dispatch ------------------------------------------------------------
     def press(self, btn):
+        if btn.startswith("rs-"):
+            if self.guide_down:
+                self.chord_used = True
+                self.loop.create_task(hyprctl("dispatch", "focusmonitor", btn[3]))
+            return
         base = btn[3:] if btn.startswith("ls-") else btn
         if base == "guide":
             self.guide_down = True
@@ -395,6 +415,8 @@ class Daemon:
         self.app_press(btn)
 
     def release(self, btn):
+        if btn.startswith("rs-"):
+            return
         base = btn[3:] if btn.startswith("ls-") else btn
         if base == "guide":
             self.guide_down = False
@@ -414,7 +436,7 @@ class Daemon:
         if self.shell.connected:
             self.shell.send("guide")
         else:
-            self.loop.create_task(hyprctl("dispatch", "workspace", "name:dashboard"))
+            self.loop.create_task(dashboard_here())
 
     def start_repeat(self, btn):
         self.stop_repeat()
@@ -437,8 +459,12 @@ class Daemon:
         elif btn in DIRECTIONS:
             await hyprctl("dispatch", "movefocus", btn[0])
         elif btn == "y":
-            self.shell.send("dashboard") if self.shell.connected else \
-                await hyprctl("dispatch", "workspace", "name:dashboard")
+            self.shell.send("dashboard") if self.shell.connected else await dashboard_here()
+        elif btn in ("lt", "rt"):
+            # Only the shell knows the app's name and colour, which go with it.
+            step = "-1" if btn == "lt" else "1"
+            self.shell.send("movewin " + step) if self.shell.connected else \
+                await hyprctl("dispatch", "movewindow", "mon:" + ("-1" if btn == "lt" else "+1"))
         elif btn == "x":
             self.shell.send("keyboard")
         elif btn == "back":
@@ -447,12 +473,17 @@ class Daemon:
             await hyprctl("dispatch", "fullscreen")
 
     async def cycle(self, step):
-        """Next/previous app workspace (numbered, with windows), wrapping."""
+        """Next/previous app workspace (numbered, with windows) on the
+        focused display, wrapping. Other displays' apps are a Guide + right
+        stick away, or in the Guide's Open Apps."""
         wss = await hyprjson("workspaces") or []
-        ids = sorted(w["id"] for w in wss if w["id"] > 0 and w.get("windows", 0) > 0)
+        active = await hyprjson("activeworkspace") or {}
+        mon = active.get("monitor", "")
+        ids = sorted(w["id"] for w in wss
+                     if w["id"] > 0 and w.get("windows", 0) > 0 and w.get("monitor", "") == mon)
         if not ids:
             return
-        cur = (await hyprjson("activeworkspace") or {}).get("id", 0)
+        cur = active.get("id", 0)
         if cur in ids:
             nxt = ids[(ids.index(cur) + step) % len(ids)]
         else:

@@ -1,13 +1,19 @@
 // ~/nixos-config/modules/home-manager/themes/xbox360/shell/DashboardMenu.qml
-// The dashboard's interactive layer: the open blade's menu (or a page opened
-// from it), drawn over the Frame's card on a TOP-layer window that takes the
-// keyboard while the dashboard is showing. Its input mask is the card alone,
-// so the bands drawn on the background layer stay clickable.
+// A display's dashboard, the interactive part: the open blade's menu (or a
+// page opened from it), drawn over the Frame's card on a TOP-layer window.
+// Its input mask is the card alone, so the bands drawn on the background
+// layer stay clickable.
 //
-// Keys map to controller buttons, so the keyboard, the mouse and (later) the
+// Every display has one, but only the FOCUSED display's takes the keyboard
+// and the controller: two exclusive-keyboard layers would fight, and a button
+// press is meant for the screen you are looking at.
+//
+// Keys map to controller buttons, so the keyboard, the mouse and the
 // controller daemon all drive the same `handle(btn)`:
 //   arrows = d-pad, Enter/Space = A, Esc/Backspace = B, X/Y = X/Y,
 //   Tab/Shift+Tab = RB/LB, PageUp/PageDown = LT/RT.
+// On a portrait (turned) dashboard the blades stack top to bottom, so up and
+// down past the first or last row move to the blade above or below.
 pragma ComponentBehavior: Bound
 
 import QtQuick
@@ -20,45 +26,61 @@ PanelWindow {
     id: win
 
     required property var frame
+    readonly property var dash: frame.dash
     readonly property bool showing: frame.mode === "blades" || frame.mode === "page"
+    readonly property bool live: showing && frame.focused
     readonly property real s: frame.g0.s
-    readonly property var card: Geo.cardRect(frame.toLayout.L, frame.toLayout.R, frame.toLayout.cf, frame.g0)
-    readonly property int bladeIndex: frame.mode === "page" ? ShellState.pageBlade : ShellState.blade
+    readonly property var card: frame.onScreen(Geo.cardRect(frame.toLayout.L, frame.toLayout.R, frame.toLayout.cf, frame.g0))
+    readonly property int bladeIndex: frame.mode === "page" ? dash.pageBlade : dash.blade
     readonly property var bladeSpec: Theme.blades[bladeIndex]
 
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore
     color: "transparent"
-    visible: showing
+    visible: showing && frame.mapped
     mask: Region { item: content }
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.namespace: "xbox360-dashboard"
-    WlrLayershell.keyboardFocus: showing ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: live ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     // ---- input ---------------------------------------------------------------
     QtObject {
         id: handler
-        property bool active: win.showing
+        property bool active: win.live
         property int priority: 0
         function handle(btn) { return win.handle(btn); }
     }
     Component.onCompleted: ShellState.pushHandler(handler)
     Component.onDestruction: ShellState.removeHandler(handler)
 
+    // Whether the blade changed.
+    function prevBlade() { if (dash.blade <= 0) return false; dash.blade--; return true; }
+    function nextBlade() { if (dash.blade >= 4) return false; dash.blade++; return true; }
+
     function handle(btn) {
         if (frame.mode === "page") return pageLoader.item ? pageLoader.item.handle(btn) : false;
+        if (frame.vertical) {
+            switch (btn) {
+            case "up":
+                if (bladeMenu.current > 0) return bladeMenu.handle(btn);
+                if (prevBlade()) bladeMenu.landOn("last");
+                return true;
+            case "down":
+                if (bladeMenu.current < bladeMenu.rows.length - 1) return bladeMenu.handle(btn);
+                if (nextBlade()) bladeMenu.landOn("first");
+                return true;
+            case "left": case "right":
+                bladeMenu.handle(btn);   // a switch row; else nothing to go to
+                return true;
+            }
+        }
         switch (btn) {
         case "left": case "right":
             if (bladeMenu.handle(btn)) return true;
-            if (btn === "left") { if (ShellState.blade > 0) ShellState.blade--; return true; }
-            if (ShellState.blade < 4) ShellState.blade++;
+            if (btn === "left") prevBlade(); else nextBlade();
             return true;
-        case "lb":
-            if (ShellState.blade > 0) ShellState.blade--;
-            return true;
-        case "rb":
-            if (ShellState.blade < 4) ShellState.blade++;
-            return true;
+        case "lb": prevBlade(); return true;
+        case "rb": nextBlade(); return true;
         default:
             return bladeMenu.handle(btn);
         }
@@ -85,15 +107,18 @@ PanelWindow {
     // ---- content -------------------------------------------------------------
     Item {
         id: content
-        x: (win.card.x + Cfg.contentPad) * win.s
-        y: (win.card.y + Cfg.contentPad * 0.6) * win.s
-        width: (win.card.w - 2 * Cfg.contentPad) * win.s
-        height: (win.card.h - Cfg.contentPad * 1.2) * win.s
+        x: win.card.x + Cfg.contentPad * win.s
+        y: win.card.y + Cfg.contentPad * 0.6 * win.s
+        width: win.card.w - 2 * Cfg.contentPad * win.s
+        height: win.card.h - Cfg.contentPad * 1.2 * win.s
 
         // Contents land from the direction of travel after the chrome moves,
-        // like the title.
+        // like the title — from below or above on a turned dashboard.
         property real shift: 0
-        transform: Translate { x: content.shift }
+        transform: Translate {
+            x: win.frame.vertical ? 0 : content.shift
+            y: win.frame.vertical ? content.shift : 0
+        }
         Connections {
             target: win.frame
             function onTargetKeyChanged() { land.restart(); }
@@ -116,7 +141,8 @@ PanelWindow {
             id: bladeMenu
             anchors.fill: parent
             visible: win.frame.mode === "blades"
-            blade: ShellState.blade
+            dash: win.dash
+            blade: win.dash.blade
             s: win.s
         }
 
@@ -124,7 +150,7 @@ PanelWindow {
             id: pageLoader
             anchors.fill: parent
             active: win.frame.mode === "page"
-            source: ShellState.page === "" ? "" : Qt.resolvedUrl(Cfg.pages[ShellState.page])
+            source: win.dash.page === "" ? "" : Qt.resolvedUrl(Cfg.pages[win.dash.page])
             onLoaded: {
                 item.s = Qt.binding(() => win.s);
                 item.bladeSpec = Qt.binding(() => win.bladeSpec);
