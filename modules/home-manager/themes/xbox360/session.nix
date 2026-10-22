@@ -205,6 +205,7 @@ let
     // host has it (it prints sun=day|night), else the clock.
     var nightStatusCmd = "command -v century-night >/dev/null && century-night status";
     var tvCmd = "${if tvMonitor == null then "" else "${tvScript}"}";
+    var monitors = ${builtins.toJSON displays};
     var buttons = ${builtins.toJSON c.buttons};
     var menus = ${builtins.toJSON menus};
     var pages = ${builtins.toJSON pages};
@@ -240,9 +241,9 @@ let
   # the same curve Geometry.js draws. Floats spelled out: GLSL wants 130.0.
   glslFloats = xs: lib.concatMapStringsSep ", " (x: toString (x * 1.0)) xs;
   bladeFrag = pkgs.writeText "blade.frag" (lib.replaceStrings
-    [ "@N@" "@KY@" "@KD@" "@HB@" "@FH@" "@CI@" "@CR@" ]
+    [ "@N@" "@KY@" "@KD@" "@CI@" "@CR@" ]
     ([ (toString (lib.length c.curve.y)) (glslFloats c.curve.y) (glslFloats c.curve.d) ]
-      ++ map (k: glslFloats [ c.layout.${k} ]) [ "headerBottom" "footerHeight" "cardInset" "cardRadius" ])
+      ++ map (k: glslFloats [ c.layout.${k} ]) [ "cardInset" "cardRadius" ])
     (builtins.readFile ./blade.frag.in));
 
   shellConfig = pkgs.runCommand "xbox360-quickshell" { } ''
@@ -339,6 +340,20 @@ let
         pr: (if $pr == "unknown" then false else $pr end)}'
   '';
 
+  # ---- displays ------------------------------------------------------------
+  # Guide -> Displays (shell/Displays.qml): every enabled monitor, with the
+  # rule that turns it back on (toggle-monitor needs it).
+  displayLabel = n: if n == "tv" then "TV" else lib.toUpper (lib.substring 0 1 n) + lib.substring 1 (-1) n;
+  displays = map (m: { id = monitorId m; label = displayLabel m.name; rule = monitorRule m; })
+    (lib.filter (m: m.enabled) customConfig.desktop.monitors);
+  # Each display's dashboard opens on it from the start and lives there.
+  # A desc: monitor gets none: the shell (Quickshell) only knows connectors,
+  # and finds or makes the workspace itself.
+  dashboardRules = lib.concatMapStrings (m:
+    lib.optionalString (!lib.hasPrefix "desc:" (monitorId m))
+      "workspace = name:dashboard-${monitorId m}, monitor:${monitorId m}, default:true\n")
+    (lib.filter (m: m.enabled) customConfig.desktop.monitors);
+
   # ---- TV mode -------------------------------------------------------------
   # The whole session on the TV alone (the host's monitor named "tv"), and its
   # HDMI audio with it; off puts back the monitors and the sound output from
@@ -410,6 +425,10 @@ let
         ;;
       toggle)
         if [ -e "$saved/on" ]; then "$0" off; else "$0" on; fi ;;
+      forget)
+        # Displays turned on or off by hand (Guide -> Displays): what is lit
+        # now is the new normal, so TV Mode ends without putting anything back.
+        rm -f "$saved/on" ;;
     esac
   '';
 
@@ -465,8 +484,11 @@ let
 
     # ---- xbox360 rice ----
     env = HYPR_RICE,xbox360
-    # Start on the dashboard: a named workspace with nothing tiled on it.
-    exec-once = ${pkgs.hyprland}/bin/hyprctl dispatch workspace name:dashboard
+    # Every display starts on its own dashboard (a named workspace with
+    # nothing tiled on it), and focus on the main one. Without a rule (a VM)
+    # the shell moves each display from Hyprland's empty workspace to it.
+    ${dashboardRules}
+    ${lib.optionalString (primaryOutput != "") "exec-once = ${pkgs.hyprland}/bin/hyprctl dispatch focusmonitor ${primaryOutput}"}
     # The shell is the notification daemon here. dunst (century-series) is a
     # D-Bus-activated user service that may still own the name from another
     # session; two owners means one of them is silently never asked.

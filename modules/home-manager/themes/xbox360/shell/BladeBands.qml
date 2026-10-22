@@ -19,6 +19,8 @@ Item {
     property real panelR
     property real cf: 1
     property var g      // reference frame (Geometry.js), cf = 1
+    property var dash   // this display's Dash
+    property bool focused: false   // this display has focus: the ring of light is lit
 
     readonly property real s: g.s
     function leftAt(y) { return (panelL - cf * Geo.curveAt(y, g)) * s; }
@@ -30,8 +32,8 @@ Item {
     // { btns: [...], label, action }; `centre` is optional.
     readonly property var legend: {
         if (mode === "blades") return {
-            left: [ ShellState.resumeTitle !== ""
-                      ? { btns: ["y"], label: "Resume " + ShellState.resumeTitle, action: () => ShellState.resume() }
+            left: [ dash.resumeTitle !== ""
+                      ? { btns: ["y"], label: "Resume " + dash.resumeTitle, action: () => ShellState.resume() }
                       : { btns: ["y"], label: "" },
                     { btns: ["x"], label: "" } ],
             right: [ { btns: ["b"], label: "" },
@@ -47,8 +49,11 @@ Item {
                     { btns: ["guide"], label: "Guide" } ],
             centre: [ { btns: ["guide", "back"], label: "Close", action: () => Hyprland.dispatch("killactive") },
                       { btns: ["guide", "start"], label: "Full Screen", action: () => Hyprland.dispatch("fullscreen") } ],
+            // With several displays on, moving between them matters more than
+            // the window chord (which Guide -> Controls still lists).
             right: [ { btns: ["guide", "lb", "rb"], label: "Switch" },
-                     { btns: ["guide", "dpad"], label: "Window" } ]
+                     Displays.onCount > 1 ? { btns: ["guide", "lt", "rt"], label: "Move Screen", action: () => ShellState.moveToMonitor(1) }
+                                          : { btns: ["guide", "dpad"], label: "Window" } ]
         };
     }
 
@@ -100,6 +105,7 @@ Item {
         precision: SystemClock.Minutes
     }
     BandText {
+        id: clockText
         text: Qt.formatTime(clock.date, "h:mm AP")
         font.pixelSize: Cfg.footerSize * bands.s
         x: bands.rightAt(Cfg.titleCentre) - Cfg.titleInset * bands.s - implicitWidth
@@ -107,6 +113,14 @@ Item {
         Behavior on x {
             NumberAnimation { duration: Cfg.motionMs; easing.type: Easing.BezierSpline; easing.bezierCurve: Cfg.motionBezier }
         }
+    }
+
+    // Which display has focus: the controller's ring of light, lit here.
+    RingLight {
+        size: 26 * bands.s
+        lit: bands.focused
+        x: clockText.x - width - 12 * bands.s
+        y: Cfg.titleCentre * bands.s - height / 2
     }
 
     // ---- footer: the button legend -------------------------------------------

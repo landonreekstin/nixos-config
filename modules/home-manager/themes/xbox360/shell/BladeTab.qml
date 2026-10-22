@@ -21,6 +21,9 @@ Item {
     property var blade          // the blade's palette entry (stops, tab, ink)
     property var g              // reference frame (Geometry.js)
     property bool interactive: true
+    // Drawn on a turned stage (Frame.qml, portrait screens): the label is
+    // transposed back, so it reads across the band, upright.
+    property bool turned: false
 
     signal hovered()
     signal activated()
@@ -99,7 +102,8 @@ Item {
         }
     }
 
-    // The name, rotated to read top to bottom, centred in the box.
+    // The name, rotated to read top to bottom, centred in the box. On a turned
+    // stage the same transpose that turns the stage puts it back upright.
     Text {
         id: label
         text: tab.title.toLowerCase()
@@ -107,9 +111,12 @@ Item {
         font.pixelSize: Cfg.tabLabelSize * tab.g.s
         color: area.containsMouse && tab.weight < 0.5 ? (Theme.night ? "#f2f2f2" : "#2e2e2e")
              : tab.mixColor(tab.c(Theme.silver.label), tab.c(tab.blade.ink), tab.weight)
-        rotation: 90
+        rotation: tab.turned ? 0 : 90
         transformOrigin: Item.TopLeft
-        x: tab.boxCentreX + height / 2
+        transform: Matrix4x4 {
+            matrix: tab.turned ? Qt.matrix4x4(0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1) : Qt.matrix4x4()
+        }
+        x: tab.turned ? tab.boxCentreX - height / 2 : tab.boxCentreX + height / 2
         y: tab.labelRefY * tab.g.s
         Behavior on color { ColorAnimation { duration: 150 } }
     }

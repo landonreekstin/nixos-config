@@ -2,6 +2,7 @@
 // The blade's painted surface (blade.frag): gradient, bands, card, sheen,
 // ripples, gloss.
 import QtQuick
+import "Config.js" as Cfg
 
 ShaderEffect {
     id: surface
@@ -17,6 +18,11 @@ ShaderEffect {
     property real curveAmt: 1
     property real masked: 1
     property size refSize: Qt.size(1280, 720)
+    // The panel's header and footer bands (a turned frame shrinks them to a
+    // margin), and whether the surface is drawn turned (Frame.qml, portrait).
+    property real hb: Cfg.headerBottom
+    property real fh: Cfg.footerHeight
+    property real turned: 0
     // Freeze the ripples (e.g. behind a fullscreen game) to cost nothing.
     property bool animating: true
 

@@ -18,7 +18,9 @@ var sections = [
             { btns: ["guide"], label: "Tap: open the Guide" },
             { btns: ["guide"], label: "Hold: Turn Off Console" },
             { btns: ["guide", "+", "y"], label: "Xbox Dashboard" },
-            { btns: ["guide", "+", "lb", "/", "rb"], label: "Previous / next app" },
+            { btns: ["guide", "+", "lb", "/", "rb"], label: "Previous / next app on this screen" },
+            { btns: ["guide", "+", "rs"], label: "Right stick: focus another screen" },
+            { btns: ["guide", "+", "lt", "/", "rt"], label: "Move the app to another screen" },
             { btns: ["guide", "+", "dpad"], label: "Move between windows" },
             { btns: ["guide", "+", "x"], label: "On-screen keyboard" },
             { btns: ["guide", "+", "back"], label: "Close the app" },
@@ -31,6 +33,7 @@ var sections = [
         binds: [
             { btns: ["dpad"], label: "Up and down: move through the menu" },
             { btns: ["lb", "/", "rb"], label: "Previous / next blade (or left and right)" },
+            { btns: ["dpad"], label: "On a tall screen: up and down go on to the blade above / below" },
             { btns: ["lt", "/", "rt"], label: "Top / bottom of the menu" },
             { btns: ["a"], label: "Select" },
             { btns: ["y"], label: "Resume the last app" }
@@ -45,6 +48,16 @@ var sections = [
             { btns: ["b"], label: "Back / close the Guide" },
             { btns: ["y"], label: "Xbox Dashboard" },
             { btns: ["x"], label: "Sign Out; in a list: Close App, Dismiss" }
+        ]
+    },
+    {
+        label: "Screens", icon: "video-display",
+        about: "Every screen has its own dashboard, so one can show the blades while another runs an app. The Guide, the keyboard and new apps open on the screen with focus, the one whose ring of light (beside the clock) is lit. Guide -> Displays turns screens on and off.",
+        binds: [
+            { btns: ["guide", "+", "rs"], label: "Right stick: focus the screen that way" },
+            { btns: ["guide", "+", "lt", "/", "rt"], label: "Move the app to the previous / next screen" },
+            { btns: ["guide", "+", "lb", "/", "rb"], label: "Previous / next app on this screen" },
+            { btns: ["guide", "+", "y"], label: "This screen's dashboard" }
         ]
     },
     {

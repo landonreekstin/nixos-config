@@ -18,7 +18,7 @@ geometry in `themes/xbox360/colors.nix` `layout` was measured off them.
 
 | Place | What it is |
 |---|---|
-| **Dashboard** | Hyprland workspace `name:dashboard` on the primary monitor. The five blades are **menus** (rows, description, gamer card, legend); nothing tiles here. |
+| **Dashboard** | Hyprland workspace `name:dashboard-<connector>`, one per display (see "Multiple displays"). The five blades are **menus** (rows, description, gamer card, legend); nothing tiles here. |
 | **App workspaces** | Launching from a menu switches to a NEW numbered workspace and runs the app there. It is drawn as the console's full-width "submenu" frame in the colour of the blade it came from, titled with the app's name. |
 | **Pages** | Full-screen views opened from a row (Downloads, ...), on the dashboard workspace, in the same submenu frame. |
 
@@ -54,7 +54,9 @@ A Python daemon (python-evdev) started from the rice's `exec-once`, log in
 |---|---|---|
 | Guide tap | everywhere | the Guide (until the Guide blade exists: dashboard ⇄ last app) |
 | Guide held 1 s | everywhere | `power` to the shell (the turn-off prompt) |
-| Guide + LB / RB | everywhere | previous / next app workspace (numbered, with windows), wrapping |
+| Guide + LB / RB | everywhere | previous / next app workspace (numbered, with windows) on the focused display, wrapping |
+| Guide + right stick | everywhere | `focusmonitor` in that direction |
+| Guide + LT / RT | everywhere | the focused app to the previous / next display (`movewin` to the shell) |
 | Guide + D-pad / left stick | everywhere | `movefocus` |
 | Guide + Y / X | everywhere | dashboard / on-screen keyboard |
 | Guide + Back / Start | everywhere | close window / toggle fullscreen |
@@ -148,15 +150,75 @@ Both are switches on the System blade (left/right or A) and in Guide → Console
   `monitor-state-watcher` keeps it through a rebuild's config reload. Off restores the saved
   monitor state and output; the default session runs `off` at login.
 
+## Multiple displays
+
+Every display is its own console screen. It can show its dashboard while another runs
+an app, and two displays can both be on their dashboards.
+
+- **One dashboard per display**: workspace `name:dashboard-<connector>`, with its own
+  `Dash` (`Dash.qml`: open blade, highlighted rows, page, last app), so "Resume" on each
+  dashboard means the last app on *that* display.
+  - **Configured monitors**: `session.nix` pins each dashboard to its monitor with a
+    `default:true` workspace rule.
+  - **A VM, or a `desc:` monitor**: the shell's 0.7 s bookkeeping timer moves any display
+    showing an empty, unlaunched workspace (Hyprland's own at login, or one left over
+    when a display went off) onto its dashboard.
+  - **Dispatching**: the dashboard is always reached with
+    `focusworkspaceoncurrentmonitor`, never `workspace`, so a dashboard that drifted to
+    another monitor is pulled back rather than focus jumping after it.
+- **Focus decides where things open.**
+  - The dashboard, apps (`launch` makes the new workspace on the focused monitor), the
+    Guide, the keyboard, the notification blade, toasts and the lock screen's sign-in
+    all open on the focused display.
+  - They stay there while open (`ShellState.guideScreen` and co. are snapshots, not
+    bindings).
+  - When a display goes off, the Guide and the keyboard on it close, and a message
+    moves to wherever focus is.
+- **Only the focused display's dashboard takes input.** Its `DashboardMenu` alone is
+  `Exclusive` keyboard and an active input handler; two exclusive layers would fight.
+- **The focus cue** is the controller's ring of light beside the clock in every header
+  (`RingLight.qml`): the top-left quarter lit green on the focused display, dark
+  elsewhere, with a short flare when focus arrives.
+- **Chords**:
+  - Guide + right stick: `focusmonitor` in that direction. Hyprland resolves it from
+    the real layout.
+  - Guide + LT / RT: the focused app to the previous / next display, ordered left to
+    right (`ShellState.moveToMonitor`). An app with one window takes its whole
+    workspace, name and colour included. One window of several gets a new app workspace
+    there under the same name. The display it left goes back to its dashboard.
+  - Guide + LB / RB: only cycles the focused display's apps. The Guide's Open Apps
+    says which screen each app is on.
+- **Portrait displays get the dashboard turned a quarter**
+  (`Geometry.verticalFrame`, `Frame.qml` `stage`). The landscape drawing is
+  *transposed* onto the screen: bands, shader, silver gutters, curves, everything in
+  `Geometry.js` unchanged. The blades stack top to bottom.
+  - The header and footer stay upright across the top and bottom. They are drawn by
+    `Frame` (`UprightBand`) and `BladeBands`, not the shader, whose own header/footer
+    shrink to a margin via the `hb`/`fh` uniforms.
+  - The band labels are transposed back so they read upright.
+  - Up/down past a menu's first or last row move to the blade above/below.
+  - The Guide and the keyboard size themselves for portrait screens too.
+- **Guide → Displays** (also System → Displays): each configured monitor, on/off, and
+  which has focus. A toggles, X focuses.
+  - On/off goes through century-series' `toggle-monitor`, so it persists through
+    reboots (`restore-monitors`) and rebuilds (`monitor-state-watcher`) in both sessions.
+  - The last display on can't be turned off, and turning off the focused one moves
+    focus first.
+  - A toggle while TV Mode is on ends TV Mode without restoring (`xbox360-tv forget`):
+    what's lit is the new normal.
+
 ## Shell layout (`themes/xbox360/shell/`)
 
 | File | Role |
 |---|---|
-| `shell.qml` | root: a `Frame` per screen; `IpcHandler` target `ui` (`input`, `home`, `dashboard`, `resume`, `launch`) |
+| `shell.qml` | root: a `Frame` per screen, the overlays on the focused one; `IpcHandler` target `ui` (`input`, `home`, `dashboard`, `resume`, `launch`, `movewin`, `displays`) |
 | `Theme.qml` | singleton: day/night palette (`Theme.blades`, `.silver`, `.guide`, `onWash`, `glow`) |
-| `ShellState.qml` | singleton: blade/row selection, pages, app-workspace `meta` (persisted to `$XDG_RUNTIME_DIR/xbox360-workspaces.json`), launch/resume, sounds, the input-handler stack |
-| `Frame.qml` | one screen: mode `blades` / `page` / `app`, the morph between them, exclusive zones, loading ring |
-| `DashboardMenu.qml` | TOP-layer window over the card with exclusive keyboard while the dashboard shows; routes buttons |
+| `ShellState.qml` | singleton: a `Dash` per display (`dashFor`, `here`), moving apps between displays, app-workspace `meta` (persisted to `$XDG_RUNTIME_DIR/xbox360-workspaces.json`), launch/resume, sounds, the input-handler stack |
+| `Frame.qml` | one screen: mode `blades` / `page` / `app`, the morph between them, exclusive zones, loading ring, the turned stage on a portrait screen |
+| `Dash.qml` | one display's dashboard: open blade, rows, page, last app (Resume) |
+| `Displays.qml` | singleton: Guide → Displays — monitors on/off via `toggle-monitor`, focus |
+| `RingLight.qml` | the ring of light beside the clock: lit on the focused display |
+| `DashboardMenu.qml` | TOP-layer window over the card with exclusive keyboard while the dashboard shows on the focused display; routes buttons |
 | `BladeMenu.qml`, `MenuRow.qml`, `GamerCard.qml`, `BladeLogo.qml` | a blade's menu |
 | `BladeTab.qml`, `BladeBands.qml`, `ButtonGlyph.qml`, `BladeSurface.qml` | bands, header/footer + legend, button glyphs, the shader |
 | `Page*.qml` | full-screen pages, registered by id in session.nix `pages` |
@@ -176,6 +238,10 @@ which is what makes the dashboard → app transition a morph.
 
 ## Gotchas
 
+- **A layer surface stays where its monitor WAS.** Hyprland places a layer when it maps and
+  doesn't move it with its monitor: with auto-placed outputs (the VM), turning one display off
+  slid the other over and its whole frame was drawn off-screen. `Frame` re-maps all its
+  surfaces when its monitor's x/y change.
 - **The shader needs a GLSL ES 3.00 variant.** On NVIDIA, Quickshell's context is GLES, so
   with only `100 es` in the `.qsb` it picked that one, which rejects the knot arrays. It then
   retried the compile every frame: no gradient (flat grey), a log growing by hundreds of

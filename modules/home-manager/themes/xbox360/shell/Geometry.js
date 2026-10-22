@@ -44,6 +44,22 @@ function frameFor(w, h) {
     return { s: s, W: w / s, H: h / s, cf: 1 };
 }
 
+// The reference frame for a PORTRAIT screen of w x h pixels: the dashboard
+// turned a quarter (Frame.qml transposes its chrome), so the blades run
+// across the screen and stack top to bottom. The header and footer stay
+// upright across the top and bottom (`top`/`bottom` px); the turned stage
+// is the rest, and is W x H reference units on its own, long side first.
+// Inside it the panel's own header and footer bands would sit at the
+// screen's left and right edges, so they shrink to a margin (`hb`/`fh`).
+function verticalFrame(w, h) {
+    var hb = Cfg.headerBottom, fh = Cfg.footerHeight;
+    var s = Math.min(h / (1280 + hb + fh), w / 720);
+    if (!(s > 0)) s = 1;
+    var top = hb * s, bottom = fh * s;
+    return { s: s, W: (h - top - bottom) / s, H: w / s, cf: 1,
+             vertical: true, top: top, bottom: bottom, hb: 14, fh: 14 };
+}
+
 var ROWS = 48;
 var WAIST = Cfg.curveDepth;   // how far the panel's sides bow in at mid-height
 
@@ -168,9 +184,11 @@ function tabBox(topX, width, m, top, g) {
 }
 
 // The content card's usable rectangle (reference units) inside a panel with
-// edges L/R: inside the waist, between the header and footer bands.
+// edges L/R: inside the waist, between the header and footer bands (the
+// frame's own `hb`/`fh` when it has them: a turned, portrait frame).
 function cardRect(L, R, cf, g) {
     var inset = Cfg.cardInset + cf * WAIST;
-    return { x: L + inset, y: Cfg.headerBottom, w: R - L - 2 * inset,
-             h: g.H - Cfg.footerHeight - Cfg.headerBottom };
+    var hb = g.hb !== undefined ? g.hb : Cfg.headerBottom;
+    var fh = g.fh !== undefined ? g.fh : Cfg.footerHeight;
+    return { x: L + inset, y: hb, w: R - L - 2 * inset, h: g.H - fh - hb };
 }

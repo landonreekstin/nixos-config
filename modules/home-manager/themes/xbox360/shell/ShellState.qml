@@ -22,18 +22,27 @@ import "Config.js" as Cfg
 Singleton {
     id: state
 
-    // ---- dashboard selection ----------------------------------------------
-    property int blade: Cfg.startBlade
-    property var rows: [0, 0, 0, 0, 0]      // the highlighted row on each blade
-    property string page: ""                // a full-screen page open over the dashboard
-    property string pageTitle: ""
-    property int pageBlade: Cfg.startBlade
-
-    function setRow(b, i) {
-        const r = rows.slice();
-        r[b] = i;
-        rows = r;
+    // ---- one dashboard per display ------------------------------------------
+    // Every monitor has its own dashboard workspace, name:dashboard-<connector>,
+    // and its own Dash (Dash.qml: open blade, rows, page, last app). Input only
+    // ever reaches the FOCUSED display's dashboard, so whatever acts on "the
+    // dashboard" without saying which (a button, the Guide, IPC) means `here`.
+    property var dashes: ({})
+    function dashFor(name) {
+        if (!dashes[name]) dashes[name] = dashComp.createObject(state, { monitor: name });
+        return dashes[name];
     }
+    Component { id: dashComp; Dash {} }
+
+    readonly property HyprlandMonitor focusedMonitor: Hyprland.focusedMonitor
+    readonly property string hereName: focusedMonitor ? focusedMonitor.name : primaryName
+    readonly property var here: dashFor(hereName)
+
+    function dashName(monitorName) { return "dashboard-" + monitorName; }
+    function isDashboard(ws) { return !!ws && ws.name.startsWith("dashboard-"); }
+    function screenNamed(name) { return Quickshell.screens.find(s => s.name === name) || null; }
+
+    function setRow(b, i) { here.setRow(b, i); }
 
     // ---- app workspaces ----------------------------------------------------
     // id -> { title, blade, seen }: `seen` once a window has appeared, so an
@@ -42,10 +51,15 @@ Singleton {
     property int gamerscore: 0
 
     property var meta: ({})
-    property int lastApp: -1
 
     readonly property HyprlandWorkspace focused: Hyprland.focusedWorkspace
-    readonly property bool onDashboard: focused !== null && focused.name === "dashboard"
+    readonly property bool onDashboard: isDashboard(focused)
+
+    // Several dispatches in order, in one go (`hyprctl --batch`): separate
+    // Hyprland.dispatch calls are separate requests, with no order promised.
+    function batch(cmds) {
+        Quickshell.execDetached([Cfg.hyprctl, "--batch", cmds.map(c => "dispatch " + c).join(" ; ")]);
+    }
 
     function isApp(ws) { return ws !== null && ws.id > 0 && ws.name === String(ws.id); }
 
@@ -142,29 +156,98 @@ Singleton {
         }) || null;
     }
 
+    // The focused display's dashboard. focusworkspaceoncurrentmonitor rather
+    // than `workspace`: should the workspace have drifted to another monitor
+    // (a display turned off and on), it is pulled back here instead of focus
+    // jumping over there; and it creates the workspace if there is none yet.
     function dashboard() {
-        page = "";
-        Hyprland.dispatch("workspace name:dashboard");
+        here.closePage();
+        Hyprland.dispatch("focusworkspaceoncurrentmonitor name:" + dashName(hereName));
+    }
+    // Another display's dashboard, leaving focus where it is.
+    function dashboardOn(mon) {
+        if (mon === hereName) { dashboard(); return; }
+        dashFor(mon).closePage();
+        batch(["focusmonitor " + mon, "focusworkspaceoncurrentmonitor name:" + dashName(mon),
+               "focusmonitor " + hereName]);
     }
 
     function resume() {
-        if (lastApp > 0 && workspaceById(lastApp) !== null) {
+        const ws = here.resumeWorkspace;
+        if (ws !== null) {
             play("select-a");
-            Hyprland.dispatch("workspace " + lastApp);
+            Hyprland.dispatch("workspace " + ws.id);
         }
     }
-    readonly property string resumeTitle: {
-        if (lastApp <= 0) return "";
-        const ws = workspaceById(lastApp);
-        return ws ? metaFor(ws).title : "";
+    readonly property string resumeTitle: here.resumeTitle
+
+    function openPage(id, title, bladeIndex) { here.openPage(id, title, bladeIndex); }
+    function closePage() { here.closePage(); }
+
+    // ---- displays ----------------------------------------------------------
+    // Left to right, then top to bottom: what "previous/next display" means.
+    function monitorsInOrder() {
+        return Hyprland.monitors.values.slice().sort((a, b) => a.x - b.x || a.y - b.y);
     }
 
-    function openPage(id, title, bladeIndex) {
-        pageTitle = title;
-        pageBlade = bladeIndex;
-        page = id;
+    // Guide + LT/RT: the focused app to the previous/next display, focus with it.
+    // An app with one window takes its whole workspace (name and colour come
+    // along); a window of an app with several gets an app workspace of its own
+    // there, under the same name. The display it left shows its dashboard.
+    function moveToMonitor(step) {
+        const ws = focused;
+        const mons = monitorsInOrder();
+        if (!isApp(ws) || mons.length < 2) { play("back"); return; }
+        const src = ws.monitor ? ws.monitor.name : hereName;
+        const i = Math.max(0, mons.findIndex(m => m.name === src));
+        const dst = mons[(i + step + mons.length) % mons.length].name;
+        const tl = ws.toplevels ? ws.toplevels.values : [];
+        play(step > 0 ? "page-right" : "page-left");
+        if (tl.length <= 1) {
+            if (dashFor(src).lastApp === ws.id) dashFor(src).lastApp = -1;
+            dashFor(dst).lastApp = ws.id;
+            dashFor(src).closePage();
+            batch(["moveworkspacetomonitor " + ws.id + " " + dst,
+                   "focusmonitor " + src, "focusworkspaceoncurrentmonitor name:" + dashName(src),
+                   "focusmonitor " + dst, "workspace " + ws.id]);
+        } else {
+            const t = Hyprland.activeToplevel;
+            if (!t) return;
+            const n = freeWorkspace();
+            setMeta(n, Object.assign({}, metaFor(ws), { seen: false }));
+            // A workspace that doesn't exist yet is made on the FOCUSED monitor.
+            batch(["focusmonitor " + dst, "movetoworkspace " + n + ",address:" + addr(t)]);
+        }
     }
-    function closePage() { page = ""; }
+    function addr(t) { return (String(t.address).startsWith("0x") ? "" : "0x") + t.address; }
+
+    // The overlays (Guide, keyboard, notification blade, toasts, the lock
+    // screen's sign-in) open on the display that has focus WHEN they open,
+    // and stay there: following focus live would throw the Guide across the
+    // room the moment the pointer drifted.
+    function focusedScreen() {
+        return screenNamed(hereName) || screenNamed(primaryName) || Quickshell.screens[0] || null;
+    }
+    property var guideScreen: null
+    property var keyboardScreen: null
+    property var messageScreen: null
+    property string lockName: ""
+    function toggleKeyboard() {
+        if (!keyboardOpen) keyboardScreen = focusedScreen();
+        keyboardOpen = !keyboardOpen;
+    }
+    // A display going off takes what was open on it: the Guide and the
+    // keyboard close (you were looking at that screen, not this one); a
+    // message waiting for an answer moves to where focus is now.
+    Connections {
+        target: Quickshell
+        function onScreensChanged() {
+            const gone = s => !s || Quickshell.screens.indexOf(s) < 0;
+            if (state.guideOpen && gone(state.guideScreen)) state.guideOpen = false;
+            if (state.keyboardOpen && gone(state.keyboardScreen)) state.keyboardOpen = false;
+            if (state.message !== null && gone(state.messageScreen)) state.messageScreen = state.focusedScreen();
+        }
+    }
 
     // ---- pointer -----------------------------------------------------------
     // Rows and bands select on hover, but only for a pointer that really moved
@@ -216,7 +299,18 @@ Singleton {
     property bool guideOpen: false
 
     // A tap of the Guide button: open or close the Guide, as on the console.
-    function guide() { guideOpen = !guideOpen; }
+    function guide() {
+        if (!guideOpen) guideScreen = focusedScreen();
+        guideOpen = !guideOpen;
+    }
+    // The Guide opened straight at one of its submenus (the System blade's
+    // Displays row): Guide.qml picks `guideStart` up as it opens.
+    property string guideStart: ""
+    function openGuideAt(page) {
+        guideStart = page;
+        if (guideOpen) guideOpen = false;
+        guide();
+    }
 
     // Leaving the Guide for somewhere else. Its layer holds the keyboard while
     // it is open, and when it lets go Hyprland hands focus back to the window
@@ -237,7 +331,10 @@ Singleton {
 
     // What the notification blade shows: { title, icon, body, actions: [{ label, run }] }.
     property var message: null
-    function openMessage(m) { message = m; }
+    function openMessage(m) {
+        if (message === null) messageScreen = focusedScreen();
+        message = m;
+    }
     function closeMessage() { message = null; }
 
     function showNotification(n) {
@@ -269,8 +366,13 @@ Singleton {
 
     // The Guide's X: lock, the console's "sign out" of a profile (LockScreen.qml).
     property bool locked: false
-    function signOut() { guideOpen = false; locked = true; }
-    // Which screen carries the dashboard (set by shell.qml).
+    function signOut() {
+        if (!locked) lockName = hereName;
+        guideOpen = false;
+        locked = true;
+    }
+    // The display focused at login, and the fallback for everything else
+    // (set by shell.qml).
     property string primaryName: ""
 
     // Running apps for the Guide's Open Apps: each app workspace with windows.
@@ -283,11 +385,16 @@ Singleton {
             const m = metaFor(ws);
             const cls = tl[0].lastIpcObject && tl[0].lastIpcObject.class ? tl[0].lastIpcObject.class : "";
             const entry = cls !== "" ? DesktopEntries.heuristicLookup(cls) : null;
-            out.push({ id: ws.id, title: m.title, windows: tl.length, icon: entry ? entry.icon : "" });
+            out.push({ id: ws.id, title: m.title, windows: tl.length, icon: entry ? entry.icon : "",
+                       display: ws.monitor ? displayLabel(ws.monitor.name) : "" });
         }
         return out.sort((a, b) => a.id - b.id);
     }
     readonly property int appCount: apps.length
+    function displayLabel(name) {
+        const d = Displays.list.find(x => x.name === name);
+        return d ? d.label : name;
+    }
 
     function closeApp(id) {
         const ws = workspaceById(id);
@@ -305,7 +412,8 @@ Singleton {
         case "btn": input(p[1]); break;
         case "guide": guide(); break;
         case "dashboard": dashboard(); break;
-        case "keyboard": keyboardOpen = !keyboardOpen; break;
+        case "keyboard": toggleKeyboard(); break;
+        case "movewin": moveToMonitor(p[1] === "-1" ? -1 : 1); break;
         case "power": powerRequested(); break;
         }
     }
@@ -368,6 +476,11 @@ Singleton {
         running: Cfg.tvCmd !== ""
         stdout: StdioCollector { onStreamFinished: state.tvMode = text.trim() === "on" }
     }
+    function refreshTv() {
+        if (Cfg.tvCmd === "" || tvProc.running) return;
+        tvProc.command = ["sh", "-c", Cfg.tvCmd + " status"];
+        tvProc.running = true;
+    }
     function settingText(what) {
         if (what === "night") return Theme.modeText;
         if (what === "tv") return tvMode ? "On" : "Off";
@@ -389,31 +502,57 @@ Singleton {
         if (focused && isApp(focused)) applyBorder(metaFor(focused).blade);
     }
 
+    // Every display, every 0.7 s: what its app workspace is doing, and whether
+    // it is showing something it shouldn't.
+    property var lastFix: ({})
     Timer {
         interval: 700
         running: true
         repeat: true
         onTriggered: {
-            const ws = state.focused;
-            if (!state.isApp(ws)) return;
-            const count = ws.toplevels ? ws.toplevels.values.length : 0;
-            const m = state.meta[ws.id];
-            if (count > 0) {
-                state.lastApp = ws.id;
-                if (m && !m.seen) state.setMeta(ws.id, Object.assign({}, m, { seen: true }));
-            } else if (m && m.seen) {
-                // Its last window closed: back to the dashboard, as on the console.
-                state.setMeta(ws.id, null);
-                if (state.lastApp === ws.id) state.lastApp = -1;
-                state.dashboard();
+            for (const mon of Hyprland.monitors.values) {
+                const ws = mon.activeWorkspace;
+                if (!ws) continue;
+                if (state.isDashboard(ws)) {
+                    // Another display's dashboard, carried over when that one
+                    // was turned off: this display's own instead.
+                    if (ws.name !== state.dashName(mon.name)) state.fixDisplay(mon.name);
+                    continue;
+                }
+                if (!state.isApp(ws)) continue;
+                const count = ws.toplevels ? ws.toplevels.values.length : 0;
+                const m = state.meta[ws.id];
+                if (count > 0) {
+                    state.dashFor(mon.name).lastApp = ws.id;
+                    if (m && !m.seen) state.setMeta(ws.id, Object.assign({}, m, { seen: true }));
+                } else if (m && m.seen) {
+                    // Its last window closed: back to the dashboard, as on the console.
+                    state.setMeta(ws.id, null);
+                    state.fixDisplay(mon.name);
+                } else if (!m) {
+                    // An empty workspace nothing was launched on: Hyprland's
+                    // own on a display that just came on (or at login, where
+                    // there is no workspace rule, as in a VM), or one left
+                    // behind when a display went off.
+                    state.fixDisplay(mon.name);
+                }
             }
         }
     }
+    // Put a display back on its dashboard, at most every 3 s: from an unfocused
+    // display it means moving focus there and back, and a fix that didn't take
+    // must not yank the pointer around every tick.
+    function fixDisplay(mon) {
+        const now = Date.now();
+        if (now - (lastFix[mon] || 0) < 3000) return;
+        lastFix[mon] = now;
+        dashboardOn(mon);
+    }
 
-    // Anything that opens ON the dashboard (an app started from a terminal
-    // binding, a link from a notification) gets a workspace of its own. So
-    // does a game started from inside Steam or Heroic: it opens over its
-    // launcher, and the Guide's Open Apps then only knew "Heroic".
+    // Anything that opens ON a dashboard (an app started from a terminal
+    // binding, a link from a notification) gets a workspace of its own on that
+    // display. So does a game started from inside Steam or Heroic: it opens
+    // over its launcher, and the Guide's Open Apps then only knew "Heroic".
     readonly property var gameClasses: Cfg.gameClasses.map(r => new RegExp(r))
     function isGameClass(cls) { return gameClasses.some(r => r.test(cls)); }
     Connections {
@@ -423,9 +562,9 @@ Singleton {
             const p = event.data.split(",");
             if (p.length < 3) return;
             const addr = p[0], wsName = p[1], cls = p[2], title = p.slice(3).join(",");
-            if (wsName === "dashboard") {
+            if (wsName.startsWith("dashboard-")) {
                 const entry = DesktopEntries.heuristicLookup(cls);
-                state.moveToOwn(addr, entry ? entry.name : cls, 5);
+                state.moveToOwn(addr, entry ? entry.name : cls, 5, wsName.slice("dashboard-".length));
             } else if (state.isGameClass(cls)) {
                 const ws = Hyprland.workspaces.values.find(w => w.name === wsName);
                 if (!state.isApp(ws)) return;
@@ -433,14 +572,18 @@ Singleton {
                 // the game) stays together.
                 const others = ws.toplevels.values.filter(t => String(t.address).replace(/^0x/, "") !== addr);
                 if (others.length > 0 && !others.some(t => state.isGameClass(state.classOf(t))))
-                    state.moveToOwn(addr, title !== "" ? title : cls, 2);
+                    state.moveToOwn(addr, title !== "" ? title : cls, 2, ws.monitor ? ws.monitor.name : "");
             }
         }
     }
-    function moveToOwn(addr, title, bladeIndex) {
+    // A new workspace is made on the FOCUSED monitor, so focus the window's own
+    // display first (the window moves with focus anyway).
+    function moveToOwn(addr, title, bladeIndex, mon) {
         const n = freeWorkspace();
         setMeta(n, { title: title, blade: bladeIndex, seen: false });
-        Hyprland.dispatch("movetoworkspace " + n + ",address:0x" + addr);
+        const move = "movetoworkspace " + n + ",address:0x" + addr;
+        if (mon && mon !== hereName) batch(["focusmonitor " + mon, move]);
+        else Hyprland.dispatch(move);
     }
 
     // `meta` survives a shell restart, so a reload doesn't strip every open

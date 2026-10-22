@@ -61,7 +61,11 @@ Scope {
             color: "black"
 
             readonly property var g: Geo.frameFor(width, height)
-            readonly property bool primary: !screen || ShellState.primaryName === "" || screen.name === ShellState.primaryName
+            // The sign-in goes on the display that had focus when it locked
+            // (else the primary one); the others are plain blade surface.
+            readonly property string signInOn: ShellState.lockName !== "" && Quickshell.screens.some(s => s.name === ShellState.lockName)
+                                               ? ShellState.lockName : ShellState.primaryName
+            readonly property bool primary: !screen || signInOn === "" || screen.name === signInOn
 
             BladeSurface {
                 anchors.fill: parent

@@ -28,13 +28,15 @@ layout(std140, binding = 0) uniform buf {
     vec4 c2;
     vec4 c3;
     float glow;     // 1 by day; night mode dims the gloss, sheen and ripples
+    float hb;       // the panel's header and footer band heights, reference units
+    float fh;
+    float turned;   // 1: drawn turned a quarter on a portrait screen (Frame.qml),
+                    // so "up" for the gloss is along x
 };
 
 const int N = @N@;
 const float KY[N] = float[N](@KY@);
 const float KD[N] = float[N](@KD@);
-const float HEADER_BOTTOM = @HB@;
-const float FOOTER_HEIGHT = @FH@;
 const float CARD_INSET = @CI@;
 const float CARD_RADIUS = @CR@;
 
@@ -67,7 +69,7 @@ void main() {
     vec2 px = qt_TexCoord0 * res;
     vec2 ref = qt_TexCoord0 * refSize;
     float H = refSize.y;
-    float footerTop = H - FOOTER_HEIGHT;
+    float footerTop = H - fh;
 
     // radial-gradient(90% 80% at 50% 44%) of the panel.
     float w = max(panelR - panelL, 1.0);
@@ -92,7 +94,7 @@ void main() {
         // band (the legend) around a lighter, rounded content card whose
         // sides follow the panel's own edges.
         float dx = min(ref.x - (L + CARD_INSET), (R - CARD_INSET) - ref.x);
-        float dy = min(ref.y - HEADER_BOTTOM, footerTop - ref.y);
+        float dy = min(ref.y - hb, footerTop - ref.y);
         if (dx < 0.0 || dy < 0.0) {
             card = 1.0 - smoothstep(-aa, aa, max(-dx, -dy));
         } else if (dx < CARD_RADIUS && dy < CARD_RADIUS) {
@@ -101,8 +103,11 @@ void main() {
         }
     }
 
+    // Height down the SCREEN, 0 at the top, whichever way the frame is turned.
+    float gy = turned > 0.5 ? ref.x / refSize.x : ref.y / H;
+
     // The bands: the section's deep stops, lighter toward the top.
-    vec3 band = mix(c2.rgb, c3.rgb, 0.55 + 0.3 * (ref.y / H));
+    vec3 band = mix(c2.rgb, c3.rgb, 0.55 + 0.3 * gy);
     col = mix(band, col, card);
 
     // Concentric sheen: light and dark rings around the focal point, fading
@@ -118,7 +123,6 @@ void main() {
     col += glow * inside * card * (vec3(sheen) + vec3(rip));
 
     // Specular gloss: white, 30% at the top -> 5% at 45% -> 0.
-    float gy = ref.y / H;
     float g = gy < 0.45 ? mix(0.30, 0.05, gy / 0.45)
                         : mix(0.05, 0.0, clamp((gy - 0.45) / 0.25, 0.0, 1.0));
     col = mix(col, vec3(1.0), glow * inside * g * mix(0.5, 1.0, card));
