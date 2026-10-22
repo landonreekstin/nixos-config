@@ -21,6 +21,10 @@ Configure via `customConfig.desktop.displayManager.sddm.customTheme` with wallpa
 
 Theme configuration is set via `customConfig.homeManager.themes.hyprland`.
 
+- `xbox360` - the 2005 Xbox 360 "Blades" dashboard. **Not** a `themes.hyprland` value: it
+  is a second login session, enabled through `themes.hyprlandExtraSessions` — see
+  [Session-scoped rices](#session-scoped-rices-xbox360).
+
 ### century-series night mode
 
 `century-series` carries a second palette — **night-mission stealth** (F-117/B-2): red
@@ -257,6 +261,43 @@ rebuild triggers.
 
 Each ramp step is a distinct store path on purpose: Hyprland caches a compiled screen
 shader by path, so rewriting one file in place would never recompile.
+
+## Session-scoped rices (xbox360)
+
+`customConfig.homeManager.themes.hyprlandExtraSessions = [ "xbox360" ]` adds a rice as
+its **own display-manager entry** ("Xbox 360 Dashboard" in Ly/SDDM) next to the default
+Hyprland session, which keeps `themes.hyprland`. Switching rices is log out → pick a
+session; no rebuild.
+
+- **Config.** `themes/xbox360/session.nix` renders `~/.config/hypr/xbox360.conf` by
+  re-merging the individual definitions of `wayland.windowManager.hyprland.{settings,extraConfig}`
+  (`options.….definitionsWithLocations`), dropping every one whose file is under
+  `modules/home-manager/themes/`, and adding the rice's own. So functional.nix, swayidle and
+  any future non-theme module reach both sessions automatically, and `hyprland.conf` is
+  unchanged except for one `exec-once` (below). A theme's settings must live under
+  `themes/` for this to exclude them.
+- **The rice's `exec-once` lines go in its `extraConfig`**, never `settings."exec-once"`:
+  functional.nix sets that list with `mkDefault`, so a plain definition replaces it wholesale.
+- **Session.** `modules/nixos/desktop/hyprland.nix` adds a `sessionPackages` entry whose
+  wrapper writes `$XDG_RUNTIME_DIR/hypr-rice`, exports `HYPR_RICE`, and runs
+  `start-hyprland -- --config ~/.config/hypr/<rice>.conf`. `hyprctl reload` re-reads whichever
+  file an instance started with.
+- **Guards.** Anything shared that belongs only to the default session exits when
+  `$XDG_RUNTIME_DIR/hypr-rice` is non-empty: `waybar-start`, `waybar-restart`, the
+  century-night step's `hyprctl` half and `century-wallpaper-apply`. The default session
+  deletes the file at startup, so logging out of the rice and into century-series in the
+  same boot restores everything (verified in `vm-sandbox`).
+  **Anything new that pokes the compositor from a timer or unit must check it too.**
+- Apps with one global config (kitty, GTK, browser chrome) still wear the default theme
+  in the rice session.
+- **Assets** (`pkgs/xbox360-assets`): the Convection font and the dashboard's UI cues
+  (`share/sounds/xbox360/<cue>.wav`, decoded at build time), pinned to a commit of a public
+  Blades recreation. The blade palette in `themes/xbox360/colors.nix` comes from the same
+  project's DESIGN.md and has not been checked against console captures yet.
+- **Testing without logging out:** a nested `Hyprland -c` starts, but it renders nothing
+  while the outer session is locked (grim hangs, and headless outputs stay 0×0). Use
+  `vm-sandbox` (which has the rice enabled) headless over QMP, and pick "Xbox 360 Dashboard"
+  in the SDDM session menu (bottom-left).
 
 ## Functional vs Theme Paradigm for Wayland Components
 

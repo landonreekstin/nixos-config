@@ -8,6 +8,7 @@
       plasmaOverride = true;
       kde = "windows7-alt";      # aerothemeplasma (source-built)
       hyprland = "century-series";
+      hyprlandExtraSessions = [ "xbox360" ];
       xfce = "windows7";         # B00merang GTK/xfwm4 + aero cursor/sounds
       wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
     };

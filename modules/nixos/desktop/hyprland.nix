@@ -177,6 +177,37 @@
     # Enable XWayland for running X11 apps
     programs.xwayland.enable = true;
 
+    # Session-scoped rices (customConfig.homeManager.themes.hyprlandExtraSessions):
+    # each one is a second display-manager entry that starts the same Hyprland
+    # against its own config, rendered by home-manager into
+    # ~/.config/hypr/<rice>.conf (themes/<rice>/session.nix). The default
+    # "Hyprland" entry keeps hyprland.conf and themes.hyprland.
+    #
+    # $XDG_RUNTIME_DIR/hypr-rice tells shared scripts and systemd user units which
+    # rice is live — they have no other way to know, since both sessions run the
+    # same binaries. The default session deletes it again at startup.
+    services.displayManager.sessionPackages = map (rice:
+      let
+        start = pkgs.writeShellScript "start-hyprland-${rice}" ''
+          export HYPR_RICE=${rice}
+          printf '%s\n' ${rice} > "''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/hypr-rice"
+          exec ${config.programs.hyprland.package}/bin/start-hyprland -- \
+            --config "$HOME/.config/hypr/${rice}.conf"
+        '';
+        desktop = pkgs.writeTextDir "share/wayland-sessions/hyprland-${rice}.desktop" ''
+          [Desktop Entry]
+          Name=${{ xbox360 = "Xbox 360 Dashboard"; }.${rice}}
+          Comment=Hyprland with the ${rice} rice
+          Exec=${start}
+          Type=Application
+          DesktopNames=Hyprland
+        '';
+      in
+      desktop.overrideAttrs (old: {
+        passthru = (old.passthru or { }) // { providedSessions = [ "hyprland-${rice}" ]; };
+      })
+    ) config.customConfig.homeManager.themes.hyprlandExtraSessions;
+
     # KDE apps (Dolphin is the default fileManager role) look up a file's default
     # handler through ksycoca, which kbuildsycoca6 builds by walking
     # ''${XDG_MENU_PREFIX}applications.menu. Hyprland sets no menu prefix, so it

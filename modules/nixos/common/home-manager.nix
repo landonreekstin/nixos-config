@@ -481,6 +481,17 @@ in
         default = "none";
         description = "Set the Hyprland theme for Home Manager.";
       };
+      hyprlandExtraSessions = mkOption {
+        type = types.listOf (types.enum [ "xbox360" ]);
+        default = [ ];
+        description = ''
+          Additional Hyprland rices offered as their own display-manager session,
+          next to the default one (which keeps themes.hyprland). Each gets a
+          separate hyprland.conf built from the same functional layer, so moving
+          between rices is log out -> pick a session, with no rebuild.
+          See docs/theming.md "Session-scoped rices".
+        '';
+      };
       centurySeries.night = {
         enable = mkOption {
           type = types.bool;
