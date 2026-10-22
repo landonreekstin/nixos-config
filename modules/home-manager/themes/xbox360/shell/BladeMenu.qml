@@ -82,29 +82,58 @@ Item {
         s: menu.s
     }
 
-    Column {
+    // A blade with more rows than fit above the Resume pill (System) scrolls,
+    // keeping the highlighted row in view.
+    ListView {
         id: rowsCol
         x: 0
         y: menu.rowsTop
         width: menu.leftW
+        height: pill.y - 10 * menu.s - y
+        clip: true
+        interactive: contentHeight > height
+        boundsBehavior: Flickable.StopAtBounds
+        model: menu.rows
+        currentIndex: menu.current
+        onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
+        onHeightChanged: positionViewAtIndex(currentIndex, ListView.Contain)
+        Behavior on contentY {
+            enabled: !rowsCol.moving
+            NumberAnimation { duration: 350; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.4, 0, 0.2, 1, 1, 1] }
+        }
 
-        Repeater {
-            model: menu.rows
-            delegate: MenuRow {
-                required property var modelData
-                required property int index
-                width: rowsCol.width
-                height: menu.rowH
-                s: menu.s
-                ink: menu.ink
-                rule: "#" + menu.spec.rule
-                label: modelData.label + (modelData.action.type === "setting"
-                    ? ":  " + ShellState.settingText(modelData.action.setting) : "")
-                icon: modelData.icon
-                selected: index === menu.current
-                onHovered: menu.select(index)
-                onClicked: menu.activate(index)
-            }
+        delegate: MenuRow {
+            required property var modelData
+            required property int index
+            width: rowsCol.width
+            height: menu.rowH
+            s: menu.s
+            ink: menu.ink
+            rule: "#" + menu.spec.rule
+            label: modelData.label + (modelData.action.type === "setting"
+                ? ":  " + ShellState.settingText(modelData.action.setting) : "")
+            icon: modelData.icon
+            selected: index === menu.current
+            onHovered: menu.select(index)
+            onClicked: menu.activate(index)
+        }
+    }
+
+    // Scroll cues: more rows above or below.
+    Repeater {
+        model: [
+            { up: true, show: rowsCol.contentY > 1 },
+            { up: false, show: rowsCol.contentY + rowsCol.height < rowsCol.contentHeight - 1 }
+        ]
+        delegate: Text {
+            required property var modelData
+            visible: modelData.show
+            x: rowsCol.width - width - 8 * menu.s
+            y: modelData.up ? rowsCol.y - height : rowsCol.y + rowsCol.height - 4 * menu.s
+            text: modelData.up ? "▲" : "▼"
+            font.pixelSize: 12 * menu.s
+            color: menu.ink
+            opacity: 0.7
         }
     }
 

@@ -99,5 +99,7 @@ ShellRoot {
         function movewin(step: int): void { ShellState.moveToMonitor(step < 0 ? -1 : 1); }
         // Guide -> Displays.
         function displays(): void { ShellState.openGuideAt("displays"); }
+        // Guide -> Audio.
+        function audio(): void { ShellState.openGuideAt("audio"); }
     }
 }

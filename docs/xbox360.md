@@ -149,6 +149,34 @@ Both are switches on the System blade (left/right or A) and in Guide → Console
   writes the same `~/.local/state/hypr/disabled-monitors` that `toggle-monitor` uses, so
   `monitor-state-watcher` keeps it through a rebuild's config reload. Off restores the saved
   monitor state and output; the default session runs `off` at login.
+  With Audio devices configured it goes through them instead (below): on saves the device
+  in use and picks the one whose `output` is the TV's `edid` — unless the device in use is
+  `keepOnTv` (the headset) — and off switches back to the saved device, mic included.
+
+## Audio
+
+Guide → Audio (also System blade → Audio, `qs -c xbox360 ipc call ui audio`) lists the host's
+`themes.xbox360.audioDevices`: each is an output **and** a microphone, switched together, with
+what is playing and recording moved along. A toast confirms; a newer audio toast replaces the
+older one (`Notifications.say` with a tag) so flicking through says where the sound *is*.
+X swaps left and right (century-series' `toggle-audio-flip`). With no devices listed, Console
+Settings keeps the plain "Sound Output" cycle instead.
+
+- `pad/xbox360-audio.py` does the work (`list` / `set LABEL` / `current` / `keeps-tv`).
+  Outputs match `"<sink name>|<description>|<alsa.name>"` like `audioSinkMappings`, so HDMI
+  ones are pinned by EDID name, never `pro-output-N`. `input = "same"` is the mic on the
+  output's own card: same `alsa.card`, else the same device in the node name
+  (`alsa_output.usb-X-00.*` → `alsa_input.usb-X-00.*`).
+- Monitors are never microphones (a sink's monitor carries the sink's `alsa.name`), and only
+  recordings of a real mic are moved — a visualizer on an output's monitor stays put.
+- `Audio.qml` polls only while the Guide is open. A choice shows at once (the script takes a
+  moment), and a reading started before the latest switch is dropped and re-run — otherwise a
+  poll in flight puts the old device back on screen.
+- gaming-pc's Headset entry matches *any* USB output (`alsa_output.usb-`) because the condenser
+  mic and the webcam are input-only. Narrow it to the headset's own name once it has been
+  plugged in there (`pactl list short sinks`).
+- The Xbox controller's 3.5mm jack is **not** one of these: it needs `xone`, which kills the
+  PowerA pad's input (see the controller notes). The headset plugs in by USB instead.
 
 ## Multiple displays
 

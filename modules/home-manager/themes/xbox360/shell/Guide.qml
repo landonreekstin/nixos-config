@@ -9,7 +9,8 @@
 // and the big XBOX 360 button back to the dashboard. Y anywhere is "Xbox
 // Dashboard", as on the console. Rows that open a list widen the blade into a
 // submenu (guide-submenu.png): Open Apps, Console Settings, Notifications,
-// and Controls — what every controller button does, place by place
+// Displays, Audio (speakers / headphones / TV / headset, output and mic
+// together — Audio.qml), and Controls — what every controller button does, place by place
 // (Controls.js).
 pragma ComponentBehavior: Bound
 
@@ -28,7 +29,7 @@ SidePanel {
     fromLeft: true
     widthRef: page === "" ? 560 : page === "controls" ? 1040 : 880
     title: ({ "": "", apps: "Open Apps", settings: "Console Settings", notifications: "Notifications",
-              controls: "Controls", displays: "Displays" })[page]
+              controls: "Controls", displays: "Displays", audio: "Audio" })[page]
     bandLabel: Cfg.gamertag
     onDismissed: close()
 
@@ -36,15 +37,36 @@ SidePanel {
     property int cur: 0               // focused entry on the current page
     property int mediaCur: 0          // focused button within the music strip
     property string displaysNote: ""  // why the last Displays toggle didn't happen
+    property string audioNote: ""     // why the last Audio switch didn't happen
 
     legend: page === ""
         ? { left: [{ btn: "y", label: "Xbox Dashboard" }, { btn: "x", label: "Sign Out" }],
             right: [{ btn: "b", label: "Back" }, { btn: "a", label: "Select" }] }
         : { left: [{ btn: "y", label: "Xbox Dashboard" },
-                   { btn: "x", label: page === "apps" ? "Close App" : page === "notifications" ? "Dismiss" : page === "settings" ? "More" : page === "displays" ? "Focus" : "" }],
+                   { btn: "x", label: page === "apps" ? "Close App" : page === "notifications" ? "Dismiss" : page === "settings" ? "More" : page === "displays" ? "Focus" : page === "audio" ? "Swap Left/Right" : "" }],
             right: [{ btn: "b", label: "Back" }, { btn: "a", label: "Select" }] }
 
-    onOpenChanged: if (open) { page = ShellState.guideStart; ShellState.guideStart = ""; cur = 0; ShellState.play("select-a"); }
+    onOpenChanged: if (open) {
+        page = ShellState.guideStart; ShellState.guideStart = "";
+        cur = page === "audio" ? audioCur() : 0;
+        ShellState.play("select-a");
+    }
+    // Audio opens on the device in use — and moves there again when the fresh
+    // reading lands (the list isn't polled while the Guide is shut), unless the
+    // cursor has been moved by then.
+    property bool audioCurPending: false
+    function audioCur() {
+        audioNote = ""; audioCurPending = true; Audio.refresh();
+        return Math.max(0, Audio.list.findIndex(d => d.active));
+    }
+    Connections {
+        target: Audio
+        function onListChanged() {
+            if (!guide.audioCurPending || guide.page !== "audio") return;
+            guide.audioCurPending = false;
+            guide.cur = Math.max(0, Audio.list.findIndex(d => d.active));
+        }
+    }
 
     function close() {
         ShellState.play("back");
@@ -105,6 +127,8 @@ SidePanel {
           run: () => { page = "controls"; cur = 0; } },
         { label: "Displays", icon: "video-display", value: Displays.onCount + " of " + Displays.list.length,
           run: () => { page = "displays"; cur = 0; displaysNote = ""; } },
+        { label: "Audio", icon: "audio-volume-high", value: Audio.currentLabel, show: Audio.enabled,
+          run: () => { page = "audio"; cur = audioCur(); } },
         { label: "Console Settings", icon: "preferences-system", value: "",
           run: () => { page = "settings"; cur = 0; } },
         { label: "Turn Off Console", icon: "system-shutdown", value: "",
@@ -294,6 +318,17 @@ SidePanel {
                     + (displaysNote !== "" ? "\n\n" + displaysNote : ""),
             run: () => { displaysNote = Displays.toggle(d); },
             x: () => Displays.focus(d) }));
+        if (page === "audio") return Audio.list.map(d => ({
+            label: d.label, icon: d.icon,
+            value: !d.present ? "Not connected" : d.active ? "In use" : "",
+            detail: d.label + (d.active ? ", in use." : d.present ? "." : ": not connected.")
+                    + (d.present ? "\n\nSound: " + d.outputName + "\nMicrophone: " + (d.micName || "none found") : "")
+                    + "\n\nA switches the sound and the microphone together, and whatever is playing moves with them."
+                    + (d.keepOnTv ? " TV Mode keeps it." : "")
+                    + "\n\nX swaps left and right."
+                    + (audioNote !== "" ? "\n\n" + audioNote : ""),
+            run: () => { audioNote = Audio.choose(d); },
+            x: () => Audio.flip() }));
         if (page === "settings") return settings.rows;
         if (page === "controls") return Controls.sections;
         return [];
@@ -301,6 +336,7 @@ SidePanel {
 
     function listHandle(btn) {
         const n = listItems.length;
+        audioCurPending = false;
         switch (btn) {
         case "up": if (cur > 0) { cur--; ShellState.play("select"); } return true;
         case "down": if (cur < n - 1) { cur++; ShellState.play("select"); } return true;
