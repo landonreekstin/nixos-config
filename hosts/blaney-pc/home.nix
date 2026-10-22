@@ -40,6 +40,7 @@
           { name = "Lutris";          exec = "lutris";                             icon = "net.lutris.Lutris"; }
           { name = "Heroic";          exec = "heroic";                             icon = "com.heroicgameslauncher.hgl"; }
           { name = "Steam";           exec = "steam";                              icon = "steam"; }
+          { name = "IW4x";            exec = "iw4x";                               icon = "applications-games"; }
           { name = "Discord";         exec = "flatpak run com.discordapp.Discord"; icon = "com.discordapp.Discord"; }
           { name = "Spotify";         exec = "flatpak run com.spotify.Client";     icon = "com.spotify.Client"; }
           { name = "System Monitor";  exec = "xfce4-taskmanager";                  icon = "org.xfce.taskmanager"; }
@@ -58,6 +59,7 @@
         "applications:net.lutris.Lutris.desktop"
         "applications:com.heroicgameslauncher.hgl.desktop"
         "applications:steam.desktop"
+        "applications:iw4x.desktop"
         "applications:com.discordapp.Discord.desktop"
         "applications:com.spotify.Client.desktop"
         "applications:org.kde.plasma-systemmonitor.desktop"
