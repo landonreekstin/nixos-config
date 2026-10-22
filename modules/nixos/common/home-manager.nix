@@ -415,6 +415,32 @@ in
           description = "Whether to enable a once-per-login desktop notification when the nixos-config repo has upstream updates.";
         };
       };
+      audioBalance = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = ''
+            Re-apply a left/right balance to one output port at every login, keeping the
+            current overall loudness. WirePlumber already remembers per-channel volumes;
+            this puts the balance back if something flattens them (e.g. `wpctl set-volume`).
+          '';
+        };
+        port = mkOption {
+          type = types.str;
+          default = "analog-output-headphones";
+          description = "PulseAudio port name the balance applies to; sinks whose active port differs are left alone.";
+        };
+        left = mkOption {
+          type = types.ints.between 0 100;
+          default = 100;
+          description = "Relative left-channel level (Windows-style balance, e.g. 50).";
+        };
+        right = mkOption {
+          type = types.ints.between 0 100;
+          default = 100;
+          description = "Relative right-channel level (Windows-style balance, e.g. 67).";
+        };
+      };
       rebuildShutdownNotify = {
         enable = mkOption {
           type = types.bool;
