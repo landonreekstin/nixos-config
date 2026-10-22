@@ -4,6 +4,24 @@
 {
   customConfig.desktop = {
     environments = [ "kde" "hyprland" "xfce" ];
+    # Sceptre sits directly below the Acer, centred under it. `edid` is what the XFCE
+    # resolver matches on (X11 connector names move around); `identifier` is Hyprland's.
+    monitors = [
+      {
+        name = "main";
+        identifier = "DP-1";
+        edid = "KB272";
+        resolution = "1920x1080@60";
+        position = "0x0";
+      }
+      {
+        name = "below";
+        identifier = "HDMI-A-1";
+        edid = "E205W-1600";
+        resolution = "1600x900@60";
+        position = "160x1080";
+      }
+    ];
     hyprland = {
       launcher = {
         enable = true;
