@@ -5,8 +5,9 @@
   customConfig.desktop = {
     environments = [ "kde" "hyprland" "xfce" ];
     hyprland = {
+      glade.enable = true; # mirrors blaney-pc
       launcher = {
-        enable = true;
+        enable = false;
         pinnedApps = [
           { label = "TERM"; command = config.customConfig.apps.programs.terminal.command; tooltip = "Terminal Emulator"; }
           { label = "NAV";  command = config.customConfig.apps.programs.browser.command; tooltip = "Web Browser"; }

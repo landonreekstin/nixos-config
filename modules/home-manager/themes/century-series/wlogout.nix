@@ -11,7 +11,12 @@ let
 
   # Check if century-series theme is enabled
   centurySeriesThemeCondition = lib.elem "hyprland" customConfig.desktop.environments
-    && customConfig.homeManager.themes.hyprland == "century-series";
+    && customConfig.homeManager.themes.hyprland == "century-series"
+    && !gladeDesktop;
+  # The Glade desktop (customConfig.desktop.hyprland.glade) brings its own look for
+  # everything Hyprland itself draws, so this module steps aside while it is on. The
+  # app themes (kitty, btop, ...) and night mode keep running.
+  gladeDesktop = customConfig.desktop.hyprland.glade.enable;
 
   # Flat annunciator tile - dim / un-lit state
   # width/height at 4x the viewBox force high-res rasterization so text stays

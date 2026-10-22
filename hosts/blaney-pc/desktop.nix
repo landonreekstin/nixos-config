@@ -23,8 +23,13 @@
       }
     ];
     hyprland = {
+      # His Hyprland desktop is the Glade (pkgs/glade, from his ~/projects/hud): the
+      # pixel-art forest behind every window, and a session he drives with the mouse
+      # alone. Its plaques open his apps, so the bottom launcher bar is off; the pins
+      # below are kept for if it is ever turned back on.
+      glade.enable = true;
       launcher = {
-        enable = true;
+        enable = false;
         pinnedApps = [
           {
             label = "TERM";

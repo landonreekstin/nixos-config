@@ -81,6 +81,24 @@
         A windowrulev2 sends each app there on launch; SUPER+` toggles the workspace.
       '';
     };
+    glade = {
+      enable = mkOption {
+        type = types.bool;
+        default = false;
+        description = ''
+          Run the Glade (pkgs/glade) as the Hyprland desktop and make the session fully
+          usable with the mouse alone: windows float with title bars (move, maximise,
+          close), resize from any edge, focus on click, and a plain-English bar with a
+          "Glade" button (clears the windows out of the way), an "Apps" menu, a list of
+          open windows and a power menu. It brings its own pastel look for everything
+          Hyprland itself draws (themes/glade), while the hyprland theme keeps styling
+          the apps — so the same apps look the same in every session.
+
+          Implemented by modules/home-manager/hyprland/glade.nix; see docs/theming.md
+          "The Glade desktop".
+        '';
+      };
+    };
     wallpaperEngine = mkOption {
       type = types.enum [ "hyprpaper" "awww" ];
       default =

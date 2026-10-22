@@ -5,5 +5,6 @@
 {
   imports = [
     ./functional.nix
+    ./glade.nix
   ];
 }

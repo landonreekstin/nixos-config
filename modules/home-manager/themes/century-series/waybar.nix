@@ -130,7 +130,12 @@ let
 
   # Check if home-manager, Hyprland, and the Century Series theme are enabled
   centurySeriesThemeCondition = lib.elem "hyprland" customConfig.desktop.environments
-    && customConfig.homeManager.themes.hyprland == "century-series";
+    && customConfig.homeManager.themes.hyprland == "century-series"
+    && !gladeDesktop;
+  # The Glade desktop (customConfig.desktop.hyprland.glade) brings its own look for
+  # everything Hyprland itself draws, so this module steps aside while it is on. The
+  # app themes (kitty, btop, ...) and night mode keep running.
+  gladeDesktop = customConfig.desktop.hyprland.glade.enable;
 
   # Check if launcher is enabled
   launcherEnabled = customConfig.desktop.hyprland.launcher.enable;

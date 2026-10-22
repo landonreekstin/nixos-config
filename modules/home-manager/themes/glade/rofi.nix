@@ -1,0 +1,73 @@
+# ~/nixos-config/modules/home-manager/themes/glade/rofi.nix
+#
+# The "Apps" menu: a cream card in the middle of the screen, big icons, two columns,
+# the hovered app in pink. Click behaviour is in hyprland/glade.nix.
+{ config, pkgs, lib, customConfig, ... }:
+
+let
+  on = customConfig.desktop.hyprland.glade.enable
+    && lib.elem "hyprland" customConfig.desktop.environments;
+  c = import ./colors.nix;
+  l = config.lib.formats.rasi.mkLiteral;
+in
+{
+  config = lib.mkIf on {
+    programs.rofi = {
+      enable = true;
+      package = pkgs.rofi;
+      font = "${c.font} 14";
+      extraConfig = {
+        modi = "drun";
+        show-icons = true;
+        icon-theme = "Papirus";
+        drun-display-format = "{name}";
+        display-drun = "Open an app";
+      };
+      theme = {
+        "*" = {
+          background-color = l "transparent";
+          text-color = l c.ink;
+        };
+        window = {
+          width = l "760px";
+          location = l "center";
+          background-color = l c.cream;
+          border = l "3px solid";
+          border-color = l c.ink;
+          border-radius = l "14px";
+          padding = l "18px";
+        };
+        mainbox.spacing = l "14px";
+        inputbar = {
+          background-color = l c.light;
+          border = l "2px solid";
+          border-color = l c.ink;
+          border-radius = l "10px";
+          padding = l "10px 14px";
+          spacing = l "10px";
+          children = map l [ "prompt" "entry" ];
+        };
+        prompt.text-color = l c.wood;
+        entry.placeholder = "type to search, or just click";
+        listview = {
+          columns = 2;
+          lines = 8;
+          spacing = l "6px";
+          fixed-height = true;
+        };
+        element = {
+          padding = l "8px 12px";
+          spacing = l "12px";
+          border-radius = l "10px";
+        };
+        "element selected" = {
+          background-color = l c.pink2;
+          border = l "2px solid";
+          border-color = l c.ink;
+        };
+        element-icon.size = l "32px";
+        element-text.vertical-align = l "0.5";
+      };
+    };
+  };
+}

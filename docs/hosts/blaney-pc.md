@@ -126,6 +126,12 @@ directly, and a session in one of them is governed by `~/projects/CLAUDE.md`, no
 file. See [blaney-vibe-projects.md](blaney-vibe-projects.md). The rules here still bind
 anything that touches *this* repo.
 
+One of them is his **Hyprland desktop**: the Glade, a pixel-art forest he clicks around
+to open his apps, with a session built to be used by mouse alone
+([theming.md](../theming.md#the-glade-desktop)). This machine cannot run the test VMs (no
+KVM); Hyprland changes are verified nested inside KWin instead
+([test-vms-and-ci.md](../test-vms-and-ci.md#testing-hyprland-without-kvm-nested-in-kwin)).
+
 ## Runbooks as blaney-pc tasks
 
 `docs/runbooks/blaney/*.md` is the task queue lando leaves for blaney-pc. Each markdown

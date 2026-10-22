@@ -301,6 +301,56 @@ session; no rebuild.
   `vm-sandbox` (which has the rice enabled) headless over QMP, and pick "Xbox 360 Dashboard"
   in the SDDM session menu (bottom-left).
 
+## The Glade desktop
+
+`customConfig.desktop.hyprland.glade.enable` (blaney-pc, mirrored on vm-blaney) turns a
+Hyprland session into insideabush's **Glade**: his own pixel-art forest scene
+(`pkgs/glade`, vendored from his `~/projects/hud`, see
+[blaney-vibe-projects.md](hosts/blaney-vibe-projects.md#packaging-a-finished-app)) as the
+desktop on both monitors, and a session he can drive with the **mouse alone**, every
+target labelled in words. He asked for exactly that, and chose "windows like Windows"
+and "everything matches the glade".
+
+It is not a `themes.hyprland` value, on purpose. `themes.hyprland = "century-series"`
+also styles the *apps* (kitty, btop, yazi, …), and kitty's config is shared with his
+XFCE session, so switching the theme would have restyled XFCE too. Instead the glade
+layer sits on top: century-series keeps the apps and night mode, and steps aside for
+everything Hyprland itself draws.
+
+| Piece | Where |
+|---|---|
+| the glade as a layer-shell surface, one per monitor (GTK + gtk-layer-shell; pygame draws off-screen) | `pkgs/glade/src/wayland.py` |
+| what runs, what each click does: autostart, `glade-show`, floating windows + `hyprbars`, click-to-focus, resize from edges, bar layout, rofi single-click, power menu | `modules/home-manager/hyprland/glade.nix` |
+| the look: borders, title bars, bar CSS, rofi and wlogout styling, pixel font (Departure Mono) | `modules/home-manager/themes/glade/` |
+| century-series stepping aside | `gladeDesktop` in `themes/century-series/{hyprland,waybar,rofi,wlogout,night-mode}.nix` |
+
+Behaviour worth knowing before changing it:
+
+- **The glade is on the `bottom` layer with `exclusive_zone = -1`.** Bottom, not
+  background, so it is above the still-running awww wallpaper daemon (night mode's
+  wallpaper applier warns by notification if awww is missing, so it is left running
+  underneath). `-1` so it ignores the bar's reserved strip and keeps its exact 4x scale;
+  the bar simply draws over its top.
+- **"Glade" button = `glade-show`.** Hyprland has no minimise, so every monitor that has
+  windows moves to a fresh empty workspace (ids from 100, clear of any workspace rule);
+  the windows stay where they were and the bar's `wlr/taskbar` list brings them back
+  (`misc:focus_on_activate` makes that switch workspaces). The workspace numbers are not
+  shown at all.
+- **Every window floats** (`windowrule = float true, match:class .*`), `follow_mouse = 2`
+  (focus on click), `resize_on_border`. Title bars come from the `hyprbars` plugin, built
+  from the same nixpkgs as Hyprland; dragging the bar moves a window, double-click or
+  `▢` maximises (`fullscreen 1`), `✕` closes.
+- **The bar is on the main monitor only** (`output` = the `main` monitor's identifier).
+  The lower monitor is the ground in front of the glade, and a bar along its top would cut
+  across the path where it continues from the screen above.
+- **Night mode still runs** and still swaps the app palettes at sunset, but its step
+  script exits before the compositor keywords and its waybar restart is a no-op.
+- The launcher bar (`hyprland.launcher`) is turned off on blaney-pc: the glade's
+  plaques replace it, and the bar's "Apps" button covers everything else.
+
+Changes here can be verified on blaney-pc itself even though it cannot run a VM — see
+[test-vms-and-ci.md](test-vms-and-ci.md#testing-hyprland-without-kvm-nested-in-kwin).
+
 ## Functional vs Theme Paradigm for Wayland Components
 
 The Wayland component architecture follows a strict separation of concerns between **functional** and **theme** modules:

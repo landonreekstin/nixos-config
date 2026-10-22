@@ -51,6 +51,10 @@ let
   centurySeriesThemeCondition = lib.elem "hyprland" customConfig.desktop.environments
     && customConfig.homeManager.themes.hyprland == "century-series";
   enabled = centurySeriesThemeCondition && cfg.enable;
+  # Under the Glade desktop (customConfig.desktop.hyprland.glade) the bar, borders and
+  # screen shader are the glade's, so night mode keeps switching the APPS only: no
+  # compositor keywords, no waybar restart.
+  gladeDesktop = customConfig.desktop.hyprland.glade.enable;
 
   # N steps => N+1 palettes, endpoints exact (see colors.nix).
   steps = cfg.steps;
@@ -144,7 +148,7 @@ let
         } || true
       fi
 
-      [ "$STEP_MODE" = files ] && exit 0
+      [ "$STEP_MODE" = files ] && exit 0${optionalString gladeDesktop "\nexit 0  # the Glade desktop owns the compositor's look"}
 
       # Everything below needs a live compositor, and hyprctl needs
       # HYPRLAND_INSTANCE_SIGNATURE — which is NOT in the systemd user
@@ -235,7 +239,7 @@ let
     # Hyprland session and keeps a stale XDG_CURRENT_DESKTOP=Hyprland, so the
     # callers' own guard does not catch this — without the check a reconcile
     # after logout would spawn a waybar that has nothing to attach to.
-    [ -n "$(${pkgs.coreutils}/bin/ls -A "''${XDG_RUNTIME_DIR:-/run/user/$(${pkgs.coreutils}/bin/id -u)}/hypr" 2>/dev/null)" ] || exit 0
+    [ -n "$(${pkgs.coreutils}/bin/ls -A "''${XDG_RUNTIME_DIR:-/run/user/$(${pkgs.coreutils}/bin/id -u)}/hypr" 2>/dev/null)" ] || exit 0${optionalString gladeDesktop "\nexit 0  # the Glade's bar does not use the century palette"}
 
     exec "$HOME/.local/bin/waybar-restart"
   '';
