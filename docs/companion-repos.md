@@ -14,14 +14,16 @@ Getting the `hash` for a new rev: either the `nix-prefetch-url` recipe under hyp
 or set `hash = lib.fakeHash;`, build, and copy the real hash out of the mismatch error.
 
 Still vendored, to be moved out under this rule:
-- `pkgs/glade/src` → `github:cblaney00/glade` (PR #203; the repo exists, the pin is the
-  last step — the vendored copy matches rev `e7d5c2f`).
+- `pkgs/glade/src` → `github:cblaney00/glade`. The vendored copy (merged in #203) is newer
+  than the repo's `main` (`e7d5c2f`): the apex rework was never pushed, and only
+  insideabush can push there. Queued as runbook
+  `docs/runbooks/blaney/10-publish-glade-update.md`.
 
 ## xbox360-dashboard
 
 Source: `github:landonreekstin/xbox360-dashboard` (checkout at `/home/lando/xbox360-dashboard`
 on gaming-pc)
-Package: `pkgs/xbox360-dashboard/default.nix`, used by `modules/home-manager/themes/xbox360/session.nix`
+Package: `pkgs/xbox360-dashboard/default.nix`, used by `modules/home-manager/hyprland/desktops/xbox360/session.nix`
 
 The Quickshell shell, blade shader source and Python helpers of the Xbox 360 Dashboard
 session; split out of this repo with its history. Bump like hyprland-keys below, with repo

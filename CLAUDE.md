@@ -213,6 +213,13 @@ All configuration is managed through the `customConfig` option set, declared per
 Theme selection is `customConfig.homeManager.themes.{kde,hyprland}`; custom SDDM styling
 is `customConfig.desktop.displayManager.sddm.customTheme`.
 
+**Hyprland desktops** (`customConfig.homeManager.hyprland.desktops.{enabled,default}`) are
+whole Hyprland sessions, each with its own login entry, living in
+`modules/home-manager/hyprland/desktops/<name>/` and rendered onto the shared functional
+layer by `hyprland/desktops.nix` — see [Hyprland desktops](docs/theming.md#hyprland-desktops).
+A desktop never writes `wayland.windowManager.hyprland.*` for its own session; it sets
+`hyprDesktops.<name>.*`.
+
 **Wayland components follow a strict functional-vs-theme split**: `*/functional.nix` is
 always active and owns keybinds, monitor/input config, services and packages (with
 `mkDefault`); `themes/*/` is conditional and owns *only* visual styling (with `mkForce`).

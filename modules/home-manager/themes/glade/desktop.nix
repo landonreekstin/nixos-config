@@ -7,7 +7,7 @@
 #
 # What runs and what each click or key does. Everything visual — colours, fonts,
 # bar/title-bar styling — is in the other files of this theme. Living under themes/
-# keeps all of it out of the session-scoped rices (themes/xbox360/session.nix drops
+# keeps all of it out of the other Hyprland desktops (hyprland/desktops.nix drops
 # every definition from a file under themes/).
 { config, pkgs, lib, customConfig, ... }:
 
