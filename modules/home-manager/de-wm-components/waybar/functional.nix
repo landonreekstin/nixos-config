@@ -14,7 +14,7 @@ let
   hasHyprsunset = customConfig.homeManager.services.hyprsunset.enable;
   # The widget calls `century-night`, which only exists when the century-series
   # theme is active AND its night mode is on.
-  hasCenturyNight = customConfig.homeManager.themes.hyprland == "century-series"
+  hasCenturyNight = customConfig.homeManager.hyprland.desktops.default == "century-series"
     && customConfig.homeManager.themes.centurySeries.night.enable;
   hyprsunsetDayTemp = toString customConfig.homeManager.services.hyprsunset.dayTemp;
   systemctlUser = "${pkgs.systemd}/bin/systemctl --user";
@@ -27,7 +27,7 @@ let
   hasCkbNext = customConfig.hardware.peripherals.ckb-next.enable;
   hasBluetoothWidget = customConfig.hardware.bluetooth.waybar.enable;
   hasWifiWidget = customConfig.hardware.wifi.waybar.enable;
-  ckbScripts = import ../../themes/century-series/ckb-scripts.nix { inherit pkgs; };
+  ckbScripts = import ../../hyprland/desktops/century-series/ckb-scripts.nix { inherit pkgs; };
   weatherLocation = customConfig.desktop.hyprland.weather.location;
   weatherUseFahrenheit = customConfig.desktop.hyprland.weather.useFahrenheit;
   sinkMappings = customConfig.desktop.hyprland.audioSinkMappings;
@@ -683,7 +683,7 @@ in
 
     # networkmanager_dmenu backs the network module's left-click picker.
     # This is functional config, not rice: the rofi *styling* already comes from
-    # programs.rofi (themes/century-series/rofi.nix), which `rofi -dmenu` picks up
+    # programs.rofi (hyprland/desktops/century-series/rofi.nix), which `rofi -dmenu` picks up
     # from ~/.config/rofi/config.rasi automatically.
     #
     # `obscure = True` is required, not cosmetic — it is what makes the passphrase

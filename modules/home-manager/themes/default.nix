@@ -1,12 +1,9 @@
 # ~/nixos-config/modules/home-manager/themes/default.nix
-# This file serves as the import point for home-manager theme modules.
+# Plasma and XFCE themes. Hyprland desktops live in ../hyprland/desktops/.
 { ... }: # No specific args needed here usually, they are passed to the individual modules
 {
   imports = [
     ./aerothemeplasma/plasma-user.nix
-    ./future-aviation/default.nix # We will include this in the future when the modules are conditionally enabled
-    ./century-series/default.nix
-    ./glade/default.nix
     ./windows7-xfce/default.nix
     ./plasma-default.nix
     ./plasma-bigsur.nix

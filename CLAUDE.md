@@ -210,15 +210,17 @@ All configuration is managed through the `customConfig` option set, declared per
 
 ## Working with Themes
 
-Theme selection is `customConfig.homeManager.themes.{kde,hyprland}`; custom SDDM styling
+Plasma theme selection is `customConfig.homeManager.themes.kde`; custom SDDM styling
 is `customConfig.desktop.displayManager.sddm.customTheme`.
 
-**Hyprland desktops** (`customConfig.homeManager.hyprland.desktops.{enabled,default}`) are
-whole Hyprland sessions, each with its own login entry, living in
-`modules/home-manager/hyprland/desktops/<name>/` and rendered onto the shared functional
-layer by `hyprland/desktops.nix` — see [Hyprland desktops](docs/theming.md#hyprland-desktops).
-A desktop never writes `wayland.windowManager.hyprland.*` for its own session; it sets
-`hyprDesktops.<name>.*`.
+**Hyprland desktops** (`customConfig.homeManager.hyprland.desktops.{enabled,default}`:
+century-series, glade, future-aviation, xbox360) are whole Hyprland sessions, each with
+its own login entry, living in `modules/home-manager/hyprland/desktops/<name>/` and
+rendered onto the shared functional layer by `hyprland/desktops.nix` — see
+[Hyprland desktops](docs/theming.md#hyprland-desktops). A desktop never writes
+`wayland.windowManager.hyprland.{settings,extraConfig,plugins}`; it sets
+`hyprDesktops.<name>.*`, and only the default desktop writes global app configs
+(waybar, rofi, kitty, GTK).
 
 **Wayland components follow a strict functional-vs-theme split**: `*/functional.nix` is
 always active and owns keybinds, monitor/input config, services and packages (with

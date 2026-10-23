@@ -4,9 +4,9 @@
 {
   customConfig.homeManager = {
     enable = true;
+    hyprland.desktops.enabled = [ "century-series" ];
     themes = {
       kde = "bigsur";
-      hyprland = "century-series";
       plasmaOverride = false;
       wallpaper = ../../assets/wallpapers/big-sur.jpg;
       pinnedApps = [

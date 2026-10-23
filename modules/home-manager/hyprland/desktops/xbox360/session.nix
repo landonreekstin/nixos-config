@@ -6,8 +6,7 @@
 { config, pkgs, lib, customConfig, ... }:
 
 let
-  enabled = lib.elem "hyprland" customConfig.desktop.environments
-    && lib.elem "xbox360" customConfig.homeManager.hyprland.desktops.enabled;
+  inherit ((import ../lib.nix { inherit lib; }).state customConfig "xbox360") enabled;
 
   c = import ./colors.nix { inherit lib; };
   assets = pkgs.callPackage ../../../../../pkgs/xbox360-assets { };
@@ -526,12 +525,15 @@ let
   '';
 in
 {
-  options.hyprDesktops.xbox360 = (import ../lib.nix { inherit lib; }).desktopOptions;
-
   config = lib.mkIf enabled {
     hyprDesktops.xbox360 = {
       inherit settings extraConfig;
       transformSettings = transform;
+      # Back in another desktop, TV Mode is off again: it is this desktop's, and
+      # the monitor state it writes is shared with century-series' monitor toggles.
+      leaveExtraConfig = lib.optionalString (tvMonitor != null) ''
+        exec-once = ${tvScript} off
+      '';
     };
 
     home.packages = [ assets pkgs.quickshell pkgs.papirus-icon-theme ];
@@ -539,16 +541,5 @@ in
 
     # `qs -c xbox360` reads ~/.config/quickshell/xbox360/shell.qml.
     xdg.configFile."quickshell/xbox360".source = shellConfig;
-
-    # The default session forgets any rice a previous session left behind, so
-    # waybar-start, century-night and friends (which check this file) run again.
-    # extraConfig, not exec-once: see the note on `settings` above.
-    # It also leaves TV Mode: that is the rice's, and the monitor state it
-    # writes is shared with century-series' monitor toggles.
-    wayland.windowManager.hyprland.extraConfig = ''
-      exec-once = rm -f "$XDG_RUNTIME_DIR/hypr-rice"
-    '' + lib.optionalString (tvMonitor != null) ''
-      exec-once = ${tvScript} off
-    '';
   };
 }

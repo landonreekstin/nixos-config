@@ -4,11 +4,13 @@
 {
   customConfig.homeManager = {
     enable = true;
+    hyprland.desktops = {
+      enabled = [ "century-series" "xbox360" ];
+      default = "century-series";
+    };
     themes = {
       plasmaOverride = true;
       kde = "windows7-alt";      # aerothemeplasma (source-built)
-      hyprland = "century-series";
-      hyprlandExtraSessions = [ "xbox360" ];
       xbox360 = {
         transmissionUrl = "http://transmission.lan/transmission/rpc";
         jellyfinUrl = "http://jellyfin.lan";
