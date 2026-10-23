@@ -10,6 +10,22 @@ A couch-and-controller desktop recreating the original 2005 Xbox 360 "Blades" da
 focused on gaming and media. It is its own login session next to century-series, enabled
 with `customConfig.homeManager.themes.hyprlandExtraSessions = [ "xbox360" ]`.
 
+**Where the code lives.** The program — the Quickshell shell (`shell/*.qml`, `*.js`), the
+blade shader source (`shaders/blade.frag.in`) and the Python helpers (`pad/*.py`) — is its
+own repo, [`landonreekstin/xbox360-dashboard`](https://github.com/landonreekstin/xbox360-dashboard),
+packaged as `pkgs/xbox360-dashboard` and checked out at `~/xbox360-dashboard` on gaming-pc.
+This repo keeps everything host-specific in `themes/xbox360/`: `session.nix` (the
+Hyprland config, the generated `Config.js`, the shader's substituted knots, each
+helper's JSON config), `colors.nix`, `menus.nix`, and the Microsoft assets
+(`pkgs/xbox360-assets`). Paths like `pad/…` and `Shell layout` below are in that repo. A
+new `Cfg.<name>` the QML reads needs its `var` added in `session.nix` in the same change.
+
+- **Try a change before pushing it:** set `customConfig.homeManager.themes.xbox360.devSource
+  = "/home/lando/xbox360-dashboard";` in the host (never commit that line) and `rebuild`;
+  or, for hot reload inside the session, follow the repo's `CLAUDE.md`.
+- **Ship it:** push the repo, then bump `rev`/`hash` in `pkgs/xbox360-dashboard/default.nix`
+  ([companion-repos.md](companion-repos.md#xbox360-dashboard)).
+
 **Base every visual on the reference captures** in `Captures/xbox360-examples` on the NAS
 (blades, submenu, guide, guide-submenu, notification, keyboard) — not on memory. The
 geometry in `themes/xbox360/colors.nix` `layout` was measured off them.
@@ -235,7 +251,7 @@ an app, and two displays can both be on their dashboards.
   - A toggle while TV Mode is on ends TV Mode without restoring (`xbox360-tv forget`):
     what's lit is the new normal.
 
-## Shell layout (`themes/xbox360/shell/`)
+## Shell layout (`shell/` in the xbox360-dashboard repo)
 
 | File | Role |
 |---|---|

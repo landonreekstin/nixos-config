@@ -493,6 +493,17 @@ in
         '';
       };
       xbox360 = {
+        devSource = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          example = "/home/lando/xbox360-dashboard";
+          description = ''
+            Build the dashboard (pkgs/xbox360-dashboard) from this local checkout
+            of github:landonreekstin/xbox360-dashboard instead of the pinned rev,
+            to try a change before pushing it. Needs --impure, which `rebuild`
+            always passes. Leave null in committed host config.
+          '';
+        };
         transmissionUrl = mkOption {
           type = types.nullOr types.str;
           default = null;
