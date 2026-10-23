@@ -82,6 +82,13 @@ let
     ", BackSpace" = "back";
   });
 
+  # While the moon listens (a click on it in the glade), letters go to the glade instead
+  # of the windows, for its easter egg (pkgs/glade: apex.py). The glade turns this submap
+  # on itself and off again once it has heard the word, after ten seconds, or as soon as
+  # a window takes the focus.
+  moonLetters = lib.concatMapStringsSep "\n" (c: "bind = , ${c}, exec, glade-ctl key-${c}")
+    (lib.stringToCharacters "abcdefghijklmnopqrstuvwxyz");
+
   # Shut down through the same "update first?" check as every other shutdown path on
   # a host that has it (modules/home-manager/services/shutdown-guard.nix).
   guarded = action:
@@ -144,6 +151,9 @@ in
         ${steer}
         bind = , escape, submap, reset
         bind = SUPER, home, submap, reset
+        submap = glademoon
+        ${moonLetters}
+        bind = , escape, submap, reset
         submap = reset
       '';
     };
