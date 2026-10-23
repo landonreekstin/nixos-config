@@ -6,9 +6,8 @@ let
   # than the default gets its own display-manager entry, described by its meta.nix.
   desktopsDir = ../../home-manager/hyprland/desktops;
   dcfg = config.customConfig.homeManager.hyprland.desktops;
-  needsUinput = lib.any (n: (meta n).needsUinput or false) sessionDesktops;
-  sessionDesktops = lib.filter (n: n != dcfg.default
-    && builtins.pathExists (desktopsDir + "/${n}/meta.nix")) dcfg.enabled;
+  needsUinput = lib.any (n: (meta n).needsUinput or false) dcfg.enabled;
+  sessionDesktops = lib.filter (n: n != dcfg.default) dcfg.enabled;
   meta = n: import (desktopsDir + "/${n}/meta.nix");
 in
 {
@@ -94,7 +93,7 @@ in
     wallpaperEngine = mkOption {
       type = types.enum [ "hyprpaper" "awww" ];
       default =
-        if config.customConfig.homeManager.themes.hyprland == "century-series"
+        if dcfg.default == "century-series"
            && config.customConfig.homeManager.themes.centurySeries.night.enable
         then "awww" else "hyprpaper";
       description = ''

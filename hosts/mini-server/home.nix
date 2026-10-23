@@ -6,7 +6,6 @@
     enable = true;
     themes = {
       kde = "none";
-      hyprland = "none";
     };
   };
 

@@ -329,6 +329,10 @@ let
       };
     };
   };
+
+  # Every directory under modules/home-manager/hyprland/desktops/ is a desktop.
+  hyprlandDesktopNames = lib.attrNames (lib.filterAttrs (_: t: t == "directory")
+    (builtins.readDir ../../home-manager/hyprland/desktops));
 in
 {
   options.customConfig.homeManager = with lib; {
@@ -488,27 +492,25 @@ in
     # plain "Hyprland" one and owns hyprland.conf. See docs/theming.md "Hyprland desktops".
     hyprland.desktops = {
       enabled = mkOption {
-        type = types.listOf types.str;
-        default = lib.optional (config.customConfig.homeManager.themes.hyprland != "none")
-            config.customConfig.homeManager.themes.hyprland
-          ++ config.customConfig.homeManager.themes.hyprlandExtraSessions;
-        defaultText = literalExpression
-          ''optional (themes.hyprland != "none") themes.hyprland ++ themes.hyprlandExtraSessions'';
+        type = types.listOf (types.enum hyprlandDesktopNames);
+        default = [ ];
         example = [ "century-series" "xbox360" ];
         description = ''
-          The Hyprland desktops this host offers, each as its own login entry. Any
-          other than `default` must be a directory under
-          modules/home-manager/hyprland/desktops/. Until every desktop has moved there,
-          this defaults from themes.hyprland and themes.hyprlandExtraSessions.
+          The Hyprland desktops this host offers, each as its own login entry: any
+          directory under modules/home-manager/hyprland/desktops/. Must include
+          `default`.
         '';
       };
       default = mkOption {
-        type = types.str;
-        default = config.customConfig.homeManager.themes.hyprland;
-        defaultText = literalExpression "themes.hyprland";
+        type = types.nullOr (types.enum hyprlandDesktopNames);
+        default = if config.customConfig.homeManager.hyprland.desktops.enabled == [ ] then null
+          else lib.head config.customConfig.homeManager.hyprland.desktops.enabled;
+        defaultText = literalExpression "head enabled, or null";
         description = ''
           The desktop behind the plain "Hyprland" login entry, whose config is
-          ~/.config/hypr/hyprland.conf. "none" for none.
+          ~/.config/hypr/hyprland.conf. It is also the one whose app theming
+          (waybar, rofi, kitty, GTK, ...) is installed, since those apps read one
+          global config file each.
         '';
       };
     };
@@ -519,26 +521,6 @@ in
         description = "Set the Plasma theme for Home Manager.";
       };
       plasmaOverride = mkEnableOption "Override user-session set Plasma configuration.";
-      hyprland = mkOption {
-        type = types.enum [ "future-aviation" "century-series" "glade" "none" ];
-        default = "none";
-        description = ''
-          Set the Hyprland theme for Home Manager. "glade" is more than a look: it makes
-          the glade (pkgs/glade) the desktop and reshapes the session around it — see
-          docs/theming.md "The glade theme".
-        '';
-      };
-      hyprlandExtraSessions = mkOption {
-        type = types.listOf (types.enum [ "xbox360" ]);
-        default = [ ];
-        description = ''
-          Additional Hyprland rices offered as their own display-manager session,
-          next to the default one (which keeps themes.hyprland). Each gets a
-          separate hyprland.conf built from the same functional layer, so moving
-          between rices is log out -> pick a session, with no rebuild.
-          See docs/theming.md "Session-scoped rices".
-        '';
-      };
       xbox360 = {
         devSource = mkOption {
           type = types.nullOr types.str;
@@ -629,7 +611,7 @@ in
             sunrise. Independent of, and layered under, hyprsunset: that shifts
             colour temperature, this shifts the palette itself.
 
-            Only has an effect when themes.hyprland = "century-series".
+            Only has an effect when century-series is the default Hyprland desktop.
           '';
         };
         mode = mkOption {

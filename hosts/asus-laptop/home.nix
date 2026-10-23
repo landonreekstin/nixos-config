@@ -4,9 +4,9 @@
 {
   customConfig.homeManager = {
     enable = true;
+    hyprland.desktops.enabled = [ "century-series" ];
     themes = {
       kde = "none";
-      hyprland = "century-series";
     };
   };
 

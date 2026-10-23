@@ -18,12 +18,12 @@
       left = 50;
       right = 67;
     };
+    # The Glade: his own pixel-art forest (pkgs/glade) as the whole Hyprland desktop,
+    # driven by mouse or keyboard. See docs/theming.md.
+    hyprland.desktops.enabled = [ "glade" ];
     themes = {
       plasmaOverride = true;
       kde = "windows7-alt";
-      # The Glade: his own pixel-art forest (pkgs/glade, from his ~/projects/hud) as the
-      # whole Hyprland desktop, driven by mouse or keyboard. See docs/theming.md.
-      hyprland = "glade";
       # Win7 XFCE session (X11) as a coexisting login choice — pick "Xfce Session" at Ly.
       # Fully declarative: every rebuild re-asserts the declared taskbar/theme.
       xfce = "windows7";

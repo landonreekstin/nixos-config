@@ -65,7 +65,7 @@ in
     # for exactly this reason; the Flathub build carries no such wrapper.
     #
     # The century-series Hyprland theme exports QT_STYLE_OVERRIDE=adwaita-dark
-    # (themes/century-series/hyprland.nix), so every launch from rofi or the app
+    # (hyprland/desktops/century-series/hyprland.nix), so every launch from rofi or the app
     # menu inherited it and died, while launching from a sanitised environment
     # worked — which is what made this look like an intermittent failure.
     # Strip it for this one app rather than dropping the session-wide Qt theming.

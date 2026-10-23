@@ -13,10 +13,13 @@
       left = 70;
       right = 100;
     };
+    # century-series behind the plain "Hyprland" entry at Ly, the Xbox 360 dashboard
+    # as its own "Xbox 360 Dashboard" entry.
+    hyprland.desktops = {
+      enabled = [ "century-series" "xbox360" ];
+      default = "century-series";
+    };
     themes = {
-      hyprland = "century-series";
-      # Second Hyprland rice, as its own "Xbox 360 Dashboard" entry at the Ly greeter.
-      hyprlandExtraSessions = [ "xbox360" ];
       xbox360 = {
         transmissionUrl = "http://transmission.lan/transmission/rpc";
         jellyfinUrl = "http://jellyfin.lan";

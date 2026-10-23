@@ -7,7 +7,6 @@
     themes = {
       # Themes are not applicable for a headless server
       kde = "none";
-      hyprland = "none";
     };
   };
 

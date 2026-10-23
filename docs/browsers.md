@@ -243,5 +243,5 @@ An assertion catches the mismatch instead.
 
 Drop a `chrome/<name>.nix` returning a CSS string, then add `<name>` to the
 `chromeTheme` enum in `mkBrowserOptions`. Prefer importing an existing palette
-(`century-series.nix` reads `themes/century-series/colors.nix`) over restating
+(`century-series.nix` reads `hyprland/desktops/century-series/colors.nix`) over restating
 hex values.

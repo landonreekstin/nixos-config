@@ -8,10 +8,10 @@
     services.rebuildShutdownNotify.enable = true;
     # Mirror blaney-pc: offer to update first at shutdown when main has new commits.
     services.shutdownGuard.enable = true;
+    hyprland.desktops.enabled = [ "glade" ]; # mirrors blaney-pc
     themes = {
       plasmaOverride = true;
       kde = "windows7-alt";      # aerothemeplasma — the thing we're here to test
-      hyprland = "glade"; # mirrors blaney-pc
       # XFCE windows7 taskbar — mirror blaney-pc EXACTLY so the pre-PR VM check shows his
       # real taskbar (pick "Xfce Session" at Ly). Keep this identical to hosts/blaney-pc.
       xfce = "windows7";

@@ -1,6 +1,6 @@
 <!-- ~/nixos-config/docs/theming.md -->
 > **Read this when**: working on Plasma/SDDM/Hyprland themes, or adding/editing any
-> `modules/home-manager/themes/*` module. The functional-vs-theme split below is the
+> `modules/home-manager/themes/*` or `modules/home-manager/hyprland/desktops/*` module. The functional-vs-theme split below is the
 > rule that governs every Wayland component module in this repo.
 
 # Working with Themes
@@ -15,17 +15,15 @@ Theme configuration is set via `customConfig.homeManager.themes.kde`.
 ## Custom SDDM Themes
 Configure via `customConfig.desktop.displayManager.sddm.customTheme` with wallpaper, colors, and styling options.
 
-## Hyprland Themes
+## Hyprland desktops (themes)
+Each is a directory under `modules/home-manager/hyprland/desktops/`, picked with
+`customConfig.homeManager.hyprland.desktops` — see [Hyprland desktops](#hyprland-desktops).
 - `future-aviation` - Sleek aerospace aesthetic with modern fighter jet inspiration
 - `century-series` - Cold War aviation cockpit theme (F-100 through F-106, MiG-17/19/21)
 - `glade` - insideabush's pixel-art forest as the whole desktop; structural as well as
   visual — see [The glade theme](#the-glade-theme)
-
-Theme configuration is set via `customConfig.homeManager.themes.hyprland`.
-
-- `xbox360` - the 2005 Xbox 360 "Blades" dashboard. **Not** a `themes.hyprland` value: it
-  is a Hyprland desktop with its own login entry (`hyprland/desktops/xbox360/`) — see
-  [Hyprland desktops](#hyprland-desktops).
+- `xbox360` - the 2005 Xbox 360 "Blades" dashboard: its own shell rather than a theme
+  of the usual bar-and-windows session — see [xbox360.md](xbox360.md).
 
 ### century-series night mode
 
@@ -103,7 +101,7 @@ artifacts into the store and the ramp walks them:
 ### Application colours
 
 Apps that read their config only at launch live in
-`themes/century-series/app-themes.nix` — one generator per app, each a function of the
+`hyprland/desktops/century-series/app-themes.nix` — one generator per app, each a function of the
 palette, so the day module and the switcher build from the same source and cannot drift.
 `night-mode.nix` lists them in `swappable` and `century-apps-apply day|night` installs
 the right variant. Adding an app is one generator plus one list entry.
@@ -192,7 +190,7 @@ styling; the theme only reads it. `services.hyprpaper` is `mkIf`-gated on the sa
 option so the two daemons never both run.
 
 Both wallpaper sets and the per-monitor assignment live in
-`themes/century-series/wallpapers.nix`, shared by `hyprland.nix` (which feeds the day
+`hyprland/desktops/century-series/wallpapers.nix`, shared by `hyprland.nix` (which feeds the day
 set to hyprpaper and links the files) and `night-mode.nix` (which needs both). The night
 set mirrors the day set slot for slot, so each display keeps its character across the
 switch — hero airframe on primary, cockpit on secondary, portraits stay portrait.
@@ -277,29 +275,33 @@ customConfig.homeManager.hyprland.desktops = {
 };
 ```
 
-Switching desktops is log out → pick the entry; no rebuild. Both options currently
-**default from** `themes.hyprland` (→ `default`, and `enabled`) and
-`themes.hyprlandExtraSessions` (→ `enabled`), which hosts still set.
-Moving century-series, glade and future-aviation into the registry is the next step;
-until then only `xbox360` lives under `hyprland/desktops/`, and only the default desktop
-may still live in `themes/`.
+Switching desktops is log out → pick the entry; no rebuild. `default` defaults to the
+first of `enabled`, and must be one of them; a host with no Hyprland desktop leaves both
+unset.
 
 - **Layout.** `modules/home-manager/hyprland/desktops/<name>/` is a desktop: every
   subdirectory is imported automatically by `hyprland/desktops.nix`. It holds:
-  - `default.nix` / its modules, which declare
-    `options.hyprDesktops.<name> = (import ../lib.nix { inherit lib; }).desktopOptions;`
-    and set `hyprDesktops.<name>.{settings,extraConfig,transformSettings}` — **never**
-    `wayland.windowManager.hyprland.*` for their own session;
+  - `default.nix` / its modules, which set `hyprDesktops.<name>.{settings,extraConfig,
+    plugins,transformSettings,leaveExtraConfig}` (declared for every directory by
+    `desktops.nix`, from `desktops/lib.nix`) — **never** `wayland.windowManager.hyprland.
+    {settings,extraConfig,plugins}`, which an assertion enforces. Each module gates on
+    `(import ../lib.nix { inherit lib; }).state customConfig "<name>"`: **`enabled`** for
+    its `hyprDesktops` settings and packages, **`isDefault`** for anything written to a
+    global app config (waybar, rofi, kitty, GTK, dunst, a wallpaper service, …);
   - `meta.nix`, a plain attrset the NixOS side reads (`label` = the login entry's name,
     `needsUinput`). `modules/nixos/desktop/hyprland.nix` turns every enabled non-default
     desktop into a `sessionPackages` entry and gates `uinput` on `needsUinput`.
-- **Config.** `hyprland/desktops.nix` renders `~/.config/hypr/desktops/<name>.conf` by
-  re-merging the individual definitions of `wayland.windowManager.hyprland.{settings,extraConfig}`
-  (`options.….definitionsWithLocations`) — dropping every one from a file under
-  `modules/home-manager/themes/` or `hyprland/desktops/` — with the desktop's own
-  `hyprDesktops.<name>` definitions, priorities intact (functional values set without
-  `mkDefault` need `mkForce`). `transformSettings` edits the merged result (xbox360 drops
-  the wallpaper daemon and points the lock/power binds at its shell).
+- **Config.** The default desktop's `hyprDesktops.<name>` definitions are forwarded,
+  priorities intact, into `wayland.windowManager.hyprland.*`, so home-manager writes
+  `hyprland.conf` as before. Every other enabled desktop is rendered by
+  `hyprland/desktops.nix` to `~/.config/hypr/desktops/<name>.conf`, by re-merging the
+  individual definitions of `wayland.windowManager.hyprland.{settings,extraConfig,plugins}`
+  (`options.….definitionsWithLocations`) — all but the forwarded ones, i.e. the
+  functional layer — with the desktop's own, priorities intact (functional values set
+  without `mkDefault` need `mkForce`). `transformSettings` edits the merged result of a
+  non-default desktop (xbox360 drops the wallpaper daemon and points the lock/power binds
+  at its shell); `leaveExtraConfig` goes into the default desktop's config to undo state
+  it leaves behind (xbox360's TV Mode).
 - **A desktop's `exec-once` lines go in its `extraConfig`**, never `settings."exec-once"`:
   functional.nix sets that list with `mkDefault`, so a plain definition replaces it wholesale.
 - **Session.** The entry's wrapper writes `$XDG_RUNTIME_DIR/hypr-rice`, exports
@@ -311,8 +313,9 @@ may still live in `themes/`.
   deletes the file at startup, so logging out of a desktop and into century-series in the
   same boot restores everything (verified in `vm-sandbox`).
   **Anything new that pokes the compositor from a timer or unit must check it too.**
-- Apps with one global config (kitty, GTK, browser chrome) still wear the default theme
-  in another desktop's session.
+- Apps with one global config (waybar, rofi, kitty, GTK, browser chrome) are styled by
+  the default desktop alone and wear its look in another desktop's session; making those
+  per-desktop is a later step.
 - **Assets** (`pkgs/xbox360-assets`): the Convection font and the dashboard's UI cues
   (`share/sounds/xbox360/<cue>.wav`, decoded at build time), pinned to a commit of a public
   Blades recreation. The blade palette in `hyprland/desktops/xbox360/colors.nix` comes from the same
@@ -326,7 +329,7 @@ may still live in `themes/`.
 
 ## The glade theme
 
-`customConfig.homeManager.themes.hyprland = "glade"` (blaney-pc, mirrored on vm-blaney)
+`customConfig.homeManager.hyprland.desktops.enabled = [ "glade" ]` (blaney-pc, mirrored on vm-blaney)
 makes the Hyprland session insideabush's **Glade**: his own pixel-art forest scene
 (`pkgs/glade`, vendored from his `~/projects/hud`, see
 [blaney-vibe-projects.md](hosts/blaney-vibe-projects.md#packaging-a-finished-app)) as the
@@ -337,15 +340,15 @@ from the keyboard — every target labelled in words. He asked for exactly that,
 sky-squid, not the moon, so the chrome and the apps are night too.
 
 Unlike the other Hyprland themes it is also **structural** — it changes how the session
-works, not just how it looks — so the theme has two halves, both under `themes/glade/`
-and both gated on the same `themes.hyprland == "glade"` check. Living under `themes/`
-also keeps all of it out of the other Hyprland desktops (see above).
+works, not just how it looks — so the desktop has two halves, both under
+`hyprland/desktops/glade/`. Its Hyprland settings go to `hyprDesktops.glade`, which keeps
+them out of every other desktop (see above).
 
 | Piece | Where |
 |---|---|
 | the glade as a layer-shell surface, one per monitor (GTK + gtk-layer-shell; pygame draws off-screen), and the keyboard bridge | `pkgs/glade/src/wayland.py` |
-| **structure** — what runs, what each click or key does: autostart, `glade-show`, `glade-ctl` + the `glade` submap, floating windows + `hyprbars`, click-to-focus, resize from edges, bar layout, rofi single-click, power menu | `themes/glade/desktop.nix` |
-| **look** — borders and title bars, bar CSS, rofi, wlogout, lock screen, kitty, GTK/icons/cursor, pixel font (Departure Mono); all from one palette taken from the scene's name boards and glows | `themes/glade/{hyprland,waybar,rofi,wlogout,swaylock,kitty,gtk}.nix`, `colors.nix` |
+| **structure** — what runs, what each click or key does: autostart, `glade-show`, `glade-ctl` + the `glade` submap, floating windows + `hyprbars`, click-to-focus, resize from edges, bar layout, rofi single-click, power menu | `hyprland/desktops/glade/desktop.nix` |
+| **look** — borders and title bars, bar CSS, rofi, wlogout, lock screen, kitty, GTK/icons/cursor, pixel font (Departure Mono); all from one palette taken from the scene's name boards and glows | `hyprland/desktops/glade/{hyprland,waybar,rofi,wlogout,swaylock,kitty,gtk}.nix`, `colors.nix` |
 
 Behaviour worth knowing before changing it:
 
@@ -402,7 +405,7 @@ Examples:
 - `hyprland/functional.nix` - Keybindings, exec-once, monitor config, variables
 - `waybar/functional.nix` - Module layout, click actions, base formatting
 
-### Theme Modules (`modules/home-manager/themes/*/`)
+### Theme Modules (`modules/home-manager/themes/*/`, `hyprland/desktops/*/`)
 **Conditionally active** when theme is selected. Provide only:
 - **Visual styling**: Colors, fonts, borders, animations
 - **Theme-specific overrides**: Custom formats, icons, CSS styling
@@ -411,8 +414,8 @@ Examples:
 - **Priority overrides**: Use `mkForce` for conflicting visual settings
 
 Examples:
-- `themes/century-series/hyprland.nix` - MFD borders, cockpit colors, tactical animations
-- `themes/century-series/waybar.nix` - Aviation terminology, instrument panel styling
+- `hyprland/desktops/century-series/hyprland.nix` - MFD borders, cockpit colors, tactical animations
+- `hyprland/desktops/century-series/waybar.nix` - Aviation terminology, instrument panel styling
 
 ### Key Principles
 1. **Themes never duplicate functional settings** - Always inherit base functionality
