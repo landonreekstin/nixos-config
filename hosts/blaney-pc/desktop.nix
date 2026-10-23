@@ -23,8 +23,11 @@
       }
     ];
     hyprland = {
+      # His Hyprland desktop is the glade theme (themes.hyprland in home.nix), whose
+      # name boards open his apps, so the bottom launcher bar is off; the pins below are
+      # kept for if it is ever turned back on.
       launcher = {
-        enable = true;
+        enable = false;
         pinnedApps = [
           {
             label = "TERM";

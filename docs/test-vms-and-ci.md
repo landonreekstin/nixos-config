@@ -123,6 +123,60 @@ mandatory. See [networking.md](networking.md).)
 - **`pkill -f qemu-system-x86_64` to stop it**, and delete the `result` symlink the
   build-vm leaves in the repo root.
 
+## Testing Hyprland without KVM (nested in KWin)
+
+blaney-pc has no `/dev/kvm` (SVM is off in its firmware), so the VMs above would run under
+TCG — far too slow for a llvmpipe desktop. A **real, GPU-rendered Hyprland can run nested**
+there instead, on the branch's generated config, without touching the live session. This
+is how the Glade desktop ([theming.md](theming.md#the-glade-theme)) was verified while
+insideabush stayed logged into XFCE: every click below was actually made and checked.
+
+The shape, as insideabush (`runuser -u insideabush --`), all state under one short
+directory such as `/tmp/ghy` (Wayland socket paths are limited to 108 bytes, so the
+scratchpad is too long):
+
+1. **Build the branch's home generation**
+   (`.#nixosConfigurations.<host>.config.home-manager.users.<user>.home.activationPackage`)
+   and copy its `home-files` into a throwaway `$HOME` (`cp -rL`). Make a test copy of
+   `.config/hypr/hyprland.conf` **without** the `exec-once` lines that reach outside the
+   test: `dbus-update-activation-environment` (it would rewrite the REAL user manager's
+   environment), anything `systemctl --user`, `nm-applet`, `polkit`, `paplay`,
+   `century-night`, `restore-monitors`. Append `monitor=WAYLAND-1,1920x1080,0x0,1`.
+2. **Start from a clean environment** (`env -i`, then set `HOME`, `XDG_RUNTIME_DIR`,
+   `XDG_CONFIG_HOME`, `XCURSOR_PATH`, `XDG_DATA_DIRS`, `PATH`). Inherited root variables
+   crash Hyprland — e.g. `XCURSOR_PATH` pointing into `/root`.
+3. **Host it in `kwin_wayland --virtual --width 1920 --height 1080 --socket <name>`** under
+   `dbus-run-session`, and run `Hyprland -c <test.conf>` with `WAYLAND_DISPLAY=<name>`.
+   Headless **sway is too old**: Hyprland's Wayland backend needs `xdg_wm_base` v6 and
+   sway 1.12 offers 5 (`CBackend::create() failed!`). Hyprland has no headless-only mode.
+4. **Talk to the nested session** with its own `WAYLAND_DISPLAY` (its `wayland-1` in the test
+   runtime dir), `HYPRLAND_INSTANCE_SIGNATURE` (newest dir in `$XDG_RUNTIME_DIR/hypr`), and
+   the session's `DBUS_SESSION_BUS_ADDRESS` read from the Hyprland process' environ
+   (waybar exits without a bus). `grim` against that socket screenshots it.
+5. **Plug in a mouse that stays plugged in:** `scripts/nested-hyprland/vpointer.c`
+   (`nix-build scripts/nested-hyprland/vpointer.nix`), fed from a FIFO
+   (`tail -f fifo | vpointer W H`). The nested session has no pointer, so `wl_seat`
+   advertises none and GTK clients never create one; `wlrctl` adds a pointer only for the
+   instant of each command, so clicks never arrive. Title-bar drags need its `rel` moves,
+   and a moved window glides there over a few hundred ms — read positions after it settles.
+6. **A second monitor:** `hyprctl output create wayland` plus a `monitor=WAYLAND-2,...` rule
+   (`create headless` comes up 0x0). Programs that read the monitor list at startup (the
+   glade) must be restarted afterwards.
+
+Traps that cost time:
+
+- **Stop the test by its runtime dir, never by process name.** List the PIDs whose environ
+  has `XDG_RUNTIME_DIR=/tmp/ghy/rt` and kill those. A name match (`pkill -f portal`,
+  `gvfsd`, `at-spi`, …) also hits the REAL session's helpers — that happened once, and
+  they had to be restarted with `systemctl --user start`. Unmount the test's
+  `$XDG_RUNTIME_DIR/{gvfs,doc}` FUSE mounts before deleting it.
+- waybar's process name is `.waybar-wrapped`, so `pkill -x waybar` misses it and a
+  restart stacks a second bar.
+- waybar's `pulseaudio` module leaks descriptors until "Too many open files" when no sound
+  server is reachable; point `PULSE_SERVER` at the real one (read-only use).
+- The first GTK app in a fresh `$HOME` takes several seconds (fontconfig cache) — wait
+  before deciding a menu did not open.
+
 ## CI build job
 
 `.github/workflows/check.yml` has two jobs:
