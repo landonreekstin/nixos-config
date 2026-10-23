@@ -4,6 +4,21 @@
 
 # Companion Repositories
 
+**Standing rule** (also in `CLAUDE.md`): an app that is not Nix — Python, QML, C, Rust, a
+game, a shell UI — lives in its own repo and is only *packaged* here, with a
+`fetchFromGitHub` pin in `pkgs/<name>/default.nix`. Never vendor its source into
+`pkgs/<name>/src`. Inline `writeShellScript` glue that only wires config together is not an
+"app" and stays put. Every such repo gets a section below.
+
+Getting the `hash` for a new rev: either the `nix-prefetch-url` recipe under hyprland-keys,
+or set `hash = lib.fakeHash;`, build, and copy the real hash out of the mismatch error.
+
+Still vendored, to be moved out under this rule:
+- `pkgs/glade/src` → `github:cblaney00/glade` (PR #203; the repo exists, the pin is the
+  last step — the vendored copy matches rev `e7d5c2f`).
+- `modules/home-manager/themes/xbox360/{shell,pad}` — the Quickshell dashboard (32 QML
+  files) and the controller daemon (Python).
+
 ## jakks-batman-recomp
 
 Source: `github:landonreekstin/jakks-batman-recomp`

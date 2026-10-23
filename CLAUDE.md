@@ -470,6 +470,15 @@ Tasks that require physical machine testing (reboot, display, hardware) should b
 
 ## Companion Repositories
 
+**Standing rule: an app that isn't Nix lives in its own repo and is only *packaged*
+here.** Python, QML, C, Rust, JS, a game, a shell UI: if it is a program in its own right
+rather than configuration, its source goes in its own GitHub repo and this repo carries
+just `pkgs/<name>/default.nix` with a `fetchFromGitHub` pin (plus the module that
+configures it). Never vendor a `src/` tree into `pkgs/`. Small glue scripts that exist
+only to wire config together (`writeShellScript` one-offs) stay inline. This applies to
+insideabush's `vibe` projects too: packaging one means pushing it to its own repo under
+his GitHub first — see [docs/hosts/blaney-vibe-projects.md](docs/hosts/blaney-vibe-projects.md#packaging-a-finished-app).
+
 Some packages here are pinned to other repos of ours (e.g. `hyprland-keys`, pinned via
 `fetchFromGitHub` in `modules/home-manager/scripts/hyprland-keys.nix`). The rev/hash
 bump procedure is in **[docs/companion-repos.md](docs/companion-repos.md)**.

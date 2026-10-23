@@ -226,11 +226,21 @@ package my `<name>` app". That reuses the proven path with the right rules loade
 
 Then:
 
-1. `pkgs/<name>/default.nix` — a normal derivation. The source lives in his project repo,
-   which has no remote, so either vendor it or get it pushed somewhere first; decide at the
-   time and say which in the PR.
-2. `customConfig.packages.homeManager` in `hosts/blaney-pc/apps.nix`.
-3. A `.desktop` entry if it belongs in the Start menu, and a taskbar pin in
+1. **Give the project its own GitHub repo first** — public, under his account
+   (`cblaney00/<slug>`, as `cblaney00/glade` was), with the project's `main` pushed to it.
+   Packaging is the moment a project stops being local-only; day-to-day vibe work still
+   needs no remote. **Never vendor the source into `pkgs/<name>/src`** — this is the
+   repo-wide standing rule in `CLAUDE.md` ("an app that isn't Nix lives in its own repo"),
+   and it is what keeps his app history out of `nixos-config` and his apps reusable.
+2. `pkgs/<name>/default.nix` — a normal derivation using
+   `fetchFromGitHub { owner = "cblaney00"; repo = "<slug>"; rev = …; hash = …; }`. Get the
+   hash by building once with `hash = lib.fakeHash;` and copying the real one from the
+   mismatch error — that needs no network command beyond the build itself (a bare
+   `nix-prefetch-url` was refused by the auto-mode classifier on blaney-pc during the glade
+   PR). Record the repo in [docs/companion-repos.md](../companion-repos.md), and bump the pin
+   there the same way as any other companion repo.
+3. `customConfig.packages.homeManager` in `hosts/blaney-pc/apps.nix`.
+4. A `.desktop` entry if it belongs in the Start menu, and a taskbar pin in
    `hosts/blaney-pc/home.nix` (`themes.xfcePanel.pinnedApps` / `themes.pinnedApps`) if he
    wants one — **ask him**, that is a visual decision.
 
