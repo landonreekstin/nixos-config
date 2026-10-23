@@ -2,19 +2,21 @@
 > **Read this when**: working on the xbox360 rice ("Xbox 360 Dashboard" login session) —
 > its Quickshell shell, controller daemon, dashboard menus, Guide, pages or session
 > plumbing. The session mechanism itself (a second Hyprland config, `hypr-rice` guards)
-> is in [theming.md](theming.md#session-scoped-rices-xbox360).
+> is in [theming.md](theming.md#hyprland-desktops).
 
 # Xbox 360 Dashboard rice
 
 A couch-and-controller desktop recreating the original 2005 Xbox 360 "Blades" dashboard,
-focused on gaming and media. It is its own login session next to century-series, enabled
-with `customConfig.homeManager.themes.hyprlandExtraSessions = [ "xbox360" ]`.
+focused on gaming and media. It is a Hyprland desktop with its own login entry next to
+century-series (`"xbox360"` in `customConfig.homeManager.hyprland.desktops.enabled`; see
+[theming.md](theming.md#hyprland-desktops)). Its config is
+`~/.config/hypr/desktops/xbox360.conf`.
 
 **Where the code lives.** The program — the Quickshell shell (`shell/*.qml`, `*.js`), the
 blade shader source (`shaders/blade.frag.in`) and the Python helpers (`pad/*.py`) — is its
 own repo, [`landonreekstin/xbox360-dashboard`](https://github.com/landonreekstin/xbox360-dashboard),
 packaged as `pkgs/xbox360-dashboard` and checked out at `~/xbox360-dashboard` on gaming-pc.
-This repo keeps everything host-specific in `themes/xbox360/`: `session.nix` (the
+This repo keeps everything host-specific in `modules/home-manager/hyprland/desktops/xbox360/`: `session.nix` (the
 Hyprland config, the generated `Config.js`, the shader's substituted knots, each
 helper's JSON config), `colors.nix`, `menus.nix`, and the Microsoft assets
 (`pkgs/xbox360-assets`). Paths like `pad/…` and `Shell layout` below are in that repo. A
@@ -28,7 +30,7 @@ new `Cfg.<name>` the QML reads needs its `var` added in `session.nix` in the sam
 
 **Base every visual on the reference captures** in `Captures/xbox360-examples` on the NAS
 (blades, submenu, guide, guide-submenu, notification, keyboard) — not on memory. The
-geometry in `themes/xbox360/colors.nix` `layout` was measured off them.
+geometry in `hyprland/desktops/xbox360/colors.nix` `layout` was measured off them.
 
 ## The model
 

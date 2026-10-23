@@ -3,7 +3,7 @@
 # shader source, and the Python helpers (controller daemon, games library,
 # Jellyfin player, audio switcher). The source lives in its own repo,
 # github:landonreekstin/xbox360-dashboard (docs/companion-repos.md); the
-# hyprland xbox360 desktop (themes/xbox360/session.nix) adds everything
+# hyprland xbox360 desktop (hyprland/desktops/xbox360/session.nix) adds everything
 # host-specific: the generated Config.js, the shader's substituted knots
 # compiled to blade.frag.qsb, and each helper's JSON config.
 #
@@ -13,7 +13,7 @@
 { lib, stdenvNoCC, fetchFromGitHub, python3, srcOverride ? null }:
 
 let
-  rev = "508d6e2f25a8390a449191b96d15b0067ca5b973";
+  rev = "db14b907a43a5c176aff617ea6891b20b8bdc6c5";
   padPython = python3.withPackages (ps: [ ps.evdev ]);
 in
 stdenvNoCC.mkDerivation {
@@ -24,7 +24,7 @@ stdenvNoCC.mkDerivation {
     owner = "landonreekstin";
     repo = "xbox360-dashboard";
     inherit rev;
-    hash = "sha256-zCCkPJNP43yEFlC02GoV3K37reYhEzesVnM7bFZNVlM=";
+    hash = "sha256-YzTqWl53A7eVP6FW/2wnmLZ1IlBRTRq2nScnYHpOU84=";
   };
 
   dontConfigure = true;
@@ -48,6 +48,7 @@ stdenvNoCC.mkDerivation {
   meta = {
     description = "Xbox 360 Blades dashboard as a Quickshell shell for Hyprland";
     homepage = "https://github.com/landonreekstin/xbox360-dashboard";
+    license = lib.licenses.gpl3Plus;
     platforms = lib.platforms.linux;
   };
 }

@@ -6,7 +6,6 @@
     ./aerothemeplasma/plasma-user.nix
     ./future-aviation/default.nix # We will include this in the future when the modules are conditionally enabled
     ./century-series/default.nix
-    ./xbox360/default.nix
     ./glade/default.nix
     ./windows7-xfce/default.nix
     ./plasma-default.nix

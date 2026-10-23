@@ -12,7 +12,7 @@ let
   pactlBin = "${pkgs.pulseaudio}/bin/pactl";
   grepBin = "${pkgs.gnugrep}/bin/grep";
   pidofBin = "${pkgs.procps}/bin/pidof";
-  # Lock now. A session-scoped rice (themes/xbox360, see docs/theming.md) has its
+  # Lock now. A non-default Hyprland desktop (hyprland/desktops/xbox360; docs/theming.md) has its
   # own lock screen: $XDG_RUNTIME_DIR/hypr-rice names it, and its shell locks. The
   # profile path is absolute because swayidle runs with a minimal PATH.
   lockScript = pkgs.writeShellScript "lock-now" ''

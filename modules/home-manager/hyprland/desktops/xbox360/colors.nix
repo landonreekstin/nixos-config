@@ -1,4 +1,4 @@
-# ~/nixos-config/modules/home-manager/themes/xbox360/colors.nix
+# ~/nixos-config/modules/home-manager/hyprland/desktops/xbox360/colors.nix
 # Blade palette of the 2005 Xbox 360 "Blades" dashboard. Plain data, imported by
 # the Hyprland settings here and (later) by the Quickshell shell, so the two
 # cannot drift.

@@ -1,4 +1,4 @@
-# ~/nixos-config/modules/home-manager/themes/xbox360/menus.nix
+# ~/nixos-config/modules/home-manager/hyprland/desktops/xbox360/menus.nix
 # What each blade's menu holds — plain data, rendered by shell/BladeMenu.qml.
 # Apps come from customConfig.apps.programs, so a host without a role simply
 # has no row for it (rows whose command is empty are dropped).

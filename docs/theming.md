@@ -24,8 +24,8 @@ Configure via `customConfig.desktop.displayManager.sddm.customTheme` with wallpa
 Theme configuration is set via `customConfig.homeManager.themes.hyprland`.
 
 - `xbox360` - the 2005 Xbox 360 "Blades" dashboard. **Not** a `themes.hyprland` value: it
-  is a second login session, enabled through `themes.hyprlandExtraSessions` — see
-  [Session-scoped rices](#session-scoped-rices-xbox360).
+  is a Hyprland desktop with its own login entry (`hyprland/desktops/xbox360/`) — see
+  [Hyprland desktops](#hyprland-desktops).
 
 ### century-series night mode
 
@@ -264,37 +264,58 @@ rebuild triggers.
 Each ramp step is a distinct store path on purpose: Hyprland caches a compiled screen
 shader by path, so rewriting one file in place would never recompile.
 
-## Session-scoped rices (xbox360)
+## Hyprland desktops
 
-`customConfig.homeManager.themes.hyprlandExtraSessions = [ "xbox360" ]` adds a rice as
-its **own display-manager entry** ("Xbox 360 Dashboard" in Ly/SDDM) next to the default
-Hyprland session, which keeps `themes.hyprland`. Switching rices is log out → pick a
-session; no rebuild.
+A **Hyprland desktop** is a whole Hyprland session: the shared functional layer
+(`hyprland/functional.nix`, swayidle, …) plus the desktop's own settings, startup and
+programs. A host lists the ones it offers, and each gets its own display-manager entry:
 
-- **Config.** `themes/xbox360/session.nix` renders `~/.config/hypr/xbox360.conf` by
+```nix
+customConfig.homeManager.hyprland.desktops = {
+  enabled = [ "century-series" "xbox360" ];  # one login entry each
+  default = "century-series";                # the plain "Hyprland" entry, hyprland.conf
+};
+```
+
+Switching desktops is log out → pick the entry; no rebuild. Both options currently
+**default from** `themes.hyprland` (→ `default`, and `enabled`) and
+`themes.hyprlandExtraSessions` (→ `enabled`), which hosts still set.
+Moving century-series, glade and future-aviation into the registry is the next step;
+until then only `xbox360` lives under `hyprland/desktops/`, and only the default desktop
+may still live in `themes/`.
+
+- **Layout.** `modules/home-manager/hyprland/desktops/<name>/` is a desktop: every
+  subdirectory is imported automatically by `hyprland/desktops.nix`. It holds:
+  - `default.nix` / its modules, which declare
+    `options.hyprDesktops.<name> = (import ../lib.nix { inherit lib; }).desktopOptions;`
+    and set `hyprDesktops.<name>.{settings,extraConfig,transformSettings}` — **never**
+    `wayland.windowManager.hyprland.*` for their own session;
+  - `meta.nix`, a plain attrset the NixOS side reads (`label` = the login entry's name,
+    `needsUinput`). `modules/nixos/desktop/hyprland.nix` turns every enabled non-default
+    desktop into a `sessionPackages` entry and gates `uinput` on `needsUinput`.
+- **Config.** `hyprland/desktops.nix` renders `~/.config/hypr/desktops/<name>.conf` by
   re-merging the individual definitions of `wayland.windowManager.hyprland.{settings,extraConfig}`
-  (`options.….definitionsWithLocations`), dropping every one whose file is under
-  `modules/home-manager/themes/`, and adding the rice's own. So functional.nix, swayidle and
-  any future non-theme module reach both sessions automatically, and `hyprland.conf` is
-  unchanged except for one `exec-once` (below). A theme's settings must live under
-  `themes/` for this to exclude them.
-- **The rice's `exec-once` lines go in its `extraConfig`**, never `settings."exec-once"`:
+  (`options.….definitionsWithLocations`) — dropping every one from a file under
+  `modules/home-manager/themes/` or `hyprland/desktops/` — with the desktop's own
+  `hyprDesktops.<name>` definitions, priorities intact (functional values set without
+  `mkDefault` need `mkForce`). `transformSettings` edits the merged result (xbox360 drops
+  the wallpaper daemon and points the lock/power binds at its shell).
+- **A desktop's `exec-once` lines go in its `extraConfig`**, never `settings."exec-once"`:
   functional.nix sets that list with `mkDefault`, so a plain definition replaces it wholesale.
-- **Session.** `modules/nixos/desktop/hyprland.nix` adds a `sessionPackages` entry whose
-  wrapper writes `$XDG_RUNTIME_DIR/hypr-rice`, exports `HYPR_RICE`, and runs
-  `start-hyprland -- --config ~/.config/hypr/<rice>.conf`. `hyprctl reload` re-reads whichever
-  file an instance started with.
+- **Session.** The entry's wrapper writes `$XDG_RUNTIME_DIR/hypr-rice`, exports
+  `HYPR_RICE`, and runs `start-hyprland -- --config ~/.config/hypr/desktops/<name>.conf`.
+  `hyprctl reload` re-reads whichever file an instance started with.
 - **Guards.** Anything shared that belongs only to the default session exits when
   `$XDG_RUNTIME_DIR/hypr-rice` is non-empty: `waybar-start`, `waybar-restart`, the
   century-night step's `hyprctl` half and `century-wallpaper-apply`. The default session
-  deletes the file at startup, so logging out of the rice and into century-series in the
+  deletes the file at startup, so logging out of a desktop and into century-series in the
   same boot restores everything (verified in `vm-sandbox`).
   **Anything new that pokes the compositor from a timer or unit must check it too.**
 - Apps with one global config (kitty, GTK, browser chrome) still wear the default theme
-  in the rice session.
+  in another desktop's session.
 - **Assets** (`pkgs/xbox360-assets`): the Convection font and the dashboard's UI cues
   (`share/sounds/xbox360/<cue>.wav`, decoded at build time), pinned to a commit of a public
-  Blades recreation. The blade palette in `themes/xbox360/colors.nix` comes from the same
+  Blades recreation. The blade palette in `hyprland/desktops/xbox360/colors.nix` comes from the same
   project's DESIGN.md and has not been checked against console captures yet.
 - **The shell itself** — dashboard, menus, app workspaces, controller, Guide — is
   documented in **[xbox360.md](xbox360.md)**.
@@ -318,7 +339,7 @@ sky-squid, not the moon, so the chrome and the apps are night too.
 Unlike the other Hyprland themes it is also **structural** — it changes how the session
 works, not just how it looks — so the theme has two halves, both under `themes/glade/`
 and both gated on the same `themes.hyprland == "glade"` check. Living under `themes/`
-also keeps all of it out of the session-scoped rices (see above).
+also keeps all of it out of the other Hyprland desktops (see above).
 
 | Piece | Where |
 |---|---|

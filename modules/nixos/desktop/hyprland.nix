@@ -1,6 +1,16 @@
 # ~/nixos-config/modules/nixos/desktop/hyprland.nix
 { config, pkgs, lib, ... }:
 
+let
+  # Hyprland desktops (customConfig.homeManager.hyprland.desktops): every one other
+  # than the default gets its own display-manager entry, described by its meta.nix.
+  desktopsDir = ../../home-manager/hyprland/desktops;
+  dcfg = config.customConfig.homeManager.hyprland.desktops;
+  needsUinput = lib.any (n: (meta n).needsUinput or false) sessionDesktops;
+  sessionDesktops = lib.filter (n: n != dcfg.default
+    && builtins.pathExists (desktopsDir + "/${n}/meta.nix")) dcfg.enabled;
+  meta = n: import (desktopsDir + "/${n}/meta.nix");
+in
 {
   options.customConfig.desktop.hyprland = with lib; {
     launcher = {
@@ -177,22 +187,21 @@
     # Enable XWayland for running X11 apps
     programs.xwayland.enable = true;
 
-    # Session-scoped rices (customConfig.homeManager.themes.hyprlandExtraSessions):
-    # each one is a second display-manager entry that starts the same Hyprland
-    # against its own config, rendered by home-manager into
-    # ~/.config/hypr/<rice>.conf (themes/<rice>/session.nix). The default
-    # "Hyprland" entry keeps hyprland.conf and themes.hyprland.
+    # Hyprland desktops other than the default: each is a display-manager entry that
+    # starts the same Hyprland against its own config, rendered by home-manager into
+    # ~/.config/hypr/desktops/<name>.conf (modules/home-manager/hyprland/desktops.nix).
+    # The plain "Hyprland" entry keeps hyprland.conf and the default desktop.
     #
     # $XDG_RUNTIME_DIR/hypr-rice tells shared scripts and systemd user units which
     # rice is live — they have no other way to know, since both sessions run the
     # same binaries. The default session deletes it again at startup.
-    # The xbox360 rice's controller daemon emulates a mouse and keyboard for
-    # apps that can't use a controller, through /dev/uinput. Give the seat's
-    # logged-in user access (uaccess), as Steam's own udev rules do — but
-    # without depending on Steam being installed. The gamepads themselves are
-    # already uaccess-tagged by systemd as joysticks.
-    boot.kernelModules = lib.mkIf (lib.elem "xbox360" config.customConfig.homeManager.themes.hyprlandExtraSessions) [ "uinput" ];
-    services.udev.extraRules = lib.mkIf (lib.elem "xbox360" config.customConfig.homeManager.themes.hyprlandExtraSessions) ''
+    # A desktop whose meta.nix sets needsUinput (xbox360: its controller daemon
+    # emulates a mouse and keyboard for apps that can't use a controller) needs
+    # /dev/uinput. Give the seat's logged-in user access (uaccess), as Steam's own
+    # udev rules do — but without depending on Steam being installed. The gamepads
+    # themselves are already uaccess-tagged by systemd as joysticks.
+    boot.kernelModules = lib.mkIf needsUinput [ "uinput" ];
+    services.udev.extraRules = lib.mkIf needsUinput ''
       KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess", OPTIONS+="static_node=uinput"
     '';
 
@@ -202,11 +211,11 @@
           export HYPR_RICE=${rice}
           printf '%s\n' ${rice} > "''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/hypr-rice"
           exec ${config.programs.hyprland.package}/bin/start-hyprland -- \
-            --config "$HOME/.config/hypr/${rice}.conf"
+            --config "$HOME/.config/hypr/desktops/${rice}.conf"
         '';
         desktop = pkgs.writeTextDir "share/wayland-sessions/hyprland-${rice}.desktop" ''
           [Desktop Entry]
-          Name=${{ xbox360 = "Xbox 360 Dashboard"; }.${rice}}
+          Name=${(meta rice).label}
           Comment=Hyprland with the ${rice} rice
           Exec=${start}
           Type=Application
@@ -216,7 +225,7 @@
       desktop.overrideAttrs (old: {
         passthru = (old.passthru or { }) // { providedSessions = [ "hyprland-${rice}" ]; };
       })
-    ) config.customConfig.homeManager.themes.hyprlandExtraSessions;
+    ) sessionDesktops;
 
     # KDE apps (Dolphin is the default fileManager role) look up a file's default
     # handler through ksycoca, which kbuildsycoca6 builds by walking

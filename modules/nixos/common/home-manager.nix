@@ -482,6 +482,36 @@ in
         };
       };
     };
+    # Hyprland desktops: each one a whole Hyprland session built from the shared
+    # functional layer plus its own pieces (modules/home-manager/hyprland/desktops/
+    # <name>/). Every enabled desktop gets a display-manager entry; `default` is the
+    # plain "Hyprland" one and owns hyprland.conf. See docs/theming.md "Hyprland desktops".
+    hyprland.desktops = {
+      enabled = mkOption {
+        type = types.listOf types.str;
+        default = lib.optional (config.customConfig.homeManager.themes.hyprland != "none")
+            config.customConfig.homeManager.themes.hyprland
+          ++ config.customConfig.homeManager.themes.hyprlandExtraSessions;
+        defaultText = literalExpression
+          ''optional (themes.hyprland != "none") themes.hyprland ++ themes.hyprlandExtraSessions'';
+        example = [ "century-series" "xbox360" ];
+        description = ''
+          The Hyprland desktops this host offers, each as its own login entry. Any
+          other than `default` must be a directory under
+          modules/home-manager/hyprland/desktops/. Until every desktop has moved there,
+          this defaults from themes.hyprland and themes.hyprlandExtraSessions.
+        '';
+      };
+      default = mkOption {
+        type = types.str;
+        default = config.customConfig.homeManager.themes.hyprland;
+        defaultText = literalExpression "themes.hyprland";
+        description = ''
+          The desktop behind the plain "Hyprland" login entry, whose config is
+          ~/.config/hypr/hyprland.conf. "none" for none.
+        '';
+      };
+    };
     themes = {
       kde = mkOption {
         type = types.enum [ "windows7" "windows7-alt" "default" "bigsur" "none" ];
