@@ -17,4 +17,32 @@
     };
     wifi.waybar.enable = true;  # USB WiFi dongle (wlp38s0f3u1) — picker in the Hyprland bar
   };
+
+  # The AMD 500-series chipset xHCI controller (0000:02:00.0, USB bus 1/2 — the G915
+  # receiver lives there) fails S3 resume: "xHC error in resume, USBSTS 0x401, Reinit",
+  # then Logitech HID++ protocol errors and dead input until the receiver is replugged.
+  # Unbinding and rebinding the controller after wake re-enumerates it from scratch.
+  # Not done before suspend, so a keypress can still wake the PC.
+  powerManagement.resumeCommands = ''
+    xhci=0000:02:00.0
+    if [ -e /sys/bus/pci/drivers/xhci_hcd/$xhci ]; then
+      echo $xhci > /sys/bus/pci/drivers/xhci_hcd/unbind
+      sleep 1
+    fi
+    echo $xhci > /sys/bus/pci/drivers/xhci_hcd/bind
+
+    # Hyprland's libinput misses the remove/re-add that the rebind causes (it is still
+    # busy waking the GPU), so the keyboard works on a TTY but not on the desktop. A VT
+    # round-trip makes the compositor drop and re-open every input device. Wait for the
+    # receiver first: a stuck device on another port can hold enumeration up for ~25s.
+    for _ in $(seq 60); do
+      ls /dev/input/by-id/*G915*-event-kbd >/dev/null 2>&1 && break
+      sleep 1
+    done
+    sleep 1
+    vt=$(${pkgs.kbd}/bin/fgconsole)
+    ${pkgs.kbd}/bin/chvt 12
+    sleep 1
+    ${pkgs.kbd}/bin/chvt "$vt"
+  '';
 }
