@@ -19,6 +19,17 @@ let
 
   c = import ./colors.nix { inherit lib; };
   assets = pkgs.callPackage ../../../../pkgs/xbox360-assets { };
+  # The program itself (QML shell, shader source, Python helpers), from its own
+  # repo; devSource swaps the pin for a local checkout. Its .git and the files
+  # this module generates into a checkout (Config.js, *.qsb) are left out.
+  dashboard = pkgs.callPackage ../../../../pkgs/xbox360-dashboard (lib.optionalAttrs (xcfg.devSource != null) {
+    srcOverride = builtins.path {
+      name = "xbox360-dashboard-src";
+      path = xcfg.devSource;
+      filter = p: _: !(lib.elem (baseNameOf p) [ ".git" "Config.js" "blade.frag.qsb" ]);
+    };
+  });
+  share = "${dashboard}/share/xbox360-dashboard";
 
   hyprOpts = options.wayland.windowManager.hyprland;
 
@@ -241,19 +252,21 @@ let
 
   # blade.frag with the curve knots substituted, so the shader's panel mask is
   # the same curve Geometry.js draws. Floats spelled out: GLSL wants 130.0.
+  # Substituted at build time (not builtins.readFile of the package, which
+  # would be import-from-derivation).
   glslFloats = xs: lib.concatMapStringsSep ", " (x: toString (x * 1.0)) xs;
-  bladeFrag = pkgs.writeText "blade.frag" (lib.replaceStrings
+  bladeKnots = lib.zipListsWith (k: v: "--replace-fail ${k} ${lib.escapeShellArg v}")
     [ "@N@" "@KY@" "@KD@" "@CI@" "@CR@" ]
     ([ (toString (lib.length c.curve.y)) (glslFloats c.curve.y) (glslFloats c.curve.d) ]
-      ++ map (k: glslFloats [ c.layout.${k} ]) [ "cardInset" "cardRadius" ])
-    (builtins.readFile ./blade.frag.in));
+      ++ map (k: glslFloats [ c.layout.${k} ]) [ "cardInset" "cardRadius" ]);
 
   shellConfig = pkgs.runCommand "xbox360-quickshell" { } ''
     mkdir -p $out
-    cp ${./shell}/* $out/
+    cp ${share}/shell/* $out/
     cp ${configJs} $out/Config.js
+    substitute ${share}/shaders/blade.frag.in blade.frag ${lib.concatStringsSep " " bladeKnots}
     ${lib.getBin pkgs.qt6.qtshadertools}/bin/qsb --glsl "300 es,100 es,120,150,330" --hlsl 50 --msl 12 \
-      -o $out/blade.frag.qsb ${bladeFrag}
+      -o $out/blade.frag.qsb blade.frag
   '';
 
   # ---- the Guide ----------------------------------------------------------
@@ -296,8 +309,7 @@ let
   # switched in one go (pad/xbox360-audio.py). null when the host lists none.
   audioCmd = if xcfg.audioDevices == [ ] then null else
     let
-      script = pkgs.writeScript "xbox360-audio.py"
-        ("#!${pkgs.python3}/bin/python3\n" + builtins.readFile ./pad/xbox360-audio.py);
+      script = "${dashboard}/bin/xbox360-audio";
       devices = pkgs.writeText "xbox360-audio.json" (builtins.toJSON xcfg.audioDevices);
     in pkgs.writeShellScript "xbox360-audio" ''
       # toggle-audio-flip comes from the user's profile.
@@ -473,16 +485,12 @@ let
   '';
 
   # ---- Games Library and Videos -------------------------------------------
-  gamesCmd = pkgs.writeScriptBin "xbox360-games"
-    ("#!${pkgs.python3}/bin/python3\n" + builtins.readFile ./pad/xbox360-games.py);
+  gamesCmd = dashboard;
   gamesConfig = builtins.toJSON { steam = appCmd "gaming"; heroic = appCmd "gamingAlt"; };
-  jellyfinPlay = pkgs.writeScriptBin "xbox360-jellyfin-play"
-    ("#!${pkgs.python3}/bin/python3\n" + builtins.readFile ./pad/xbox360-jellyfin-play.py);
+  jellyfinPlay = dashboard;
 
-  # ---- the controller daemon (pad/xbox360-pad.py) -----------------------
-  padPython = pkgs.python3.withPackages (ps: [ ps.evdev ]);
-  pad = pkgs.writeScriptBin "xbox360-pad"
-    ("#!${padPython}/bin/python3\n" + builtins.readFile ./pad/xbox360-pad.py);
+  # ---- the controller daemon (pad/xbox360-pad.py in the dashboard repo) ----
+  pad = dashboard;
   # Window classes that are games themselves (not launchers): the controller
   # passes straight through, and the shell gives one its own app workspace
   # when it opens over Steam or Heroic.

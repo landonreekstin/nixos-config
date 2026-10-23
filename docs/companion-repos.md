@@ -16,8 +16,20 @@ or set `hash = lib.fakeHash;`, build, and copy the real hash out of the mismatch
 Still vendored, to be moved out under this rule:
 - `pkgs/glade/src` → `github:cblaney00/glade` (PR #203; the repo exists, the pin is the
   last step — the vendored copy matches rev `e7d5c2f`).
-- `modules/home-manager/themes/xbox360/{shell,pad}` — the Quickshell dashboard (32 QML
-  files) and the controller daemon (Python).
+
+## xbox360-dashboard
+
+Source: `github:landonreekstin/xbox360-dashboard` (checkout at `/home/lando/xbox360-dashboard`
+on gaming-pc)
+Package: `pkgs/xbox360-dashboard/default.nix`, used by `modules/home-manager/themes/xbox360/session.nix`
+
+The Quickshell shell, blade shader source and Python helpers of the Xbox 360 Dashboard
+session; split out of this repo with its history. Bump like hyprland-keys below, with repo
+path `/home/lando/xbox360-dashboard` and repo name `xbox360-dashboard`, and bump `version`
+(the date). If the change reads a new `Cfg.<name>`, the matching `var` in `session.nix`'s
+`configJs` lands in the same PR. To test unpushed work, set
+`customConfig.homeManager.themes.xbox360.devSource = "/home/lando/xbox360-dashboard";` in the
+host and `rebuild` (never commit it). Verify by logging into "Xbox 360 Dashboard".
 
 ## jakks-batman-recomp
 
