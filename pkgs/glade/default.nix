@@ -30,7 +30,7 @@ let
 in
 stdenvNoCC.mkDerivation {
   pname = "glade";
-  version = "0-unstable-2026-10-22";
+  version = "0-unstable-2026-10-23";
 
   src = ./src;
 
