@@ -128,6 +128,11 @@
         cifs-utils
         samba
 
+        # The Jellyfin desktop client (formerly Jellyfin Media Player): the full
+        # Jellyfin app in every session. "TV" mode is its own couch interface;
+        # the xbox360 rice also browses the server natively (Media -> Videos).
+        jellyfin-desktop
+
         # Webcam (Logitech C920e on /dev/video0). guvcview is the GUI app — resolution/format
         # picker plus exposure/focus/white-balance sliders; v4l-utils provides v4l2-ctl for
         # enumerating what the camera actually supports (`v4l2-ctl --list-formats-ext`).
