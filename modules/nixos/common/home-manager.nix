@@ -477,9 +477,13 @@ in
       };
       plasmaOverride = mkEnableOption "Override user-session set Plasma configuration.";
       hyprland = mkOption {
-        type = types.enum [ "future-aviation" "century-series" "none" ];
+        type = types.enum [ "future-aviation" "century-series" "glade" "none" ];
         default = "none";
-        description = "Set the Hyprland theme for Home Manager.";
+        description = ''
+          Set the Hyprland theme for Home Manager. "glade" is more than a look: it makes
+          the glade (pkgs/glade) the desktop and reshapes the session around it — see
+          docs/theming.md "The glade theme".
+        '';
       };
       hyprlandExtraSessions = mkOption {
         type = types.listOf (types.enum [ "xbox360" ]);

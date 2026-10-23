@@ -239,7 +239,7 @@ Then:
 pushing it somewhere would mean handing him credentials. Re-vendor by copying the files
 over and bumping `version`; his project stays the place he and his sessions work on it.
 It is not an app in the menu but his Hyprland desktop, wired up by
-`customConfig.desktop.hyprland.glade` — see [theming.md](../theming.md#the-glade-desktop).
+its Hyprland theme (`themes.hyprland = "glade"`) — see [theming.md](../theming.md#the-glade-theme).
 Under XFCE he still runs it straight from the project folder.
 
 Until then, running it out of the project folder with `nix develop ... --command` is the

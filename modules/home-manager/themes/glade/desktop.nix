@@ -1,20 +1,22 @@
-# ~/nixos-config/modules/home-manager/hyprland/glade.nix
+# ~/nixos-config/modules/home-manager/themes/glade/desktop.nix
 #
-# The Glade desktop for Hyprland (customConfig.desktop.hyprland.glade): the glade
+# The structural half of the glade Hyprland theme (themes.hyprland = "glade"): the glade
 # (pkgs/glade) as the desktop on every monitor, and a session that can be driven with
-# the mouse alone, everything labelled in plain words. Built for insideabush on
-# blaney-pc, who asked for exactly that.
+# the mouse alone (or steered from the keyboard), everything labelled in plain words.
+# Built for insideabush on blaney-pc, who asked for exactly that.
 #
-# Functional half only: what runs and what each click does. Everything visual —
-# colours, fonts, bar/title-bar styling — is themes/glade/.
+# What runs and what each click or key does. Everything visual — colours, fonts,
+# bar/title-bar styling — is in the other files of this theme. Living under themes/
+# keeps all of it out of the session-scoped rices (themes/xbox360/session.nix drops
+# every definition from a file under themes/).
 { config, pkgs, lib, customConfig, ... }:
 
 let
-  on = customConfig.desktop.hyprland.glade.enable
-    && lib.elem "hyprland" customConfig.desktop.environments;
+  on = lib.elem "hyprland" customConfig.desktop.environments
+    && customConfig.homeManager.themes.hyprland == "glade";
 
-  glade = pkgs.callPackage ../../../pkgs/glade { };
-  colors = import ../themes/glade/colors.nix;
+  glade = pkgs.callPackage ../../../../pkgs/glade { };
+  colors = import ./colors.nix;
   rgb = c: "rgb(${lib.removePrefix "#" c})";
 
   # The bar goes on the main monitor only, like the XFCE taskbar: the glade's lower
@@ -132,6 +134,10 @@ in
       # Super+Home: show the glade and let the keyboard steer it (Super+G is Steam).
       extraConfig = ''
         exec-once = glade-desktop
+        # Notifications (update reminders, rebuild results). swaync's unit is only
+        # WantedBy graphical-session.target, which this session never reaches, so
+        # start it explicitly, as century-series does for its own units.
+        exec-once = systemctl --user start swaync
 
         bind = SUPER, home, exec, glade-show && glade-ctl keys
         submap = glade
@@ -193,7 +199,7 @@ in
       terminal = customConfig.apps.programs.terminal.command;
     };
 
-    # The power menu, in words. Styling is themes/glade/wlogout.nix.
+    # The power menu, in words. Styling is wlogout.nix.
     programs.wlogout = {
       enable = true;
       layout = [

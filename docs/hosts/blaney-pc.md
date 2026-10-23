@@ -127,8 +127,8 @@ file. See [blaney-vibe-projects.md](blaney-vibe-projects.md). The rules here sti
 anything that touches *this* repo.
 
 One of them is his **Hyprland desktop**: the Glade, a pixel-art forest he clicks around
-to open his apps, with a session built to be used by mouse alone
-([theming.md](../theming.md#the-glade-desktop)). This machine cannot run the test VMs (no
+to open his apps, with a session built to be used by mouse alone or steered from the
+keyboard (the `glade` Hyprland theme, [theming.md](../theming.md#the-glade-theme)). This machine cannot run the test VMs (no
 KVM); Hyprland changes are verified nested inside KWin instead
 ([test-vms-and-ci.md](../test-vms-and-ci.md#testing-hyprland-without-kvm-nested-in-kwin)).
 

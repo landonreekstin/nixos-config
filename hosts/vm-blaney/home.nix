@@ -11,7 +11,7 @@
     themes = {
       plasmaOverride = true;
       kde = "windows7-alt";      # aerothemeplasma — the thing we're here to test
-      hyprland = "century-series";
+      hyprland = "glade"; # mirrors blaney-pc
       # XFCE windows7 taskbar — mirror blaney-pc EXACTLY so the pre-PR VM check shows his
       # real taskbar (pick "Xfce Session" at Ly). Keep this identical to hosts/blaney-pc.
       xfce = "windows7";

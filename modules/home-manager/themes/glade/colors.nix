@@ -15,4 +15,10 @@
   violet = "#ba8cff";
   amber = "#ffc478";
   font = "Departure Mono"; # a pixel font, to match the glade's pixels
+
+  # The terminal's 16 colours: the same glows on the night sky (kitty.nix).
+  terminal = [
+    "#180e22" "#ff6f91" "#4fd9a0" "#ffc478" "#6e9cff" "#ba8cff" "#6ee2ff" "#d8c8e0"
+    "#5c3c6a" "#ff9ab3" "#6effbe" "#ffe0a8" "#9cbcff" "#fface4" "#a8f0ff" "#ffeed6"
+  ];
 }

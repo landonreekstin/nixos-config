@@ -3,7 +3,7 @@
 # The Glade: insideabush's living pixel-art desktop (a Rain World-style forest clearing
 # you move around by clicking paths, whose objects open his apps). Under Hyprland it runs
 # as a layer-shell surface on the "bottom" layer of every monitor; under X11 as a
-# borderless window kept behind the others. See modules/home-manager/hyprland/glade.nix.
+# borderless window kept behind the others. See modules/home-manager/themes/glade/desktop.nix.
 # It is always night there; its name boards use Departure Mono, the same pixel font as
 # the bar (themes/glade), passed in as GLADE_FONT.
 #

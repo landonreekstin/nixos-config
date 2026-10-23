@@ -18,6 +18,8 @@ Configure via `customConfig.desktop.displayManager.sddm.customTheme` with wallpa
 ## Hyprland Themes
 - `future-aviation` - Sleek aerospace aesthetic with modern fighter jet inspiration
 - `century-series` - Cold War aviation cockpit theme (F-100 through F-106, MiG-17/19/21)
+- `glade` - insideabush's pixel-art forest as the whole desktop; structural as well as
+  visual — see [The glade theme](#the-glade-theme)
 
 Theme configuration is set via `customConfig.homeManager.themes.hyprland`.
 
@@ -301,39 +303,34 @@ session; no rebuild.
   `vm-sandbox` (which has the rice enabled) headless over QMP, and pick "Xbox 360 Dashboard"
   in the SDDM session menu (bottom-left).
 
-## The Glade desktop
+## The glade theme
 
-`customConfig.desktop.hyprland.glade.enable` (blaney-pc, mirrored on vm-blaney) turns a
-Hyprland session into insideabush's **Glade**: his own pixel-art forest scene
+`customConfig.homeManager.themes.hyprland = "glade"` (blaney-pc, mirrored on vm-blaney)
+makes the Hyprland session insideabush's **Glade**: his own pixel-art forest scene
 (`pkgs/glade`, vendored from his `~/projects/hud`, see
 [blaney-vibe-projects.md](hosts/blaney-vibe-projects.md#packaging-a-finished-app)) as the
-desktop on both monitors, and a session he can drive with the **mouse alone**, every
-target labelled in words. He asked for exactly that, and chose "windows like Windows"
-and "everything matches the glade". It is **always night** there (his choice): the light
-comes from glowing moss, mushrooms, lanterns, fireflies and little sky-squid, not the moon,
-so the chrome is night too — and so is the apps' palette (`centurySeries.night.mode =
-"night"` in `hosts/blaney-pc/home.nix`).
+desktop on both monitors, and a session he can drive with the **mouse alone** — or steer
+from the keyboard — every target labelled in words. He asked for exactly that, and chose
+"windows like Windows" and "everything matches the glade". It is **always night** there
+(his choice): the light comes from glowing moss, mushrooms, lanterns, fireflies and little
+sky-squid, not the moon, so the chrome and the apps are night too.
 
-It is not a `themes.hyprland` value, on purpose. `themes.hyprland = "century-series"`
-also styles the *apps* (kitty, btop, yazi, …), and kitty's config is shared with his
-XFCE session, so switching the theme would have restyled XFCE too. Instead the glade
-layer sits on top: century-series keeps the apps and night mode, and steps aside for
-everything Hyprland itself draws.
+Unlike the other Hyprland themes it is also **structural** — it changes how the session
+works, not just how it looks — so the theme has two halves, both under `themes/glade/`
+and both gated on the same `themes.hyprland == "glade"` check. Living under `themes/`
+also keeps all of it out of the session-scoped rices (see above).
 
 | Piece | Where |
 |---|---|
-| the glade as a layer-shell surface, one per monitor (GTK + gtk-layer-shell; pygame draws off-screen) | `pkgs/glade/src/wayland.py` |
-| what runs, what each click does: autostart, `glade-show`, floating windows + `hyprbars`, click-to-focus, resize from edges, bar layout, rofi single-click, power menu | `modules/home-manager/hyprland/glade.nix` |
-| the look: borders, title bars, bar CSS, rofi and wlogout styling, pixel font (Departure Mono) — the same dark carved-wood boards and glow colours as the name boards in the scene (`colors.nix`) | `modules/home-manager/themes/glade/` |
-| century-series stepping aside | `gladeDesktop` in `themes/century-series/{hyprland,waybar,rofi,wlogout,night-mode}.nix` |
+| the glade as a layer-shell surface, one per monitor (GTK + gtk-layer-shell; pygame draws off-screen), and the keyboard bridge | `pkgs/glade/src/wayland.py` |
+| **structure** — what runs, what each click or key does: autostart, `glade-show`, `glade-ctl` + the `glade` submap, floating windows + `hyprbars`, click-to-focus, resize from edges, bar layout, rofi single-click, power menu | `themes/glade/desktop.nix` |
+| **look** — borders and title bars, bar CSS, rofi, wlogout, lock screen, kitty, GTK/icons/cursor, pixel font (Departure Mono); all from one palette taken from the scene's name boards and glows | `themes/glade/{hyprland,waybar,rofi,wlogout,swaylock,kitty,gtk}.nix`, `colors.nix` |
 
 Behaviour worth knowing before changing it:
 
-- **The glade is on the `bottom` layer with `exclusive_zone = -1`.** Bottom, not
-  background, so it is above the still-running awww wallpaper daemon (night mode's
-  wallpaper applier warns by notification if awww is missing, so it is left running
-  underneath). `-1` so it ignores the bar's reserved strip and keeps its exact 4x scale;
-  the bar simply draws over its top.
+- **The glade is on the `bottom` layer with `exclusive_zone = -1`**, so it ignores the
+  bar's reserved strip and keeps its exact whole-number scale; the bar simply draws over
+  its top.
 - **Every place and app has a fixed name board** drawn by the glade itself (Departure
   Mono, passed to the package as `GLADE_FONT`); they never move, and the board is
   clickable as well as the object. The scene's own docs (how the lighting works, what
@@ -343,6 +340,14 @@ Behaviour worth knowing before changing it:
   the windows stay where they were and the bar's `wlr/taskbar` list brings them back
   (`misc:focus_on_activate` makes that switch workspaces). The workspace numbers are not
   shown at all.
+- **Keyboard steering = a Hyprland submap.** A bottom-layer surface cannot count on
+  keyboard focus, so `SUPER+Home` (`glade-show && glade-ctl keys`) — or a click on the
+  glade while no window is focused — turns on the `glade` submap, whose binds run
+  `glade-ctl <cmd>` into `$XDG_RUNTIME_DIR/glade.ctl`: arrows/WASD walk along paths, Tab
+  picks a board, Enter opens it, Home/Backspace go home/back. The glade follows Hyprland's
+  event socket and resets the submap the moment a window takes focus, on launching an
+  app, and after 3 idle minutes; Esc does it by hand. While it is on, a hint board shows
+  the keys. (`SUPER+G` was taken by the gaming app bind.)
 - **Every window floats** (`windowrule = float true, match:class .*`), `follow_mouse = 2`
   (focus on click), `resize_on_border`. Title bars come from the `hyprbars` plugin, built
   from the same nixpkgs as Hyprland; dragging the bar moves a window, double-click or
@@ -350,10 +355,12 @@ Behaviour worth knowing before changing it:
 - **The bar is on the main monitor only** (`output` = the `main` monitor's identifier).
   The lower monitor is the ground in front of the glade, and a bar along its top would cut
   across the path where it continues from the screen above.
-- **Night mode still runs** and still swaps the app palettes at sunset, but its step
-  script exits before the compositor keywords and its waybar restart is a no-op.
-- The launcher bar (`hyprland.launcher`) is turned off on blaney-pc: the glade's
-  plaques replace it, and the bar's "Apps" button covers everything else.
+- **kitty must keep the Nerd Font build of JetBrains Mono** (as century-series does): his
+  Claude sessions print icon glyphs that only it carries.
+- The launcher bar (`desktop.hyprland.launcher`) is turned off on blaney-pc: the glade's
+  boards replace it, and the bar's "Apps" button covers everything else.
+- GTK, icon and cursor options are session-global, so the XFCE session on the same host
+  sees `gtk.nix` too; `themes/windows7-xfce` selects its own by name inside XFCE.
 
 Changes here can be verified on blaney-pc itself even though it cannot run a VM — see
 [test-vms-and-ci.md](test-vms-and-ci.md#testing-hyprland-without-kvm-nested-in-kwin).

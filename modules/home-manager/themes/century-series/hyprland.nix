@@ -32,11 +32,6 @@ let
   centurySeriesThemeCondition = lib.elem "hyprland" customConfig.desktop.environments
     && customConfig.homeManager.themes.hyprland == "century-series";
 
-  # The Glade desktop (customConfig.desktop.hyprland.glade) brings its own look for
-  # everything Hyprland itself draws, so this module steps aside while it is on. The
-  # app themes (kitty, btop, ...) and night mode keep running.
-  gladeDesktop = customConfig.desktop.hyprland.glade.enable;
-
   hasCkbNext = customConfig.hardware.peripherals.ckb-next.enable;
   ckbScripts = import ./ckb-scripts.nix { inherit pkgs; };
 
@@ -117,9 +112,7 @@ in {
       # No need for enable = true; here, as that's set in functional.nix
       # These settings will be merged with functional.nix
 
-      # The visual half steps aside for the Glade desktop (see gladeDesktop above); the
-      # theme keybinds stay.
-      settings = mkMerge [ (mkIf (!gladeDesktop) {
+      settings = {
         # General theming - MFD bezel aesthetic
         general = {
           gaps_in = 4;
@@ -225,7 +218,6 @@ in {
           "blur true, match:namespace gtk-layer-shell"
           "ignore_alpha 0, match:namespace gtk-layer-shell"
         ];
-      }) {
 
         # Theme-specific keybinds
         bind = [
@@ -245,7 +237,7 @@ in {
           "SUPER CTRL, J, exec, ${ckbScripts.brightnessScript} down"
           "SUPER CTRL, L, exec, ${ckbScripts.brightnessScript} up"
         ];
-      } ];
+      };
 
       # Environment variables for consistent theming
       extraConfig = ''

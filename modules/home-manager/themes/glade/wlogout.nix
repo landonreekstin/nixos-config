@@ -1,12 +1,12 @@
 # ~/nixos-config/modules/home-manager/themes/glade/wlogout.nix
 #
 # The power menu: the night sky over the screen and five big wooden boards, each saying
-# what it does, each glowing in its own colour. The actions are in hyprland/glade.nix.
+# what it does, each glowing in its own colour. The actions are in desktop.nix.
 { config, pkgs, lib, customConfig, ... }:
 
 let
-  on = customConfig.desktop.hyprland.glade.enable
-    && lib.elem "hyprland" customConfig.desktop.environments;
+  on = lib.elem "hyprland" customConfig.desktop.environments
+    && customConfig.homeManager.themes.hyprland == "glade";
   c = import ./colors.nix;
 in
 {

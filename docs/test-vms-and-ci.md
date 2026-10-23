@@ -128,7 +128,7 @@ mandatory. See [networking.md](networking.md).)
 blaney-pc has no `/dev/kvm` (SVM is off in its firmware), so the VMs above would run under
 TCG — far too slow for a llvmpipe desktop. A **real, GPU-rendered Hyprland can run nested**
 there instead, on the branch's generated config, without touching the live session. This
-is how the Glade desktop ([theming.md](theming.md#the-glade-desktop)) was verified while
+is how the Glade desktop ([theming.md](theming.md#the-glade-theme)) was verified while
 insideabush stayed logged into XFCE: every click below was actually made and checked.
 
 The shape, as insideabush (`runuser -u insideabush --`), all state under one short

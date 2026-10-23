@@ -2,8 +2,8 @@
 { config, pkgs, lib, customConfig, ... }:
 
 let
-  on = customConfig.desktop.hyprland.glade.enable
-    && lib.elem "hyprland" customConfig.desktop.environments;
+  on = lib.elem "hyprland" customConfig.desktop.environments
+    && customConfig.homeManager.themes.hyprland == "glade";
   c = import ./colors.nix;
 in
 {

@@ -2,15 +2,13 @@
 { config, pkgs, lib, customConfig, ... }:
 
 let
-  on = customConfig.desktop.hyprland.glade.enable
-    && lib.elem "hyprland" customConfig.desktop.environments;
+  on = lib.elem "hyprland" customConfig.desktop.environments
+    && customConfig.homeManager.themes.hyprland == "glade";
   c = import ./colors.nix;
   rgb = x: "rgb(${lib.removePrefix "#" x})";
 in
 {
   config = lib.mkIf on {
-    home.packages = [ pkgs.departure-mono ];
-    fonts.fontconfig.enable = true;
 
     wayland.windowManager.hyprland.settings = {
       general = {
@@ -62,5 +60,11 @@ in
         inactive_button_color = rgb c.boardHi;
       };
     };
+
+    # Apps follow the glade's night: dark GTK and Qt (gtk.nix sets the GTK theme itself).
+    wayland.windowManager.hyprland.extraConfig = ''
+      env = GTK_THEME,Adwaita:dark
+      env = QT_STYLE_OVERRIDE,adwaita-dark
+    '';
   };
 }
