@@ -88,4 +88,10 @@
     };
 
   };
+
+  # The Win7 XFCE tray's Bluetooth icon (blueman-applet) is autostarted by store path, so
+  # nothing registered blueman's D-Bus services: clicking the icon / "Devices…" failed with
+  # "org.blueman.Manager … not activatable", and the power toggle had no blueman-mechanism.
+  # This installs both (session + system bus). Host-local because the theme is shared.
+  services.blueman.enable = true;
 }
