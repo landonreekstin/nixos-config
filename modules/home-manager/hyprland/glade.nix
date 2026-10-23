@@ -57,6 +57,29 @@ let
     '';
   };
 
+  # Hands a keyboard command to the running glade, through the pipe it reads
+  # (pkgs/glade/src/wayland.py). Gives up after a second if no glade is listening.
+  gladeCtl = pkgs.writeShellScriptBin "glade-ctl" ''
+    pipe="''${XDG_RUNTIME_DIR:-/tmp}/glade.ctl"
+    [ -p "$pipe" ] || exit 0
+    timeout 1 sh -c 'printf "%s\n" "$1" > "$2"' _ "$1" "$pipe"
+  '';
+
+  # The keys that steer the glade while the "glade" submap is on: arrows (or WASD)
+  # walk along the path that goes that way, Tab / Shift+Tab choose a board, Enter or
+  # Space opens it, Home (or H) goes back to the glade, Backspace to the place before.
+  # Esc or Super+Home hands the keyboard back; so does any window taking the focus.
+  steer = lib.concatStringsSep "\n" (lib.mapAttrsToList (key: cmd: "bind = ${key}, exec, glade-ctl ${cmd}") {
+    ", left" = "left"; ", A" = "left";
+    ", right" = "right"; ", D" = "right";
+    ", up" = "up"; ", W" = "up";
+    ", down" = "down"; ", S" = "down";
+    ", tab" = "next"; "SHIFT, tab" = "prev";
+    ", return" = "open"; ", KP_Enter" = "open"; ", space" = "open";
+    ", home" = "home"; ", H" = "home";
+    ", BackSpace" = "back";
+  });
+
   # Shut down through the same "update first?" check as every other shutdown path on
   # a host that has it (modules/home-manager/services/shutdown-guard.nix).
   guarded = action:
@@ -65,7 +88,7 @@ let
 in
 {
   config = lib.mkIf on {
-    home.packages = [ glade gladeDesktop gladeShow ];
+    home.packages = [ glade gladeDesktop gladeShow gladeCtl ];
 
     wayland.windowManager.hyprland = {
       # Title bars on every window: drag to move, double-click to maximise, and the
@@ -106,8 +129,16 @@ in
       };
 
       # exec-once is additive in hyprlang, so this joins the functional list.
+      # Super+Home: show the glade and let the keyboard steer it (Super+G is Steam).
       extraConfig = ''
         exec-once = glade-desktop
+
+        bind = SUPER, home, exec, glade-show && glade-ctl keys
+        submap = glade
+        ${steer}
+        bind = , escape, submap, reset
+        bind = SUPER, home, submap, reset
+        submap = reset
       '';
     };
 
