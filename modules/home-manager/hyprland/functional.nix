@@ -478,13 +478,14 @@ in
           "$mainMod SHIFT, R, exec, hyprctl reload"
           "$mainMod SHIFT, Q, exit,"
 
-          # Media Keys
+          # Media Keys. Volume goes through volume-step (services/audio-balance.nix), not
+          # `wpctl set-volume`, which flattens a sink's per-channel balance.
           ", XF86AudioPlay, exec, ${pkgs.playerctl}/bin/playerctl --player=spotify play-pause"
           ", XF86AudioNext, exec, ${pkgs.playerctl}/bin/playerctl --player=spotify next"
           ", XF86AudioPrev, exec, ${pkgs.playerctl}/bin/playerctl --player=spotify previous"
           ", XF86AudioMute, exec, ${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle && sleep 0.1 && pkill -RTMIN+11 waybar"
-          ", XF86AudioLowerVolume, exec, ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- && sleep 0.1 && pkill -RTMIN+11 waybar"
-          ", XF86AudioRaiseVolume, exec, ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ && sleep 0.1 && pkill -RTMIN+11 waybar"
+          ", XF86AudioLowerVolume, exec, volume-step -5"
+          ", XF86AudioRaiseVolume, exec, volume-step +5"
 
           # Audio sink cycling — uses bind (not binde) to prevent rapid-fire concurrent calls
           "$mainMod, XF86AudioRaiseVolume, exec, cycle-audio-sink next"

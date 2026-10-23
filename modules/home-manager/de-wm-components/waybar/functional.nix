@@ -117,7 +117,10 @@ let
 
     SINK=$(${pkgs.pulseaudio}/bin/pactl get-default-sink 2>/dev/null)
     WPVOL=$(${pkgs.wireplumber}/bin/wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null)
-    VOLUME=$(echo "$WPVOL" | ${pkgs.gawk}/bin/awk '{printf "%d", $2 * 100}')
+    # Loudest channel, not wpctl's number: wpctl reports channel 0 alone, which on a sink
+    # with an audioBalance is the attenuated side (70% shown while the volume is 100%).
+    VOLUME=$(${pkgs.pulseaudio}/bin/pactl get-sink-volume @DEFAULT_SINK@ 2>/dev/null | head -n1 \
+      | grep -oE '[0-9]+%' | tr -d '%' | sort -n | tail -n1)
     VOLUME="''${VOLUME:-0}"
     if echo "$WPVOL" | grep -q "MUTED"; then MUTED=1; else MUTED=0; fi
 
@@ -582,8 +585,8 @@ in
             on-click = "switch-audio-sink";
             on-click-middle = "toggle-audio-flip";
             on-click-right = "${pkgs.pavucontrol}/bin/pavucontrol";
-            on-scroll-up = "${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ --limit 1.0 && pkill -RTMIN+11 waybar";
-            on-scroll-down = "${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- && pkill -RTMIN+11 waybar";
+            on-scroll-up = "volume-step +5";
+            on-scroll-down = "volume-step -5";
           };
 
           tray = {

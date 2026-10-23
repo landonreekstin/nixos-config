@@ -5,6 +5,14 @@
   customConfig.homeManager = {
     enable = true;
     services.updateNotification.enable = true;
+    # The right speaker (LG monitor's 3.5mm out) is quieter; 70/100 set by ear. The LG is a
+    # DP pro-audio sink with no ports, so it is picked by EDID name rather than by port.
+    services.audioBalance = {
+      enable = true;
+      match = "LG ULTRAGEAR";
+      left = 70;
+      right = 100;
+    };
     themes = {
       hyprland = "century-series";
       # Second Hyprland rice, as its own "Xbox 360 Dashboard" entry at the Ly greeter.
@@ -124,19 +132,6 @@
         icon = "accessories-camera";
         terminal = false;
         categories = [ "AudioVideo" "Video" ];
-      };
-      systemd.user.services.audio-spkr-balance = {
-        Unit = {
-          Description = "Set speaker balance compensation on SPKR output (pro-output-3)";
-          After = [ "pipewire-pulse.service" ];
-        };
-        Service = {
-          Type = "oneshot";
-          ExecStart = "${pkgs.pulseaudio}/bin/pactl set-sink-channel-volumes alsa_output.pci-0000_01_00.1.pro-output-3 80% 100%";
-          Restart = "on-failure";
-          RestartSec = "2";
-        };
-        Install.WantedBy = [ "default.target" ];
       };
     };
   };
