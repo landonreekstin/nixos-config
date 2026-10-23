@@ -420,15 +420,28 @@ in
           type = types.bool;
           default = false;
           description = ''
-            Re-apply a left/right balance to one output port at every login, keeping the
-            current overall loudness. WirePlumber already remembers per-channel volumes;
-            this puts the balance back if something flattens them (e.g. `wpctl set-volume`).
+            Keep a left/right balance on one output. `volume-step` (the Hyprland volume keys
+            and waybar scroll) holds the ratio at every volume, and a login unit re-applies it
+            at the current loudest-channel level. WirePlumber remembers per-channel volumes
+            between sessions; the login unit is the net for anything that flattened them
+            (e.g. a raw `wpctl set-volume`).
           '';
         };
         port = mkOption {
           type = types.str;
           default = "analog-output-headphones";
-          description = "PulseAudio port name the balance applies to; sinks whose active port differs are left alone.";
+          description = "PulseAudio port name the balance applies to; sinks whose active port differs are left alone. Ignored when `match` is set.";
+        };
+        match = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          example = "LG ULTRAGEAR";
+          description = ''
+            Pick the sink by a substring of "<sink name>|<description>|<device name>" instead
+            of by port — the same string `desktop.hyprland.audioSinkMappings` matches. Needed
+            for HDMI/DP pro-audio sinks, which have no ports; the device name there is the
+            display's EDID name. Takes precedence over `port`.
+          '';
         };
         left = mkOption {
           type = types.ints.between 0 100;
