@@ -30,5 +30,19 @@
       sleep 1
     fi
     echo $xhci > /sys/bus/pci/drivers/xhci_hcd/bind
+
+    # Hyprland's libinput misses the remove/re-add that the rebind causes (it is still
+    # busy waking the GPU), so the keyboard works on a TTY but not on the desktop. A VT
+    # round-trip makes the compositor drop and re-open every input device. Wait for the
+    # receiver first: a stuck device on another port can hold enumeration up for ~25s.
+    for _ in $(seq 60); do
+      ls /dev/input/by-id/*G915*-event-kbd >/dev/null 2>&1 && break
+      sleep 1
+    done
+    sleep 1
+    vt=$(${pkgs.kbd}/bin/fgconsole)
+    ${pkgs.kbd}/bin/chvt 12
+    sleep 1
+    ${pkgs.kbd}/bin/chvt "$vt"
   '';
 }
