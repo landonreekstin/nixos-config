@@ -304,15 +304,30 @@ unset.
   it leaves behind (xbox360's TV Mode).
 - **A desktop's `exec-once` lines go in its `extraConfig`**, never `settings."exec-once"`:
   functional.nix sets that list with `mkDefault`, so a plain definition replaces it wholesale.
-- **Session.** The entry's wrapper writes `$XDG_RUNTIME_DIR/hypr-rice`, exports
-  `HYPR_RICE`, and runs `start-hyprland -- --config ~/.config/hypr/desktops/<name>.conf`.
-  `hyprctl reload` re-reads whichever file an instance started with.
-- **Guards.** Anything shared that belongs only to the default session exits when
-  `$XDG_RUNTIME_DIR/hypr-rice` is non-empty: `waybar-start`, `waybar-restart`, the
-  century-night step's `hyprctl` half and `century-wallpaper-apply`. The default session
-  deletes the file at startup, so logging out of a desktop and into century-series in the
-  same boot restores everything (verified in `vm-sandbox`).
-  **Anything new that pokes the compositor from a timer or unit must check it too.**
+- **Session.** The entry's wrapper runs
+  `start-hyprland -- --config ~/.config/hypr/desktops/<name>.conf`; `hyprctl reload`
+  re-reads whichever file an instance started with.
+- **Which desktop is live: systemd user targets.** Every desktop's config starts with
+  `hypr-desktop session-start <name>`, which imports the compositor's
+  `HYPRLAND_INSTANCE_SIGNATURE` into the user manager and starts
+  `hypr-desktop-<name>.target`. Each target `BindsTo` `hypr-desktop-session.service`, which
+  waits on the compositor's pid (`hyprctl instances`), so the target stops when the session
+  ends; targets `Conflict` with each other. `hypr-desktop current` prints the live one
+  (empty outside a Hyprland session, and for the moment at login before it is up);
+  `hypr-desktop list` lists them. Both units are `X-SwitchMethod = keep-old`, so a rebuild
+  never takes a running desktop's units down.
+- **A unit that belongs to one desktop** merges in `desktops/lib.nix` `bindTo "<name>"`
+  (`PartOf` + `WantedBy` the target): it starts with that session and stops when it ends.
+  So far: xbox360's controller daemon `xbox360-pad.service`, century-series'
+  `century-night-schedule.timer` and `century-night-monitor-watch.service`. Units stopping
+  with their session is why nothing else needs to check what is live — prefer this to
+  `exec-once` for anything that would otherwise outlive the compositor.
+- **Scripts shared between desktops** that must not act in some of them ask
+  `hypr-desktop current` (`desktops/lib.nix` `current`): `waybar-restart` does nothing in
+  a desktop with `waybar = false`, the century-night step's `hyprctl` half and
+  `century-wallpaper-apply` only act in century-series (or with no desktop up yet), and
+  swayidle's lock runs the live desktop's `lockCommand` (xbox360: its shell) else swaylock.
+- **`waybar = false`** (xbox360) drops `waybar-start` from that desktop's rendered config.
 - Apps with one global config (waybar, rofi, kitty, GTK, browser chrome) are styled by
   the default desktop alone and wear its look in another desktop's session; making those
   per-desktop is a later step.

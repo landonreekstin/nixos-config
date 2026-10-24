@@ -12,16 +12,17 @@ let
   pactlBin = "${pkgs.pulseaudio}/bin/pactl";
   grepBin = "${pkgs.gnugrep}/bin/grep";
   pidofBin = "${pkgs.procps}/bin/pidof";
-  # Lock now. A non-default Hyprland desktop (hyprland/desktops/xbox360; docs/theming.md) has its
-  # own lock screen: $XDG_RUNTIME_DIR/hypr-rice names it, and its shell locks. The
-  # profile path is absolute because swayidle runs with a minimal PATH.
+  # Lock now: with the live Hyprland desktop's own lock screen when it has one
+  # (hyprDesktops.<name>.lockCommand, e.g. xbox360's shell), else swaylock.
+  desktopLib = import ../hyprland/desktops/lib.nix { inherit lib; };
+  desktopLocks = lib.filter (n: config.hyprDesktops.${n}.lockCommand or null != null)
+    customConfig.homeManager.hyprland.desktops.enabled;
   lockScript = pkgs.writeShellScript "lock-now" ''
-    rice=$(cat "''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/hypr-rice" 2>/dev/null)
-    qs=/etc/profiles/per-user/$(id -un)/bin/qs
-    if [ -n "$rice" ] && [ -x "$qs" ]; then
-      # --any-display: a locker started from a unit may not carry WAYLAND_DISPLAY.
-      exec "$qs" ipc --any-display -c "$rice" call ui lock
-    fi
+    ${lib.optionalString (desktopLocks != [ ]) ''
+      case "${desktopLib.current}" in
+        ${lib.concatMapStrings (n: "${n}) exec ${config.hyprDesktops.${n}.lockCommand} ;;\n") desktopLocks}
+      esac
+    ''}
     ${pidofBin} swaylock || exec ${swaylockBin}
   '';
   # Script that skips locking if any MPRIS player is active (Spotify, browser media,

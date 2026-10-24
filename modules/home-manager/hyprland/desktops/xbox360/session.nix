@@ -6,7 +6,8 @@
 { config, pkgs, lib, customConfig, ... }:
 
 let
-  inherit ((import ../lib.nix { inherit lib; }).state customConfig "xbox360") enabled;
+  desktopLib = import ../lib.nix { inherit lib; };
+  inherit (desktopLib.state customConfig "xbox360") enabled;
 
   c = import ./colors.nix { inherit lib; };
   assets = pkgs.callPackage ../../../../../pkgs/xbox360-assets { };
@@ -509,7 +510,6 @@ let
   extraConfig = ''
 
     # ---- xbox360 rice ----
-    env = HYPR_RICE,xbox360
     # Every display starts on its own dashboard (a named workspace with
     # nothing tiled on it), and focus on the main one. Without a rule (a VM)
     # the shell moves each display from Hyprland's empty workspace to it.
@@ -520,7 +520,6 @@ let
     # session; two owners means one of them is silently never asked.
     exec-once = systemctl --user stop dunst.service
     exec-once = ${pkgs.quickshell}/bin/qs -c xbox360 > /tmp/xbox360-shell.log 2>&1
-    exec-once = ${pad}/bin/xbox360-pad ${padConfig} > /tmp/xbox360-pad.log 2>&1
     exec-once = ${pkgs.pipewire}/bin/pw-play ${assets}/share/sounds/xbox360/select-a.wav
   '';
 in
@@ -534,6 +533,23 @@ in
       leaveExtraConfig = lib.optionalString (tvMonitor != null) ''
         exec-once = ${tvScript} off
       '';
+      # The shell is the bar, the wallpaper and the lock screen.
+      waybar = false;
+      # --any-display: swayidle may not carry WAYLAND_DISPLAY.
+      lockCommand = "${pkgs.quickshell}/bin/qs ipc --any-display -c xbox360 call ui lock";
+    };
+
+    # The controller daemon runs for exactly as long as this desktop's session:
+    # it grabs the pads and drives the compositor, so it must not outlive it into
+    # another desktop. The session puts the compositor's instance into the user
+    # manager's environment before starting the target (hyprland/desktops.nix).
+    systemd.user.services.xbox360-pad = lib.recursiveUpdate (desktopLib.bindTo "xbox360") {
+      Unit.Description = "Xbox 360 dashboard controller daemon";
+      Service = {
+        ExecStart = "${pad}/bin/xbox360-pad ${padConfig}";
+        Restart = "on-failure";
+        RestartSec = 2;
+      };
     };
 
     home.packages = [ assets pkgs.quickshell pkgs.papirus-icon-theme ];

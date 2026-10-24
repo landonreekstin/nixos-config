@@ -42,6 +42,7 @@
 with lib;
 
 let
+  desktopLib = import ../lib.nix { inherit lib; };
   colorsModule = import ./colors.nix { };
   crtShaders = import ./crt-shader.nix { };
 
@@ -165,10 +166,11 @@ let
       fi
       [ -z "''${HYPRLAND_INSTANCE_SIGNATURE:-}" ] && exit 0
 
-      # A non-default Hyprland desktop (e.g. hyprland/desktops/xbox360) is live: these borders, blur and
-      # shader values belong to the default session, so leave its compositor be.
-      # The palette FILES above are still written, ready for the next century login.
-      [ -s "''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/hypr-rice" ] && exit 0
+      # Another Hyprland desktop (e.g. xbox360) is live: these borders, blur and
+      # shader values belong to century-series' session, so leave its compositor
+      # be. The palette FILES above are still written, ready for the next century
+      # login. "" is the moment at login before the session's target is up.
+      case "${desktopLib.current}" in ""|century-series) ;; *) exit 0 ;; esac
 
       # One batch so all four land in the same frame. NOTE: deliberately NOT
       # ramping `windowrule border_color` — `hyprctl keyword windowrule`
@@ -485,8 +487,8 @@ let
     SIDE="''${1:-day}"
     DUR="''${2:-0}"
     [ "''${XDG_CURRENT_DESKTOP:-}" != "Hyprland" ] && exit 0
-    # A non-default Hyprland desktop (e.g. hyprland/desktops/xbox360) owns the wallpaper while it is live.
-    [ -s "''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/hypr-rice" ] && exit 0
+    # Another Hyprland desktop (e.g. xbox360) owns the wallpaper while it is live.
+    case "${desktopLib.current}" in ""|century-series) ;; *) exit 0 ;; esac
     ${lib.optionalString (customConfig.desktop.hyprland.wallpaperEngine != "awww") ''
       # Not the awww engine — hyprpaper owns the wallpaper and cannot change it
       # at runtime, so there is nothing to do.
@@ -600,22 +602,32 @@ let
     set -u
 
     # Deliberately NOT gated on $XDG_CURRENT_DESKTOP, unlike the one-shot
-    # scripts in this module. This unit is pulled in by graphical-session.target,
-    # which can be reached BEFORE hyprland/functional.nix's exec-once runs
-    # `dbus-update-activation-environment`. An env check here would therefore be
-    # a coin flip at boot, and losing it would exit 0 and leave the watcher dead
-    # for the whole session — the very class of boot race this exists to fix.
-    # The socket is the real precondition, so wait for that instead.
+    # scripts in this module: it starts with century-series' session target, and
+    # a missing variable would exit 0 and leave the watcher dead for the whole
+    # session. The live instance is the real precondition, so wait for that.
     #
     # The signature is also re-resolved every pass: it changes when Hyprland
     # restarts, and a signature captured once would leave this polling a path
     # that will never come back.
+    #
+    # "Live" means the instance's process is running, not that its socket file
+    # exists: a dead instance leaves its directory and sockets behind, and a
+    # watcher holding that signature then polls a socket nobody answers for the
+    # rest of the session — every monitor that came back stayed black.
     RUNTIME="''${XDG_RUNTIME_DIR:-/run/user/$(${pkgs.coreutils}/bin/id -u)}"
+    alive() {
+      local pid
+      pid=$(${pkgs.coreutils}/bin/head -n1 "$RUNTIME/hypr/$1/hyprland.lock" 2>/dev/null)
+      [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
+    }
 
     while true; do
       SIG="''${HYPRLAND_INSTANCE_SIGNATURE:-}"
-      if [ -z "$SIG" ] || [ ! -S "$RUNTIME/hypr/$SIG/.socket2.sock" ]; then
-        SIG=$(${pkgs.coreutils}/bin/ls -t "$RUNTIME/hypr" 2>/dev/null | ${pkgs.coreutils}/bin/head -n1)
+      if [ -z "$SIG" ] || ! alive "$SIG"; then
+        SIG=
+        for s in $(${pkgs.coreutils}/bin/ls -t "$RUNTIME/hypr" 2>/dev/null); do
+          if alive "$s"; then SIG=$s; break; fi
+        done
       fi
       SOCK="$RUNTIME/hypr/$SIG/.socket2.sock"
       if [ -z "$SIG" ] || [ ! -S "$SOCK" ]; then ${pkgs.coreutils}/bin/sleep 5; continue; fi
@@ -977,11 +989,10 @@ in {
       };
     };
 
-    systemd.user.services.century-night-monitor-watch = {
-      Unit = {
-        Description = "Re-apply century-series wallpapers when a monitor appears";
-        PartOf = [ "graphical-session.target" ];
-      };
+    # Runs with century-series' session (hyprland/desktops.nix starts its target
+    # at login and stops it when the session ends).
+    systemd.user.services.century-night-monitor-watch = lib.recursiveUpdate (desktopLib.bindTo "century-series") {
+      Unit.Description = "Re-apply century-series wallpapers when a monitor appears";
       Service = {
         ExecStart = "${monitorWatchScript}/bin/century-night-monitor-watch";
         # The watcher follows the compositor's event socket; if Hyprland goes
@@ -990,15 +1001,11 @@ in {
         Restart = "on-failure";
         RestartSec = 5;
       };
-      # NOT WantedBy graphical-session.target: this machine never reaches it
-      # (Hyprland runs with systemd.enable = false), so such a unit is simply
-      # never started — which is how ckb-next-set-lighting.service came to be
-      # dead at every boot. The theme's hyprland.nix starts this from exec-once
-      # instead, matching services/swayidle.nix.
-      Install.WantedBy = [ ];
     };
 
-    systemd.user.timers.century-night-schedule = {
+    # Only while century-series' session is live: nothing to reconcile in another
+    # desktop, and its login runs `century-night init` anyway.
+    systemd.user.timers.century-night-schedule = lib.recursiveUpdate (desktopLib.bindTo "century-series") {
       Unit.Description = "Century-series day/night reconcile timer";
       Timer = {
         # Poll rather than fire at the boundary: it moves with the sun, and a
@@ -1008,7 +1015,6 @@ in {
         AccuracySec = "30s";
         Persistent = true;
       };
-      Install.WantedBy = [ "timers.target" ];
     };
   };
 }
