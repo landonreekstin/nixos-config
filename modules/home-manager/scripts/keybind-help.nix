@@ -7,7 +7,7 @@ let
   keybindHelpScript = pkgs.writeShellScriptBin "hypr-keybinds" ''
     #!${pkgs.stdenv.shell}
 
-    ${pkgs.rofi}/bin/rofi -dmenu -p "KEYBINDINGS" -i -no-custom -width 520 << 'EOF'
+    rofi -dmenu -p "KEYBINDINGS" -i -no-custom -width 520 << 'EOF'
 HYPRLAND KEYBINDINGS
 
 APPLICATIONS

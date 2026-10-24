@@ -213,7 +213,11 @@ in
 
     services.displayManager.sessionPackages = map (rice:
       let
+        # A desktop with its own apps puts them first on PATH, and sets the kitty
+        # config dir and GTK theme (modules/home-manager/hyprland/desktop-apps.nix).
         start = pkgs.writeShellScript "start-hyprland-${rice}" ''
+          env="$HOME/.config/hypr/desktops/${rice}/env"
+          if [ -r "$env" ]; then . "$env"; fi
           exec ${config.programs.hyprland.package}/bin/start-hyprland -- \
             --config "$HOME/.config/hypr/desktops/${rice}.conf"
         '';

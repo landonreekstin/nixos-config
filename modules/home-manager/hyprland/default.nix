@@ -7,5 +7,6 @@
   imports = [
     ./functional.nix
     ./desktops.nix
+    ./desktop-apps.nix
   ];
 }

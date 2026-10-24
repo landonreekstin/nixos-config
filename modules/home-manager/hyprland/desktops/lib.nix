@@ -59,6 +59,17 @@ with lib;
         non-default desktop.
       '';
     };
+    ownApps = mkOption {
+      type = types.bool;
+      default = false;
+      description = ''
+        Whether this desktop styles the shared apps (waybar, rofi, wlogout,
+        swaylock, kitty, the GTK theme) itself. When it is not the default, its
+        own versions are rendered to ~/.config/hypr/desktops/<name>/ and its
+        session uses those (../desktop-apps.nix). false: it uses the default
+        desktop's.
+      '';
+    };
     lockCommand = mkOption {
       type = types.nullOr types.str;
       default = null;
