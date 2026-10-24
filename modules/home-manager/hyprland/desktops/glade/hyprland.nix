@@ -9,6 +9,10 @@ in
 {
   config = lib.mkIf enabled {
 
+    # Its bar, menus, lock screen, terminal and GTK theme come along when it is a
+    # second session (../../desktop-apps.nix).
+    hyprDesktops.glade.ownApps = true;
+
     hyprDesktops.glade.settings = {
       general = {
         gaps_in = 6;

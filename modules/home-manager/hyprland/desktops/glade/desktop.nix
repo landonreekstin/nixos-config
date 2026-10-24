@@ -195,7 +195,7 @@ in
         scroll-step = 5;
       };
       "custom/power" = {
-        on-click = lib.mkForce "${pkgs.wlogout}/bin/wlogout -b 3";
+        on-click = lib.mkForce "wlogout -b 3";
         format = lib.mkForce "⏻ Power";
         tooltip-format = lib.mkForce "Lock, log out, restart or shut down";
       };

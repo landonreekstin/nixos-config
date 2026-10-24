@@ -57,6 +57,7 @@ in
     # ../../desktops.nix
     # -------------------------------------------------------------------------- #
     hyprDesktops.future-aviation = {
+      ownApps = true;
 
       settings = {
         # General theming settings
