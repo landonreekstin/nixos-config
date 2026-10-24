@@ -607,7 +607,7 @@ in
             format = lib.mkDefault "⏻";  # Unicode power symbol, theme can override
             tooltip = true;
             tooltip-format = lib.mkDefault "Power Menu";
-            on-click = "${pkgs.wlogout}/bin/wlogout";
+            on-click = "wlogout";
           };
 
           "hyprland/mode" = {
@@ -693,7 +693,7 @@ in
     xdg.configFile."networkmanager-dmenu/config.ini" = lib.mkIf hasWifiWidget {
       text = ''
         [dmenu]
-        dmenu_command = ${pkgs.rofi}/bin/rofi -dmenu
+        dmenu_command = rofi -dmenu
         highlight = True
         list_saved = True
         wifi_chars = ▂▄▆█

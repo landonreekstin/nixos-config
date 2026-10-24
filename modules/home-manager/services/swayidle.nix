@@ -17,13 +17,15 @@ let
   desktopLib = import ../hyprland/desktops/lib.nix { inherit lib; };
   desktopLocks = lib.filter (n: config.hyprDesktops.${n}.lockCommand or null != null)
     customConfig.homeManager.hyprland.desktops.enabled;
+  # Already locked by swaylock (a desktop's own swaylock wrapper included): done.
   lockScript = pkgs.writeShellScript "lock-now" ''
+    ${pidofBin} swaylock >/dev/null && exit 0
     ${lib.optionalString (desktopLocks != [ ]) ''
       case "${desktopLib.current}" in
         ${lib.concatMapStrings (n: "${n}) exec ${config.hyprDesktops.${n}.lockCommand} ;;\n") desktopLocks}
       esac
     ''}
-    ${pidofBin} swaylock || exec ${swaylockBin}
+    exec ${swaylockBin}
   '';
   # Script that skips locking if any MPRIS player is active (Spotify, browser media,
   # Jellyfin in Librewolf, etc.), if audio is actively playing, or if a mic is open.

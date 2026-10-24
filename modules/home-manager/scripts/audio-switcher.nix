@@ -70,7 +70,7 @@ let
     done <<< "$SINK_DATA"
 
     # Present rofi menu
-    CHOSEN=$(printf '%b' "$DISPLAY_LINES" | ${pkgs.rofi}/bin/rofi -dmenu -p "SELECT OUTPUT" -i)
+    CHOSEN=$(printf '%b' "$DISPLAY_LINES" | rofi -dmenu -p "SELECT OUTPUT" -i)
 
     if [ -z "$CHOSEN" ]; then
       exit 0

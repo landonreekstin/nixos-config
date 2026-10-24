@@ -311,7 +311,7 @@ unset.
   `hypr-desktop session-start <name>`, which imports the compositor's
   `HYPRLAND_INSTANCE_SIGNATURE` into the user manager and starts
   `hypr-desktop-<name>.target`. Each target `BindsTo` `hypr-desktop-session.service`, which
-  waits on the compositor's pid (`hyprctl instances`), so the target stops when the session
+  waits on the compositor's pid (read from its `hyprland.lock`), so the target stops when the session
   ends; targets `Conflict` with each other. `hypr-desktop current` prints the live one
   (empty outside a Hyprland session, and for the moment at login before it is up);
   `hypr-desktop list` lists them. Both units are `X-SwitchMethod = keep-old`, so a rebuild
@@ -328,9 +328,22 @@ unset.
   `century-wallpaper-apply` only act in century-series (or with no desktop up yet), and
   swayidle's lock runs the live desktop's `lockCommand` (xbox360: its shell) else swaylock.
 - **`waybar = false`** (xbox360) drops `waybar-start` from that desktop's rendered config.
-- Apps with one global config (waybar, rofi, kitty, GTK, browser chrome) are styled by
-  the default desktop alone and wear its look in another desktop's session; making those
-  per-desktop is a later step.
+- **Shared apps per desktop (`ownApps`).** waybar, rofi, wlogout, swaylock, kitty and the
+  GTK theme each read one config, written by the default desktop. A desktop that styles
+  them sets `hyprDesktops.<name>.ownApps = true` (glade, future-aviation); when it is a
+  second session, `hyprland/desktop-apps.nix` evaluates home-manager again with that
+  desktop as the only one (`extendModules`) and collects what that evaluation writes for
+  those apps into `~/.config/hypr/desktops/<name>/`, with wrappers in `bin/` that start
+  each app on its files and an `env` file (`PATH`, `KITTY_CONFIG_DIRECTORY`,
+  `GTK_THEME`, `HYPR_DESKTOP_APPS`). The session's start script sources `env`;
+  `waybar-start` takes that desktop's bar; swayidle locks with its swaylock. So the
+  desktop's own modules stay written for the default case (`isDefault` gates, plain
+  `programs.*`), and **keybinds and bar buttons call these apps by bare name** — an
+  absolute store path skips the wrapper.
+  Not covered: apps the default desktop keeps regardless (btop, yazi, zathura, imv,
+  dunst, browser chrome), and century-series, whose night mode rewrites live palette files
+  at the global paths (`~/.config/kitty/century-colors.conf`, …), so as a second session
+  it wears the default desktop's apps.
 - **Assets** (`pkgs/xbox360-assets`): the Convection font and the dashboard's UI cues
   (`share/sounds/xbox360/<cue>.wav`, decoded at build time), pinned to a commit of a public
   Blades recreation. The blade palette in `hyprland/desktops/xbox360/colors.nix` comes from the same

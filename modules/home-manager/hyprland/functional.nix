@@ -234,7 +234,7 @@ in
         "$ctrlMod" = "CONTROL";
         "$terminal" = lib.mkDefault apps.terminal.command;
         "$fileManager" = lib.mkDefault apps.fileManager.command;
-        "$menu" = "${pkgs.rofi}/bin/rofi -show drun";
+        "$menu" = "rofi -show drun";
 
         # Monitor configuration from customConfig
         monitor = lib.mkDefault (
@@ -477,7 +477,7 @@ in
           "$mainMod, slash, exec, hyprland-keys"
           "$mainMod, ESCAPE, exec, swaylock"
           "$mainMod, BackSpace, exec, wlogout"
-          "$mainMod, V, exec, ${pkgs.cliphist}/bin/cliphist list | ${pkgs.rofi}/bin/rofi -dmenu -p 'CLIPBOARD' | ${pkgs.cliphist}/bin/cliphist decode | ${pkgs.wl-clipboard}/bin/wl-copy"
+          "$mainMod, V, exec, ${pkgs.cliphist}/bin/cliphist list | rofi -dmenu -p 'CLIPBOARD' | ${pkgs.cliphist}/bin/cliphist decode | ${pkgs.wl-clipboard}/bin/wl-copy"
           "$mainMod SHIFT, S, exec, ${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp)\" ${config.home.homeDirectory}/Pictures/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
           "$mainMod SHIFT, R, exec, hyprctl reload"
           "$mainMod SHIFT, Q, exit,"
@@ -621,6 +621,19 @@ in
 
         CONFIG_SOURCE="$HOME/.config/waybar/config"
         STYLE="$HOME/.config/waybar/style.css"
+        # A desktop with its own bar (hyprland/desktop-apps.nix): its session
+        # exports HYPR_DESKTOP_APPS; a restart from a systemd unit asks instead.
+        APPS="''${HYPR_DESKTOP_APPS:-}"
+        if [ -z "$APPS" ]; then
+          CUR="${desktopLib.current}"
+          [ -n "$CUR" ] && APPS="$HOME/.config/hypr/desktops/$CUR"
+        fi
+        if [ -n "$APPS" ] && [ -f "$APPS/waybar/config" ]; then
+          CONFIG_SOURCE="$APPS/waybar/config"
+          STYLE="$APPS/waybar/style.css"
+          # Its buttons start that desktop's rofi and wlogout.
+          [ -r "$APPS/env" ] && . "$APPS/env"
+        fi
         MAIN_CONFIG="/tmp/waybar-main-config.json"
         LAUNCHER_CONFIG="/tmp/waybar-launcher-config.json"
         STATE_FILE="$HOME/.local/state/hypr/launchbar-hidden"
