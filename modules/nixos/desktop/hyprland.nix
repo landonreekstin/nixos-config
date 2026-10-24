@@ -190,32 +190,37 @@ in
     # starts the same Hyprland against its own config, rendered by home-manager into
     # ~/.config/hypr/desktops/<name>.conf (modules/home-manager/hyprland/desktops.nix).
     # The plain "Hyprland" entry keeps hyprland.conf and the default desktop.
+    # Which desktop is live is tracked by systemd user targets that each config
+    # starts itself (`hypr-desktop current`; see that file).
     #
-    # $XDG_RUNTIME_DIR/hypr-rice tells shared scripts and systemd user units which
-    # rice is live — they have no other way to know, since both sessions run the
-    # same binaries. The default session deletes it again at startup.
     # A desktop whose meta.nix sets needsUinput (xbox360: its controller daemon
     # emulates a mouse and keyboard for apps that can't use a controller) needs
     # /dev/uinput. Give the seat's logged-in user access (uaccess), as Steam's own
     # udev rules do — but without depending on Steam being installed. The gamepads
     # themselves are already uaccess-tagged by systemd as joysticks.
+    #
+    # In a rules file numbered before systemd's 71-seat.rules, NOT extraRules (which
+    # lands in 99-local.rules): 71-seat.rules only tags a uaccess device "seat" if
+    # it is tagged by then, and logind re-grants access at each login only to
+    # seat-tagged devices. From 99 the first login of a boot worked and every later
+    # one (log out of a desktop, log into the Xbox one) left /dev/uinput root-only.
     boot.kernelModules = lib.mkIf needsUinput [ "uinput" ];
-    services.udev.extraRules = lib.mkIf needsUinput ''
-      KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess", OPTIONS+="static_node=uinput"
-    '';
+    services.udev.packages = lib.mkIf needsUinput [
+      (pkgs.writeTextDir "lib/udev/rules.d/70-uinput-uaccess.rules" ''
+        KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess", OPTIONS+="static_node=uinput"
+      '')
+    ];
 
     services.displayManager.sessionPackages = map (rice:
       let
         start = pkgs.writeShellScript "start-hyprland-${rice}" ''
-          export HYPR_RICE=${rice}
-          printf '%s\n' ${rice} > "''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/hypr-rice"
           exec ${config.programs.hyprland.package}/bin/start-hyprland -- \
             --config "$HOME/.config/hypr/desktops/${rice}.conf"
         '';
         desktop = pkgs.writeTextDir "share/wayland-sessions/hyprland-${rice}.desktop" ''
           [Desktop Entry]
           Name=${(meta rice).label}
-          Comment=Hyprland with the ${rice} rice
+          Comment=Hyprland with the ${rice} desktop
           Exec=${start}
           Type=Application
           DesktopNames=Hyprland

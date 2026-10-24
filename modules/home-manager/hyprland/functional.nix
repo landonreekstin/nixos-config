@@ -4,6 +4,10 @@
 
 let
   apps = customConfig.apps.programs;
+  desktopLib = import ./desktops/lib.nix { inherit lib; };
+  # Hyprland desktops that run without the shared waybar (desktops/lib.nix `waybar`).
+  barless = lib.filter (n: n != customConfig.homeManager.hyprland.desktops.default
+    && !config.hyprDesktops.${n}.waybar) customConfig.homeManager.hyprland.desktops.enabled;
 
   # XWayland's primary output, by the same rule as xfce/monitors.nix: the monitor
   # named "main", else the first enabled one. XWayland sets no primary itself and
@@ -615,11 +619,6 @@ in
         # Launch waybar, splitting launcherBar into a separate process so it can be
         # toggled independently with toggle-launchbar (SUPER+CTRL+B).
 
-        # A non-default Hyprland desktop (e.g. hyprland/desktops/xbox360) draws its own shell instead of
-        # waybar. $XDG_RUNTIME_DIR/hypr-rice is written by that session's launcher
-        # and removed again when the default session starts.
-        [ -s "''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/hypr-rice" ] && exit 0
-
         CONFIG_SOURCE="$HOME/.config/waybar/config"
         STYLE="$HOME/.config/waybar/style.css"
         MAIN_CONFIG="/tmp/waybar-main-config.json"
@@ -678,9 +677,11 @@ in
         # Restart waybar through waybar-start. Never launch a bare `waybar`:
         # the wrapper is what splits the config into the main and launcher bars.
 
-        # No waybar to restart under a non-default Hyprland desktop — see waybar-start.
-        [ -s "''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/hypr-rice" ] && exit 0
-
+        # No waybar in a desktop with its own shell (hyprDesktops.<name>.waybar =
+        # false, e.g. xbox360): its config never starts one, so neither does this.
+        ${lib.optionalString (barless != [ ]) ''
+          case "${desktopLib.current}" in ${lib.concatStringsSep "|" barless}) exit 0 ;; esac
+        ''}
         # Serialize — two callers at once (a monitor toggle during a palette
         # ramp) would otherwise each spawn their own waybar-start.
         #

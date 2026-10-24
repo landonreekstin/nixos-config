@@ -1,8 +1,8 @@
 <!-- ~/nixos-config/docs/xbox360.md -->
 > **Read this when**: working on the xbox360 rice ("Xbox 360 Dashboard" login session) —
 > its Quickshell shell, controller daemon, dashboard menus, Guide, pages or session
-> plumbing. The session mechanism itself (a second Hyprland config, `hypr-rice` guards)
-> is in [theming.md](theming.md#hyprland-desktops).
+> plumbing. The session mechanism itself (a second Hyprland config, the
+> `hypr-desktop-<name>.target` units) is in [theming.md](theming.md#hyprland-desktops).
 
 # Xbox 360 Dashboard rice
 
@@ -64,8 +64,9 @@ A row whose role has no command on the host is dropped. Per-host options:
 
 ## Controller (`pad/xbox360-pad.py`)
 
-A Python daemon (python-evdev) started from the rice's `exec-once`, log in
-`/tmp/xbox360-pad.log`. It reads every pad that has both `BTN_SOUTH` and `BTN_MODE`
+A Python daemon (python-evdev), run as `xbox360-pad.service`, bound to
+`hypr-desktop-xbox360.target`, so it starts with the Xbox session and stops when it ends
+(`journalctl --user -u xbox360-pad` for its log). It reads every pad that has both `BTN_SOUTH` and `BTN_MODE`
 (xpad and xpadneo expose Guide as `BTN_MODE`), rescanning every 2 s for hotplug.
 
 | Input | Where | Does |
@@ -141,7 +142,7 @@ focused window with `wtype`; its layer never takes keyboard focus, so the app ke
   from the Guide's X (Sign Out), SUPER+Escape (the rice's config rewrites the functional
   `swaylock` bind to `qs … ipc call ui lock`; SUPER+BackSpace goes to Turn Off Console
   instead of wlogout), and swayidle: `services/swayidle.nix` locks through a script that
-  asks the rice's shell when `$XDG_RUNTIME_DIR/hypr-rice` names one, else runs swaylock.
+  runs the live desktop's `lockCommand` (`hypr-desktop current`), else swaylock.
   That call needs `qs ipc --any-display`: a unit may not carry `WAYLAND_DISPLAY`, and `qs ipc`
   otherwise only finds shells on the caller's display. Unlock needs a keyboard.
 - **Marketplace → System Update** (`PageUpdates.qml`): branch and commit of

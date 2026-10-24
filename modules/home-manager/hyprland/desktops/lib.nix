@@ -49,7 +49,42 @@ with lib;
         TV Mode back off).
       '';
     };
+    waybar = mkOption {
+      type = types.bool;
+      default = true;
+      description = ''
+        Whether the shared waybar runs in this desktop. A desktop with its own
+        shell (xbox360) sets false: its rendered config drops waybar-start, and
+        waybar-restart does nothing while it is live. Only honoured for a
+        non-default desktop.
+      '';
+    };
+    lockCommand = mkOption {
+      type = types.nullOr types.str;
+      default = null;
+      description = ''
+        What locks the screen while this desktop is live (idle, before sleep).
+        null: swaylock.
+      '';
+    };
   };
+
+  # The systemd user target that is active exactly while desktop `name`'s session
+  # runs (../desktops.nix). A unit that belongs to one desktop merges in
+  # `bindTo name`, so it starts with that session and stops when it ends.
+  target = name: "hypr-desktop-${name}.target";
+  bindTo = name: {
+    Unit = {
+      PartOf = [ "hypr-desktop-${name}.target" ];
+      After = [ "hypr-desktop-${name}.target" ];
+    };
+    Install.WantedBy = [ "hypr-desktop-${name}.target" ];
+  };
+
+  # Shell: the name of the desktop whose session is live, or "" outside one (and
+  # for the moment at login before its target has started). Absolute, because
+  # systemd units and swayidle run with a minimal PATH.
+  current = "$(/etc/profiles/per-user/$(id -un)/bin/hypr-desktop current)";
 
   # Whether desktop `name` is offered on this host, and whether it is the default.
   # The default desktop alone owns the global app configs (waybar, rofi, kitty,
