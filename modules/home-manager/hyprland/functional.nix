@@ -481,6 +481,10 @@ in
           "$mainMod SHIFT, S, exec, ${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp)\" ${config.home.homeDirectory}/Pictures/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
           "$mainMod SHIFT, R, exec, hyprctl reload"
           "$mainMod SHIFT, Q, exit,"
+        ] ++ lib.optionals (lib.length customConfig.homeManager.hyprland.desktops.enabled > 1) [
+          # Switch to another Hyprland desktop without logging out (hyprland/desktops.nix).
+          "$mainMod SHIFT, D, exec, hypr-desktop pick"
+        ] ++ [
 
           # Media Keys. Volume goes through volume-step (services/audio-balance.nix), not
           # `wpctl set-volume`, which flattens a sink's per-channel balance.

@@ -507,8 +507,9 @@ in
           else lib.head config.customConfig.homeManager.hyprland.desktops.enabled;
         defaultText = literalExpression "head enabled, or null";
         description = ''
-          The desktop behind the plain "Hyprland" login entry, whose config is
-          ~/.config/hypr/hyprland.conf. It is also the one whose app theming
+          The desktop behind the plain "Hyprland" login entry (the one
+          ~/.config/hypr/hyprland.conf sources when the environment names no
+          other). It is also the one whose app theming
           (waybar, rofi, kitty, GTK, ...) is installed, since those apps read one
           global config file each.
         '';

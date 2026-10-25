@@ -9,6 +9,7 @@ let
   needsUinput = lib.any (n: (meta n).needsUinput or false) dcfg.enabled;
   sessionDesktops = lib.filter (n: n != dcfg.default) dcfg.enabled;
   meta = n: import (desktopsDir + "/${n}/meta.nix");
+  desktopLib = import (desktopsDir + "/lib.nix") { inherit lib; };
 in
 {
   options.customConfig.desktop.hyprland = with lib; {
@@ -215,11 +216,14 @@ in
       let
         # A desktop with its own apps puts them first on PATH, and sets the kitty
         # config dir and GTK theme (modules/home-manager/hyprland/desktop-apps.nix).
+        # Hyprland starts on hyprland.conf as always, which sources this desktop's
+        # config because of these two variables; `hypr-desktop switch` changes them
+        # in the running compositor and reloads.
         start = pkgs.writeShellScript "start-hyprland-${rice}" ''
           env="$HOME/.config/hypr/desktops/${rice}/env"
           if [ -r "$env" ]; then . "$env"; fi
-          exec ${config.programs.hyprland.package}/bin/start-hyprland -- \
-            --config "$HOME/.config/hypr/desktops/${rice}.conf"
+          export HYPR_DESKTOP_AWAY=1 ${desktopLib.envVar rice}=1
+          exec ${config.programs.hyprland.package}/bin/start-hyprland
         '';
         desktop = pkgs.writeTextDir "share/wayland-sessions/hyprland-${rice}.desktop" ''
           [Desktop Entry]

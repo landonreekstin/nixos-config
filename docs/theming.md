@@ -271,11 +271,12 @@ programs. A host lists the ones it offers, and each gets its own display-manager
 ```nix
 customConfig.homeManager.hyprland.desktops = {
   enabled = [ "century-series" "xbox360" ];  # one login entry each
-  default = "century-series";                # the plain "Hyprland" entry, hyprland.conf
+  default = "century-series";                # the plain "Hyprland" entry
 };
 ```
 
-Switching desktops is log out → pick the entry; no rebuild. `default` defaults to the
+Switching desktops is log out → pick the entry, or live with Super+Shift+D (below); no
+rebuild. `default` defaults to the
 first of `enabled`, and must be one of them; a host with no Hyprland desktop leaves both
 unset.
 
@@ -292,8 +293,9 @@ unset.
     `needsUinput`). `modules/nixos/desktop/hyprland.nix` turns every enabled non-default
     desktop into a `sessionPackages` entry and gates `uinput` on `needsUinput`.
 - **Config.** The default desktop's `hyprDesktops.<name>` definitions are forwarded,
-  priorities intact, into `wayland.windowManager.hyprland.*`, so home-manager writes
-  `hyprland.conf` as before. Every other enabled desktop is rendered by
+  priorities intact, into `wayland.windowManager.hyprland.*`, and the file home-manager
+  renders from them is written to `~/.config/hypr/desktops/<default>.conf` instead of
+  `hyprland.conf` (its own entry is disabled). Every other enabled desktop is rendered by
   `hyprland/desktops.nix` to `~/.config/hypr/desktops/<name>.conf`, by re-merging the
   individual definitions of `wayland.windowManager.hyprland.{settings,extraConfig,plugins}`
   (`options.….definitionsWithLocations`) — all but the forwarded ones, i.e. the
@@ -304,9 +306,14 @@ unset.
   it leaves behind (xbox360's TV Mode).
 - **A desktop's `exec-once` lines go in its `extraConfig`**, never `settings."exec-once"`:
   functional.nix sets that list with `mkDefault`, so a plain definition replaces it wholesale.
-- **Session.** The entry's wrapper runs
-  `start-hyprland -- --config ~/.config/hypr/desktops/<name>.conf`; `hyprctl reload`
-  re-reads whichever file an instance started with.
+- **Session: `hyprland.conf` picks the desktop by environment.** Every session starts on
+  `~/.config/hypr/hyprland.conf`, which only `source`s one of the desktop configs inside
+  `# hyprlang if` blocks: the default's under `!HYPR_DESKTOP_AWAY`, each other's under
+  `HYPR_DESKTOP_IS_<name>` (`-` → `_`, `desktops/lib.nix` `envVar`). With neither set (the
+  plain "Hyprland" entry, a bare `start-hyprland`) it is the default desktop; a desktop's
+  own entry exports both and runs `start-hyprland`. hyprlang re-reads the environment on
+  every parse, so `hyprctl reload` follows a change to them. Keep the blocks flat:
+  hyprlang only honours the innermost `if`, so a nested one is evaluated on its own.
 - **Which desktop is live: systemd user targets.** Every desktop's config starts with
   `hypr-desktop session-start <name>`, which imports the compositor's
   `HYPRLAND_INSTANCE_SIGNATURE` into the user manager and starts
@@ -322,6 +329,27 @@ unset.
   `century-night-schedule.timer` and `century-night-monitor-watch.service`. Units stopping
   with their session is why nothing else needs to check what is live — prefer this to
   `exec-once` for anything that would otherwise outlive the compositor.
+- **A desktop's own `exec-once` lines** (in `hyprDesktops.<name>.extraConfig`) are rewritten
+  to `hypr-desktop run <name> '<command>'`, which runs them in a transient systemd scope
+  `PartOf` the desktop's target. So what they start (xbox360's shell, `glade-desktop`)
+  also stops with the desktop, at logout or on a switch. The functional layer's lines are
+  not wrapped: they belong to every desktop.
+- **Switching live: `hypr-desktop switch <name>`**, or `hypr-desktop pick` (Super+Shift+D
+  when more than one desktop is enabled) for a rofi menu. It loads the new desktop's
+  plugins, sets the selector variables and the session environment (`PATH` with its app
+  wrappers, `HYPR_DESKTOP_APPS`, `KITTY_CONFIG_DIRECTORY`, `GTK_THEME`) with
+  `hyprctl keyword env`, runs a plain `hyprctl reload`, unloads the old desktop's
+  plugins, and starts the new target (the old one stops, with its units and scopes).
+  Then it does what a reload does not: runs the `exec-once` lines the old config lacked
+  plus the old desktop's `leaveExtraConfig` (xbox360's moves each display off its
+  dashboard), kills backgrounded store binaries the new config lacks (the wallpaper
+  daemon, going into xbox360), and restarts or stops waybar.
+  - **Never `hyprctl reload full-reset`**, the only reload that re-reads
+    `HYPRLAND_CONFIG`/the config path: in Hyprland 0.55.4 it crashes the compositor in
+    `CConfigValueBase::flushCaches`, immediately once a plugin has ever been loaded, and
+    after a few uses even without one. That is why the selector exists.
+  - Windows already open keep the old look (GTK/Qt/kitty read their theme at start), and
+    `env =` values only the old desktop set stay set. Logging in is still the clean path.
 - **Scripts shared between desktops** that must not act in some of them ask
   `hypr-desktop current` (`desktops/lib.nix` `current`): `waybar-restart` does nothing in
   a desktop with `waybar = false`, the century-night step's `hyprctl` half and
