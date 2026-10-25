@@ -7,13 +7,14 @@
 # It is always night there; its name boards use Departure Mono, the same pixel font as
 # the bar (hyprland/desktops/glade), passed in as GLADE_FONT.
 #
-# The source is VENDORED in ./src. It is his own vibe project, ~/projects/hud on
-# blaney-pc, a local-only repo with no remote (docs/hosts/blaney-vibe-projects.md), so
-# there is nothing to fetch from. To update: copy ~/projects/hud/glade/*.py over ./src
-# and bump `version` to the project commit date.
+# The source is his own vibe project, ~/projects/hud on blaney-pc, published as
+# github:cblaney00/glade; the program is its glade/ folder. To update: push the project's
+# main, then bump `rev`, `hash` and `version` (the commit date) — see
+# docs/companion-repos.md#glade.
 {
   lib,
   stdenvNoCC,
+  fetchFromGitHub,
   python3,
   gtk3,
   gtk-layer-shell,
@@ -32,7 +33,13 @@ stdenvNoCC.mkDerivation {
   pname = "glade";
   version = "0-unstable-2026-10-23";
 
-  src = ./src;
+  src = fetchFromGitHub {
+    owner = "cblaney00";
+    repo = "glade";
+    rev = "a23e29b2624c4d44e69624bb84d38063e6dc66cd";
+    hash = "sha256-uzvaf/fjkYABrVu/IqLVpTjfaVvySIx8uIXOL0CosrQ=";
+  };
+  sourceRoot = "source/glade";
 
   nativeBuildInputs = [ wrapGAppsHook3 gobject-introspection makeWrapper ];
   # gtk-layer-shell's typelib is what lets the GTK side make a desktop-layer surface.

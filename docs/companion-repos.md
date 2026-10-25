@@ -13,11 +13,21 @@ game, a shell UI — lives in its own repo and is only *packaged* here, with a
 Getting the `hash` for a new rev: either the `nix-prefetch-url` recipe under hyprland-keys,
 or set `hash = lib.fakeHash;`, build, and copy the real hash out of the mismatch error.
 
-Still vendored, to be moved out under this rule:
-- `pkgs/glade/src` → `github:cblaney00/glade`. The vendored copy (merged in #203) is newer
-  than the repo's `main` (`e7d5c2f`): the apex rework was never pushed, and only
-  insideabush can push there. Queued as runbook
-  `docs/runbooks/blaney/10-publish-glade-update.md`.
+## glade
+
+Source: `github:cblaney00/glade` (insideabush's own vibe project, checkout at
+`/home/insideabush/projects/hud` on blaney-pc; the program is its `glade/` folder)
+Package: `pkgs/glade/default.nix`, used by `modules/home-manager/hyprland/desktops/glade/desktop.nix`
+
+The Glade, his pixel-art forest desktop. Only his GitHub account can push to the repo, so a
+bump happens on blaney-pc: commit in `~/projects/hud` (his project, his `main` — see
+[blaney-vibe-projects.md](hosts/blaney-vibe-projects.md)) and push it as him
+(`sudo -u insideabush -H git -c credential.helper='!gh auth git-credential' push origin main`
+— `gh` is signed in as `cblaney00`). Then set `rev` to the pushed sha, `version` to its
+commit date, and get `hash` with the `lib.fakeHash` build. Pin only commits whose
+`glade/` is meant to ship: his `main` can run ahead of the pin with work still being tried
+out on a `blaney/` branch. Verify by logging into Hyprland on blaney-pc (the Glade on both
+monitors, a board click opens its app).
 
 ## xbox360-dashboard
 

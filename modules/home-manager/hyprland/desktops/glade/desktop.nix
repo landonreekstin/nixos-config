@@ -59,7 +59,7 @@ let
   };
 
   # Hands a keyboard command to the running glade, through the pipe it reads
-  # (pkgs/glade/src/wayland.py). Gives up after a second if no glade is listening.
+  # (wayland.py in pkgs/glade). Gives up after a second if no glade is listening.
   gladeCtl = pkgs.writeShellScriptBin "glade-ctl" ''
     pipe="''${XDG_RUNTIME_DIR:-/tmp}/glade.ctl"
     [ -p "$pipe" ] || exit 0
