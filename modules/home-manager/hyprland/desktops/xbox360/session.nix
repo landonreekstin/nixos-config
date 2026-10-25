@@ -219,6 +219,9 @@ let
     var jellyfinPlay = "${jellyfinPlay}/bin/xbox360-jellyfin-play ${pkgs.mpv}/bin/mpv";
     var hostname = ${builtins.toJSON customConfig.system.hostName};
     var hyprctl = "${pkgs.hyprland}/bin/hyprctl";
+    // ShellState.launch prepends this: each app gets its own scope, so it is not
+    // in the shell's, which stops with hypr-desktop-xbox360.target on a live switch.
+    var launch = ${builtins.toJSON [ "${pkgs.systemd}/bin/systemd-run" "--user" "--scope" "--quiet" "--collect" "--slice=app.slice" "--" "sh" "-c" ]};
     var gameClasses = ${builtins.toJSON gameClasses};
     var downloadsCmd = "${downloadsCmd}";
     var silver = ${builtins.toJSON c.silver};

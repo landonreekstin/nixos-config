@@ -37,7 +37,7 @@ geometry in `hyprland/desktops/xbox360/colors.nix` `layout` was measured off the
 | Place | What it is |
 |---|---|
 | **Dashboard** | Hyprland workspace `name:dashboard-<connector>`, one per display (see "Multiple displays"). The five blades are **menus** (rows, description, gamer card, legend); nothing tiles here. |
-| **App workspaces** | Launching from a menu switches to a NEW numbered workspace and runs the app there. It is drawn as the console's full-width "submenu" frame in the colour of the blade it came from, titled with the app's name. |
+| **App workspaces** | Launching from a menu switches to a NEW numbered workspace and runs the app there. It is drawn as the console's full-width "submenu" frame in the colour of the blade it came from, titled with the app's name. Each app runs in its own systemd scope (`Cfg.launch`, from session.nix), so it keeps running when the shell stops on a live switch away. |
 | **Pages** | Full-screen views opened from a row (Downloads, ...), on the dashboard workspace, in the same submenu frame. |
 
 - Getting back: Guide → Y, or SUPER+Home / SUPER+Space (`qs ipc call ui home` toggles
