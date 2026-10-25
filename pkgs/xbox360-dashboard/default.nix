@@ -13,7 +13,7 @@
 { lib, stdenvNoCC, fetchFromGitHub, python3, srcOverride ? null }:
 
 let
-  rev = "db14b907a43a5c176aff617ea6891b20b8bdc6c5";
+  rev = "220f6c70e48be90d855a052dfb9138ac97945b35";
   padPython = python3.withPackages (ps: [ ps.evdev ]);
 in
 stdenvNoCC.mkDerivation {
@@ -24,7 +24,7 @@ stdenvNoCC.mkDerivation {
     owner = "landonreekstin";
     repo = "xbox360-dashboard";
     inherit rev;
-    hash = "sha256-YzTqWl53A7eVP6FW/2wnmLZ1IlBRTRq2nScnYHpOU84=";
+    hash = "sha256-4QabyZ1BdoAUM2kYIsBCORz9hMonFKlN8yL/t5wX5V0=";
   };
 
   dontConfigure = true;
