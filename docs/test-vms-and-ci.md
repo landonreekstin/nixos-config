@@ -137,8 +137,9 @@ scratchpad is too long):
 
 1. **Build the branch's home generation**
    (`.#nixosConfigurations.<host>.config.home-manager.users.<user>.home.activationPackage`)
-   and copy its `home-files` into a throwaway `$HOME` (`cp -rL`). Make a test copy of
-   `.config/hypr/hyprland.conf` **without** the `exec-once` lines that reach outside the
+   and copy its `home-files` into a throwaway `$HOME` (`cp -rL`). Make a test copy of the
+   desktop's `.config/hypr/desktops/<name>.conf` (`hyprland.conf` only `source`s it)
+   **without** the `exec-once` lines that reach outside the
    test: `dbus-update-activation-environment` (it would rewrite the REAL user manager's
    environment), anything `systemctl --user`, `nm-applet`, `polkit`, `paplay`,
    `century-night`, `restore-monitors`. Append `monitor=WAYLAND-1,1920x1080,0x0,1`.

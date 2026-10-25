@@ -69,16 +69,17 @@ let
           swaylock = wrapper "swaylock" "${c.programs.swaylock.package}/bin/swaylock -C ${files."swaylock/config".source}";
         };
 
+      sessionEnv = { HYPR_DESKTOP_APPS = dir; }
+        // lib.optionalAttrs (under "kitty" != { }) { KITTY_CONFIG_DIRECTORY = "${dir}/kitty"; }
+        // lib.optionalAttrs (c.gtk.enable && c.gtk.theme != null) { GTK_THEME = c.gtk.theme.name; };
       env = pkgs.writeText "hypr-desktop-${name}-env" (''
-        export HYPR_DESKTOP_APPS="${dir}"
         export PATH="${dir}/bin:$PATH"
-      '' + lib.optionalString (under "kitty" != { }) ''
-        export KITTY_CONFIG_DIRECTORY="${dir}/kitty"
-      '' + lib.optionalString (c.gtk.enable && c.gtk.theme != null) ''
-        export GTK_THEME="${c.gtk.theme.name}"
-      '');
+      '' + lib.concatStrings (lib.mapAttrsToList (k: v: ''
+        export ${k}=${lib.escapeShellArg v}
+      '') sessionEnv));
     in
     {
+      inherit sessionEnv;
       farm = pkgs.linkFarm "hypr-desktop-${name}-apps" (
         lib.mapAttrsToList (p: f: { name = p; path = f.source; })
           (under "waybar" // under "kitty" // under "swaylock" // under "wlogout")
@@ -96,6 +97,7 @@ in
     # Idle and before-sleep locking, too. Named after every session desktop, not
     # just the owners: the names may not depend on hyprDesktops itself.
     hyprDesktops = lib.genAttrs sessionDesktops (name: {
+      sessionEnv = lib.mkIf (lib.elem name owners) (apps name).sessionEnv;
       lockCommand = lib.mkIf (lib.elem name owners && (apps name).swaylock)
         (lib.mkDefault "${dirOf name}/bin/swaylock");
     });

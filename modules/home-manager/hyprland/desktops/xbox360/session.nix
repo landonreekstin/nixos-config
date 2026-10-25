@@ -376,6 +376,19 @@ let
   # toggles (toggle-monitor.nix), which monitor-state-watcher re-applies after
   # every config reload — so a rebuild mid-match doesn't undo it.
   tvMonitor = lib.findFirst (m: m.name == "tv" && m.enabled) null customConfig.desktop.monitors;
+
+  # After a live switch to another desktop (`hypr-desktop switch`), a display
+  # still on its dashboard goes to its lowest numbered workspace (where its
+  # windows are), or an empty one, as if that desktop had been logged into.
+  leaveDashboards = pkgs.writeShellScript "xbox360-leave-dashboards" ''
+    export PATH=${lib.makeBinPath [ pkgs.hyprland pkgs.jq ]}:$PATH
+    hyprctl monitors -j | jq -r '.[] | select(.activeWorkspace.name | startswith("dashboard-")) | .name' |
+      while read -r m; do
+        ws=$(hyprctl workspaces -j | jq -r --arg m "$m" '[.[] | select(.monitor == $m and .id > 0) | .id] | min // empty')
+        hyprctl dispatch focusmonitor "$m" >/dev/null
+        hyprctl dispatch workspace "''${ws:-emptym}" >/dev/null
+      done
+  '';
   # Hyprland's name for a monitor, as hyprland/functional.nix spells it.
   monitorId = m:
     if lib.hasPrefix "desc:" m.identifier then m.identifier
@@ -530,8 +543,11 @@ in
       transformSettings = transform;
       # Back in another desktop, TV Mode is off again: it is this desktop's, and
       # the monitor state it writes is shared with century-series' monitor toggles.
+      # And no display is left on a dashboard.
       leaveExtraConfig = lib.optionalString (tvMonitor != null) ''
         exec-once = ${tvScript} off
+      '' + ''
+        exec-once = ${leaveDashboards}
       '';
       # The shell is the bar, the wallpaper and the lock screen.
       waybar = false;

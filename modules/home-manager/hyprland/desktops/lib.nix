@@ -37,7 +37,7 @@ with lib;
         A function applied to the fully merged settings, for the few edits that
         can only be made after merging (dropping a functional exec-once line,
         rewriting a keybind's command). Not applied when this is the default
-        desktop, whose settings home-manager renders into hyprland.conf.
+        desktop, whose settings home-manager renders.
       '';
     };
     leaveExtraConfig = mkOption {
@@ -70,6 +70,16 @@ with lib;
         desktop's.
       '';
     };
+    sessionEnv = mkOption {
+      type = types.attrsOf types.str;
+      default = { };
+      internal = true;
+      description = ''
+        Environment this desktop's session starts with, besides PATH (set by
+        ../desktop-apps.nix for a desktop with ownApps). `hypr-desktop switch`
+        sets it in the running compositor.
+      '';
+    };
     lockCommand = mkOption {
       type = types.nullOr types.str;
       default = null;
@@ -84,6 +94,10 @@ with lib;
   # runs (../desktops.nix). A unit that belongs to one desktop merges in
   # `bindTo name`, so it starts with that session and stops when it ends.
   target = name: "hypr-desktop-${name}.target";
+
+  # Set (non-empty), together with HYPR_DESKTOP_AWAY, while desktop `name` runs
+  # in place of the default: ~/.config/hypr/hyprland.conf sources its config.
+  envVar = name: "HYPR_DESKTOP_IS_" + replaceStrings [ "-" ] [ "_" ] name;
   bindTo = name: {
     Unit = {
       PartOf = [ "hypr-desktop-${name}.target" ];
