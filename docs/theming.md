@@ -372,16 +372,62 @@ unset.
   dunst, browser chrome), and century-series, whose night mode rewrites live palette files
   at the global paths (`~/.config/kitty/century-colors.conf`, …), so as a second session
   it wears the default desktop's apps.
-- **Assets** (`pkgs/xbox360-assets`): the Convection font and the dashboard's UI cues
+- **xbox360's assets** (`pkgs/xbox360-assets`): the Convection font and the dashboard's UI cues
   (`share/sounds/xbox360/<cue>.wav`, decoded at build time), pinned to a commit of a public
   Blades recreation. The blade palette in `hyprland/desktops/xbox360/colors.nix` comes from the same
   project's DESIGN.md and has not been checked against console captures yet.
-- **The shell itself** — dashboard, menus, app workspaces, controller, Guide — is
+- **The xbox360 shell itself** — dashboard, menus, app workspaces, controller, Guide — is
   documented in **[xbox360.md](xbox360.md)**.
-- **Testing without logging out:** a nested `Hyprland -c` starts, but it renders nothing
-  while the outer session is locked (grim hangs, and headless outputs stay 0×0). Use
-  `vm-sandbox` (which has the rice enabled) headless over QMP, and pick "Xbox 360 Dashboard"
-  in the SDDM session menu (bottom-left).
+- **Testing without logging out:** on a host that enables the desktop,
+  `hypr-desktop switch <name>` (and back) is the quick check, but it inherits whatever
+  the previous desktop left behind, so log in to the desktop's own entry before calling a
+  change done. A nested `Hyprland -c` starts but renders nothing while the outer session
+  is locked (grim hangs, and headless outputs stay 0×0). Without such a host, use
+  `vm-sandbox` (century-series + xbox360) headless over QMP: pick the entry in the SDDM
+  session menu (bottom-left), or run `hypr-desktop switch` over SSH.
+
+### Adding a desktop
+
+1. `mkdir modules/home-manager/hyprland/desktops/<name>`. `desktops.nix` imports every
+   directory there and declares `hyprDesktops.<name>` for it; nothing else registers it.
+2. `meta.nix`: `{ label = "<Login entry name>"; }`, plus `needsUinput = true;` if it
+   emulates input.
+3. `default.nix`, gated on the desktop's state:
+
+   ```nix
+   # ~/nixos-config/modules/home-manager/hyprland/desktops/<name>/default.nix
+   { config, pkgs, lib, customConfig, ... }:
+   let
+     desktop = (import ../lib.nix { inherit lib; }).state customConfig "<name>";
+   in
+   {
+     config = lib.mkMerge [
+       (lib.mkIf desktop.enabled {
+         hyprDesktops.<name> = {
+           settings.general.border_size = lib.mkForce 3;   # visual overrides
+           extraConfig = ''
+             exec-once = some-daemon &                      # stops with the desktop
+           '';
+           # plugins = [ pkgs.hyprlandPlugins.hyprbars ];
+           # ownApps = true;                                # its own waybar/rofi/kitty/GTK
+         };
+       })
+       (lib.mkIf desktop.isDefault {
+         # global app configs: programs.waybar.style, programs.kitty, gtk, wallpapers …
+       })
+     ];
+   }
+   ```
+
+   A user service the desktop runs should merge in
+   `(import ../lib.nix { inherit lib; }).bindTo "<name>"` instead of checking what is live.
+   Anything it changes outside its own config (monitors, audio, workspaces) must be undone
+   in `leaveExtraConfig`, which runs when you switch away live and when the default
+   desktop logs in.
+4. Add `"<name>"` to a host's `hyprland.desktops.enabled` and `rebuild`. Then check both
+   ways in: log in to its entry, and run `hypr-desktop switch <name>` and back to the
+   default. `hyprctl configerrors` should be empty, and no bar or daemon from the other
+   desktop should be left running.
 
 ## The glade theme
 

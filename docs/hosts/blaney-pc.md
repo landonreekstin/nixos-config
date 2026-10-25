@@ -128,7 +128,8 @@ anything that touches *this* repo.
 
 One of them is his **Hyprland desktop**: the Glade, a pixel-art forest he clicks around
 to open his apps, with a session built to be used by mouse alone or steered from the
-keyboard (the `glade` Hyprland theme, [theming.md](../theming.md#the-glade-theme)). This machine cannot run the test VMs (no
+keyboard (the `glade` Hyprland desktop, [theming.md](../theming.md#the-glade-theme)). It is
+blaney-pc's only Hyprland desktop, so there is no live switching (Super+Shift+D) there. This machine cannot run the test VMs (no
 KVM); Hyprland changes are verified nested inside KWin instead
 ([test-vms-and-ci.md](../test-vms-and-ci.md#testing-hyprland-without-kvm-nested-in-kwin)).
 
