@@ -10,7 +10,11 @@ A couch-and-controller desktop recreating the original 2005 Xbox 360 "Blades" da
 focused on gaming and media. It is a Hyprland desktop with its own login entry next to
 century-series (`"xbox360"` in `customConfig.homeManager.hyprland.desktops.enabled`; see
 [theming.md](theming.md#hyprland-desktops)). Its config is
-`~/.config/hypr/desktops/xbox360.conf`.
+`~/.config/hypr/desktops/xbox360.conf`. From century-series you can also enter it live
+with Super+Shift+D (`hypr-desktop switch xbox360`) and leave the same way: leaving turns TV
+Mode off and moves every display off its dashboard workspace (`session.nix`
+`leaveExtraConfig`), and the shell and the pad daemon stop with
+`hypr-desktop-xbox360.target`.
 
 **Where the code lives.** The program — the Quickshell shell (`shell/*.qml`, `*.js`), the
 blade shader source (`shaders/blade.frag.in`) and the Python helpers (`pad/*.py`) — is its
@@ -167,7 +171,8 @@ Both are switches on the System blade (left/right or A) and in Guide → Console
   sink matched by `alsa.name` == the monitor's `edid`, since pro-audio sink numbers move. It
   writes the same `~/.local/state/hypr/disabled-monitors` that `toggle-monitor` uses, so
   `monitor-state-watcher` keeps it through a rebuild's config reload. Off restores the saved
-  monitor state and output; the default session runs `off` at login.
+  monitor state and output; the default session runs `off` at login, and so does a live
+  switch away from xbox360.
   With Audio devices configured it goes through them instead (below): on saves the device
   in use and picks the one whose `output` is the TV's `edid` — unless the device in use is
   `keepOnTv` (the headset) — and off switches back to the saved device, mic included.

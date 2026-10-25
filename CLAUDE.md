@@ -175,7 +175,7 @@ split across several modules go in that domain's `options.nix` instead.
 | `profiles.*` | `profiles/{gaming,vr}.nix` and each `development/*.nix` — no `options.nix` |
 | `programs.*` | `programs/{partydeck,claude-code}.nix`; `flatpak` in `programs/options.nix` |
 | `apps.*` | `apps/programs.nix` (registry + `mkAppRole`), `apps/xdg-defaults.nix` (MIME) |
-| `bootloader`, `networking`, `homeManager` (incl. `homeManager.browser`) | `common/{bootloader,networking,home-manager}.nix` |
+| `bootloader`, `networking`, `homeManager` (incl. `homeManager.browser`, `homeManager.hyprland.desktops`) | `common/{bootloader,networking,home-manager}.nix` |
 | `user`, `system`, `packages` | `common/options.nix` |
 
 Fallback for a namespace with no owning module: `customConfig.<X>` → `modules/nixos/<X>/`
@@ -219,13 +219,17 @@ its own login entry, living in `modules/home-manager/hyprland/desktops/<name>/` 
 rendered onto the shared functional layer by `hyprland/desktops.nix` — see
 [Hyprland desktops](docs/theming.md#hyprland-desktops). A desktop never writes
 `wayland.windowManager.hyprland.{settings,extraConfig,plugins}`; it sets
-`hyprDesktops.<name>.*`, and only the default desktop writes global app configs
-(waybar, rofi, kitty, GTK).
+`hyprDesktops.<name>.*` (an HM option declared by `hyprland/desktops.nix`), and only the
+default desktop writes global app configs (waybar, rofi, kitty, GTK). Desktops also switch
+live with `hypr-desktop switch <name>` or Super+Shift+D. `hyprland.conf` only `source`s
+the live desktop, inside env-gated `# hyprlang if` blocks. **Never run `hyprctl reload
+full-reset`**: it crashes Hyprland 0.55.4. To add one, see
+[Adding a desktop](docs/theming.md#adding-a-desktop).
 
 **Wayland components follow a strict functional-vs-theme split**: `*/functional.nix` is
 always active and owns keybinds, monitor/input config, services and packages (with
-`mkDefault`); `themes/*/` is conditional and owns *only* visual styling (with `mkForce`).
-Themes never duplicate functional settings.
+`mkDefault`); `themes/*/` and `hyprland/desktops/*/` are conditional and own *only* visual
+styling (with `mkForce`). Themes never duplicate functional settings.
 
 Available themes, the full paradigm with examples, and the per-theme details are in
 **[docs/theming.md](docs/theming.md)** — read it before touching any theme module.
