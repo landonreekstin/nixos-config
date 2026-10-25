@@ -244,10 +244,10 @@ Then:
    `hosts/blaney-pc/home.nix` (`themes.xfcePanel.pinnedApps` / `themes.pinnedApps`) if he
    wants one — **ask him**, that is a visual decision.
 
-**First one packaged: the Glade** (`~/projects/hud` → `pkgs/glade`). It is **vendored**:
-`pkgs/glade/src` is a copy of the project's `glade/*.py`, because his repo has no remote and
-pushing it somewhere would mean handing him credentials. Re-vendor by copying the files
-over and bumping `version`; his project stays the place he and his sessions work on it.
+**First one packaged: the Glade** (`~/projects/hud` → `github:cblaney00/glade` →
+`pkgs/glade`). `pkgs/glade` pins the repo with `fetchFromGitHub` (its `glade/` folder is
+the program); bump it as in [companion-repos.md](../companion-repos.md#glade). His project
+stays the place he and his sessions work on it.
 It is not an app in the menu but his Hyprland desktop, wired up by
 his Hyprland desktop (`hyprland.desktops.enabled = [ "glade" ]`) — see [theming.md](../theming.md#the-glade-theme).
 Under XFCE he still runs it straight from the project folder.

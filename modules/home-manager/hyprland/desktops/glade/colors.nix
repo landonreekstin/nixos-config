@@ -1,6 +1,6 @@
 # ~/nixos-config/modules/home-manager/hyprland/desktops/glade/colors.nix
 #
-# The Glade's palette — it is always night there — taken from pkgs/glade/src (the name
+# The Glade's palette — it is always night there — taken from the scene (pkgs/glade; the name
 # boards in main.py, the glow colours in art.py), so the bar, window title bars and
 # menus are made of the same carved wood and glowing moss as the signs in the scene.
 {

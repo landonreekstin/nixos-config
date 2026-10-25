@@ -433,7 +433,7 @@ unset.
 
 `customConfig.homeManager.hyprland.desktops.enabled = [ "glade" ]` (blaney-pc, mirrored on vm-blaney)
 makes the Hyprland session insideabush's **Glade**: his own pixel-art forest scene
-(`pkgs/glade`, vendored from his `~/projects/hud`, see
+(`pkgs/glade`, pinned from `github:cblaney00/glade`, his `~/projects/hud`, see
 [blaney-vibe-projects.md](hosts/blaney-vibe-projects.md#packaging-a-finished-app)) as the
 desktop on both monitors, and a session he can drive with the **mouse alone** — or steer
 from the keyboard — every target labelled in words. He asked for exactly that, and chose
@@ -448,7 +448,7 @@ them out of every other desktop (see above).
 
 | Piece | Where |
 |---|---|
-| the glade as a layer-shell surface, one per monitor (GTK + gtk-layer-shell; pygame draws off-screen), and the keyboard bridge | `pkgs/glade/src/wayland.py` |
+| the glade as a layer-shell surface, one per monitor (GTK + gtk-layer-shell; pygame draws off-screen), and the keyboard bridge | `wayland.py` in `github:cblaney00/glade` (`pkgs/glade`) |
 | **structure** — what runs, what each click or key does: autostart, `glade-show`, `glade-ctl` + the `glade` submap, floating windows + `hyprbars`, click-to-focus, resize from edges, bar layout, rofi single-click, power menu | `hyprland/desktops/glade/desktop.nix` |
 | **look** — borders and title bars, bar CSS, rofi, wlogout, lock screen, kitty, GTK/icons/cursor, pixel font (Departure Mono); all from one palette taken from the scene's name boards and glows | `hyprland/desktops/glade/{hyprland,waybar,rofi,wlogout,swaylock,kitty,gtk}.nix`, `colors.nix` |
 
