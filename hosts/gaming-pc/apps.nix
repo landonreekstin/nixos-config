@@ -260,6 +260,8 @@
         kdePackages.kdenlive
         claude-code
         (callPackage ../../pkgs/worldmonitor { })
+        # insideabush's news-briefing app, from its github:cblaney00/f-117 pin
+        (callPackage ../../pkgs/f-117 { })
         zoom-us
         gurk-rs
         vlc
