@@ -418,6 +418,22 @@ rebuild-test
   testing on the target is needed).
 - **Never commit broken changes to main.** Merge only once rebuilt, tested, and verified.
 
+### Merging PRs: `--admin` on lando's machines
+
+The `protect-main-merges` ruleset makes a plain `gh pr merge` fail with "the base branch
+policy prohibits the merge", even with green CI. The ruleset exists to keep **blaney-pc**
+off `main`: that machine's `gh` is logged into insideabush's own GitHub account, which has
+no admin bypass, so his sessions must go through a PR and the GitHub rules.
+
+On lando's machines (`gh` logged into `landonreekstin`), when lando asks for a merge and
+**CI on the PR is green**, merge with `gh pr merge <N> --merge --admin` without asking
+again. This does not apply to:
+- **blaney-pc / user `insideabush`**: never merge, never `--admin`; open the PR and stop.
+- **weekly `update/*` flake PRs**: still left for the NAS to auto-merge (see
+  [Automated Weekly Flake Updates](#automated-weekly-flake-updates)).
+- PRs with failing or pending CI, or ones still waiting on an in-person test lando hasn't
+  confirmed or waived.
+
 **Do not open a PR until the change has been tested on the machine currently being
 developed on.** If Claude Code is running on `asus-laptop` and the change targets
 `asus-laptop`, `rebuild` and verify *before* creating the PR — not after. PRs represent
