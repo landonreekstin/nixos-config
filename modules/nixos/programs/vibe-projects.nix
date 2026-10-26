@@ -108,9 +108,11 @@ let
     CLAUDE.md in the parent directory (${projectsDir}/CLAUDE.md) holds the rules for this
     kind of session and is binding — read it first if it is not already in your context. In
     short: ${userName} is not technical and makes no technical decisions, he does decide how
-    the app looks and behaves, this project's git repo is his to commit to `main` freely and
-    has no remote, and anything needing the NixOS config at ${configDir} should be handed
-    back to him to run `ccn` for rather than done from here.
+    the app looks and behaves, this project's git repo is his to commit to `main` freely,
+    its code stays on this machine or in a GitHub repo on his own account and never inside
+    the NixOS config, his config checkout at ${configDir} gets caught up with `main` (and
+    rebuilt) at the start of every session, and anything else needing the config should be
+    handed back to him to run `ccn` for rather than done from here.
   '';
 
   # Pre-accept the workspace-trust prompt for a directory, so a non-technical user does not
@@ -485,7 +487,8 @@ in
       default = false;
       description = ''
         Install the `vibe` command: a numbered-menu front door for the user's own
-        "vibe coded" app projects, each a local-only git repo under `dir`.
+        "vibe coded" app projects, each a git repo under `dir` that is local-only unless
+        pushed to a GitHub repo on the user's own account.
 
         Intended for a non-technical user. The command never asks a technical question —
         the seeded Claude session interviews him about what the app should do and look

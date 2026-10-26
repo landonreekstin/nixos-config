@@ -84,13 +84,33 @@ let
 
     ## The project repo is his — commit to main freely
 
-    Each project folder is a git repository that belongs to him, and it has **no remote**.
+    Each project folder is a git repository that belongs to him.
 
     - Commit to `main` as often as makes sense. No branches, no PRs, no reviews.
-    - **Never add a remote and never push.** His code stays on this machine.
     - Commit messages: short, plain English. No Co-Authored-By or AI attribution lines.
     - Commit before you start something risky, so there is always a working version to go
-      back to. Nothing here is backed up anywhere, so an uncommitted mistake is just gone.
+      back to. A project with no GitHub repo is not backed up anywhere, so an uncommitted
+      mistake is just gone.
+
+    ## Where his app's code is allowed to live
+
+    His app's source code — anything that is not Nix — lives in exactly one of two places:
+
+    1. **Only on this machine**, in its project folder. This is the default: a new project
+       has no remote.
+    2. **In its own GitHub repo on his account**, `github.com/cblaney00/<folder>`, with
+       this project's `main` pushed to it. Only when he wants it (for example a backup, or
+       to make it a real app on his computer), and only a repo on *his* account — never
+       lando's, never anyone else's.
+
+    Once a project has a GitHub repo, push `main` to it after every commit — that push is
+    the backup.
+
+    **It never goes into the NixOS config.** Not copied, not pasted into a Nix file, not as
+    a folder under `pkgs/`. The config only ever *packages* an app, by fetching it from its
+    GitHub repo by URL (`fetchFromGitHub`, pinned to a commit). So an app must be on GitHub
+    before it can be packaged; an app that is only on this machine runs from its project
+    folder, as below.
 
     ## The NixOS config is NOT his — it still needs a PR
 
@@ -103,10 +123,43 @@ let
     - Full rules: `${configDir}/docs/hosts/blaney-pc.md`. Background on this kind of
       project: `${configDir}/docs/hosts/blaney-vibe-projects.md`.
 
-    Better still, **do not go into the config from a project session at all.** If the app
-    needs something from the system, finish what you can here and tell him in one sentence
-    to close this and run `ccn` instead — that opens Claude in the config folder, where the
-    config rules are the ones loaded.
+    Better still, **do not go into the config from a project session at all** — the one
+    exception is the catch-up step below. If the app needs something from the system,
+    finish what you can here and tell him in one sentence to close this and run `ccn`
+    instead — that opens Claude in the config folder, where the config rules are the ones
+    loaded.
+
+    ## Keep his computer caught up with `main` — every time work continues
+
+    His config checkout is often left on a `blaney/` branch, which falls behind lando's
+    `main` the longer it sits there, and then his computer runs old config. So **at the
+    start of every session — a resumed chat included — and again whenever he comes back to
+    the app after a break**, bring the config up to date before doing anything else. Tell
+    him first, in one sentence, that you are updating his computer and it can take a few
+    minutes. Then, all as plain commands with no `sudo` in front:
+
+    1. `git -C ${configDir} fetch origin`. If that fails (no internet), skip the rest
+       silently and carry on with the app.
+    2. If `git -C ${configDir} status --porcelain` prints anything, the config has
+       unfinished changes from another session. **Do not touch it.** Carry on with the app.
+    3. Depending on `git -C ${configDir} branch --show-current`:
+       - `main`: `git -C ${configDir} merge --ff-only origin/main`.
+       - a `blaney/` branch: `git -C ${configDir} rebase origin/main`. If the rebase stops
+         on a conflict, run `git -C ${configDir} rebase --abort`, leave the config alone,
+         and tell him in one sentence to run `ccn` later and say "my config branch can't
+         catch up with main". If it succeeded and the branch is on GitHub
+         (`git -C ${configDir} rev-parse --abbrev-ref @{upstream}` works), push it with
+         `git -C ${configDir} push --force-with-lease`. Pushing a `blaney/` branch is
+         allowed; this is never a push to `main`.
+       - anything else: leave it alone.
+    4. If that moved the config at all, run `chown -R ${userName}:users ${configDir}` and
+       then `cd ${configDir} && rebuild` (no `sudo` — `rebuild` handles that itself), then
+       `cd` back to the project. If the rebuild fails, his computer simply stays as it was:
+       tell him in one sentence to run `ccn` later and say "rebuild failed after catching
+       up with main", and carry on with the app.
+
+    Never resolve conflicts, edit config files, or commit to the config as part of this.
+    It is a catch-up only.
 
     ## Running commands
 
@@ -165,9 +218,11 @@ let
     ## When the app is finished
 
     Making it run like any other app on his system is a change to the config repo, so it
-    does not happen here. Tell him, in one sentence: close this, open a terminal, run `ccn`,
-    and say "package my <name> app from ${projectsDir}/<folder> as a real app". That reuses
-    the normal `blaney/`-branch-and-PR path with the right rules loaded.
+    does not happen here. If the project has no GitHub repo yet, make one first (see "Where
+    his app's code is allowed to live" — ask him, since it puts his code on the internet)
+    and push `main` to it. Then tell him, in one sentence: close this, open a terminal, run
+    `ccn`, and say "package my <name> app from github.com/cblaney00/<folder> as a real
+    app". That reuses the normal `blaney/`-branch-and-PR path with the right rules loaded.
 
     ## Other things to know
 
