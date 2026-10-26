@@ -101,12 +101,15 @@ in
     hyprDesktops.glade = {
       # Title bars on every window: drag to move, double-click to maximise, and the
       # two buttons below. Built against the same nixpkgs Hyprland, so the ABI matches.
-      plugins = [ pkgs.hyprlandPlugins.hyprbars ];
+      # Patched to run a command when a drag starts and ends, for snap.nix.
+      plugins = [ (pkgs.hyprlandPlugins.hyprbars.overrideAttrs (old: {
+        patches = (old.patches or [ ]) ++ [ ./hyprbars-drag-hooks.patch ];
+      })) ];
 
       settings = {
         general = {
           resize_on_border = true; # drag any edge or corner to resize
-          extend_border_grab_area = 12;
+          extend_border_grab_area = 25; # wide enough to find without aiming
           hover_icon_on_border = true;
         };
         # Focus follows clicks, like Windows: hovering scrolls a window without
