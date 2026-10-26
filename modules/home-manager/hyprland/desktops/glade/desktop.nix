@@ -147,6 +147,12 @@ in
           # The terminal's own default (640x400) is cramped for the Claude sessions he
           # spends his time in.
           "size 1100 700, match:class ^(kitty)$"
+        ] ++ lib.optionals (mainMonitor != null) [
+          # Games open on the main (top) screen. On the lower one, Windows games under
+          # Proton put his clicks in the wrong place: XWayland lays the two screens out
+          # side by side, not one above the other. steam_app_* is Steam and Heroic (umu)
+          # games, *.exe is Lutris's wine games.
+          "monitor ${mainMonitor.identifier}, match:class ^(steam_app_.*|.*\\.exe)$"
         ];
 
         plugin.hyprbars = {
