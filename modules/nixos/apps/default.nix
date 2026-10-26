@@ -3,6 +3,7 @@
 { ... }:
 {
   imports = [
+    ./kde-suite.nix
     ./programs.nix
     ./xdg-defaults.nix
   ];

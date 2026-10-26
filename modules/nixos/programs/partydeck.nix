@@ -2,9 +2,24 @@
 { lib, config, pkgs, ... }:
 
 let
+  # No desktop-environment term here on purpose. The condition used to also demand
+  # `lib.elem "kde" desktop.environments`, which SILENTLY deleted partydeck,
+  # gamescope-kbm and gamescope from a host the moment it stopped running Plasma —
+  # a host flipping its desktop should not quietly lose a program it asked for.
+  #
+  # That said, partydeck really does want KWin, just not as a build-time dependency:
+  # upstream's `enable_kwin_script` defaults to TRUE (src/app/config.rs), and
+  # src/launch.rs calls `kwin_dbus_start_script(...)` with `?`, so on a host with no
+  # org.kde.KWin on the bus the launch ABORTS rather than degrading. Unticking the
+  # setting works, but then nothing tiles the split-screen instances and you place
+  # every window by hand — upstream's own tooltip says as much. The `--kwin` flag
+  # (src/main.rs) is the other escape hatch and needs the `kwin_wayland` binary,
+  # which a non-Plasma host does not have.
+  #
+  # So: enabling this on a Hyprland/XFCE host is allowed and builds fine, but expect
+  # to untick the KWin script and tile manually. Nothing here enables it today.
   partydeckCondition = config.customConfig.programs.partydeck.enable
-                   && config.customConfig.profiles.gaming.enable
-                   && lib.elem "kde" config.customConfig.desktop.environments;
+                   && config.customConfig.profiles.gaming.enable;
 
   partydeck-icon = pkgs.fetchurl {
     url = "https://raw.githubusercontent.com/wunnr/partydeck-rs/main/.github/assets/icon.png";

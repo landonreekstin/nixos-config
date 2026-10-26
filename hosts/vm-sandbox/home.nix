@@ -10,7 +10,7 @@
     };
     themes = {
       plasmaOverride = true;
-      kde = "windows7-alt";      # aerothemeplasma (source-built)
+      kde = "default";           # stock Breeze — aerothemeplasma is mothballed
       xbox360 = {
         transmissionUrl = "http://transmission.lan/transmission/rpc";
         jellyfinUrl = "http://jellyfin.lan";

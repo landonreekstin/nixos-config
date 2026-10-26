@@ -3,7 +3,7 @@
 
 {
   customConfig.desktop = {
-    environments = [ "kde" "hyprland" "xfce" ];
+    environments = [ "hyprland" "xfce" ];
     # Remote XFCE session over RDP for remote theme work. Port 3389 stays firewalled;
     # reach it via `ssh -L 3389:localhost:3389 lando@gaming-pc` then RDP to localhost.
     xrdp.enable = true;

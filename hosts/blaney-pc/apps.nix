@@ -2,6 +2,14 @@
 { config, pkgs, lib, ... }:
 
 {
+  # KDE System Monitor, kept when Plasma was dropped from this host. It only draws what
+  # ksystemstats reports, and ksystemstats is D-Bus-activated (org.kde.ksystemstats1 →
+  # plasma-ksystemstats.service), so it has to be registered with dbus and systemd, not
+  # just installed — plasma6 used to do that. Without it the app opens with empty graphs.
+  environment.systemPackages = [ pkgs.kdePackages.plasma-systemmonitor pkgs.kdePackages.ksystemstats ];
+  services.dbus.packages = [ pkgs.kdePackages.ksystemstats ];
+  systemd.packages = [ pkgs.kdePackages.ksystemstats ];
+
   customConfig = {
 
     apps = {
@@ -21,7 +29,12 @@
     };
 
     programs = {
-      partydeck.enable = true;
+      # Off since KDE was dropped from this host. partydeck is not built against KWin,
+      # but its `enable_kwin_script` setting defaults to on and its launch path calls
+      # KWin over D-Bus with `?` — so without Plasma a launch aborts, and unticking the
+      # setting leaves you hand-positioning every split-screen window. Nobody was using
+      # it, so it is off rather than half-working. See modules/nixos/programs/partydeck.nix.
+      partydeck.enable = false;
       claudeCode.enable = true;
       # His own vibe-coded app projects: the `vibe` command, ~/projects, and the dev
       # shells its .envrc files point at (customConfig.profiles.development.vibe-* in
