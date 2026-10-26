@@ -9,11 +9,13 @@
 #                  bar, rofi, wlogout, the lock screen, kitty, and GTK/icons/cursor
 # - dock.nix     — the dock on the lower monitor, the title bars' minimise button, and
 #                  new windows taking the keyboard as they open (dock.py)
+# - snap.nix     — drag a window to the left or right edge and it fills that half
 { ... }:
 {
   imports = [
     ./desktop.nix
     ./dock.nix
+    ./snap.nix
     ./hyprland.nix
     ./waybar.nix
     ./rofi.nix

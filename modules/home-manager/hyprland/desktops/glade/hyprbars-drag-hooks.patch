@@ -1,0 +1,54 @@
+diff -ru a/barDeco.cpp b/barDeco.cpp
+--- a/barDeco.cpp	2026-10-25 20:39:14.856775868 -0400
++++ b/barDeco.cpp	2026-10-25 20:39:14.901589905 -0400
+@@ -250,6 +250,8 @@
+             Config::Actions::floatWindow(Config::Actions::eTogglableAction::TOGGLE_ACTION_DISABLE);
+ 
+         Log::logger->log(Log::DEBUG, "[hyprbars] Dragging ended on {:x}", (uintptr_t)m_pWindow.lock().get());
++        if (const auto CMD = g_pGlobalState->config.onDragEnd->value(); !CMD.empty())
++            Config::Supplementary::executor()->spawn(CMD);
+     }
+ 
+     m_bDragPending = false;
+@@ -261,6 +263,8 @@
+     g_pKeybindManager->changeMouseBindMode(MBIND_MOVE);
+     m_bDraggingThis = true;
+     Log::logger->log(Log::DEBUG, "[hyprbars] Dragging initiated on {:x}", (uintptr_t)m_pWindow.lock().get());
++    if (const auto CMD = g_pGlobalState->config.onDragStart->value(); !CMD.empty())
++        Config::Supplementary::executor()->spawn(CMD);
+     return;
+ }
+ 
+diff -ru a/globals.hpp b/globals.hpp
+--- a/globals.hpp	2026-10-25 20:39:14.856866257 -0400
++++ b/globals.hpp	2026-10-25 20:39:14.893343098 -0400
+@@ -35,7 +35,7 @@
+         SP<Config::Values::CIntValue>    barPadding;
+         SP<Config::Values::CIntValue>    barButtonPadding;
+         SP<Config::Values::CBoolValue>   barBlur, barTitleEnabled, barPartOfWindow, barPrecedenceOverBorder, enabled, iconOnHover;
+-        SP<Config::Values::CStringValue> barTextFont, barTextAlign, barButtonsAlignment, onDoubleClick;
++        SP<Config::Values::CStringValue> barTextFont, barTextAlign, barButtonsAlignment, onDoubleClick, onDragStart, onDragEnd;
+     } config;
+ };
+ 
+diff -ru a/main.cpp b/main.cpp
+--- a/main.cpp	2026-10-25 20:39:14.856888499 -0400
++++ b/main.cpp	2026-10-25 20:39:14.896947947 -0400
+@@ -228,6 +228,8 @@
+     g_pGlobalState->config.enabled             = makeShared<Config::Values::CBoolValue>("plugin:hyprbars:enabled", "Whether bars are enabled", true);
+     g_pGlobalState->config.iconOnHover         = makeShared<Config::Values::CBoolValue>("plugin:hyprbars:icon_on_hover", "Whether to use an icon on hover of the buttons", false);
+     g_pGlobalState->config.onDoubleClick       = makeShared<Config::Values::CStringValue>("plugin:hyprbars:on_double_click", "Action to execute on double click of the bar", "");
++    g_pGlobalState->config.onDragStart         = makeShared<Config::Values::CStringValue>("plugin:hyprbars:on_drag_start", "Action to execute when dragging a window by its bar starts", "");
++    g_pGlobalState->config.onDragEnd           = makeShared<Config::Values::CStringValue>("plugin:hyprbars:on_drag_end", "Action to execute when dragging a window by its bar ends", "");
+ 
+     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.barColor);
+     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.textColor);
+@@ -246,6 +248,8 @@
+     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.enabled);
+     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.iconOnHover);
+     HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.onDoubleClick);
++    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.onDragStart);
++    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.onDragEnd);
+ 
+     if (Config::mgr()->type() == Config::CONFIG_LEGACY)
+         HyprlandAPI::addConfigKeyword(PHANDLE, "plugin:hyprbars:hyprbars-button", onNewButton, Hyprlang::SHandlerOptions{});
