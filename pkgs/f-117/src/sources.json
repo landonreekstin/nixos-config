@@ -1,0 +1,382 @@
+{
+  "tabs": [
+    {
+      "id": "right-now",
+      "title": "Right Now",
+      "about": "The narrow core: anything rare and high-impact, what is actually happening locally and in government, what is coming up in the next three months, and the few biggest stories. Keep it short, calm and concrete: what is happening and whether it affects him.",
+      "blurb": "Just the basics driving what's happening to you, today.",
+      "panels": [
+        {
+          "id": "rn-blackswan",
+          "kind": "mix",
+          "compact_when_quiet": true,
+          "from": "all",
+          "days": 3,
+          "include": [
+            "pandemic",
+            "outbreak",
+            "bird flu",
+            "h5n1",
+            "epidemic",
+            "measles",
+            "nuclear",
+            "martial law",
+            "coup",
+            "bank run",
+            "bank fail",
+            "bank collapse",
+            "market crash",
+            "stocks plunge",
+            "stocks tumble",
+            "cyberattack",
+            "ransomware",
+            "blackout",
+            "power outage",
+            "grid failure",
+            "earthquake",
+            "tsunami",
+            "hurricane",
+            "tornado",
+            "evacuat",
+            "state of emergency",
+            "emergency declaration",
+            "shortage",
+            "government shutdown",
+            "contaminat",
+            "boil water",
+            "derail",
+            "explosion",
+            "chemical leak",
+            "assassinated",
+            "assassination attempt",
+            "bank failure",
+            "debt default",
+            "government shutdown",
+            "market plunge",
+            "recession fears"
+          ],
+          "min_coverage": 3,
+          "tag": "BLACK SWAN WATCH",
+          "title": "Black Swan Watch",
+          "subtitle": "Rare, high-impact events that several outlets are reporting. Quiet is good.",
+          "empty": "All quiet. Nothing rare or high-impact is being widely reported in the last 3 days.",
+          "sources": []
+        },
+        {
+          "id": "rn-happening",
+          "kind": "mix",
+          "from": [
+            "federal-gov"
+          ],
+          "days": 7,
+          "exclude": [
+            "anniversary",
+            "applauds",
+            "appreciation",
+            "award",
+            "awareness month",
+            "blasts",
+            "bold ",
+            "calls for",
+            "campaigns for",
+            "celebrat",
+            "commanders",
+            "commemorat",
+            "congratulat",
+            "endorse",
+            "game",
+            "heritage month",
+            "highlights",
+            "historic",
+            "honored",
+            "honoree",
+            "honors",
+            "icymi",
+            "kyle goon",
+            "live blog",
+            "message on",
+            "mlb",
+            "nba",
+            "nfl",
+            "nhl",
+            "op-ed",
+            "opinion",
+            "orioles",
+            "playoff",
+            "pledges",
+            "podcast",
+            "praises",
+            "proclaims",
+            "proclamation",
+            "promises",
+            "quarterback",
+            "rally",
+            "ravens",
+            "readout",
+            "recogniz",
+            "remarks",
+            "score",
+            "season opener",
+            "slams",
+            "spotlight",
+            "statement from",
+            "statement on",
+            "touchdown",
+            "touts",
+            "unleash",
+            "urges",
+            "vows",
+            "welcomes"
+          ],
+          "tag": "ACTUALLY HAPPENING",
+          "title": "What's Actually Happening",
+          "subtitle": "Government: actions, not talk. Add your local government to Home Front",
+          "sources": []
+        },
+        {
+          "id": "rn-coming",
+          "kind": "horizon",
+          "tag": "NEXT 3 MONTHS",
+          "title": "Coming Up",
+          "subtitle": "Dates and deadlines that matter to you",
+          "sources": []
+        },
+        {
+          "id": "rn-top",
+          "kind": "mix",
+          "from": [
+            "national"
+          ],
+          "days": 2,
+          "tag": "THE WORLD",
+          "title": "Top News",
+          "subtitle": "The few biggest stories, ranked by how widely they're covered",
+          "sources": []
+        }
+      ]
+    },
+    {
+      "id": "my-feed",
+      "title": "My Feed",
+      "about": "The sources you choose yourself: outlets, YouTube channels and podcasts you trust. Add yours to this page.",
+      "panels": [
+        {
+          "id": "deep-reporting",
+          "tag": "ORIGINAL REPORTING",
+          "title": "Deep Reporting",
+          "subtitle": "ProPublica · Semafor — investigations and well-sourced scoops",
+          "sources": [
+            {
+              "name": "ProPublica",
+              "url": "https://feeds.propublica.org/propublica/main"
+            },
+            {
+              "name": "Semafor",
+              "url": "https://www.semafor.com/rss.xml"
+            }
+          ]
+        },
+        {
+          "id": "national",
+          "tag": "THE WIRE",
+          "title": "Top News",
+          "subtitle": "AP · Reuters · NPR · BBC — straight news, ranked by how widely it's covered",
+          "sources": [
+            {
+              "name": "AP",
+              "url": "https://news.google.com/rss/search?q=site:apnews.com+when:2d&hl=en-US&gl=US&ceid=US:en",
+              "min_words": 5
+            },
+            {
+              "name": "Reuters",
+              "url": "https://news.google.com/rss/search?q=site:reuters.com+when:2d&hl=en-US&gl=US&ceid=US:en",
+              "min_words": 5
+            },
+            {
+              "name": "NPR",
+              "url": "https://feeds.npr.org/1001/rss.xml"
+            },
+            {
+              "name": "BBC US",
+              "url": "https://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml"
+            }
+          ]
+        }
+      ],
+      "blurb": "The sources you picked, plus careful reporting and the day's top news."
+    },
+    {
+      "id": "zeitgeist",
+      "title": "Zeitgeist",
+      "about": "What is in the zeitgeist right now: what Americans are searching for, the most-read Wikipedia articles, pop culture, and tech/AI. Explain briefly why each thing is trending.",
+      "blurb": "What everyone's searching, reading and talking about right now.",
+      "panels": [
+        {
+          "id": "trending",
+          "tag": "SEARCHES",
+          "title": "Trending Searches",
+          "order": "newest",
+          "subtitle": "What Americans are Googling today, and why",
+          "sources": [
+            {
+              "name": "Google Trends",
+              "type": "trends",
+              "url": "https://trends.google.com/trending/rss?geo=US"
+            }
+          ]
+        },
+        {
+          "id": "most-read",
+          "tag": "MOST READ",
+          "title": "What Everyone's Reading",
+          "order": "newest",
+          "subtitle": "Wikipedia's most-read articles yesterday",
+          "sources": [
+            {
+              "name": "Wikipedia",
+              "type": "wikipedia"
+            }
+          ]
+        },
+        {
+          "id": "pop-culture",
+          "tag": "CULTURE",
+          "title": "Pop Culture",
+          "subtitle": "Rolling Stone · The Hollywood Reporter",
+          "sources": [
+            {
+              "name": "Rolling Stone",
+              "url": "https://www.rollingstone.com/culture/feed/"
+            },
+            {
+              "name": "Hollywood Reporter",
+              "url": "https://www.hollywoodreporter.com/feed/"
+            }
+          ]
+        },
+        {
+          "id": "tech",
+          "tag": "TECH & AI",
+          "title": "Tech & AI",
+          "subtitle": "The Verge · Hacker News · Platformer · 404 Media",
+          "sources": [
+            {
+              "name": "The Verge",
+              "url": "https://www.theverge.com/rss/index.xml"
+            },
+            {
+              "name": "Hacker News",
+              "url": "https://hnrss.org/frontpage?points=300"
+            },
+            {
+              "name": "Platformer",
+              "url": "https://www.platformer.news/rss/"
+            },
+            {
+              "name": "404 Media",
+              "url": "https://www.404media.co/rss/"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "home-front",
+      "title": "Home Front",
+      "about": "Government announcements and local news for where you live, plus federal government actions. Add your county, city and state feeds to this page.",
+      "panels": [
+        {
+          "id": "federal-gov",
+          "tag": "FEDERAL",
+          "title": "Federal Government",
+          "subtitle": "White House announcements & actions",
+          "sources": [
+            {
+              "name": "White House",
+              "url": "https://www.whitehouse.gov/news/feed/"
+            }
+          ],
+          "exclude": [
+            "award",
+            "recogniz",
+            "honors",
+            "honored",
+            "honoree",
+            "celebrat",
+            "congratulat",
+            "commemorat",
+            "anniversary",
+            "proclamation",
+            "proclaims",
+            "statement on",
+            "statement from",
+            "remarks",
+            "readout",
+            "message on",
+            "highlights",
+            "vows",
+            "pledges",
+            "promises",
+            "calls for",
+            "urges",
+            "touts",
+            "praises",
+            "applauds",
+            "welcomes",
+            "spotlight",
+            "icymi",
+            "op-ed",
+            "opinion",
+            "campaigns for",
+            "rally",
+            "endorse",
+            "heritage month",
+            "awareness month",
+            "appreciation"
+          ]
+        }
+      ],
+      "blurb": "What your local and federal government announced, and local news."
+    },
+    {
+      "id": "civic",
+      "title": "Civic Duty",
+      "about": "Things a responsible resident should check on or do: elections, public meetings, and local events. Add your own dates and local feeds to this page.",
+      "panels": [
+        {
+          "id": "checklist",
+          "kind": "checklist",
+          "tag": "TO DO",
+          "title": "Civic Checklist",
+          "subtitle": "Reminders · tick off, or add your own",
+          "items": [],
+          "sources": []
+        },
+        {
+          "id": "elections",
+          "tag": "BALLOT",
+          "title": "Election Watch",
+          "subtitle": "Add your local board of elections and races",
+          "sources": []
+        },
+        {
+          "id": "events",
+          "kind": "events",
+          "tag": "OUT & ABOUT",
+          "title": "Around Town",
+          "subtitle": "Add your city or county events calendar",
+          "sources": []
+        },
+        {
+          "id": "meetings",
+          "kind": "events",
+          "tag": "PUBLIC RECORD",
+          "title": "Public Meetings",
+          "subtitle": "Add your city or county meetings calendar",
+          "sources": []
+        }
+      ],
+      "blurb": "Your reminders, upcoming elections, public meetings and things happening around town."
+    }
+  ]
+}

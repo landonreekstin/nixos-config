@@ -292,6 +292,7 @@
       tuisic = pkgs.callPackage ./pkgs/tuisic { };
       gamarr = pkgs.callPackage ./pkgs/gamarr { };
       quiver-launcher = pkgs.callPackage ./pkgs/quiver-launcher { };
+      f-117 = pkgs.callPackage ./pkgs/f-117 { };
     };
 
     # Development Shells provided by this flake
