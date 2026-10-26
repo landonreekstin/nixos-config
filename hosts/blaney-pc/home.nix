@@ -126,6 +126,12 @@
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {
     extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
-    users.${config.customConfig.user.name} = {};
+    users.${config.customConfig.user.name} = {
+      # Dolphin was black text on the century-series Hyprland theme's dark grey
+      # (adwaita-dark style + the Win7 kdeglobals text colours). Give Dolphin its own
+      # dark colour scheme so the text is light. plasma-manager writes it as a key, not
+      # a symlink, since Dolphin rewrites dolphinrc itself.
+      programs.plasma.configFile.dolphinrc.UiSettings.ColorScheme = "BreezeDark";
+    };
   };
 }
