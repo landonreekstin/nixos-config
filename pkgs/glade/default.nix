@@ -4,7 +4,7 @@
 # you move around by clicking paths, whose objects open his apps). Under Hyprland it runs
 # as a layer-shell surface on the "bottom" layer of every monitor; under X11 as a
 # borderless window kept behind the others. See modules/home-manager/hyprland/desktops/glade/desktop.nix.
-# It is always night there; its name boards use Departure Mono, the same pixel font as
+# It is always night there; its name banners use Departure Mono, the same pixel font as
 # the bar (hyprland/desktops/glade), passed in as GLADE_FONT.
 #
 # The source is his own vibe project, ~/projects/hud on blaney-pc, published as
@@ -31,13 +31,13 @@ let
 in
 stdenvNoCC.mkDerivation {
   pname = "glade";
-  version = "0-unstable-2026-10-25";
+  version = "0-unstable-2026-10-26";
 
   src = fetchFromGitHub {
     owner = "cblaney00";
     repo = "glade";
-    rev = "937ab11d06b3112cf45f3ed0a66ec8baf2d81974";
-    hash = "sha256-1yNctCcfnxZOO829GKIOiF9F6A4smO5WFFjGii2Izqg=";
+    rev = "921e074b56ae46b2e8c697eab1c91bf9c96f79c1";
+    hash = "sha256-5+yxSX7HtgcQhmvLu0GTSG7ATLzkWNVvEHZ+Gk28fwM=";
   };
   sourceRoot = "source/glade";
 
