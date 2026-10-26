@@ -136,11 +136,33 @@
         StartupWMClass=${f117.settings.StartupWMClass}
       '';
 
-      # Dolphin was black text on the century-series Hyprland theme's dark grey
-      # (adwaita-dark style + the Win7 kdeglobals text colours). Give Dolphin its own
-      # dark colour scheme so the text is light. plasma-manager writes it as a key, not
-      # a symlink, since Dolphin rewrites dolphinrc itself.
-      programs.plasma.configFile.dolphinrc.UiSettings.ColorScheme = "BreezeDark";
+      # KDE apps under the glade take the Breeze Dark palette the glade puts on
+      # XDG_CONFIG_DIRS (desktops/glade/hyprland.nix) — but ~/.config/kdeglobals overrides
+      # it key by key, and his still holds the Windows 7 colours aerothemeplasma wrote,
+      # which nothing manages any more. Strip the colour groups from it so the session's
+      # palette applies: dark under the glade, stock light Breeze in XFCE. The rest of the
+      # file (file-dialog state etc.) is kept. Also drops the old per-app dolphinrc
+      # BreezeDark key (the previous fix): on its own it left the file names near-black.
+      imports = [
+        ({ lib, pkgs, config, ... }: let
+          dropColors = pkgs.writeText "kdeglobals-drop-colors.awk" ''
+            /^\[/ { skip = ($0 ~ /^\[(Colors|ColorEffects):/ || $0 == "[WM]"); general = ($0 == "[General]") }
+            skip { next }
+            general && /^ColorScheme(Hash)?=/ { next }
+            { print }
+          '';
+        in {
+          home.activation.kdeglobalsDropColors = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+            kg=${config.xdg.configHome}/kdeglobals
+            if [ -f "$kg" ] && grep -qE '^\[(Colors|ColorEffects):|^\[WM\]|^ColorScheme' "$kg"; then
+              # One `run` for the rewrite and the move, so a dry run touches nothing.
+              run ${pkgs.bash}/bin/sh -c '${pkgs.gawk}/bin/awk -f ${dropColors} "$0" > "$0.new" && mv "$0.new" "$0"' "$kg"
+            fi
+            run ${pkgs.kdePackages.kconfig}/bin/kwriteconfig6 --file dolphinrc \
+              --group UiSettings --key ColorScheme --delete
+          '';
+        })
+      ];
     };
   };
 }
