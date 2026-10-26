@@ -7,10 +7,13 @@
 #                  bars, the plain-English bar, the Apps and power menus, keyboard steering
 # - the rest     — the look, all from colors.nix: Hyprland's borders and title bars, the
 #                  bar, rofi, wlogout, the lock screen, kitty, and GTK/icons/cursor
+# - dock.nix     — the dock on the lower monitor, the title bars' minimise button, and
+#                  new windows taking the keyboard as they open (dock.py)
 { ... }:
 {
   imports = [
     ./desktop.nix
+    ./dock.nix
     ./hyprland.nix
     ./waybar.nix
     ./rofi.nix
