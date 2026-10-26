@@ -19,6 +19,8 @@ let
     "com.discordapp.Discord.desktop"
     "spotify.desktop"
     "steam.desktop"
+    # his own app (hosts/blaney-pc/home.nix); a favourite that isn't installed is skipped
+    "f-117.desktop"
   ];
 
   pyEnv = pkgs.python3.withPackages (ps: [ ps.pygobject3 ]);

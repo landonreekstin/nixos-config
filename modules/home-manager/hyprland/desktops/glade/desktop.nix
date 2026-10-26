@@ -182,7 +182,7 @@ in
       "custom/glade-apps" = {
         format = "✿ Apps";
         tooltip-format = "Every app on the computer — click one to open it";
-        on-click = "pkill -x rofi || rofi -show drun -show-icons";
+        on-click = "glade-dock apps -show drun -show-icons"; # a click outside closes it (dock.py)
       };
       "wlr/taskbar" = {
         format = "{icon} {name}"; # the app's name: a terminal's title is just "~"
@@ -211,6 +211,8 @@ in
     programs.rofi.extraConfig = {
       me-select-entry = "MouseSecondary";
       me-accept-entry = "MousePrimary";
+      # a click outside the menu closes it (the menu fills the screen, rofi.nix)
+      kb-cancel = "Escape,Control+g,Control+bracketleft,MousePrimary";
       hover-select = true;
       # apps that run inside a terminal (btop, ...) need to know which one
       terminal = customConfig.apps.programs.terminal.command;

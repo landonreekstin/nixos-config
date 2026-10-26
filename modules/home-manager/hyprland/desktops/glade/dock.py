@@ -10,6 +10,7 @@
 #   glade-dock watch        give each new window the keyboard as it opens, and bring a
 #                           minimised window back whenever something focuses it (the top
 #                           bar's window list)
+#   glade-dock apps ARGS... the Apps menu (rofi ARGS), closed by a click outside it
 #
 # Hyprland has no minimise: a minimised window waits on the hidden workspace
 # special:minimized, tagged with the monitor it came from so it goes back there.
@@ -366,6 +367,65 @@ def dock(favourites, css_path):
     Gtk.main()
 
 
+# --- the Apps menu ---------------------------------------------------------------------
+
+def apps_menu(rofi_args):
+    """Open the Apps menu (rofi) so that a click anywhere outside it closes it.
+
+    Wayland rofi has no click-to-exit and keeps the keyboard, which left him stuck until he
+    picked something. On its own screen the menu now fills the screen and a click beside
+    the card cancels it (rofi.nix, kb-cancel in desktop.nix). A click on the other screen
+    never reaches rofi, so while it is open a clear sheet covers every monitor beneath it,
+    and a click on the sheet closes the menu."""
+    import subprocess
+
+    import gi
+    gi.require_version("Gdk", "3.0")
+    gi.require_version("Gtk", "3.0")
+    gi.require_version("GtkLayerShell", "0.1")
+    from gi.repository import Gdk, GLib, Gtk, GtkLayerShell
+
+    if subprocess.run(["pkill", "-x", "rofi"]).returncode == 0:
+        return  # it was open: the button closes it
+
+    rofi = subprocess.Popen(["rofi", *rofi_args])
+
+    def close(*_):
+        if rofi.poll() is None:
+            rofi.terminate()
+        return True
+
+    display = Gdk.Display.get_default()
+    for i in range(display.get_n_monitors()):
+        win = Gtk.Window()
+        win.set_app_paintable(True)
+        visual = win.get_screen().get_rgba_visual()
+        if visual:
+            win.set_visual(visual)
+        win.connect("draw", lambda w, cr: (cr.set_source_rgba(0, 0, 0, 0.01), cr.paint()) and False)
+        GtkLayerShell.init_for_window(win)
+        GtkLayerShell.set_namespace(win, "glade-apps-sheet")
+        GtkLayerShell.set_layer(win, GtkLayerShell.Layer.TOP)  # rofi is on OVERLAY, above it
+        GtkLayerShell.set_monitor(win, display.get_monitor(i))
+        for edge in (GtkLayerShell.Edge.TOP, GtkLayerShell.Edge.BOTTOM,
+                     GtkLayerShell.Edge.LEFT, GtkLayerShell.Edge.RIGHT):
+            GtkLayerShell.set_anchor(win, edge, True)
+        GtkLayerShell.set_exclusive_zone(win, -1)  # over the bar and the dock too
+        GtkLayerShell.set_keyboard_mode(win, GtkLayerShell.KeyboardMode.NONE)
+        win.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
+        win.connect("button-press-event", close)
+        win.show_all()
+
+    def gone():
+        if rofi.poll() is None:
+            return True
+        Gtk.main_quit()
+        return False
+
+    GLib.timeout_add(100, gone)
+    Gtk.main()
+
+
 if __name__ == "__main__":
     args = sys.argv[1:]
     if args[:1] == ["minimize"]:
@@ -374,7 +434,9 @@ if __name__ == "__main__":
         restore(args[1])
     elif args[:1] == ["watch"]:
         watch()
+    elif args[:1] == ["apps"]:
+        apps_menu(args[1:])
     elif len(args) == 2:
         dock(json.loads(args[0]), args[1])
     else:
-        sys.exit("usage: glade-dock FAVOURITES-JSON CSS | minimize [ADDR] | restore ADDR | watch")
+        sys.exit("usage: glade-dock FAVOURITES-JSON CSS | minimize [ADDR] | restore ADDR | watch | apps [ROFI-ARGS...]")
