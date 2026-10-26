@@ -2,6 +2,7 @@
 {
   lib,
   stdenvNoCC,
+  fetchFromGitHub,
   python3,
   makeWrapper,
   makeDesktopItem,
@@ -10,12 +11,13 @@
 
 # F-117 (Briefing Room), insideabush's own news-briefing app, vibe-coded on blaney-pc.
 #
-# Its real home is the local-only repo ~/projects/breifing-room on blaney-pc, which has no
-# remote. src/ is a snapshot of that repo (`git archive HEAD` at b5d7dc0) made into a blank
-# slate for sharing: his local/personal feeds and dated reminders are taken out of
-# sources.json, his dev notes (CLAUDE.md) and run.sh dropped, and briefing/ui.py reads a
-# user's own ~/.local/share/briefing-room/sources.json first (see src/README.md). blaney-pc
-# itself still launches his live project folder (hosts/blaney-pc/home.nix), not this.
+# The source is github:cblaney00/f-117, a blank-slate copy of his local project
+# ~/projects/breifing-room, which stays private: its history, dev notes and his own feeds
+# never go there. The project's ./publish.sh pushes that clean copy. A user's own pages and
+# feeds go in ~/.local/share/briefing-room/sources.json, which replaces the shipped one
+# (see the repo's README). blaney-pc itself still launches his live project folder
+# (hosts/blaney-pc/home.nix), not this. To update: run ./publish.sh in the project, then
+# bump `rev`, `hash` and `version` — see docs/companion-repos.md#f-117.
 #
 # The AI briefings shell out to `claude` and the window placement to `hyprctl`; both are
 # looked up on PATH at runtime and skipped when missing, so neither is a dependency here.
@@ -26,7 +28,12 @@ stdenvNoCC.mkDerivation {
   pname = "f-117";
   version = "0-unstable-2026-10-26";
 
-  src = ./src;
+  src = fetchFromGitHub {
+    owner = "cblaney00";
+    repo = "f-117";
+    rev = "0c6b70df0481794b51b211dbb4aec72bc3985f47";
+    hash = "sha256-fWo31P4UhPY1vTIjpkyb2wV2Y+UkDrRUgWH0IBzgR44=";
+  };
 
   nativeBuildInputs = [ makeWrapper copyDesktopItems ];
 
