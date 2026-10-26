@@ -2,6 +2,14 @@
 { config, pkgs, lib, ... }:
 
 {
+  # KDE System Monitor, kept when Plasma was dropped from this host. It only draws what
+  # ksystemstats reports, and ksystemstats is D-Bus-activated (org.kde.ksystemstats1 →
+  # plasma-ksystemstats.service), so it has to be registered with dbus and systemd, not
+  # just installed — plasma6 used to do that. Without it the app opens with empty graphs.
+  environment.systemPackages = [ pkgs.kdePackages.plasma-systemmonitor pkgs.kdePackages.ksystemstats ];
+  services.dbus.packages = [ pkgs.kdePackages.ksystemstats ];
+  systemd.packages = [ pkgs.kdePackages.ksystemstats ];
+
   customConfig = {
 
     apps = {
