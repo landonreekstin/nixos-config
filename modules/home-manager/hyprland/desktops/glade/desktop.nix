@@ -96,7 +96,17 @@ let
 in
 {
   config = lib.mkMerge [ (lib.mkIf desktop.enabled {
-    home.packages = [ glade gladeDesktop gladeShow gladeCtl ];
+    home.packages = [ glade gladeDesktop gladeShow gladeCtl pkgs.blueman ];
+    # Searching the Apps menu for "wifi" found nothing: the Wi-Fi picker was called
+    # "NetworkManager Dmenu". Same file name, so this replaces the stock entry.
+    xdg.desktopEntries.networkmanager_dmenu = {
+      name = "Wi-Fi";
+      genericName = "Join a Wi-Fi network";
+      exec = "networkmanager_dmenu";
+      icon = "nm-device-wireless";
+      categories = [ "Network" "Settings" ];
+      settings.Keywords = "wifi;wi-fi;wireless;internet;network;";
+    };
 
     hyprDesktops.glade = {
       # Title bars on every window: drag to move, double-click to maximise, and the
@@ -149,6 +159,19 @@ in
         # WantedBy graphical-session.target, which this session never reaches, so
         # start it explicitly, as century-series does for its own units.
         exec-once = systemctl --user start swaync
+        # Bluetooth in the bar's tray, next to the network icon (nm-applet).
+        exec-once = ${pkgs.blueman}/bin/blueman-applet
+
+        # The shortcuts his hands know from Windows and macOS: Alt+Tab to switch windows,
+        # Alt+F4 to close one, Win+E for files, Print Screen to snip a part of the screen
+        # (same as Super+Shift+S, saved to Pictures/Screenshots).
+        bind = ALT, Tab, cyclenext,
+        bind = ALT, Tab, bringactivetotop,
+        bind = ALT SHIFT, Tab, cyclenext, prev
+        bind = ALT SHIFT, Tab, bringactivetotop,
+        bind = ALT, F4, killactive,
+        bind = SUPER, E, exec, ${pkgs.kdePackages.dolphin}/bin/dolphin
+        bind = , Print, exec, ${pkgs.grim}/bin/grim -g "$(${pkgs.slurp}/bin/slurp)" ${config.home.homeDirectory}/Pictures/Screenshots/$(date +%Y-%m-%d_%H-%M-%S).png
 
         bind = SUPER, home, exec, glade-show && glade-ctl keys
         submap = glade

@@ -161,6 +161,8 @@
       # light. plasma-manager writes these as keys, not a symlink, since Dolphin rewrites
       # dolphinrc itself.
       programs.plasma.configFile.dolphinrc.UiSettings.ColorScheme = "BreezeDark";
+      # Open one fresh window like Explorer/Finder, not every tab from last time.
+      programs.plasma.configFile.dolphinrc.General.RememberOpenedTabs = false;
     };
   };
 }

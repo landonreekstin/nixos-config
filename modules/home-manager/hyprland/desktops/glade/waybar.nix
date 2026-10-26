@@ -20,7 +20,7 @@ in
     # buttons (an ink outline, a hard 2px drop shadow) like the name boards in the glade.
     programs.waybar.style = ''
       * {
-        font-family: "${c.font}", "Noto Color Emoji", sans-serif;
+        font-family: "${c.font}", "JetBrainsMono Nerd Font", "Noto Color Emoji", sans-serif;
         font-size: 15px;
         min-height: 0;
         border: none;
