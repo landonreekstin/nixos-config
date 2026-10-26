@@ -1,7 +1,8 @@
 # ~/nixos-config/modules/home-manager/hyprland/desktops/glade/rofi.nix
 #
 # The "Apps" menu: a night-sky card in the middle of the screen, big icons, two columns,
-# the hovered app on a lit wooden board. Click behaviour is in desktop.nix.
+# the hovered app on a lit wooden board; a click beside it closes it. Click behaviour
+# is in desktop.nix.
 { config, pkgs, lib, customConfig, ... }:
 
 let
@@ -28,16 +29,22 @@ in
           background-color = l "transparent";
           text-color = l c.text;
         };
+        # The menu covers its whole screen, so a click beside the card lands on rofi and
+        # closes it (kb-cancel in desktop.nix; Wayland rofi has no click-to-exit). The card
+        # itself is the mainbox, centred by its margins.
         window = {
-          width = l "760px";
-          location = l "center";
+          fullscreen = true;
+          background-color = l "rgba(10, 6, 24, 0.2)";
+        };
+        mainbox = {
+          margin = l "calc(50% - 265px) calc(50% - 380px)";
           background-color = l c.night;
           border = l "3px solid";
           border-color = l c.violet;
           border-radius = l "14px";
           padding = l "18px";
+          spacing = l "14px";
         };
-        mainbox.spacing = l "14px";
         inputbar = {
           background-color = l c.board;
           border = l "2px solid";
