@@ -5,6 +5,15 @@ let
   inherit ((import ../lib.nix { inherit lib; }).state customConfig "glade") enabled;
   c = import ./colors.nix;
   rgb = x: "rgb(${lib.removePrefix "#" x})";
+
+  # A kdeglobals holding only the Breeze Dark palette, in a directory of its own that is
+  # put in front of XDG_CONFIG_DIRS for this desktop alone (below). KDE apps cascade
+  # kdeglobals through XDG_CONFIG_DIRS, so under the glade they read this palette, while
+  # the same apps in any other session (XFCE) never see it. ~/.config/kdeglobals still
+  # wins key by key, so it must not carry [Colors:*] groups of its own.
+  kdeDarkColors = pkgs.runCommand "glade-kde-colors" { } ''
+    install -Dm644 ${pkgs.kdePackages.breeze}/share/color-schemes/BreezeDark.colors $out/kdeglobals
+  '';
 in
 {
   config = lib.mkIf enabled {
@@ -65,9 +74,17 @@ in
     };
 
     # Apps follow the glade's night: dark GTK and Qt (gtk.nix sets the GTK theme itself).
+    # The Qt platform theme ("kde") is set in hyprland/functional.nix; this picks the
+    # widget style (Breeze, not "adwaita-dark", which no host packages) and the palette
+    # (kdeDarkColors above). hyprlang expands $XDG_CONFIG_DIRS from the environment, so
+    # the session's own entries (menus, autostart) are kept behind it. The dbus/systemd
+    # push is for apps started on demand rather than by Hyprland — e.g. a Dolphin opened
+    # by a browser's "show in folder" — which would otherwise come up light.
     hyprDesktops.glade.extraConfig = ''
       env = GTK_THEME,Adwaita:dark
-      env = QT_STYLE_OVERRIDE,adwaita-dark
+      env = QT_STYLE_OVERRIDE,Breeze
+      env = XDG_CONFIG_DIRS,${kdeDarkColors}:$XDG_CONFIG_DIRS
+      exec-once = dbus-update-activation-environment --systemd XDG_CONFIG_DIRS
     '';
   };
 }
