@@ -126,6 +126,31 @@
   # Home Manager configuration for this Host
   home-manager = lib.mkIf config.customConfig.homeManager.enable {
     extraSpecialArgs = { inherit inputs unstablePkgs; customConfig = config.customConfig; };
-    users.${config.customConfig.user.name} = {};
+    users.${config.customConfig.user.name} = let
+      # F-117, his own app (~/projects/breifing-room, made with `vibe`). It runs from his
+      # project folder on purpose while he is still building it; packaging comes later
+      # (docs/hosts/blaney-vibe-projects.md, "Packaging a finished app").
+      f117 = {
+        name = "F-117";
+        comment = "Briefing Room";
+        exec = "/home/insideabush/projects/breifing-room/run.sh";
+        icon = "applications-games";
+        terminal = false;
+        categories = [ "Game" ];
+      };
+    in {
+      # in app search (the Apps menu) ...
+      xdg.desktopEntries.f-117 = f117;
+      # ... and on his Desktop, so the Glade gives it a tree squid
+      home.file."Desktop/F-117.desktop".text = ''
+        [Desktop Entry]
+        Type=Application
+        Name=${f117.name}
+        Comment=${f117.comment}
+        Exec=${f117.exec}
+        Icon=${f117.icon}
+        Terminal=false
+      '';
+    };
   };
 }
