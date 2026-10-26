@@ -121,7 +121,7 @@ insideabush's files (`modules/nixos/services/remote-admin.nix`):
 ## His own app projects
 
 Separate from everything above: insideabush also builds his own small apps, with the `vibe`
-command. Those live in `~/projects/<slug>` as local-only git repos he commits to `main`
+command. Those live in `~/projects/<slug>` as git repos (local-only or on his own GitHub) he commits to `main`
 directly, and a session in one of them is governed by `~/projects/CLAUDE.md`, not by this
 file. See [blaney-vibe-projects.md](blaney-vibe-projects.md). The rules here still bind
 anything that touches *this* repo.
