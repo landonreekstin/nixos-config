@@ -118,6 +118,35 @@ insideabush's files (`modules/nixos/services/remote-admin.nix`):
   from 10.10.0.2/10.10.0.11 to 10.10.0.5 ahead of the `<restricted_peers>` block; and his
   NM profile's `allowed-ips` include those two addresses so WireGuard accepts them.
 
+## Claude in the config: `ccn`
+
+Everywhere else `ccn`/`ccnc`/`ccnr` are three shell functions (new / continue / resume) in
+`modules/home-manager/system/bash.nix`. On blaney-pc those functions are left out and
+`ccn` is a command in `modules/nixos/common/commands.nix` instead, built like `vibe`: a
+numbered menu to **start a new chat** (he types what he wants right there), **pick up where
+you left off**, or **look through older chats**. With no saved chats it goes straight to
+the new-chat question. `ccnc` and `ccnr` remain as shims that say so and open `ccn`.
+
+Every chat it opens — resumed ones included — runs with `ccnRules` appended to the system
+prompt: a summary of the rules on this page plus a **catch-up procedure** that runs before
+any work, at the start of every chat and whenever he comes back to one. It fetches, never
+throws away uncommitted work, fast-forwards `main`, and for a `blaney/` branch notices a
+PR that was already merged, pulls the branch's own remote commits, rebases onto
+`origin/main` when it is behind (aborting a conflict it can't resolve confidently) and
+`--force-with-lease` pushes the result; then it rebuilds if anything moved.
+
+**`ccnRules` is a copy of these rules, so change both together.**
+
+Two details that matter if you touch it:
+
+- **Resumed chats pass `--system-prompt-snapshot off`.** By default Claude Code records the
+  system prompt on a chat's first request and replays that on every resume, ignoring a
+  later `--append-system-prompt`, so without the flag a chat started before this command
+  existed would never see the rules, and every other chat would keep a stale copy.
+- "Pick up where you left off" resumes the newest saved chat **that has a user message
+  in it** (`ccnLastSession`), not `claude -c`: the remote-control server drops an empty
+  session file on every start, and `-c` would continue that into a blank chat.
+
 ## His own app projects
 
 Separate from everything above: insideabush also builds his own small apps, with the `vibe`
