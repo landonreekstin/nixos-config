@@ -60,6 +60,17 @@ let
 
   # Hands a keyboard command to the running glade, through the pipe it reads
   # (wayland.py in pkgs/glade). Gives up after a second if no glade is listening.
+  # Alt+Tab like Windows: back to the window used just before this one, whichever screen
+  # it is on (Hyprland's own cyclenext stays on one screen's workspace, and his windows
+  # are usually on different screens). Alt+Shift+Tab goes to the one used longest ago,
+  # so pressing it again and again visits every window. Minimised windows are skipped.
+  altTab = pkgs.writeShellScript "glade-alt-tab" ''
+    pick=$(hyprctl clients -j | ${pkgs.jq}/bin/jq -r --arg how "$1" '
+      [.[] | select(.mapped and (.workspace.name | startswith("special") | not) and .focusHistoryID > 0)]
+      | sort_by(.focusHistoryID) | (if $how == "back" then first else last end) | .address // empty')
+    [ -n "$pick" ] && hyprctl --batch "dispatch focuswindow address:$pick; dispatch alterzorder top"
+  '';
+
   gladeCtl = pkgs.writeShellScriptBin "glade-ctl" ''
     pipe="''${XDG_RUNTIME_DIR:-/tmp}/glade.ctl"
     [ -p "$pipe" ] || exit 0
@@ -165,10 +176,8 @@ in
         # The shortcuts his hands know from Windows and macOS: Alt+Tab to switch windows,
         # Alt+F4 to close one, Win+E for files, Print Screen to snip a part of the screen
         # (same as Super+Shift+S, saved to Pictures/Screenshots).
-        bind = ALT, Tab, cyclenext,
-        bind = ALT, Tab, bringactivetotop,
-        bind = ALT SHIFT, Tab, cyclenext, prev
-        bind = ALT SHIFT, Tab, bringactivetotop,
+        bind = ALT, Tab, exec, ${altTab} back
+        bind = ALT SHIFT, Tab, exec, ${altTab} round
         bind = ALT, F4, killactive,
         bind = SUPER, E, exec, ${pkgs.kdePackages.dolphin}/bin/dolphin
         bind = , Print, exec, ${pkgs.grim}/bin/grim -g "$(${pkgs.slurp}/bin/slurp)" ${config.home.homeDirectory}/Pictures/Screenshots/$(date +%Y-%m-%d_%H-%M-%S).png
