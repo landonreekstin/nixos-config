@@ -134,12 +134,16 @@
         name = "F-117";
         comment = "Briefing Room";
         exec = "/home/insideabush/projects/breifing-room/run.sh";
-        icon = "applications-games";
+        # its own jet, drawn by the app (assets/f-117.png in his project)
+        icon = "/home/insideabush/projects/breifing-room/assets/f-117.png";
         terminal = false;
         categories = [ "Game" ];
+        # its windows say "briefing-room" (the app's desktop-file name), so the dock
+        # (glade/dock.nix, where it is a favourite) can tell they are F-117's
+        settings.StartupWMClass = "briefing-room";
       };
     in {
-      # in app search (the Apps menu) ...
+      # in app search (the Apps menu) and pinned in the Glade's dock ...
       xdg.desktopEntries.f-117 = f117;
       # ... and on his Desktop, so the Glade gives it a tree squid
       home.file."Desktop/F-117.desktop".text = ''
@@ -150,6 +154,7 @@
         Exec=${f117.exec}
         Icon=${f117.icon}
         Terminal=false
+        StartupWMClass=${f117.settings.StartupWMClass}
       '';
     };
   };
