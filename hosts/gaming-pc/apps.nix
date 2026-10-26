@@ -86,6 +86,9 @@
 
       claudeCode = {
         enable = true;
+        # Merging to main needs `--admin` (branch ruleset), which auto mode otherwise
+        # blocks every time. gaming-pc only: blaney-pc must never merge.
+        permissions.allow = [ "Bash(gh pr merge:*)" ];
         # lando's hyprland-keys working clone lives alongside nixos-config on this host.
         extraChownPaths = [ "/home/lando/hyprland-keys" ];
         remoteControl = {
