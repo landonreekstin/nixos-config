@@ -451,6 +451,7 @@ them out of every other desktop (see above).
 | the glade as a layer-shell surface, one per monitor (GTK + gtk-layer-shell; pygame draws off-screen), and the keyboard bridge | `wayland.py` in `github:cblaney00/glade` (`pkgs/glade`) |
 | **structure** — what runs, what each click or key does: autostart, `glade-show`, `glade-ctl` + the `glade` submap, floating windows + `hyprbars`, click-to-focus, resize from edges, bar layout, rofi single-click, power menu | `hyprland/desktops/glade/desktop.nix` |
 | **look** — borders and title bars, bar CSS, rofi, wlogout, lock screen, kitty, GTK/icons/cursor, pixel font (Departure Mono); all from one palette taken from the scene's name boards and glows | `hyprland/desktops/glade/{hyprland,waybar,rofi,wlogout,swaylock,kitty,gtk}.nix`, `colors.nix` |
+| **the dock, minimise, focus on open** — the dock on the lowest monitor, the title bars' minimise button, the window watcher | `hyprland/desktops/glade/dock.nix` + `dock.py` |
 
 Behaviour worth knowing before changing it:
 
@@ -477,7 +478,21 @@ Behaviour worth knowing before changing it:
 - **Every window floats** (`windowrule = float true, match:class .*`), `follow_mouse = 2`
   (focus on click), `resize_on_border`. Title bars come from the `hyprbars` plugin, built
   from the same nixpkgs as Hyprland; dragging the bar moves a window, double-click or
-  `▢` maximises (`fullscreen 1`), `✕` closes.
+  `▢` maximises (`fullscreen 1`), `✕` closes, `–` minimises.
+- **Minimise = `special:minimized`.** Hyprland has none of its own, so `glade-dock minimize`
+  moves the window to that hidden special workspace, tagged `glade-min-<monitor>`, and
+  hands the keyboard to the window used before it. `glade-dock restore` puts it back on
+  whatever that monitor shows now. `glade-dock watch` (started with the session) restores a
+  minimised window whenever anything focuses it — that is how the bar's `wlr/taskbar` list
+  brings one back — and gives every new window the keyboard as it opens, resetting the
+  `glade` submap first (a launch from the glade could leave steering on and swallow keys).
+- **The dock (`glade-dock`)** is a GTK + gtk-layer-shell bar on the **lowest** monitor
+  (bottom edge, `top` layer, its own exclusive zone), so it stays off the path between
+  the screens. The favourites in `dock.nix` always show, then any other open app; a moss
+  dot = open, a dim dot = every window of it minimised. Click opens / brings forward /
+  restores (clicking again cycles its windows), middle-click opens a new window,
+  right-click gives a plain-words menu. Apps start through `hyprctl dispatch exec`, so they
+  are not in the glade target's scope.
 - **The bar is on the main monitor only** (`output` = the `main` monitor's identifier).
   The lower monitor is the ground in front of the glade, and a bar along its top would cut
   across the path where it continues from the screen above.
