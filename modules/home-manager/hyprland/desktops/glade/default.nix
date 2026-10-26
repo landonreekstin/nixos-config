@@ -10,11 +10,13 @@
 # - dock.nix     — the dock on the lower monitor, the title bars' minimise button, and
 #                  new windows taking the keyboard as they open (dock.py)
 # - snap.nix     — drag a window to the left or right edge and it fills that half
+# - games.nix    — the Games tab on the bar: every installed game as box art (games.py)
 { ... }:
 {
   imports = [
     ./desktop.nix
     ./dock.nix
+    ./games.nix
     ./snap.nix
     ./hyprland.nix
     ./waybar.nix

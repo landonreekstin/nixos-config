@@ -40,7 +40,7 @@ in
       }
       tooltip label { color: ${c.text}; }
 
-      #custom-glade-home, #custom-glade-apps, #custom-power,
+      #custom-glade-home, #custom-glade-apps, #custom-glade-games, #custom-power,
       #taskbar button, #pulseaudio, #clock, #tray {
         margin: 5px 4px 6px 4px;
         padding: 0 12px;
@@ -54,9 +54,10 @@ in
       /* the three big buttons each glow in their own colour */
       #custom-glade-home { color: ${c.moss}; border-color: alpha(${c.moss}, 0.7); margin-left: 10px; }
       #custom-glade-apps { color: ${c.violet}; border-color: alpha(${c.violet}, 0.7); }
+      #custom-glade-games { color: ${c.amber}; border-color: alpha(${c.amber}, 0.7); }
       #custom-power      { color: ${c.pink}; border-color: alpha(${c.pink}, 0.7); margin-right: 10px; }
 
-      #custom-glade-home:hover, #custom-glade-apps:hover, #custom-power:hover,
+      #custom-glade-home:hover, #custom-glade-apps:hover, #custom-glade-games:hover, #custom-power:hover,
       #taskbar button:hover, #pulseaudio:hover, #clock:hover {
         color: #ffffff;
         background: ${c.boardHi};

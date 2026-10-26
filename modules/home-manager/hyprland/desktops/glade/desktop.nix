@@ -202,7 +202,7 @@ in
     # (workspace numbers, CPU, memory) — he finds his windows in the list instead.
     programs.waybar.settings.mainBar = {
       output = lib.mkIf (barOutput != null) barOutput;
-      modules-left = lib.mkForce [ "custom/glade-home" "custom/glade-apps" ];
+      modules-left = lib.mkForce [ "custom/glade-home" "custom/glade-apps" "custom/glade-games" ];
       modules-center = lib.mkForce [ "wlr/taskbar" ];
       modules-right = lib.mkForce [ "pulseaudio" "tray" "clock" "custom/power" ];
 
@@ -215,6 +215,11 @@ in
         format = "✿ Apps";
         tooltip-format = "Every app on the computer — click one to open it";
         on-click = "glade-dock apps -show drun -show-icons"; # a click outside closes it (dock.py)
+      };
+      "custom/glade-games" = {
+        format = "🎮 Games";
+        tooltip-format = "Every game on the computer — click one to play it";
+        on-click = "glade-games"; # games.nix
       };
       "wlr/taskbar" = {
         format = "{icon} {name}"; # the app's name: a terminal's title is just "~"

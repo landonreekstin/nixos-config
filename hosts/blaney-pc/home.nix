@@ -137,7 +137,7 @@
         # its own jet, drawn by the app (assets/f-117.png in his project)
         icon = "/home/insideabush/projects/breifing-room/assets/f-117.png";
         terminal = false;
-        categories = [ "Game" ];
+        categories = [ "Utility" ]; # his own app, not a game: keeps it out of the Games tab
         # its windows say "briefing-room" (the app's desktop-file name), so the dock
         # (glade/dock.nix, where it is a favourite) can tell they are F-117's
         settings.StartupWMClass = "briefing-room";
