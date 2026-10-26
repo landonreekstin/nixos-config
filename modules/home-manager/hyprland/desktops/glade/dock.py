@@ -156,6 +156,9 @@ def watch():
 
 # --- the dock --------------------------------------------------------------------------
 
+KEYS_HINT = "← ↑ → ↓ walk · Tab choose · Enter open · Home glade · Esc stop"
+
+
 def dock(favourites, css_path):
     import gi
     gi.require_version("Gdk", "3.0")
@@ -203,9 +206,18 @@ def dock(favourites, css_path):
                 win.set_visual(screen.get_rgba_visual())
             win.set_app_paintable(True)
 
+            # The keyboard hint, a small line of glowing letters on top of the dock while
+            # the keyboard is steering the glade (Hyprland's "glade" submap).
+            self.hint = Gtk.Label(label=KEYS_HINT)
+            self.hint.set_name("hint")
+            self.hint.set_no_show_all(True)
             self.board = Gtk.Box(spacing=4)
-            self.board.set_name("dock")
-            win.add(self.board)
+            self.board.set_halign(Gtk.Align.CENTER)
+            stack = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+            stack.set_name("dock")
+            stack.pack_start(self.hint, False, False, 0)
+            stack.pack_start(self.board, False, False, 0)
+            win.add(stack)
 
             display = Gdk.Display.get_default()
             display.connect("monitor-added", lambda *_: self.place())
@@ -225,8 +237,10 @@ def dock(favourites, css_path):
                 GtkLayerShell.set_monitor(self.win, low)
 
         def follow(self):
-            for name, _ in events():
-                if name in ("openwindow", "closewindow", "movewindow", "movewindowv2", "configreloaded"):
+            for name, data in events():
+                if name == "submap":
+                    GLib.idle_add(self.hint.set_visible, data == "glade")
+                elif name in ("openwindow", "closewindow", "movewindow", "movewindowv2", "configreloaded"):
                     GLib.idle_add(self.schedule)
 
         def schedule(self):
