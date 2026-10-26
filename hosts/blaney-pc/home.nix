@@ -156,6 +156,12 @@
         Terminal=false
         StartupWMClass=${f117.settings.StartupWMClass}
       '';
+
+      # Dolphin was black text on the century-series Hyprland theme's dark grey
+      # (adwaita-dark style + the Win7 kdeglobals text colours). Give Dolphin its own
+      # dark colour scheme so the text is light. plasma-manager writes it as a key, not
+      # a symlink, since Dolphin rewrites dolphinrc itself.
+      programs.plasma.configFile.dolphinrc.UiSettings.ColorScheme = "BreezeDark";
     };
   };
 }
