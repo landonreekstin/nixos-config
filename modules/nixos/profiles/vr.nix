@@ -248,8 +248,9 @@ let
   # * Steam already has a hidden "vr" launch entry (beac_wt_mlauncher.exe
   #   -config:gameplay/enableVR:b=yes); steam://launch/236390/VR runs it.
   # * XR_SRGB_FIX turns on xr-srgb-fix (below) for this game only.
-  wtAppId = "236390";
-  wt-vr-setup = pkgs.writeShellScriptBin "wt-vr-setup" ''
+  # Shared start of the GE-Proton 11 setup scripts: Steam must be closed, and
+  # $tool is set to the newest GE-Proton11-9+ (Steam's internal tool name).
+  geProton11Setup = ''
     set -euo pipefail
     STEAM="$HOME/.local/share/Steam"
     if pgrep -u "$(id -u)" steamwebhelper >/dev/null; then
@@ -264,6 +265,13 @@ let
       echo "Get it from https://github.com/GloriousEggroll/proton-ge-custom/releases" >&2
       exit 1
     fi
+    # Steam maps games by the tool's internal name, not the directory name.
+    tool=$(sed -n 's/^\s*"\([^"]*\)"\s*\/\/ Internal name.*/\1/p' "$dir/compatibilitytool.vdf")
+  '';
+
+  wtAppId = "236390";
+  wt-vr-setup = pkgs.writeShellScriptBin "wt-vr-setup" ''
+    ${geProton11Setup}
     # Without Valve's Proton BattlEye Runtime the game starts, but online play
     # refuses with "anti-cheat is not loaded". Steam passes PROTON_BATTLEYE_RUNTIME
     # to the game by itself once it is installed (in any library).
@@ -275,13 +283,24 @@ let
       echo "Start Steam, run: steam steam://install/1161040 — then re-run wt-vr-setup." >&2
       exit 1
     fi
-    # Steam maps games by the tool's internal name, not the directory name.
-    tool=$(sed -n 's/^\s*"\([^"]*\)"\s*\/\/ Internal name.*/\1/p' "$dir/compatibilitytool.vdf")
     echo "== Steam: $tool + VR launch options"
     # PROTON_DISABLE_NVAPI: game build 2.59.0.78 (2026-10-20) crashes in dxvk-nvapi's
     # nvapi64.dll right after DX11 init (seen flat; VR shares that path). DLSS is off anyway.
     ${vdfEdit} "$STEAM" ${wtAppId} "PROTON_DISABLE_NVAPI=1 XR_SRGB_FIX=1 %command%" "$tool" "$tool"
     echo "Done. Start it with the War Thunder (VR) launcher (or wt-vr)."
+  '';
+
+  # Phasmophobia (Steam appid 739630), Windows build under GE-Proton. Unity's
+  # OpenXR plugin, so it reaches WiVRn through wineopenxr like War Thunder.
+  # * Steam's "Phasmophobia in VR" launch entry passes --enable-vr;
+  #   steam://launch/739630/VR runs it.
+  # * GE-Proton 11-9+ for the same wineopenxr reason as War Thunder.
+  phasmoAppId = "739630";
+  phasmo-vr-setup = pkgs.writeShellScriptBin "phasmo-vr-setup" ''
+    ${geProton11Setup}
+    echo "== Steam: $tool"
+    ${vdfEdit} "$STEAM" ${phasmoAppId} "%command%" "$tool" "$tool"
+    echo "Done. Start it with the Phasmophobia (VR) launcher (or phasmo-vr)."
   '';
 
   # OpenXR layer that undoes Proton's double sRGB encode (washed-out colours in
@@ -332,8 +351,8 @@ let
     fi
 
     # launch/<appid>/VR skips Steam's launch-option picker. DCS: runs the default
-    # entry, which dcs-vr-setup's launch options turn into OpenXR VR. War Thunder:
-    # runs its own "vr" entry.
+    # entry, which dcs-vr-setup's launch options turn into OpenXR VR. War Thunder
+    # and Phasmophobia: run their own "vr" entry.
     notify "Starting ${title} in VR"
     exec steam "steam://launch/${appId}/VR"
   '';
@@ -351,6 +370,8 @@ let
   wt-vr = mkVrLauncher { name = "wt-vr"; title = "War Thunder"; appId = wtAppId; process = "win64.aces.exe"; };
   dcs-vr-desktop = mkVrDesktop { name = "dcs-vr"; title = "DCS World"; appId = dcsAppId; launcher = dcs-vr; };
   wt-vr-desktop = mkVrDesktop { name = "wt-vr"; title = "War Thunder"; appId = wtAppId; launcher = wt-vr; };
+  phasmo-vr = mkVrLauncher { name = "phasmo-vr"; title = "Phasmophobia"; appId = phasmoAppId; process = "Phasmophobia.exe"; };
+  phasmo-vr-desktop = mkVrDesktop { name = "phasmo-vr"; title = "Phasmophobia"; appId = phasmoAppId; launcher = phasmo-vr; };
 
   # A browser for wayvr's own nested display (launch it from wayvr's app list).
   # Windows there take controller input directly; a mirrored *desktop* window only
@@ -421,6 +442,9 @@ in
       wt-vr-setup
       wt-vr
       wt-vr-desktop
+      phasmo-vr-setup
+      phasmo-vr
+      phasmo-vr-desktop
       vr-browser
       vr-browser-desktop
     ];
