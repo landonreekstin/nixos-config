@@ -1,14 +1,16 @@
 # ~/nixos-config/modules/home-manager/hyprland/desktops/glade/dock.nix
 #
 # The glade's dock, a minimise button on every title bar, and new windows that take the
-# keyboard as soon as they open (dock.py does all three). Asked for by insideabush: a
-# Mac-style dock of his apps with a dot under each open one, along the bottom of the
-# lower monitor so it doesn't cut across the path between the two screens.
+# keyboard as soon as they open (dock.py in github:cblaney00/glade, pkgs/glade, does all
+# three). Asked for by insideabush: a Mac-style dock of his apps with a dot under each
+# open one, along the bottom of the lower monitor so it doesn't cut across the path
+# between the two screens.
 { config, pkgs, lib, customConfig, ... }:
 
 let
   desktop = (import ../lib.nix { inherit lib; }).state customConfig "glade";
   c = import ./colors.nix;
+  glade = pkgs.callPackage ../../../../../pkgs/glade { };
 
   # Always in the dock, in this order (the apps the glade's boards open). Anything else
   # that is open joins on the end while it runs.
@@ -33,22 +35,34 @@ let
     installPhase = ''
       runHook preInstall
       mkdir -p $out/bin
-      { echo '#!${pyEnv}/bin/python3'; sed 's|@gio@|${pkgs.glib.bin}/bin/gio|' ${./dock.py}; } > $out/bin/glade-dock
+      { echo '#!${pyEnv}/bin/python3'; cat ${glade}/share/glade/dock.py; } > $out/bin/glade-dock
       chmod +x $out/bin/glade-dock
       runHook postInstall
     '';
+    # it opens apps with `gio launch`
+    preFixup = ''
+      gappsWrapperArgs+=(--prefix PATH : ${pkgs.glib.bin}/bin)
+    '';
   };
 
-  # A wooden name board like the ones in the glade, the icons standing on it.
+  # Glowing spirit-cloth like the glade's banners: see-through, lit softly from the top,
+  # a thin rim of light, the icons floating on it.
   css = pkgs.writeText "glade-dock.css" ''
     window { background: transparent; }
 
     #dock {
-      padding: 6px 8px 4px 8px;
-      background: ${c.board};
-      border: 2px solid ${c.ink};
+      padding: 4px 8px 4px 8px;
+      background: linear-gradient(to bottom, alpha(${c.violet}, 0.22), alpha(${c.night}, 0.35));
+      border: 1px solid alpha(${c.violet}, 0.55);
       border-radius: 10px;
-      box-shadow: 0 3px 0 ${c.ink};
+      box-shadow: 0 0 12px alpha(${c.violet}, 0.25);
+    }
+
+    #hint {
+      color: alpha(${c.text}, 0.75);
+      font-family: "${c.font}";
+      font-size: 11px;
+      padding: 0 4px 3px 4px;
     }
 
     button.app {
@@ -60,7 +74,7 @@ let
       outline: none;
       transition: background 300ms ease, border-color 300ms ease;
     }
-    button.app:hover { background: ${c.boardHi}; border-color: ${c.pink}; }
+    button.app:hover { background: alpha(${c.violet}, 0.22); border-color: alpha(${c.pink}, 0.7); }
 
     /* the open dot: a little square of glowing moss, dimmer while minimised */
     .dot { min-width: 6px; min-height: 6px; border-radius: 1px; }

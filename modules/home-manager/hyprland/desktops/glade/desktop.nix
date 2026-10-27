@@ -60,6 +60,17 @@ let
 
   # Hands a keyboard command to the running glade, through the pipe it reads
   # (wayland.py in pkgs/glade). Gives up after a second if no glade is listening.
+  # Alt+Tab like Windows: back to the window used just before this one, whichever screen
+  # it is on (Hyprland's own cyclenext stays on one screen's workspace, and his windows
+  # are usually on different screens). Alt+Shift+Tab goes to the one used longest ago,
+  # so pressing it again and again visits every window. Minimised windows are skipped.
+  altTab = pkgs.writeShellScript "glade-alt-tab" ''
+    pick=$(hyprctl clients -j | ${pkgs.jq}/bin/jq -r --arg how "$1" '
+      [.[] | select(.mapped and (.workspace.name | startswith("special") | not) and .focusHistoryID > 0)]
+      | sort_by(.focusHistoryID) | (if $how == "back" then first else last end) | .address // empty')
+    [ -n "$pick" ] && hyprctl --batch "dispatch focuswindow address:$pick; dispatch alterzorder top"
+  '';
+
   gladeCtl = pkgs.writeShellScriptBin "glade-ctl" ''
     pipe="''${XDG_RUNTIME_DIR:-/tmp}/glade.ctl"
     [ -p "$pipe" ] || exit 0
@@ -96,7 +107,17 @@ let
 in
 {
   config = lib.mkMerge [ (lib.mkIf desktop.enabled {
-    home.packages = [ glade gladeDesktop gladeShow gladeCtl ];
+    home.packages = [ glade gladeDesktop gladeShow gladeCtl pkgs.blueman ];
+    # Searching the Apps menu for "wifi" found nothing: the Wi-Fi picker was called
+    # "NetworkManager Dmenu". Same file name, so this replaces the stock entry.
+    xdg.desktopEntries.networkmanager_dmenu = {
+      name = "Wi-Fi";
+      genericName = "Join a Wi-Fi network";
+      exec = "networkmanager_dmenu";
+      icon = "nm-device-wireless";
+      categories = [ "Network" "Settings" ];
+      settings.Keywords = "wifi;wi-fi;wireless;internet;network;";
+    };
 
     hyprDesktops.glade = {
       # Title bars on every window: drag to move, double-click to maximise, and the
@@ -126,6 +147,12 @@ in
           # The terminal's own default (640x400) is cramped for the Claude sessions he
           # spends his time in.
           "size 1100 700, match:class ^(kitty)$"
+        ] ++ lib.optionals (mainMonitor != null) [
+          # Games open on the main (top) screen. On the lower one, Windows games under
+          # Proton put his clicks in the wrong place: XWayland lays the two screens out
+          # side by side, not one above the other. steam_app_* is Steam and Heroic (umu)
+          # games, *.exe is Lutris's wine games.
+          "monitor ${mainMonitor.identifier}, match:class ^(steam_app_.*|.*\\.exe)$"
         ];
 
         plugin.hyprbars = {
@@ -149,6 +176,17 @@ in
         # WantedBy graphical-session.target, which this session never reaches, so
         # start it explicitly, as century-series does for its own units.
         exec-once = systemctl --user start swaync
+        # Bluetooth in the bar's tray, next to the network icon (nm-applet).
+        exec-once = ${pkgs.blueman}/bin/blueman-applet
+
+        # The shortcuts his hands know from Windows and macOS: Alt+Tab to switch windows,
+        # Alt+F4 to close one, Win+E for files, Print Screen to snip a part of the screen
+        # (same as Super+Shift+S, saved to Pictures/Screenshots).
+        bind = ALT, Tab, exec, ${altTab} back
+        bind = ALT SHIFT, Tab, exec, ${altTab} round
+        bind = ALT, F4, killactive,
+        bind = SUPER, E, exec, ${pkgs.kdePackages.dolphin}/bin/dolphin
+        bind = , Print, exec, ${pkgs.grim}/bin/grim -g "$(${pkgs.slurp}/bin/slurp)" ${config.home.homeDirectory}/Pictures/Screenshots/$(date +%Y-%m-%d_%H-%M-%S).png
 
         bind = SUPER, home, exec, glade-show && glade-ctl keys
         submap = glade
@@ -170,7 +208,7 @@ in
     # (workspace numbers, CPU, memory) — he finds his windows in the list instead.
     programs.waybar.settings.mainBar = {
       output = lib.mkIf (barOutput != null) barOutput;
-      modules-left = lib.mkForce [ "custom/glade-home" "custom/glade-apps" ];
+      modules-left = lib.mkForce [ "custom/glade-home" "custom/glade-apps" "custom/glade-games" ];
       modules-center = lib.mkForce [ "wlr/taskbar" ];
       modules-right = lib.mkForce [ "pulseaudio" "tray" "clock" "custom/power" ];
 
@@ -183,6 +221,11 @@ in
         format = "✿ Apps";
         tooltip-format = "Every app on the computer — click one to open it";
         on-click = "glade-dock apps -show drun -show-icons"; # a click outside closes it (dock.py)
+      };
+      "custom/glade-games" = {
+        format = "🎮 Games";
+        tooltip-format = "Every game on the computer — click one to play it";
+        on-click = "glade-games"; # games.nix
       };
       "wlr/taskbar" = {
         format = "{icon} {name}"; # the app's name: a terminal's title is just "~"

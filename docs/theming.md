@@ -485,7 +485,7 @@ them out of every other desktop (see above).
 | the glade as a layer-shell surface, one per monitor (GTK + gtk-layer-shell; pygame draws off-screen), and the keyboard bridge | `wayland.py` in `github:cblaney00/glade` (`pkgs/glade`) |
 | **structure** — what runs, what each click or key does: autostart, `glade-show`, `glade-ctl` + the `glade` submap, floating windows + `hyprbars`, click-to-focus, resize from edges, bar layout, rofi single-click, power menu | `hyprland/desktops/glade/desktop.nix` |
 | **look** — borders and title bars, bar CSS, rofi, wlogout, lock screen, kitty, GTK/icons/cursor, pixel font (Departure Mono); all from one palette taken from the scene's name boards and glows | `hyprland/desktops/glade/{hyprland,waybar,rofi,wlogout,swaylock,kitty,gtk}.nix`, `colors.nix` |
-| **the dock, minimise, focus on open** — the dock on the lowest monitor, the title bars' minimise button, the window watcher | `hyprland/desktops/glade/dock.nix` + `dock.py` |
+| **the dock, minimise, focus on open** — the dock on the lowest monitor, the title bars' minimise button, the window watcher | `hyprland/desktops/glade/dock.nix` + `dock.py` in `github:cblaney00/glade` (`pkgs/glade`) — no program code lives in this repo |
 
 Behaviour worth knowing before changing it:
 
