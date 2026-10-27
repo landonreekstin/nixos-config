@@ -40,8 +40,8 @@ stdenvNoCC.mkDerivation {
   src = fetchFromGitHub {
     owner = "cblaney00";
     repo = "glade";
-    rev = "24bc08e3bedc5d43b1a6b67c834c2f8e354382e5";
-    hash = "sha256-OjwzO8+kfp3I6/6ixHXlIXHcGGF2RYWJiS4D9uxq2PA=";
+    rev = "40c99e439e2885a8f5d1dfa9def22dfced566c25";
+    hash = "sha256-IW16D7EdXjkXCoQGKCl7ErGsuFc8eCQq1tz8mZpYE58=";
   };
   sourceRoot = "source/glade";
 
