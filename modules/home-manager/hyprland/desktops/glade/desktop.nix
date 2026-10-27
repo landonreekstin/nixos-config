@@ -28,10 +28,15 @@ let
 
   # Keep the glade up: if it ever exits it comes back after a moment, rather than
   # leaving a bare desktop with nothing to click. Hyprland ends the loop at logout.
+  # Each time round it starts the glade that is installed *now*, so after a rebuild the glade
+  # can switch itself to the new version when nothing is going on (resume.py in pkgs/glade)
+  # and come back where it was, instead of needing a restart by hand.
   gladeDesktop = pkgs.writeShellScriptBin "glade-desktop" ''
     while true; do
-      ${glade}/bin/glade > "''${XDG_RUNTIME_DIR:-/tmp}/glade.log" 2>&1
-      sleep 2
+      exe="/etc/profiles/per-user/$USER/bin/glade"
+      [ -x "$exe" ] || exe="${glade}/bin/glade"
+      "$exe" > "''${XDG_RUNTIME_DIR:-/tmp}/glade.log" 2>&1
+      sleep 1
     done
   '';
 
