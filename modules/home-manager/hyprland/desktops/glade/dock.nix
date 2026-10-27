@@ -1,14 +1,16 @@
 # ~/nixos-config/modules/home-manager/hyprland/desktops/glade/dock.nix
 #
 # The glade's dock, a minimise button on every title bar, and new windows that take the
-# keyboard as soon as they open (dock.py does all three). Asked for by insideabush: a
-# Mac-style dock of his apps with a dot under each open one, along the bottom of the
-# lower monitor so it doesn't cut across the path between the two screens.
+# keyboard as soon as they open (dock.py in github:cblaney00/glade, pkgs/glade, does all
+# three). Asked for by insideabush: a Mac-style dock of his apps with a dot under each
+# open one, along the bottom of the lower monitor so it doesn't cut across the path
+# between the two screens.
 { config, pkgs, lib, customConfig, ... }:
 
 let
   desktop = (import ../lib.nix { inherit lib; }).state customConfig "glade";
   c = import ./colors.nix;
+  glade = pkgs.callPackage ../../../../../pkgs/glade { };
 
   # Always in the dock, in this order (the apps the glade's boards open). Anything else
   # that is open joins on the end while it runs.
@@ -33,9 +35,13 @@ let
     installPhase = ''
       runHook preInstall
       mkdir -p $out/bin
-      { echo '#!${pyEnv}/bin/python3'; sed 's|@gio@|${pkgs.glib.bin}/bin/gio|' ${./dock.py}; } > $out/bin/glade-dock
+      { echo '#!${pyEnv}/bin/python3'; cat ${glade}/share/glade/dock.py; } > $out/bin/glade-dock
       chmod +x $out/bin/glade-dock
       runHook postInstall
+    '';
+    # it opens apps with `gio launch`
+    preFixup = ''
+      gappsWrapperArgs+=(--prefix PATH : ${pkgs.glib.bin}/bin)
     '';
   };
 

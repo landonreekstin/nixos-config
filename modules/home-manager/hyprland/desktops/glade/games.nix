@@ -1,14 +1,15 @@
 # ~/nixos-config/modules/home-manager/hyprland/desktops/glade/games.nix
 #
-# The Games tab on the glade's bar (games.py): every game on the computer as box art —
-# Steam, Heroic (Epic, GOG), Lutris (the EA app), other installed games, and emulator
-# games in ~/Games/ROMs — most recently played first. Asked for by insideabush; clicking a
-# game starts its launcher and then the game.
+# The Games tab on the glade's bar (games.py in github:cblaney00/glade, pkgs/glade): every
+# game on the computer as box art — Steam, Heroic (Epic, GOG), Lutris (the EA app), other
+# installed games, and emulator games in ~/Games/ROMs — most recently played first. Asked
+# for by insideabush; clicking a game starts its launcher and then the game.
 { config, pkgs, lib, customConfig, ... }:
 
 let
   desktop = (import ../lib.nix { inherit lib; }).state customConfig "glade";
   c = import ./colors.nix;
+  glade = pkgs.callPackage ../../../../../pkgs/glade { };
 
   pyEnv = pkgs.python3.withPackages (ps: [ ps.pygobject3 ]);
 
@@ -20,7 +21,7 @@ let
     installPhase = ''
       runHook preInstall
       mkdir -p $out/bin
-      { echo '#!${pyEnv}/bin/python3'; cat ${./games.py}; } > $out/bin/.glade-games
+      { echo '#!${pyEnv}/bin/python3'; cat ${glade}/share/glade/games.py; } > $out/bin/.glade-games
       chmod +x $out/bin/.glade-games
       runHook postInstall
     '';
