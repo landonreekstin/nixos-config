@@ -11,6 +11,10 @@
 # github:cblaney00/glade; the program is its glade/ folder. To update: push the project's
 # main, then bump `rev`, `hash` and `version` (the commit date) — see
 # docs/companion-repos.md#glade.
+#
+# It also carries the Claude panel's plumbing (claude_state.py in the source): `glade-status`,
+# which the panel's Claude Code hooks and Claude itself run, and share/glade/claude-hooks.json,
+# the hooks, passed with `--settings` by the blaney-pc launchers (ccn, vibe, blaney-todo).
 {
   lib,
   stdenvNoCC,
@@ -31,13 +35,13 @@ let
 in
 stdenvNoCC.mkDerivation {
   pname = "glade";
-  version = "0-unstable-2026-10-26";
+  version = "0-unstable-2026-10-27";
 
   src = fetchFromGitHub {
     owner = "cblaney00";
     repo = "glade";
-    rev = "e9b36d58945664e0945defe7317310b4d9751362";
-    hash = "sha256-trzfDVzcXd5GhLDPiCLOBwVp5FY5auUEpAAXXZchsac=";
+    rev = "19f39bed2cffec573905123a63d77ec9fa93612f";
+    hash = "sha256-fqEGBKHX+9t/glgjY5j+KKfq7zM6gNzYz96VSV3+EeI=";
   };
   sourceRoot = "source/glade";
 
@@ -63,6 +67,16 @@ stdenvNoCC.mkDerivation {
       --set PYGAME_HIDE_SUPPORT_PROMPT 1 \
       --set GLADE_FONT ${departure-mono}/share/fonts/otf/DepartureMono-Regular.otf \
       --prefix PATH : ${lib.makeBinPath [ wmctrl xrandr ]}
+    makeWrapper ${python}/bin/python $out/bin/glade-status \
+      --add-flags $out/share/glade/claude_state.py \
+      --set PYTHONDONTWRITEBYTECODE 1
+    hook='[{"hooks": [{"type": "command", "command": "'$out'/bin/glade-status hook", "timeout": 5}]}]'
+    ask='[{"matcher": "AskUserQuestion|ExitPlanMode", "hooks": [{"type": "command", "command": "'$out'/bin/glade-status hook", "timeout": 5}]}]'
+    every='[{"matcher": "*", "hooks": [{"type": "command", "command": "'$out'/bin/glade-status hook", "timeout": 5}]}]'
+    cat > $out/share/glade/claude-hooks.json <<EOF
+    {"hooks": {"SessionStart": $hook, "UserPromptSubmit": $hook, "PreToolUse": $ask, "PostToolUse": $every,
+               "Notification": $hook, "Stop": $hook, "SessionEnd": $hook}}
+    EOF
   '';
 
   meta = {

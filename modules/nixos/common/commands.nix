@@ -21,6 +21,11 @@ let
   # depending on the session reading docs/hosts/blaney-pc.md. A store file `cat`ed by the
   # script, never a heredoc, so the backticks below are just text. Keep in sync with
   # docs/hosts/blaney-pc.md (and the blaney-todo preface prompts further down).
+  # The Glade's Claude panel: its hooks and the rules telling Claude to use it live with the
+  # rest of the glade desktop (hyprland/desktops/glade/claude-panel.nix).
+  gladePanel = import ../../home-manager/hyprland/desktops/glade/claude-panel.nix { inherit pkgs; };
+  gladeHooks = gladePanel.hooks;
+
   ccnRules = pkgs.writeText "ccn-blaney-rules.md" ''
     # blaney-pc config session (opened with `ccn`)
 
@@ -111,7 +116,8 @@ let
          reply instead of leaving it unanswered.
        - Open comments on a PR for a different `blaney/` branch: tell him in one sentence
          and offer to switch to that branch to deal with them first.
-  '';
+
+    ${gladePanel.ccnRules}'';
 
   # Claude runs as `sudo claude`, so its saved chats live under /root (0700) and `ccn`,
   # running as the user, cannot look for itself. Prints the newest chat that has a user
@@ -905,7 +911,7 @@ in
 
       $request"
         fi
-        exec sudo claude --append-system-prompt "$RULES" "$request"
+        exec sudo claude --settings ${gladeHooks} --append-system-prompt "$RULES" "$request"
       }
 
       # Nothing to go back to? Skip the menu.
@@ -922,7 +928,7 @@ in
       # A resumed chat renders its system prompt fresh rather than replaying the one it was
       # started with: chats from before this command have no rules in theirs at all, and
       # older ones would keep a stale copy after the rules change.
-      RESUME=(--append-system-prompt "$RULES" --system-prompt-snapshot off)
+      RESUME=(--settings ${gladeHooks} --append-system-prompt "$RULES" --system-prompt-snapshot off)
       case "$CHOICE" in
         1) new_chat ;;
         2) exec sudo claude "''${RESUME[@]}" -r "$LAST" \
@@ -1143,7 +1149,7 @@ in
       EOF
       )
 
-      exec sudo claude "$PROMPT"
+      exec sudo claude --settings ${gladeHooks} "$PROMPT"
     '')
 
     # The walk-away half of blaney-todo: Claude works the runbook with nobody present, opens

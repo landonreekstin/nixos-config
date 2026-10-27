@@ -212,7 +212,7 @@ let
         fi
         exec sudo "$RE_LAUNCHER" "$@"
       fi
-      exec sudo claude "$@"
+      exec sudo claude --settings ${(import ../../home-manager/hyprland/desktops/glade/claude-panel.nix { inherit pkgs; }).hooks} "$@"
     }
 
     launch() {

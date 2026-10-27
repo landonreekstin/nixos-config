@@ -2,6 +2,7 @@
 { lib, pkgs, config, customConfig, ... }:
 
 let
+  gladePanel = import ../hyprland/desktops/glade/claude-panel.nix { inherit pkgs; };
   cfg = customConfig.programs.vibeProjects;
 
   userName = customConfig.user.name;
@@ -81,7 +82,7 @@ let
     - Give next steps as one plain instruction, e.g. "Click the green button and tell me
       what happens".
     - For bugs: diagnose and fix, then give him something specific to check.
-
+    ${gladePanel.vibeRules}
     ## The project repo is his — commit to main freely
 
     Each project folder is a git repository that belongs to him.

@@ -20,6 +20,10 @@ in
       };
       settings = {
         window_padding_width = 8;
+        # The Glade's Claude panel types his replies into the terminal Claude runs in
+        # (pkgs/glade: claude_panel.py), through this socket, which only he can open.
+        allow_remote_control = "socket-only";
+        listen_on = "unix:\${XDG_RUNTIME_DIR}/kitty-{kitty_pid}";
         background = c.night;
         foreground = c.text;
         cursor = c.moss;
