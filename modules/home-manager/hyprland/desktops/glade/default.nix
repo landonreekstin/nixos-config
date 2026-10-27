@@ -8,9 +8,9 @@
 # - the rest     — the look, all from colors.nix: Hyprland's borders and title bars, the
 #                  bar, rofi, wlogout, the lock screen, kitty, and GTK/icons/cursor
 # - dock.nix     — the dock on the lower monitor, the title bars' minimise button, and
-#                  new windows taking the keyboard as they open (dock.py)
+#                  new windows taking the keyboard as they open (dock.py in pkgs/glade)
 # - snap.nix     — drag a window to the left or right edge and it fills that half
-# - games.nix    — the Games tab on the bar: every installed game as box art (games.py)
+# - games.nix    — the Games tab on the bar: every installed game as box art (games.py in pkgs/glade)
 { ... }:
 {
   imports = [
