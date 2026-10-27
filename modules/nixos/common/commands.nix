@@ -21,11 +21,10 @@ let
   # depending on the session reading docs/hosts/blaney-pc.md. A store file `cat`ed by the
   # script, never a heredoc, so the backticks below are just text. Keep in sync with
   # docs/hosts/blaney-pc.md (and the blaney-todo preface prompts further down).
-  # The Glade's Claude panel (pkgs/glade): hooks that keep it up to date with the chat, and the
-  # command Claude uses to name its task, show progress and call him to the terminal.
-  glade = pkgs.callPackage ../../../pkgs/glade { };
-  gladeHooks = "${glade}/share/glade/claude-hooks.json";
-  gladeStatus = "${glade}/bin/glade-status";
+  # The Glade's Claude panel: its hooks and the rules telling Claude to use it live with the
+  # rest of the glade desktop (hyprland/desktops/glade/claude-panel.nix).
+  gladePanel = import ../../home-manager/hyprland/desktops/glade/claude-panel.nix { inherit pkgs; };
+  gladeHooks = gladePanel.hooks;
 
   ccnRules = pkgs.writeText "ccn-blaney-rules.md" ''
     # blaney-pc config session (opened with `ccn`)
@@ -118,23 +117,7 @@ let
        - Open comments on a PR for a different `blaney/` branch: tell him in one sentence
          and offer to switch to that branch to deal with them first.
 
-    ## The Claude panel on his lower screen
-
-    His Glade desktop shows a small panel for this chat: a title, your latest message, a
-    progress bar, and a box he can type replies in (they arrive here as ordinary messages,
-    often while you work). Hooks keep the message up to date; keep the rest useful with
-    `${gladeStatus}`:
-    - At the start of each piece of work, name it in a few plain words:
-      `${gladeStatus} title "Filling the Forest Dex"`.
-    - For work with countable steps: `${gladeStatus} progress 6 "<first step>"`, then
-      `${gladeStatus} step "<step just done>" "<next step>"` after EVERY step, never in jumps
-      (he reads a bar that sits still as frozen).
-    - When he should come to the terminal (options to pick do this by themselves), say why with
-      `${gladeStatus} attention "<why>"`, and `${gladeStatus} calm` once he has answered.
-    The panel then says "Open terminal" in orange; clicking the panel always brings up your
-    terminal. Never skip a question because he might be on the other screen.
-
-  '';
+    ${gladePanel.ccnRules}'';
 
   # Claude runs as `sudo claude`, so its saved chats live under /root (0700) and `ccn`,
   # running as the user, cannot look for itself. Prints the newest chat that has a user
