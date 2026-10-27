@@ -92,6 +92,25 @@ let
     5. If any of this changed what is checked out, `chown` and `rebuild` before carrying on,
        so his computer is running the up-to-date config. If that rebuild fails, fixing it
        (on a `blaney/` branch) becomes the first job.
+    6. Check his open PRs for comments from Lando (GitHub user `landonreekstin`):
+       `gh pr list --author @me --state open`, then for each one
+       `gh pr view <N> --json comments,reviews,reviewDecision` plus the line-by-line review
+       comments from `gh api repos/landonreekstin/nixos-config/pulls/<N>/comments`.
+       A comment from Lando is still open if nothing from this account was posted on the PR
+       after it saying it was dealt with.
+       - On the `blaney/` branch that is checked out: Lando's open comments come before
+         anything new. Tell him in one sentence that Lando asked for changes and what they
+         are, then make them with the usual workflow (edit, `chown`, `rebuild`, he confirms
+         it works, commit, `git push`, which updates the PR by itself). Lando's requested
+         changes and fixes are not optional, but if one changes how something looks or
+         behaves, tell him in a sentence before you do it. If a comment is a question
+         rather than a request, answer it on the PR.
+       - Once a comment is dealt with, reply on the PR with `gh pr comment <N>` saying
+         briefly what changed (and in which commit), so Lando can see it and the next
+         catch-up knows it is handled. If you could not do something, say why in that
+         reply instead of leaving it unanswered.
+       - Open comments on a PR for a different `blaney/` branch: tell him in one sentence
+         and offer to switch to that branch to deal with them first.
   '';
 
   # Claude runs as `sudo claude`, so its saved chats live under /root (0700) and `ccn`,
