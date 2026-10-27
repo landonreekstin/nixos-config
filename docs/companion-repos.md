@@ -79,6 +79,22 @@ The FastAPI game-server dashboard (`app.py` + `templates/`). The server tiles ar
 container in `modules/nixos/homelab/game-servers.nix`. Bump like hyprland-keys below (repo
 name `game-control`), then rebuild on mini-server and load the dashboard to verify.
 
+## browser-puck
+
+Source: `github:landonreekstin/browser-puck` (checkout at `/home/lando/browser-puck` on gaming-pc)
+Package: `pkgs/browser-puck/default.nix` (`buildNpmPackage`), run by
+`modules/nixos/homelab/browser-puck.nix` on mini-server
+
+The team air-hockey browser game: one Node process serves the web client and its WebSocket
+on port 8787. Players reach it at `http://192.168.1.76:8787` (see
+[networking.md](networking.md#browser-puck-port-8787)). Bump like hyprland-keys below (repo
+name `browser-puck`) and bump `version` (the date). **Also bump `npmDepsHash` whenever the
+repo's `package-lock.json` changed:** set it to `lib.fakeHash`, build, and copy the real hash
+from the mismatch error. Before pinning, run the repo's own checks against a production build
+(its `docs/DEPLOY.md`). After the rebuild on mini-server, verify from gaming-pc with
+`CLIENT_URL=http://192.168.1.76:8787 PUCK_URL=ws://192.168.1.76:8787/ws npm run verify:room`
+in the browser-puck checkout.
+
 ## xr-srgb-fix
 
 Source: `github:landonreekstin/xr-srgb-fix`
