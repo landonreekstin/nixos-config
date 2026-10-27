@@ -11,6 +11,10 @@
 # github:cblaney00/glade; the program is its glade/ folder. To update: push the project's
 # main, then bump `rev`, `hash` and `version` (the commit date) — see
 # docs/companion-repos.md#glade.
+#
+# It also carries the Claude panel's plumbing (claude_state.py in the source): `glade-status`,
+# which the panel's Claude Code hooks and Claude itself run, and share/glade/claude-hooks.json,
+# the hooks, passed with `--settings` by the blaney-pc launchers (ccn, vibe, blaney-todo).
 {
   lib,
   stdenvNoCC,
@@ -36,8 +40,8 @@ stdenvNoCC.mkDerivation {
   src = fetchFromGitHub {
     owner = "cblaney00";
     repo = "glade";
-    rev = "9290234224f5d059be67aee5abc348c7da3a6f6e";
-    hash = "sha256-NDAm01s31KM6hwFRI2Dfd5c7I8urEwKggx23jNPftWo=";
+    rev = "6ff91d28bccaf02c7b3ae209c2016b2437fe2fa5";
+    hash = "sha256-w2N3feX52pO0kAvA9mYaXmYjTB18OVyuocD1e0or+2I=";
   };
   sourceRoot = "source/glade";
 
@@ -63,6 +67,16 @@ stdenvNoCC.mkDerivation {
       --set PYGAME_HIDE_SUPPORT_PROMPT 1 \
       --set GLADE_FONT ${departure-mono}/share/fonts/otf/DepartureMono-Regular.otf \
       --prefix PATH : ${lib.makeBinPath [ wmctrl xrandr ]}
+    makeWrapper ${python}/bin/python $out/bin/glade-status \
+      --add-flags $out/share/glade/claude_state.py \
+      --set PYTHONDONTWRITEBYTECODE 1
+    hook='[{"hooks": [{"type": "command", "command": "'$out'/bin/glade-status hook", "timeout": 5}]}]'
+    ask='[{"matcher": "AskUserQuestion|ExitPlanMode", "hooks": [{"type": "command", "command": "'$out'/bin/glade-status hook", "timeout": 5}]}]'
+    every='[{"matcher": "*", "hooks": [{"type": "command", "command": "'$out'/bin/glade-status hook", "timeout": 5}]}]'
+    cat > $out/share/glade/claude-hooks.json <<EOF
+    {"hooks": {"SessionStart": $hook, "UserPromptSubmit": $hook, "PreToolUse": $ask, "PostToolUse": $every,
+               "Notification": $hook, "Stop": $hook, "SessionEnd": $hook}}
+    EOF
   '';
 
   meta = {

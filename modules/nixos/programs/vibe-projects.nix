@@ -212,7 +212,7 @@ let
         fi
         exec sudo "$RE_LAUNCHER" "$@"
       fi
-      exec sudo claude "$@"
+      exec sudo claude --settings ${pkgs.callPackage ../../../pkgs/glade { }}/share/glade/claude-hooks.json "$@"
     }
 
     launch() {

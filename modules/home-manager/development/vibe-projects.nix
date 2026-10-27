@@ -2,6 +2,7 @@
 { lib, pkgs, config, customConfig, ... }:
 
 let
+  gladeStatus = "${pkgs.callPackage ../../../pkgs/glade { }}/bin/glade-status";
   cfg = customConfig.programs.vibeProjects;
 
   userName = customConfig.user.name;
@@ -81,6 +82,11 @@ let
     - Give next steps as one plain instruction, e.g. "Click the green button and tell me
       what happens".
     - For bugs: diagnose and fix, then give him something specific to check.
+    - His Glade desktop shows a small panel for this chat (your latest message, a reply box).
+      Name each piece of work with `${gladeStatus} title "<a few plain words>"`; for countable
+      steps use `${gladeStatus} progress N "<first>"` then `${gladeStatus} step "<done>" "<next>"`
+      after EVERY step; and `${gladeStatus} attention "<why>"` (then `calm`) when he should come
+      to the terminal. Never skip a question because he might be on the other screen.
 
     ## The project repo is his — commit to main freely
 

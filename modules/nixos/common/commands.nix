@@ -21,6 +21,12 @@ let
   # depending on the session reading docs/hosts/blaney-pc.md. A store file `cat`ed by the
   # script, never a heredoc, so the backticks below are just text. Keep in sync with
   # docs/hosts/blaney-pc.md (and the blaney-todo preface prompts further down).
+  # The Glade's Claude panel (pkgs/glade): hooks that keep it up to date with the chat, and the
+  # command Claude uses to name its task, show progress and call him to the terminal.
+  glade = pkgs.callPackage ../../../pkgs/glade { };
+  gladeHooks = "${glade}/share/glade/claude-hooks.json";
+  gladeStatus = "${glade}/bin/glade-status";
+
   ccnRules = pkgs.writeText "ccn-blaney-rules.md" ''
     # blaney-pc config session (opened with `ccn`)
 
@@ -92,6 +98,23 @@ let
     5. If any of this changed what is checked out, `chown` and `rebuild` before carrying on,
        so his computer is running the up-to-date config. If that rebuild fails, fixing it
        (on a `blaney/` branch) becomes the first job.
+
+    ## The Claude panel on his lower screen
+
+    His Glade desktop shows a small panel for this chat: a title, your latest message, a
+    progress bar, and a box he can type replies in (they arrive here as ordinary messages,
+    often while you work). Hooks keep the message up to date; keep the rest useful with
+    `${gladeStatus}`:
+    - At the start of each piece of work, name it in a few plain words:
+      `${gladeStatus} title "Filling the Forest Dex"`.
+    - For work with countable steps: `${gladeStatus} progress 6 "<first step>"`, then
+      `${gladeStatus} step "<step just done>" "<next step>"` after EVERY step, never in jumps
+      (he reads a bar that sits still as frozen).
+    - When he should come to the terminal (options to pick do this by themselves), say why with
+      `${gladeStatus} attention "<why>"`, and `${gladeStatus} calm` once he has answered.
+    The panel then says "Open terminal" in orange; clicking the panel always brings up your
+    terminal. Never skip a question because he might be on the other screen.
+
   '';
 
   # Claude runs as `sudo claude`, so its saved chats live under /root (0700) and `ccn`,
@@ -886,7 +909,7 @@ in
 
       $request"
         fi
-        exec sudo claude --append-system-prompt "$RULES" "$request"
+        exec sudo claude --settings ${gladeHooks} --append-system-prompt "$RULES" "$request"
       }
 
       # Nothing to go back to? Skip the menu.
@@ -903,7 +926,7 @@ in
       # A resumed chat renders its system prompt fresh rather than replaying the one it was
       # started with: chats from before this command have no rules in theirs at all, and
       # older ones would keep a stale copy after the rules change.
-      RESUME=(--append-system-prompt "$RULES" --system-prompt-snapshot off)
+      RESUME=(--settings ${gladeHooks} --append-system-prompt "$RULES" --system-prompt-snapshot off)
       case "$CHOICE" in
         1) new_chat ;;
         2) exec sudo claude "''${RESUME[@]}" -r "$LAST" \
@@ -1124,7 +1147,7 @@ in
       EOF
       )
 
-      exec sudo claude "$PROMPT"
+      exec sudo claude --settings ${gladeHooks} "$PROMPT"
     '')
 
     # The walk-away half of blaney-todo: Claude works the runbook with nobody present, opens
