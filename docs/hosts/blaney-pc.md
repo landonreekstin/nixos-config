@@ -44,6 +44,7 @@ When running on the `blaney-pc` host, apply these additional guidelines:
 - insideabush's Claude sessions CANNOT: push to `main`, push to any non-`blaney/` branch, merge a `blaney/` branch into a non-`blaney/` branch
 - When insideabush confirms a feature is working and acceptable: open a PR from the `blaney/` branch to `main` via `gh pr create`
 - **Never merge the PR** — lando (`landonreekstin`) merges all PRs from blaney-pc
+- **Lando's PR comments come first**: whenever work starts or continues, check the open `blaney/` PRs for comments and reviews from `landonreekstin`, make the requested changes or fixes on that branch, push, and reply on the PR saying what was done (see the catch-up procedure under [`ccn`](#claude-in-the-config-ccn))
 
 **Safety**:
 - Always use `nixos-rebuild test` before `rebuild` for significant changes, so insideabush can verify before permanently switching
@@ -133,7 +134,12 @@ any work, at the start of every chat and whenever he comes back to one. It fetch
 throws away uncommitted work, fast-forwards `main`, and for a `blaney/` branch notices a
 PR that was already merged, pulls the branch's own remote commits, rebases onto
 `origin/main` when it is behind (aborting a conflict it can't resolve confidently) and
-`--force-with-lease` pushes the result; then it rebuilds if anything moved.
+`--force-with-lease` pushes the result; then it rebuilds if anything moved. Last, it
+checks his open PRs for **comments from lando**: unanswered ones on the checked-out
+branch's PR are dealt with before any new work (the usual rebuild → he confirms → commit →
+push), then answered on the PR with `gh pr comment` saying what changed. That reply is how
+the next catch-up knows a comment is handled. Comments on his other open PRs are mentioned,
+with an offer to switch over.
 
 **`ccnRules` is a copy of these rules, so change both together.**
 
