@@ -106,6 +106,7 @@ let
     android-tools
     mame           # reference emulator: debugger, tracing, Lua; covers plug-and-play/arcade targets
     mameTools
+    ppsspp         # reference PSP emulator: built-in + web debugger; ppsspp-headless for scripted runs
     nakenAsm
     jdk
     python
@@ -414,6 +415,7 @@ in
       ghidra      # GUI, for looking at what REA found by hand
       pkgs.cutter
       pkgs.imhex
+      pkgs.ppsspp # PSP targets, by hand
     ] ++ lib.optional cfg.workspace.enable re;
 
     customConfig.profiles.development.reverse-engineering.devShell = pkgs.mkShell {

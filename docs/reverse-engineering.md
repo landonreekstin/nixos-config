@@ -77,6 +77,7 @@ game, Sunplus SPG2xx / µ'nSP):
 |---|---|
 | `mame` | reference emulator for the original (debugger, tracing, Lua); `MAME_SRC` = its source |
 | `unidasm` (+ chdman, romcmp, ...) | MAME's disassembler for every CPU it emulates. Wrapped: `pkgs.mame.tools` links sdl2-compat, which cannot find SDL3 on its own |
+| `ppsspp`, `ppsspp-headless` | reference PSP emulator: built-in debugger and the WebSocket debugger API; `ppsspp-headless` runs an ISO/ELF with no window for scripted tests. Also installed system-wide |
 | `naken_asm` | assembler for many small ISAs; packaged here (not in nixpkgs) |
 | Ghidra `ghidra-unsp` | community SLEIGH module ([SamuelWAnderson45/ghidra-unSP](https://github.com/SamuelWAnderson45/ghidra-unSP)), `.sla` precompiled at build time |
 
