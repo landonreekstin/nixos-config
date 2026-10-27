@@ -33,7 +33,11 @@ in
       `${gladeStatus} title "Filling the Forest Dex"`.
     - For work with countable steps: `${gladeStatus} progress 6 "<first step>"`, then
       `${gladeStatus} step "<step just done>" "<next step>"` after EVERY step, never in jumps
-      (he reads a bar that sits still as frozen).
+      (he reads a bar that sits still as frozen). When the work is finished, run
+      `${gladeStatus} done` so the bar ends even if it took fewer steps than planned (he once
+      saw it stuck at 10/14 and wondered what he was still waiting for).
+    - When the work is finished, `${gladeStatus} done`, so the bar ends even if it took fewer steps
+      than planned (he once saw it stuck at 10/14 and wondered what he was still waiting for).
     - When he should come to the terminal (options to pick do this by themselves), say why with
       `${gladeStatus} attention "<why>"`, and `${gladeStatus} calm` once he has answered.
     The panel then says "Open terminal" in orange; clicking the panel always brings up your
