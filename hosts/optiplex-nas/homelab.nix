@@ -58,6 +58,23 @@
     };
     soularr.enable = true;
 
+    # ── Audiobook stack ──────────────────────────────────────────────────────
+    # Bookshelf (a maintained Readarr fork; Readarr itself is retired) grabs
+    # through Prowlarr + Transmission into media/audiobooks; Audiobookshelf
+    # serves that library on books.lan and to its phone apps. See
+    # docs/audiobooks.md.
+    bookshelf = {
+      enable = true;
+      provision.enable = true;
+    };
+    audiobookshelf.enable = true;
+    # Private metadata proxy: the shared Hardcover instance the Bookshelf image
+    # ships with times out on every search. Token expires every January 1.
+    rreadingGlasses = {
+      enable = true;
+      hardcoverAuthFile = config.sops.secrets."hardcover-auth".path;
+    };
+
     # Second torrent client, for Gamarr only - it can import from qBittorrent
     # and nothing else. Transmission keeps the media stack.
     qbittorrent.enable = true;
@@ -145,4 +162,12 @@
   # SLSKD_SLSK_PASSWORD (the slsknet.org account) and SLSKD_USERNAME /
   # SLSKD_PASSWORD (the web UI login). Also from defaultSopsFile.
   sops.secrets."slskd-credentials" = { };
+
+  # Consumed by the rreading-glasses container via --hardcover-auth-file. The
+  # whole Authorization header, i.e. "Bearer <token>", from hardcover.app ->
+  # Settings -> Hardcover API. Also from defaultSopsFile.
+  # uid 65532: the image is distroless "nonroot" and cannot read a root-owned
+  # 0400 file through the bind mount. There is no host user by that id, so
+  # owner must be numeric.
+  sops.secrets."hardcover-auth".uid = 65532;
 }

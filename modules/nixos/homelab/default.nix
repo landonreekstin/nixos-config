@@ -12,6 +12,10 @@
     ./arr.nix
     ./bazarr-provision.nix
     ./lidarr-provision.nix
+    ./bookshelf.nix
+    ./bookshelf-provision.nix
+    ./rreading-glasses.nix
+    ./audiobookshelf.nix
     ./mullvad.nix
     ./jellyseerr.nix
     ./navidrome.nix
