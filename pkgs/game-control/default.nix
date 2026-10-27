@@ -7,6 +7,6 @@
 fetchFromGitHub {
   owner = "landonreekstin";
   repo = "game-control";
-  rev = "687f3641968aad4ccca4f13cafcdcdc92533542f";
-  hash = "sha256-Mf03hUo81VoLSUGjCuPhz/PSZMZ+aafB5+caG/tVR3U=";
+  rev = "e0d4f32bc2a256821f63e56e15d9ae5777ae6a9d";
+  hash = "sha256-6KMoWV2J9g+0JRn+0zNwIeXqV02Qd428QvFyoW2FPL4=";
 }
