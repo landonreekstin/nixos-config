@@ -7,7 +7,7 @@
     hyprland.desktops.enabled = [ "century-series" ];
     themes = {
       plasmaOverride = false;
-      kde = "windows7-alt";
+      kde = "default";
       wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
       pinnedApps = [
         "applications:org.kde.konsole.desktop"

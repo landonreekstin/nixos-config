@@ -251,9 +251,12 @@ in {
         # to know this theme has a night mode.
         exec-once = century-night init
 
-        # Toolkit theming
-        env = QT_QPA_PLATFORMTHEME,qt5ct
-        env = QT_STYLE_OVERRIDE,adwaita-dark
+        # Toolkit theming. The platform theme itself is set once in hyprland/functional.nix
+        # ("kde", via plasma-integration) — this layer owns only the look, per the
+        # functional-vs-theme split. Breeze is the widget style that matches it and comes
+        # from the same place; it used to say "adwaita-dark", which no host packages, so
+        # Qt apps fell back to the default style while the GTK ones were dark.
+        env = QT_STYLE_OVERRIDE,Breeze
         env = GTK_THEME,Adwaita:dark
 
         # Cursor

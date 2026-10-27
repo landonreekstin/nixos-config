@@ -29,6 +29,21 @@ commit date, and get `hash` with the `lib.fakeHash` build. Pin only commits whos
 out on a `blaney/` branch. Verify by logging into Hyprland on blaney-pc (the Glade on both
 monitors, a board click opens its app).
 
+## f-117
+
+Source: `github:cblaney00/f-117`, a blank-slate copy of insideabush's vibe project
+`/home/insideabush/projects/breifing-room` on blaney-pc
+Package: `pkgs/f-117/default.nix` (flake output `.#f-117`)
+
+F-117 (Briefing Room), his news-briefing app. Unlike the Glade, the project itself has **no
+remote**: its history and dev notes are personal, so a clean copy is published instead. To
+bump, on blaney-pc: commit in the project, run its `./publish.sh` (it re-runs itself as
+insideabush, whose `gh` is signed in as `cblaney00`, and pushes everything except
+CLAUDE.md, run.sh, publish.sh, .envrc and .vibe-project). It prints the pushed sha. Set `rev` to
+it, `version` to its date, and get `hash` with the `lib.fakeHash` build. His own feeds live in
+`~/.local/share/briefing-room/sources.json`, never in the repo. Verify with
+`nix run .#f-117`.
+
 ## xbox360-dashboard
 
 Source: `github:landonreekstin/xbox360-dashboard` (checkout at `/home/lando/xbox360-dashboard`

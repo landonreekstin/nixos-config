@@ -89,7 +89,8 @@ git config user.email  # should be: landonreekstin@gmail.com
 Defined in `modules/nixos/common/commands.nix` under `lib.optionals (cfg.user.name == "insideabush")`:
 - `branch-switch` - Numbered-menu branch picker: fetches, lists all branches (main first), stashes current changes (tagged with their source branch), checks out the chosen branch, offers to restore a stash saved for that branch, then rebuilds. On rebuild failure it points the user at `smart-rebuild` / `claude-rebuild-failed`.
 - `blaney-todo` - Numbered-menu task picker: fetches `origin/main`, lists the runbooks in `docs/runbooks/blaney/`, and launches `claude` on the chosen one with a blaney-pc preface prompt — either interactively, or as a walk-away run (`blaney-todo-unattended`: Claude works it alone in auto mode, opens a PR, then `update-shutdown`; also offered by the shutdown dialog). See [Runbooks as blaney-pc tasks](docs/hosts/blaney-pc.md#runbooks-as-blaney-pc-tasks).
-- `vibe` - Numbered-menu front door for insideabush's **own** app projects (vibe-coded apps in `~/projects/<slug>`): start a new one, or re-open an existing one and either resume its last chat, browse older chats, or start a fresh one. Unlike the commands above this one is gated on `customConfig.programs.vibeProjects.enable` and defined in `modules/nixos/programs/vibe-projects.nix`. His project repos are local-only and he commits to their `main` directly; this repo's rules are unchanged. See [docs/hosts/blaney-vibe-projects.md](docs/hosts/blaney-vibe-projects.md).
+- `vibe` - Numbered-menu front door for insideabush's **own** app projects (vibe-coded apps in `~/projects/<slug>`): start a new one, or re-open an existing one and either resume its last chat, browse older chats, or start a fresh one. Unlike the commands above this one is gated on `customConfig.programs.vibeProjects.enable` and defined in `modules/nixos/programs/vibe-projects.nix`. His project repos are local-only or on his own GitHub (never vendored here), he commits to their `main` directly, and each session first rebases his config onto `main`; this repo's rules are unchanged. See [docs/hosts/blaney-vibe-projects.md](docs/hosts/blaney-vibe-projects.md).
+- `ccn` - On blaney-pc a numbered menu rather than the plain shell function it is elsewhere: start a new chat (his request typed straight in), pick up the last one, or browse older ones. Every chat it opens gets the blaney-pc rules plus a "catch up with GitHub first" procedure via `--append-system-prompt` (`ccnRules` in `commands.nix`). `ccnc`/`ccnr` there are deprecated shims that point at it. See [Claude in the config: `ccn`](docs/hosts/blaney-pc.md#claude-in-the-config-ccn).
 - `blaney-help` - Prints a curated one-line cheat-sheet of the commands insideabush uses. **This is the user-facing command index — keep it in sync when adding/removing blaney commands.**
 - `sync` - **Deprecated alias for `update`**, blaney-pc only. Prints a notice pointing at the new name, then runs `update`. Everywhere else `sync` is coreutils' disk-flush again. Remove once the new name has stuck.
 
@@ -174,7 +175,7 @@ split across several modules go in that domain's `options.nix` instead.
 | `services.*` | `services/{ssh,vscode-server,wireguard-client,wireguard-server,airplay-receiver}.nix`; `autoUpdate` in `common/auto-update.nix` |
 | `profiles.*` | `profiles/{gaming,vr}.nix` and each `development/*.nix` — no `options.nix` |
 | `programs.*` | `programs/{partydeck,claude-code}.nix`; `flatpak` in `programs/options.nix` |
-| `apps.*` | `apps/programs.nix` (registry + `mkAppRole`), `apps/xdg-defaults.nix` (MIME) |
+| `apps.*` | `apps/programs.nix` (registry + `mkAppRole`), `apps/xdg-defaults.nix` (MIME), `apps/kde-suite.nix` (KDE apps without Plasma) |
 | `bootloader`, `networking`, `homeManager` (incl. `homeManager.browser`, `homeManager.hyprland.desktops`) | `common/{bootloader,networking,home-manager}.nix` |
 | `user`, `system`, `packages` | `common/options.nix` |
 
@@ -416,6 +417,22 @@ rebuild-test
   the branch, then PR), and anything only testable elsewhere (note in the PR that in-person
   testing on the target is needed).
 - **Never commit broken changes to main.** Merge only once rebuilt, tested, and verified.
+
+### Merging PRs: `--admin` on lando's machines
+
+The `protect-main-merges` ruleset makes a plain `gh pr merge` fail with "the base branch
+policy prohibits the merge", even with green CI. The ruleset exists to keep **blaney-pc**
+off `main`: that machine's `gh` is logged into insideabush's own GitHub account, which has
+no admin bypass, so his sessions must go through a PR and the GitHub rules.
+
+On lando's machines (`gh` logged into `landonreekstin`), when lando asks for a merge and
+**CI on the PR is green**, merge with `gh pr merge <N> --merge --admin` without asking
+again. This does not apply to:
+- **blaney-pc / user `insideabush`**: never merge, never `--admin`; open the PR and stop.
+- **weekly `update/*` flake PRs**: still left for the NAS to auto-merge (see
+  [Automated Weekly Flake Updates](#automated-weekly-flake-updates)).
+- PRs with failing or pending CI, or ones still waiting on an in-person test lando hasn't
+  confirmed or waived.
 
 **Do not open a PR until the change has been tested on the machine currently being
 developed on.** If Claude Code is running on `asus-laptop` and the change targets

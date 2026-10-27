@@ -14,6 +14,101 @@ let
   # machine can only have ONE configuration *activated*. These paths hold the record of
   # which worktree that is. See docs/parallel-sessions.md.
   worktreeRoot = "${cfg.user.home}/nixos-config-worktrees";
+
+  # --- blaney-pc `ccn` --------------------------------------------------------
+  # Appended to the system prompt of every chat `ccn` opens — new, continued or picked
+  # from the list — so the blaney-pc rules are in force from the first turn instead of
+  # depending on the session reading docs/hosts/blaney-pc.md. A store file `cat`ed by the
+  # script, never a heredoc, so the backticks below are just text. Keep in sync with
+  # docs/hosts/blaney-pc.md (and the blaney-todo preface prompts further down).
+  ccnRules = pkgs.writeText "ccn-blaney-rules.md" ''
+    # blaney-pc config session (opened with `ccn`)
+
+    You are working in the NixOS config at ${nixosConfigDir} on blaney-pc, for its
+    user ${userName} (Blaney). The full rules are in docs/hosts/blaney-pc.md and CLAUDE.md
+    in that repo; this is the binding summary of them. Where CLAUDE.md's general workflow
+    conflicts with this, this wins.
+
+    ## Who you are working with
+
+    - He is not technical: no Linux, no Nix, no code. Never ask him to make a technical or
+      architectural decision, and never ask him to run a command you can run yourself. Run
+      `rebuild`, `chown`, git and everything else yourself.
+    - He DOES decide how things look and behave: colours, layout, what a feature does. For
+      a feature request, ask him about that first, then do all the rest on your own. For a
+      bug, just fix it and give him a "does this look right?" check.
+    - Keep every message short and plain. Explain any technical word the moment you use
+      it. Give next steps as one plain sentence ("Tell me if the wallpaper changed").
+
+    ## Git rules (strict)
+
+    - Every branch for his work starts with `blaney/` (e.g. `blaney/fix-wifi`). Reuse the
+      existing `blaney/` branch when continuing the same piece of work.
+    - Never commit or push to `main`, or to any branch that does not start with `blaney/`.
+      Never merge a `blaney/` branch into anything else.
+    - When he confirms the change works, open a PR with `gh pr create` and stop. Lando
+      merges it; you never do.
+    - Never discard, delete or overwrite a branch, commit or stash without asking him first.
+
+    ## Workflow
+
+    Branch, edit, `chown -R ${userName}:${userGroup} ${nixosConfigDir}`, `rebuild` (or
+    `rebuild-test` for a bigger change, so he can try it before it sticks), have him confirm
+    it works, then commit and open the PR.
+
+    ## Catch up with GitHub first — every time work starts or continues
+
+    Do this before anything else: at the start of a new chat, at the start of a resumed
+    chat (before answering his first message there), and again whenever he comes back after
+    a break or moves on to a new piece of work in the same chat. Tell him in one sentence
+    that you are getting the latest updates first.
+
+    1. `git fetch --prune origin`. If that fails (no internet), tell him in one sentence and
+       carry on with what is on the machine.
+    2. Look at `git branch --show-current`, `git status --porcelain` and `git stash list`.
+       Uncommitted changes are his unfinished work and are never thrown away. If a step
+       below needs a clean tree, commit them to the current `blaney/` branch as a WIP commit
+       or `git stash push -u -m "ccn:<branch>"`, and put them back afterwards; tell him in
+       one sentence where his work is. Mention any older stashes so they are not forgotten.
+    3. Then, depending on the branch:
+       - `main`: `git merge --ff-only origin/main`.
+       - a `blaney/` branch:
+         a. If its PR has already been merged (`gh pr list --head <branch> --state merged`),
+            that work is finished: switch to `main`, catch it up, and put any new work on a
+            fresh `blaney/` branch.
+         b. If GitHub has commits on this branch that the checkout does not
+            (`git rev-list --count HEAD..@{upstream}` is not 0), bring them in with
+            `git pull --ff-only`, or rebase onto them if the two have diverged.
+         c. If `git rev-list --count HEAD..origin/main` is not 0, the branch is behind
+            main: `git rebase origin/main`. Resolve conflicts yourself when the right answer
+            is clear; when it is not, `git rebase --abort`, leave the branch as it was, and
+            tell him in one sentence. After a successful rebase of a branch that is on
+            GitHub, `git push --force-with-lease` (allowed: it is a `blaney/` branch, never
+            `main`).
+       - any other branch (one of Lando's): do not commit there. Switch to `main`, or to the
+         `blaney/` branch the work belongs on, and catch that up instead.
+    4. In a new chat about new work, branch off the caught-up `main`, unless what he asks
+       for is clearly a continuation of the `blaney/` branch that is checked out.
+    5. If any of this changed what is checked out, `chown` and `rebuild` before carrying on,
+       so his computer is running the up-to-date config. If that rebuild fails, fixing it
+       (on a `blaney/` branch) becomes the first job.
+  '';
+
+  # Claude runs as `sudo claude`, so its saved chats live under /root (0700) and `ccn`,
+  # running as the user, cannot look for itself. Prints the newest chat that has a user
+  # message in it. Chats with no user message are skipped: `claude remote-control` drops
+  # an empty <uuid>.jsonl into the project's history every time its server starts, and
+  # resuming one of those is a blank session (the same reason the old `ccnc` did this).
+  # Fails soft to "no chats".
+  ccnLastSession = pkgs.writeShellScript "ccn-last-session" ''
+    set -u
+    key=$(printf '%s' "$1" | sed 's/[^a-zA-Z0-9]/-/g')
+    cd "/root/.claude/projects/$key" 2>/dev/null || exit 0
+    for f in $(ls -t -- *.jsonl 2>/dev/null); do
+      grep -q '"type":"user"' "$f" && { echo "''${f%.jsonl}"; exit 0; }
+    done
+    exit 0
+  '';
   wtStateDir = "/var/lib/nixos-config";
   wtOwnerFile = "${wtStateDir}/active-worktree";
   wtLockFile = "${wtStateDir}/rebuild.lock";
@@ -764,6 +859,74 @@ in
       exec update
     '')
 
+    # Claude in the config folder, the blaney-pc way: one numbered menu for a new chat
+    # (typed straight in here), the last chat, or an older one, every one of them opened
+    # with the blaney-pc rules appended to the system prompt (ccnRules above). Everywhere
+    # else ccn/ccnc/ccnr are plain shell functions (modules/home-manager/system/bash.nix).
+    (pkgs.writeShellScriptBin "ccn" ''
+      #!${pkgs.stdenv.shell}
+      set -uo pipefail
+      REPO="${nixosConfigDir}"
+      cd "$REPO" 2>/dev/null || { echo "Can't find your config folder at $REPO — tell Lando."; exit 1; }
+      RULES="$(cat ${ccnRules})"
+
+      # One password prompt here also covers the `sudo claude` below.
+      LAST=$(sudo ${ccnLastSession} "$(pwd -P)" 2>/dev/null) || LAST=""
+
+      new_chat() {
+        local request
+        echo
+        echo "What do you want Claude to do? Type it in your own words and press Enter."
+        echo "(Or just press Enter and Claude will ask you.)"
+        read -rep "> " request
+        if [ -z "''${request//[[:space:]]/}" ]; then
+          request="(New chat from ccn, nothing typed yet. Catch up with GitHub first, as your instructions say, then ask him what he wants to work on.)"
+        else
+          request="(New chat from ccn. Catch up with GitHub first, as your instructions say, then get on with this.)
+
+      $request"
+        fi
+        exec sudo claude --append-system-prompt "$RULES" "$request"
+      }
+
+      # Nothing to go back to? Skip the menu.
+      [ -n "$LAST" ] || new_chat
+
+      echo
+      echo "What do you want to do?"
+      echo "  1) Start a new chat"
+      echo "  2) Pick up where you left off"
+      echo "  3) Look through your older chats"
+      echo
+      read -rp "Enter a number (or q to cancel): " CHOICE
+
+      # A resumed chat renders its system prompt fresh rather than replaying the one it was
+      # started with: chats from before this command have no rules in theirs at all, and
+      # older ones would keep a stale copy after the rules change.
+      RESUME=(--append-system-prompt "$RULES" --system-prompt-snapshot off)
+      case "$CHOICE" in
+        1) new_chat ;;
+        2) exec sudo claude "''${RESUME[@]}" -r "$LAST" \
+             "(He reopened this chat with ccn. Catch up with GitHub first, as your instructions say, then remind him in a sentence or two where things were left and ask what is next.)" ;;
+        3) exec sudo claude "''${RESUME[@]}" -r ;;
+        q) echo "Cancelled — nothing started."; exit 0 ;;
+        *) echo "That wasn't a valid choice. Nothing started."; exit 1 ;;
+      esac
+    '')
+
+    # Folded into `ccn`. Kept only so muscle memory still lands somewhere useful, like
+    # `sync` above; delete once `ccn` has stuck.
+    (pkgs.writeShellScriptBin "ccnc" ''
+      #!${pkgs.stdenv.shell}
+      echo "Heads up: 'ccnc' is now part of 'ccn' — choose \"Pick up where you left off\"."
+      exec ccn
+    '')
+    (pkgs.writeShellScriptBin "ccnr" ''
+      #!${pkgs.stdenv.shell}
+      echo "Heads up: 'ccnr' is now part of 'ccn' — choose \"Look through your older chats\"."
+      exec ccn
+    '')
+
     (pkgs.writeShellScriptBin "branch-switch" ''
       #!${pkgs.stdenv.shell}
       set -uo pipefail
@@ -1089,9 +1252,8 @@ in
       FIX THINGS WITH CLAUDE
         blaney-todo            See tasks Lando left you and have Claude do one
                                (with you, or on its own and then shut down)
-        ccn                    Open Claude in the config folder
-        ccnc                   Open Claude and continue your last chat
-        ccnr                   Open Claude and pick a past chat to resume
+        ccn                    Talk to Claude about your computer: start a new
+                               chat, or pick up an old one
         claude-rebuild-failed  Ask Claude to fix a failed rebuild and make a PR
 
       BUILD YOUR OWN APPS

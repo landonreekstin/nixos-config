@@ -148,6 +148,10 @@ let
     # session started over SSH is reachable from the phone without typing
     # /remote-control first.
     remoteControlAtStartup = true;
+  } // lib.optionalAttrs (cfg.programs.claudeCode.permissions.allow != [ ]) {
+    # Per-host, because blaney-pc enables this module too: a rule set here would let
+    # Claude do it on his machine as well.
+    permissions.allow = cfg.programs.claudeCode.permissions.allow;
   });
 in
 {
@@ -165,6 +169,17 @@ in
         Extra directories the Claude hooks chown back to the primary user after
         edits. The user's nixos-config clone is always included; list additional
         working clones here.
+      '';
+    };
+    permissions.allow = mkOption {
+      type = types.listOf types.str;
+      default = [ ];
+      example = [ "Bash(gh pr merge:*)" ];
+      description = ''
+        Permission rules written to `permissions.allow` in root's settings.json, which
+        let Claude run matching tool calls without asking (and past the auto-mode
+        classifier). Set per host, never as a module default, since the module is
+        also enabled on hosts lando doesn't use.
       '';
     };
     remoteControl = {

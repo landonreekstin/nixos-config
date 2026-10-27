@@ -29,7 +29,8 @@ game ──OpenXR──▶ WiVRn server (Monado + NVENC h265 10-bit) ──adb r
    re-sending the connect intent every 10 s (the Quest ignores it while off-head). Then it runs
    `steam://launch/223750/VR`, which skips Steam's OpenXR/Oculus picker. Verified with the
    headset plugged in first. **War Thunder: "War Thunder (VR)"** (`wt-vr`), the same flow; see
-   [War Thunder](#war-thunder-steam-appid-236390). Other games: launch from Steam with the headset
+   [War Thunder](#war-thunder-steam-appid-236390). **Phasmophobia: "Phasmophobia (VR)"**
+   (`phasmo-vr`); see [Phasmophobia](#phasmophobia-steam-appid-739630). Other games: launch from Steam with the headset
    already streaming.
 
 Manual fallbacks: `vr-connect` (same thing the udev rule runs), `vr-client-install`,
@@ -177,3 +178,18 @@ no stutter.
   plaintext byte is a space. Look for `[XR][device]` lines.
 - Reports elsewhere mention breakage after game updates. If VR stops working after a patch, check the
   `.clog` for `[XR]` errors first.
+
+## Phasmophobia (Steam appid 739630)
+Windows build under GE-Proton. The game uses Unity's OpenXR plugin
+(`Phasmophobia_Data/Plugins/x86_64/openxr_loader.dll`), so like War Thunder it reaches WiVRn
+through wineopenxr, and xrizer is not involved. No anti-cheat.
+
+**Daily use:** plug the headset in, then click **"Phasmophobia (VR)"** (or run `phasmo-vr`).
+This uses the same `mkVrLauncher` as DCS and War Thunder and ends with `steam://launch/739630/VR`, which is
+Steam's "Phasmophobia in VR (exc. Steam Home)" entry (`Phasmophobia.exe --enable-vr`).
+
+**One-time setup:** quit Steam and run `phasmo-vr-setup`. It maps the game to the newest
+GE-Proton11 (11-9 or newer, for the same wineopenxr reason as War Thunder) and resets its
+launch options to plain `%command%`.
+
+Verified 2026-10-26: starts in VR from the launcher on GE-Proton11-9; no colour fix needed.

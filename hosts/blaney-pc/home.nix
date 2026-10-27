@@ -22,19 +22,16 @@
     # driven by mouse or keyboard. See docs/theming.md.
     hyprland.desktops.enabled = [ "glade" ];
     themes = {
-      plasmaOverride = true;
-      kde = "windows7-alt";
-      # Win7 XFCE session (X11) as a coexisting login choice — pick "Xfce Session" at Ly.
+      # The Win7 XFCE session (X11) is a coexisting login choice beside his glade Hyprland
+      # desktop — pick "Xfce Session" at Ly. KDE was dropped from desktop.environments
+      # along with aerothemeplasma — the Windows 7 look lives entirely in
+      # modules/{nixos,home-manager}/themes/windows7-xfce/ now, which compiles nothing.
       # Fully declarative: every rebuild re-asserts the declared taskbar/theme.
       xfce = "windows7";
-      wallpaper = ../../assets/wallpapers/windows7-wallpaper.jpg;
-      # XFCE session gets the aviation wallpaper (matches his Hyprland/century-series, which
-      # also falls back to f-15 since he has no desktop.monitors yet) while KDE keeps the Win7
-      # wallpaper above. Once his desktop.monitors are set up on-target, portraits can get
-      # carrier-top via per-monitor wallpaper.
+      # The XFCE session's wallpaper (the glade draws its own world on Hyprland).
       xfceWallpaper = ../../assets/wallpapers/f-15-satellite.jpg;
-      # XFCE taskbar mirrors the KDE pin set below, using themed/XFCE-native apps where the
-      # KDE app has an equivalent (Konsole→kitty, Dolphin→Thunar, KCalc→galculator,
+      # XFCE taskbar pins, using themed/XFCE-native apps where a KDE app used to be the
+      # equivalent (Konsole→kitty, Dolphin→Thunar, KCalc→galculator,
       # plasma-systemmonitor→xfce4-taskmanager, systemsettings→xfce4-settings-manager,
       # Notes→xpad); gaming/peripheral apps reused as-is. The org.xfce.*/galculator icons
       # resolve to Aero via the icon-alias step in windows7-xfce-gtk.nix.
@@ -59,28 +56,10 @@
           { name = "Notes";           exec = "xpad";                               icon = "xpad"; }
         ];
       };
-      pinnedApps = [
-        "applications:org.kde.konsole.desktop"
-        "applications:systemsettings.desktop"
-        "applications:org.kde.dolphin.desktop"
-        "applications:org.chromium.Chromium.desktop"
-        "applications:net.lutris.Lutris.desktop"
-        "applications:com.heroicgameslauncher.hgl.desktop"
-        "applications:steam.desktop"
-        "applications:iw4x.desktop"
-        "applications:com.discordapp.Discord.desktop"
-        "applications:com.spotify.Client.desktop"
-        "applications:org.kde.plasma-systemmonitor.desktop"
-        "applications:org.kde.kcalc.desktop"
-        "applications:polychromatic.desktop"
-        "applications:input-remapper-gtk.desktop"
-        "applications:openrgb.desktop"
-        "applications:io.github.nuttyartist.notes.desktop"
-      ];
     };
 
     # Firefox, installed ALONGSIDE the Flatpak Chromium that still owns Super+B,
-    # the KDE/XFCE default and the panel pin. Nothing insideabush relies on
+    # the XFCE default and the panel pin. Nothing insideabush relies on
     # moves under him — he reaches Firefox from the app menu until this has been
     # looked at on the machine. Same soak approach that was used on gaming-pc.
     #
@@ -91,7 +70,7 @@
       enable = true;
       ownsAppRole = false;
 
-      # This host runs the Windows 7 theme in both KDE and XFCE.
+      # This host runs the Windows 7 theme in its XFCE session.
       personal.chromeTheme = "windows7";
 
       personal.bookmarks = {
@@ -156,13 +135,38 @@
         Terminal=false
         StartupWMClass=${f117.settings.StartupWMClass}
       '';
-      # Dolphin was black text on the dark Hyprland themes (adwaita-dark style + the Win7
-      # kdeglobals text colours). Give Dolphin its own dark colour scheme so the text is
-      # light. plasma-manager writes these as keys, not a symlink, since Dolphin rewrites
+      # Open one fresh Dolphin window like Explorer/Finder, not every tab from last time.
+      # plasma-manager writes this as a key, not a symlink, since Dolphin rewrites
       # dolphinrc itself.
-      programs.plasma.configFile.dolphinrc.UiSettings.ColorScheme = "BreezeDark";
-      # Open one fresh window like Explorer/Finder, not every tab from last time.
       programs.plasma.configFile.dolphinrc.General.RememberOpenedTabs = false;
+
+      # KDE apps under the glade take the Breeze Dark palette the glade puts on
+      # XDG_CONFIG_DIRS (desktops/glade/hyprland.nix) — but ~/.config/kdeglobals overrides
+      # it key by key, and his still holds the Windows 7 colours aerothemeplasma wrote,
+      # which nothing manages any more. Strip the colour groups from it so the session's
+      # palette applies: dark under the glade, stock light Breeze in XFCE. The rest of the
+      # file (file-dialog state etc.) is kept. Also drops the old per-app dolphinrc
+      # BreezeDark key (the previous fix): on its own it left the file names near-black.
+      imports = [
+        ({ lib, pkgs, config, ... }: let
+          dropColors = pkgs.writeText "kdeglobals-drop-colors.awk" ''
+            /^\[/ { skip = ($0 ~ /^\[(Colors|ColorEffects):/ || $0 == "[WM]"); general = ($0 == "[General]") }
+            skip { next }
+            general && /^ColorScheme(Hash)?=/ { next }
+            { print }
+          '';
+        in {
+          home.activation.kdeglobalsDropColors = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+            kg=${config.xdg.configHome}/kdeglobals
+            if [ -f "$kg" ] && grep -qE '^\[(Colors|ColorEffects):|^\[WM\]|^ColorScheme' "$kg"; then
+              # One `run` for the rewrite and the move, so a dry run touches nothing.
+              run ${pkgs.bash}/bin/sh -c '${pkgs.gawk}/bin/awk -f ${dropColors} "$0" > "$0.new" && mv "$0.new" "$0"' "$kg"
+            fi
+            run ${pkgs.kdePackages.kconfig}/bin/kwriteconfig6 --file dolphinrc \
+              --group UiSettings --key ColorScheme --delete
+          '';
+        })
+      ];
     };
   };
 }

@@ -11,14 +11,15 @@ his front door to that: it creates a project or puts him back into one, and the 
 opens is governed by *its own* rules, not this repo's.
 
 The point of the split: **his app source is not part of this repo.** Each project is a
-local-only git repo in `~/projects/<slug>` that he commits to `main` freely. Only two
-things ever come back here as a `blaney/` PR — a new language toolchain, and packaging a
-finished app.
+git repo in `~/projects/<slug>` that he commits to `main` freely. Only two things ever
+come back here as a `blaney/` PR — a new language toolchain, and packaging a finished app.
 
-**Nothing in `~/projects` is backed up or pushed anywhere.** If that disk dies, every
-project is gone, on a machine nobody can reach physically. That is an accepted trade for
-not handing a non-technical user a remote and credentials; it is also why the rules tell
-Claude to commit early and often.
+**Non-Nix source lives in one of two places, never here:** local-only in its project folder
+(the default — a new project has no remote), or its own GitHub repo on *his* account
+(`cblaney00/<slug>`), pushed after every commit once it exists. This repo only ever
+packages an app from that remote URL with a `fetchFromGitHub` pin, so an app must be on
+GitHub before it can be packaged. A local-only project is not backed up anywhere — if that
+disk dies it is gone, which is why the rules tell Claude to commit early and often.
 
 ## The layout
 
@@ -30,7 +31,7 @@ Claude to commit early and often.
     .vibe-project        title= slug= shell=   <- what makes this a vibe project
     .envrc               use flake ~/nixos-config#vibe-python
     CLAUDE.md            what THIS app is; points up at the rules
-    .git/                local only, no remote
+    .git/                local only, or pushed to github:cblaney00/<slug>
 ```
 
 **`~/projects/CLAUDE.md` is the load-bearing file.** Claude Code collects `CLAUDE.md` from
@@ -63,6 +64,15 @@ chats, are keyed to the path.
    which is not something he could act on.
 4. The session asks him what the app should do and look like, **picks the language itself**,
    writes `.envrc`, records `shell=`, allows direnv, and builds it.
+
+5. **Every session — resumed ones too — first catches his config up with `main`:** fetch;
+   leave a dirty tree alone; fast-forward `main`, or rebase a `blaney/` branch onto
+   `origin/main` and `--force-with-lease` it if it has an upstream (a conflict is aborted
+   and handed to `ccn`); then chown and `rebuild` if anything moved. It repeats when he
+   comes back after a break. This is the one config action a vibe session takes, and it
+   exists because `branch-switch` leaves him on `blaney/` branches that otherwise drift
+   behind main for weeks — and `update` only pulls the branch, not main. It lives in the
+   rules file, not the launch prompt, so `claude -c`/`-r` sessions do it too.
 
 `vibe` deliberately never asks a technical question — per
 [blaney-pc.md](blaney-pc.md#decision-authority) he makes no technical decisions, so the
@@ -228,7 +238,7 @@ Then:
 
 1. **Give the project its own GitHub repo first** — public, under his account
    (`cblaney00/<slug>`, as `cblaney00/glade` was), with the project's `main` pushed to it.
-   Packaging is the moment a project stops being local-only; day-to-day vibe work still
+   Skip this if the project already has one. Day-to-day vibe work still
    needs no remote. **Never vendor the source into `pkgs/<name>/src`** — this is the
    repo-wide standing rule in `CLAUDE.md` ("an app that isn't Nix lives in its own repo"),
    and it is what keeps his app history out of `nixos-config` and his apps reusable.

@@ -55,7 +55,12 @@
     };
 
     programs = {
-      partydeck.enable = true;
+      # Off since KDE was dropped from this host. partydeck is not built against KWin,
+      # but its `enable_kwin_script` setting defaults to on and its launch path calls
+      # KWin over D-Bus with `?` — so without Plasma a launch aborts, and unticking the
+      # setting leaves you hand-positioning every split-screen window. Nobody was using
+      # it, so it is off rather than half-working. See modules/nixos/programs/partydeck.nix.
+      partydeck.enable = false;
 
       # The Batman (JAKKS TV game, native), and hosting its online co-op: players join
       # 192.168.1.76:7845, which optiplex-fw forwards to this host through wg-nas
@@ -86,6 +91,9 @@
 
       claudeCode = {
         enable = true;
+        # Merging to main needs `--admin` (branch ruleset), which auto mode otherwise
+        # blocks every time. gaming-pc only: blaney-pc must never merge.
+        permissions.allow = [ "Bash(gh pr merge:*)" ];
         # lando's hyprland-keys working clone lives alongside nixos-config on this host.
         extraChownPaths = [ "/home/lando/hyprland-keys" ];
         remoteControl = {
@@ -252,6 +260,8 @@
         kdePackages.kdenlive
         claude-code
         (callPackage ../../pkgs/worldmonitor { })
+        # insideabush's news-briefing app, from its github:cblaney00/f-117 pin
+        (callPackage ../../pkgs/f-117 { })
         zoom-us
         gurk-rs
         vlc

@@ -40,7 +40,10 @@ in
       ipr = "sudo input-remapper-gtk";
     };
 
-    initExtra = ''
+    # On blaney-pc these three are one `ccn` menu command instead, which also hands every
+    # chat the blaney-pc rules (modules/nixos/common/commands.nix). A shell function would
+    # shadow that command, so they are left out there.
+    initExtra = lib.optionalString (customConfig.user.name != "insideabush") ''
       ccnc() {
         cd "$HOME/nixos-config" || return
         # `claude remote-control` drops an empty <uuid>.jsonl into this project's
@@ -60,6 +63,7 @@ in
       ccnr() {
         cd "$HOME/nixos-config" && sudo claude -r
       }
+    '' + ''
       claude-rebuild-failed() {
         cd "$HOME/nixos-config" && sudo claude "A NixOS rebuild failed. Run \`rebuild\` to reproduce the error, diagnose the cause, and fix it. Then create a PR with the fix. This is a blaney-pc session: follow all blaney-pc rules in CLAUDE.md (branch prefix blaney/, never push to main). Keep all explanations brief and simple — the user is non-technical and does not know Nix, Linux, or code, so do not rely on their knowledge or ask them to make technical decisions. Take full ownership of every technical decision and recommendation and just get the system working. Lando reviews and approves the PR, so make the best call and proceed."
       }
