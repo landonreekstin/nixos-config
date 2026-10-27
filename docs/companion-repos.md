@@ -68,6 +68,27 @@ Pinned with `fetchFromGitHub`, and bumped like hyprland-keys below: use the repo
 Online players must run the same build (the host refuses any other), so gaming-pc and
 blaney-pc both need to be on the new pin. Bump `version` (the date) too.
 
+## game-control
+
+Source: `github:landonreekstin/game-control`
+Package: `pkgs/game-control/default.nix` (just the pinned source), run by
+`modules/nixos/homelab/game-control.nix` on mini-server
+
+The FastAPI game-server dashboard (`app.py` + `templates/`). The server tiles are the
+`SERVERS` table in `app.py`, so adding a game server means a commit there as well as the
+container in `modules/nixos/homelab/game-servers.nix`. Bump like hyprland-keys below (repo
+name `game-control`), then rebuild on mini-server and load the dashboard to verify.
+
+## xr-srgb-fix
+
+Source: `github:landonreekstin/xr-srgb-fix`
+Package: `pkgs/xr-srgb-fix/default.nix` (the build and the layer manifest live here), used by
+`modules/nixos/profiles/vr.nix`
+
+The OpenXR layer from [vr.md](vr.md). Bump like hyprland-keys below (repo name
+`xr-srgb-fix`), rebuild on gaming-pc, and verify in the headset with War Thunder (colours
+match the desktop mirror).
+
 ## hyprland-keys
 
 Source: `github:landonreekstin/hyprland-keys`
