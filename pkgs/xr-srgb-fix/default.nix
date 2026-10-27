@@ -1,12 +1,19 @@
-# ~/nixos-config/modules/nixos/profiles/vr-srgb-fix/default.nix
-# OpenXR layer that fixes washed-out colours in Proton D3D11 VR games (see layer.c).
-# Implicit, but only active when XR_SRGB_FIX is set (per-game launch option).
-{ stdenv, glslang, openxr-loader, vulkan-headers, xxd }:
+# ~/nixos-config/pkgs/xr-srgb-fix/default.nix
+# OpenXR layer that fixes washed-out colours in Proton D3D11 VR games (see layer.c in
+# github:landonreekstin/xr-srgb-fix). Implicit, but only active when XR_SRGB_FIX is set
+# (per-game launch option). Used by modules/nixos/profiles/vr.nix. To update: bump `rev`
+# and `hash` — see docs/companion-repos.md#xr-srgb-fix.
+{ stdenv, fetchFromGitHub, glslang, openxr-loader, vulkan-headers, xxd }:
 
 stdenv.mkDerivation {
   pname = "xr-srgb-fix";
   version = "1";
-  src = ./.;
+  src = fetchFromGitHub {
+    owner = "landonreekstin";
+    repo = "xr-srgb-fix";
+    rev = "ae1fc9c14b61990cbe698914c94bd655cc3f14e7";
+    hash = "sha256-ryMBIg9qlUspAh94X+uCaQsbUI6ZKMwMZP1txeM7sas=";
+  };
   nativeBuildInputs = [ glslang xxd ];
   buildInputs = [ openxr-loader vulkan-headers ];
 

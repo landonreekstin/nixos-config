@@ -10,7 +10,7 @@ let
     jinja2
   ]);
 
-  appSrc = ./game-control-src;
+  appSrc = pkgs.callPackage ../../../pkgs/game-control { };
 
   watchdogScript = pkgs.writeShellScript "game-watchdog" ''
     set -euo pipefail

@@ -10,7 +10,8 @@ visible. This file is kept for the three traps involved, none of which announce 
 | `venator` | `minecraft-bedrock-venator` | 19136 / 19137 | iPhone XR | `Generator 2` flat, spans blocks −160–367 |
 
 Declared in `modules/nixos/homelab/game-servers.nix`, enabled in
-`hosts/mini-server/homelab.nix`, tiles in `modules/nixos/homelab/game-control-src/app.py`.
+`hosts/mini-server/homelab.nix`, tiles in `app.py` of `github:landonreekstin/game-control` (pinned in
+`pkgs/game-control`; a new tile means a commit there plus a pin bump).
 LAN/VPN reachability comes from `rdr-to` rules on optiplex-fw (see `docs/networking.md`).
 
 ## Trap 1 — BDS 1.26 defaults to `transport=nethernet`

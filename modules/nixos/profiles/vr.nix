@@ -306,7 +306,7 @@ let
   # OpenXR layer that undoes Proton's double sRGB encode (washed-out colours in
   # War Thunder). Runs on the Linux side, outside the game's anti-cheat-watched
   # Windows process; only active when XR_SRGB_FIX is set.
-  xr-srgb-fix = pkgs.callPackage ./vr-srgb-fix { };
+  xr-srgb-fix = pkgs.callPackage ../../../pkgs/xr-srgb-fix { };
 
   # One click from the desktop: make sure the headset is streaming, then start the
   # game in VR. Games fail over to flat if no headset is connected when they start,

@@ -133,7 +133,8 @@ no stutter.
 - **`xr-srgb-fix` (washed-out colours).** Windows runtimes give D3D11 apps *typeless* swapchain
   textures. wineopenxr gives them typed `*_SRGB` ones, so War Thunder's own gamma is encoded a
   second time: the headset looks pale while the desktop mirror looks right.
-  `modules/nixos/profiles/vr-srgb-fix/` is a host-side OpenXR API layer that runs between
+  `xr-srgb-fix` (`github:landonreekstin/xr-srgb-fix`, packaged in `pkgs/xr-srgb-fix`) is a
+  host-side OpenXR API layer that runs between
   wineopenxr and WiVRn. On each `xrReleaseSwapchainImage` of an 8-bit sRGB colour swapchain it
   copies the image to a UNORM scratch image, runs one sRGB→linear compute pass, and copies it back.
   - It is an implicit layer, enabled only when `XR_SRGB_FIX` is set (per-game launch option), so
