@@ -36,6 +36,10 @@ let
       `main`. Merge his PRs only when lando asks, and only after the branch has been run
       and played: `gh pr checkout <n>`, `make test`, play it, then `gh pr merge <n> --merge`.
     - Start every session with `git fetch` and a look at the open PRs.
+    - Look and feel are in the project's `docs/style.md`. Read it before any visible
+      change. Log every look-and-feel direction from either person in its direction log,
+      and update its current style in the same commit. Blaney's calls count as much as
+      lando's, and a conflict between them goes under a "Style conflict" heading in the PR.
     - Verify before you commit: tests pass **and** the game has been run and looked at.
       Messages are `type(scope): description`, with no Co-Authored-By or AI attribution
       lines.

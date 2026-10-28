@@ -197,6 +197,8 @@ let
     GD_LAUNCHER="${lib.optionalString gdEnabled "${gdCfg.launcher}"}"
     GD_SCAFFOLD="${lib.optionalString gdEnabled "${gdCfg.scaffold}"}"
     GD_CLAUDE_MD="${lib.optionalString gdEnabled "${gameProjectClaudeMd}"}"
+    GODOT="${lib.optionalString gdEnabled "${pkgs.unstable.godot_4}/bin/godot"}"
+    LOVE="${lib.optionalString gdEnabled "${pkgs.love}/bin/love"}"
     GD_GUARD_HOOKS="${lib.optionalString gdEnabled "${gdCfg.mainGuardHooks}"}"
     SHARED_GAMES=${lib.escapeShellArg sharedGames}
 
@@ -415,7 +417,8 @@ let
     the \"commit to main freely\" and \"Where his app's code is allowed to live\" rules of
     ../CLAUDE.md: every change goes on a blaney/ branch and into a PR that lando merges.
     Follow its \"Every session, before anything else\" steps first, lando's PR comments
-    included."
+    included. Read docs/style.md before changing anything he will see, and log every
+    look-and-feel call he makes in its direction log (its \"Look and feel\" rules)."
       fi
       case "$kind" in re|game) ;; *) kind=app ;; esac
       case "$kind" in re) noun="project" ;; game) noun="game" ;; *) noun="app" ;; esac
@@ -425,6 +428,11 @@ let
       echo "What do you want to do with $title?"
 
       local -a labels=() actions=()
+      # A game he can just play, no chat: Godot or LÖVE ones (what play_game can start).
+      if [ "$kind" = game ] && [ -n "$GD_LAUNCHER" ] \
+           && { [ -f "$dir/project.godot" ] || [ -f "$dir/main.lua" ]; }; then
+        labels+=("Play it")                             ; actions+=(play)
+      fi
       if [ "$SESSIONS" -gt 0 ]; then
         labels+=("Pick up where you left off")          ; actions+=(continue)
         labels+=("Start a fresh chat about this $noun") ; actions+=(fresh)
@@ -449,6 +457,9 @@ let
       fi
 
       case "''${actions[$((choice - 1))]}" in
+        play)
+          play_game "$dir" "$title"
+          ;;
         continue)
           run_claude "$dir" "$kind" -c
           ;;
@@ -489,6 +500,28 @@ let
           fi
           ;;
       esac
+    }
+
+    # play_game <dir> <title>
+    # Starts the game on his screen, as him, with no Claude chat: whatever is in the folder
+    # right now, so on a shared game that is the branch he is on. Godot first needs an
+    # import pass: its list of the game's script classes lives in the gitignored .godot/,
+    # so a fresh clone or newly pulled scripts fail to load ("Could not find type ...")
+    # without one.
+    play_game() {
+      local dir="$1" title="$2"
+      cd "$dir" || exit 1
+      echo
+      if [ -f project.godot ]; then
+        echo "Getting $title ready (this can take a minute the first time)..."
+        "$GODOT" --headless --path . --import >/dev/null 2>&1 || true
+        echo "Starting $title. Close its window when you're done."
+        "$GODOT" --path . >/dev/null 2>&1
+      else
+        echo "Starting $title. Close its window when you're done."
+        "$LOVE" . >/dev/null 2>&1
+      fi
+      echo "Closed. Run vibe again to change something in it."
     }
 
     # open_shared <name> <owner/repo> <title>

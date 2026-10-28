@@ -199,6 +199,17 @@ These are **not** his repos, so the "commit to main freely" rule doesn't apply. 
   the commit-to-main rules, so a resumed chat knows it too.
 - Pushes and `gh` run as him (`sudo -u insideabush -H ...`), because the session is
   root.
+- **His look-and-feel calls are recorded.** The project's `docs/style.md` holds the
+  current style and a dated direction log of every call he or lando makes, in their own
+  words. Sessions read it before any visible change and update it in the same commit,
+  and the PR flags a "Style conflict" when one of you overrides the other. The rules are
+  in the project's `CLAUDE.md` ("Look and feel") and repeated in his game rules.
+
+**"Play it"** appears in the per-game menu of every game project, shared or his own,
+that has a `project.godot` or `main.lua`. It starts the game on his screen as him, with no
+Claude chat, playing whatever branch his copy is on. Godot gets a headless `--import`
+first: the game's script classes are registered in the gitignored `.godot/`, so a fresh
+clone or newly pulled scripts fail with "Could not find type …" without it.
 
 ## Adding a language toolchain
 

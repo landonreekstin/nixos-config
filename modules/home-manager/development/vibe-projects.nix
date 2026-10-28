@@ -60,6 +60,12 @@ let
       login is `cblaney00`, and this session's root may not have one.
       `sudo -u ${userName} -H git push -u origin <branch>` and
       `sudo -u ${userName} -H gh pr create ...`.
+    - **His look-and-feel calls are what he brings to it, so none may get lost.** Whenever
+      he says how something should look, sound or feel, playtest remarks included ("the
+      trees are too dark"), log it in the project's `docs/style.md` direction log, in his
+      words, and update its "current style" in the same commit. Read `docs/style.md`
+      before changing anything he will see, and tell him when a request goes against it
+      so he can decide. The project's `CLAUDE.md` ("Look and feel") has the details.
     - Its code stays in that repo. It never moves to his account or into the NixOS config.
     - Everything else in this game section still applies: play it on his screen, verify
       before you commit.
