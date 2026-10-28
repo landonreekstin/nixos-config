@@ -1291,10 +1291,14 @@ in
         exec sudo "$0" "$@"
       fi
       LIST="${notesList}"
-      REPO="${nixosConfigDir}"
       BRANCH="blaney/notes-$(date +%F)"
       RULES="$(cat ${ccnRules})"
-      cd "$REPO" || { echo "Can't find your config folder at $REPO — tell Lando."; exit 1; }
+      # Its own worktree, so a ccn chat in the main checkout never has its branch switched
+      # (or its uncommitted work swept up) by a note being worked on.
+      REPO="${nixosConfigDir}-worktrees/''${BRANCH#blaney/}"
+      [ -d "$REPO" ] || (cd "${nixosConfigDir}" && sudo -u ${userName} wt new "$BRANCH") \
+        || { echo "Couldn't set up a folder for the notes work — tell Lando."; exit 1; }
+      cd "$REPO" || { echo "Can't find the notes work folder at $REPO — tell Lando."; exit 1; }
       touch "$LIST"
       chown ${userName}:${userGroup} "$LIST"
 
@@ -1335,10 +1339,11 @@ in
       docs/hosts/blaney-vibe-projects.md: commit to its main and push it. Only touch this
       config (the branch below) if the app is packaged here and its pin needs bumping.
 
-      For a config change: do the catch-up with GitHub briefly, then work on the branch $BRANCH: switch to it if
-      it exists (locally or on origin), otherwise create it from the latest origin/main.
-      Earlier notes from today are already on it; keep their changes. Make the change, chown
-      the repo to ${userName}, rebuild, check it works, commit, and push $BRANCH. If $BRANCH
+      For a config change: work only in this worktree, $REPO, which is on the branch
+      $BRANCH (never touch the main checkout at ${nixosConfigDir}; another chat uses it).
+      Bring $BRANCH up to date with origin/main first. Earlier notes from today are already
+      on it; keep their changes. Make the change, chown the worktree to ${userName},
+      rebuild --take (this worktree must own the live system), check it works, commit, and push $BRANCH. If $BRANCH
       has no open PR yet, open one with gh pr create; otherwise add a line for this note to
       the PR body (gh pr edit). The PR body keeps a list of the notes done, plus sections
       "Decisions I made for Blaney" and "Needs checking in person". If the note needs him
