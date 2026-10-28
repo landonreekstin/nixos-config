@@ -36,6 +36,8 @@
       # it, so it is off rather than half-working. See modules/nixos/programs/partydeck.nix.
       partydeck.enable = false;
       claudeCode.enable = true;
+      # His R62D game (github.com/cblaney00/r62d) as an app; port 6262 open so friends can join his games.
+      r62d = { enable = true; openFirewall = true; };
       # His own vibe-coded app projects: the `vibe` command, ~/projects, and the dev
       # shells its .envrc files point at (customConfig.profiles.development.vibe-* in
       # ./profiles.nix). See docs/hosts/blaney-vibe-projects.md.

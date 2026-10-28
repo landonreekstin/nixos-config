@@ -8,6 +8,7 @@
     ./partydeck.nix
     ./iw4x.nix
     ./batman.nix
+    ./r62d.nix
     ./quiver.nix
     ./claude-code.nix
     ./vibe-projects.nix
