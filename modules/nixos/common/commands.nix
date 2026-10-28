@@ -1343,6 +1343,8 @@ in
       # stepped back up to where it was (glade-status has no "set" command).
       WAITING_SHOWN="" DONE_N=0 TOTAL=0
       export SUDO_USER="''${SUDO_USER:-${userName}}" # glade-status finds his home through it
+      shopt -s lastpipe # the token reader at the end of the claude pipeline sets NOTE_TOK
+      kfmt() { awk -v n="$1" 'BEGIN { if (n >= 1000) printf "%.1fk", n / 1000; else print n }'; }
       st() { ${gladeStatus} "$@" >/dev/null 2>&1; }
       while true; do
         N=$(grep -n '^\[ \]' "$LIST" | head -1 | cut -d: -f1)
@@ -1403,26 +1405,57 @@ in
       $NOTE
       EOF
         )
-        # Shown live, like a chat he watches: Claude's words, and one line per thing it does.
+        # Shown live, like a chat he watches: Claude's words, and one line per thing it does
+        # with the note's running token count (each message's new input + cache writes +
+        # output; cache reads left out, as they cost a tenth). A message's content blocks
+        # arrive as separate events with the same usage, hence the seen-by-id check. The
+        # final "@@TOKENS n" line is caught below for the per-note and per-day totals.
+        NOTE_TOK=0
         timeout --kill-after=5m 2h \
           claude -p "$PROMPT" --settings ${gladeHooks} --append-system-prompt "$RULES" \
             --permission-mode auto --permission-prompts none \
             --output-format stream-json --verbose \
-          | ${pkgs.jq}/bin/jq -r --unbuffered '
-              select(.type == "assistant") | .message.content[]
-              | if .type == "text" then "\n" + .text + "\n"
-                elif .type == "tool_use" then
-                  "  > " + .name + ": " + ((.input.description // .input.command // .input.file_path
-                    // .input.pattern // "") | tostring | gsub("\n"; " ") | .[0:140])
-                else empty end' 2>/dev/null
+          | ${pkgs.jq}/bin/jq -nr --unbuffered '
+              def k: if . >= 1000 then "\((. / 100 | floor) / 10)k" else tostring end;
+              foreach (inputs | select(.type == "assistant" or .type == "result")) as $e
+                ({seen: {}, total: 0, out: []};
+                 if $e.type == "result" then .out = ["@@TOKENS \(.total)"]
+                 else ($e.message.usage // {}) as $u
+                   | (if .seen[$e.message.id] then 0
+                      else ($u.input_tokens // 0) + ($u.cache_creation_input_tokens // 0)
+                           + ($u.output_tokens // 0) end) as $add
+                   | .seen[$e.message.id] = true | .total += $add | .total as $t
+                   | .out = [$e.message.content[]
+                       | if .type == "text" then "\n" + .text + "\n"
+                         elif .type == "tool_use" then
+                           "  > " + .name + ": " + ((.input.description // .input.command
+                             // .input.file_path // .input.pattern // "") | tostring
+                             | gsub("\n"; " ") | .[0:120]) + "   [\($t | k) tokens]"
+                         else empty end]
+                 end;
+                 .out[])' 2>/dev/null \
+          | while IFS= read -r LINE; do
+              case "$LINE" in
+                "@@TOKENS "*) NOTE_TOK=''${LINE#@@TOKENS } ;;
+                *) printf '%s\n' "$LINE" ;;
+              esac
+            done
         RC=''${PIPESTATUS[0]}
+        # Today's total, kept across windows in "<date> <tokens>".
+        TOKFILE="${cfg.user.home}/.local/state/work-notes-tokens"
+        read -r TDAY TTOK < "$TOKFILE" 2>/dev/null || true
+        [ "''${TDAY:-}" = "$(date +%F)" ] || TTOK=0
+        TTOK=$((''${TTOK:-0} + NOTE_TOK))
+        echo "$(date +%F) $TTOK" > "$TOKFILE"
+        chown ${userName}:${userGroup} "$TOKFILE"
+        TOKS="(this note: $(kfmt "$NOTE_TOK") tokens, today: $(kfmt "$TTOK"))"
         chown -R ${userName}:${userGroup} "$REPO"
         if [ "$RC" -eq 0 ]; then
           mark "$N" "[x]"
-          echo "=== Done: $NOTE ==="
+          echo "=== Done: $NOTE $TOKS ==="
         else
           mark "$N" "[!]"
-          echo "=== Claude couldn't finish this one (marked [!] in your list): $NOTE ==="
+          echo "=== Claude couldn't finish this one (marked [!] in your list): $NOTE $TOKS ==="
         fi
         DONE_N=$((DONE_N + 1)) PREV="$NOTE"
       done
