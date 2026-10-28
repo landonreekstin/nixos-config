@@ -25,6 +25,7 @@ let
   # rest of the glade desktop (hyprland/desktops/glade/claude-panel.nix).
   gladePanel = import ../../home-manager/hyprland/desktops/glade/claude-panel.nix { inherit pkgs; };
   gladeHooks = gladePanel.hooks;
+  notesList = "${cfg.user.home}/notes-list.txt"; # blaney-pc `add-notes` / `work-notes`
 
   ccnRules = pkgs.writeText "ccn-blaney-rules.md" ''
     # blaney-pc config session (opened with `ccn`)
@@ -1259,6 +1260,110 @@ in
       systemctl poweroff
     '')
 
+    # A notes list for blaney-pc: `add-notes` is a typing box that stays open and adds every
+    # line typed into it to ~/notes-list.txt, while `work-notes` (in another terminal)
+    # has Claude work through the list by itself, oldest first, waiting for more once it
+    # runs dry. All notes from one day stack up on one blaney/notes-<date> branch with one
+    # PR, so each rebuild keeps the earlier notes' changes. Line markers: [ ] waiting,
+    # [~] being worked on, [x] done, [!] Claude could not finish it.
+    (pkgs.writeShellScriptBin "add-notes" ''
+      #!${pkgs.stdenv.shell}
+      set -uo pipefail
+      LIST="${notesList}"
+      touch "$LIST"
+      waiting() { grep -c '^\[ \]' "$LIST" 2>/dev/null || true; }
+      echo "Your notes list. Type a note and press Enter to add it."
+      echo "Type q (or press Ctrl+C) to close. Notes waiting right now: $(waiting)"
+      while read -rep "note> " NOTE; do
+        NOTE="''${NOTE//$'\n'/ }"
+        [ -n "''${NOTE//[[:space:]]/}" ] || continue
+        [ "$NOTE" = "q" ] && break
+        flock "$LIST" sh -c 'printf "[ ] %s\n" "$1" >> "$2"' _ "$NOTE" "$LIST"
+        echo "  Added. Notes waiting: $(waiting)"
+      done
+      echo "Closed. Your notes are kept in $LIST."
+    '')
+
+    (pkgs.writeShellScriptBin "work-notes" ''
+      #!${pkgs.stdenv.shell}
+      set -uo pipefail
+      if [ "$(id -u)" -ne 0 ]; then
+        exec sudo "$0" "$@"
+      fi
+      LIST="${notesList}"
+      REPO="${nixosConfigDir}"
+      BRANCH="blaney/notes-$(date +%F)"
+      RULES="$(cat ${ccnRules})"
+      cd "$REPO" || { echo "Can't find your config folder at $REPO — tell Lando."; exit 1; }
+      touch "$LIST"
+      chown ${userName}:${userGroup} "$LIST"
+
+      # Set line N's marker to $2 ([ ], [~], [x] or [!]).
+      mark() {
+        flock "$LIST" sh -c 'awk -v n="$1" -v m="$2" "NR==n{sub(/^\\[.\\]/, m)}1" "$3" > "$3.tmp" && cat "$3.tmp" > "$3" && rm -f "$3.tmp"' _ "$1" "$2" "$LIST"
+      }
+      # A note left half-done by a closed window goes back in the queue.
+      flock "$LIST" sed -i 's/^\[~\]/[ ]/' "$LIST"
+
+      echo "Claude is working through your notes list by itself. Leave this window open."
+      echo "Add notes with the add-notes command in another terminal. Close this window to stop."
+      WAITING_SHOWN=""
+      while true; do
+        N=$(grep -n '^\[ \]' "$LIST" | head -1 | cut -d: -f1)
+        if [ -z "$N" ]; then
+          [ -n "$WAITING_SHOWN" ] || { echo; echo "All caught up — waiting for new notes..."; WAITING_SHOWN=1; }
+          sleep 5
+          continue
+        fi
+        WAITING_SHOWN=""
+        NOTE=$(sed -n "''${N}p" "$LIST" | cut -c5-)
+        mark "$N" "[~]"
+        echo
+        echo "=== Working on: $NOTE ==="
+
+        PROMPT=$(cat <<EOF
+      (Started by work-notes: one note from his notes list.)
+
+      THIS RUN IS UNATTENDED. He asked for his notes to be worked through without being
+      asked anything, so this overrides the "ask him first" and "have him confirm" rules:
+      never ask a question and never wait for input. Make every decision yourself,
+      including how things look and behave, in the spirit of his current setup and saved
+      preferences, and verify the change yourself (commands, logs, screenshots).
+
+      If the note is about one of his own apps in ~/projects (for example his R6 game,
+      r62d), make the change there instead, following that project's own CLAUDE.md and
+      docs/hosts/blaney-vibe-projects.md: commit to its main and push it. Only touch this
+      config (the branch below) if the app is packaged here and its pin needs bumping.
+
+      For a config change: do the catch-up with GitHub briefly, then work on the branch $BRANCH: switch to it if
+      it exists (locally or on origin), otherwise create it from the latest origin/main.
+      Earlier notes from today are already on it; keep their changes. Make the change, chown
+      the repo to ${userName}, rebuild, check it works, commit, and push $BRANCH. If $BRANCH
+      has no open PR yet, open one with gh pr create; otherwise add a line for this note to
+      the PR body (gh pr edit). The PR body keeps a list of the notes done, plus sections
+      "Decisions I made for Blaney" and "Needs checking in person". If the note needs him
+      physically (a password, hardware), do what you can and list the rest there. Do not
+      reboot, power off or log out, and leave the repo on $BRANCH when done.
+
+      His note:
+      $NOTE
+      EOF
+        )
+        timeout --kill-after=5m 2h \
+          claude -p "$PROMPT" --settings ${gladeHooks} --append-system-prompt "$RULES" \
+            --permission-mode auto --permission-prompts none
+        RC=$?
+        chown -R ${userName}:${userGroup} "$REPO"
+        if [ "$RC" -eq 0 ]; then
+          mark "$N" "[x]"
+          echo "=== Done: $NOTE ==="
+        else
+          mark "$N" "[!]"
+          echo "=== Claude couldn't finish this one (marked [!] in your list): $NOTE ==="
+        fi
+      done
+    '')
+
     (pkgs.writeShellScriptBin "blaney-help" ''
       #!${pkgs.stdenv.shell}
       cat <<'EOF'
@@ -1280,6 +1385,9 @@ in
         ccn                    Talk to Claude about your computer: start a new
                                chat, or pick up an old one
         claude-rebuild-failed  Ask Claude to fix a failed rebuild and make a PR
+        add-notes              Type notes into your list of things to change
+        work-notes             Have Claude work through that list by itself
+                               (run it in a second terminal)
 
       BUILD YOUR OWN APPS
         vibe                   Start a new app of your own, or carry on with one
