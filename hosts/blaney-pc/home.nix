@@ -135,6 +135,18 @@
         Terminal=false
         StartupWMClass=${f117.settings.StartupWMClass}
       '';
+      # His notes list as a tree squid holding a glowing scroll and quill (his pick):
+      # opens add-notes and work-notes side by side
+      # (notes-windows in modules/nixos/common/commands.nix)
+      home.file."Desktop/Notes.desktop".text = ''
+        [Desktop Entry]
+        Type=Application
+        Name=Notes
+        Comment=Write notes for Claude to work through
+        Exec=notes-windows
+        Icon=${../../assets/blaney/notes-scroll.png}
+        Terminal=false
+      '';
       # Open one fresh Dolphin window like Explorer/Finder, not every tab from last time.
       # plasma-manager writes this as a key, not a symlink, since Dolphin rewrites
       # dolphinrc itself.

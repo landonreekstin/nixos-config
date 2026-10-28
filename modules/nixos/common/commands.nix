@@ -25,6 +25,8 @@ let
   # rest of the glade desktop (hyprland/desktops/glade/claude-panel.nix).
   gladePanel = import ../../home-manager/hyprland/desktops/glade/claude-panel.nix { inherit pkgs; };
   gladeHooks = gladePanel.hooks;
+  gladeStatus = gladePanel.status;
+  notesList = "${cfg.user.home}/notes-list.txt"; # blaney-pc `add-notes` / `work-notes`
 
   ccnRules = pkgs.writeText "ccn-blaney-rules.md" ''
     # blaney-pc config session (opened with `ccn`)
@@ -1259,6 +1261,216 @@ in
       systemctl poweroff
     '')
 
+    # A notes list for blaney-pc: `add-notes` is a typing box that stays open and adds every
+    # line typed into it to ~/notes-list.txt, while `work-notes` (in another terminal)
+    # has Claude work through the list by itself, oldest first, waiting for more once it
+    # runs dry. All notes from one day stack up on one blaney/notes-<date> branch with one
+    # PR, so each rebuild keeps the earlier notes' changes. Line markers: [ ] waiting,
+    # [~] being worked on, [x] done, [!] Claude could not finish it.
+    (pkgs.writeShellScriptBin "add-notes" ''
+      #!${pkgs.stdenv.shell}
+      set -uo pipefail
+      LIST="${notesList}"
+      touch "$LIST"
+      waiting() { grep -c '^\[ \]' "$LIST" 2>/dev/null || true; }
+
+      # What these notes are about: his config, or one of his own apps in ~/projects. The
+      # pick is put in front of every note as "@<key>:" for work-notes to read.
+      KEYS=(setup) LABELS=("Computer setup")
+      for d in "$HOME"/projects/*/; do
+        k=$(basename "$d")
+        case "$k" in
+          r62d) l="R6 game" ;;
+          hud) l="Glade" ;;
+          breifing-room) l="F-117" ;;
+          spectrobes-rebuild) l="Spectrobes" ;;
+          *) l="$k" ;;
+        esac
+        KEYS+=("$k") LABELS+=("$l")
+      done
+      echo "What are these notes about?"
+      for i in "''${!KEYS[@]}"; do echo "  $((i + 1))) ''${LABELS[$i]}"; done
+      while :; do
+        read -rp "Enter a number: " PICK
+        [[ "$PICK" =~ ^[0-9]+$ ]] && [ "$PICK" -ge 1 ] && [ "$PICK" -le "''${#KEYS[@]}" ] && break
+        echo "That isn't one of the numbers above."
+      done
+      KEY="''${KEYS[$((PICK - 1))]}" LABEL="''${LABELS[$((PICK - 1))]}"
+      printf '\033]2;Notes for: %s\007' "$LABEL"
+      clear
+      echo "Notes for: $LABEL"
+      echo "Type a note and press Enter to add it."
+      echo "Type q (or press Ctrl+C) to close. Notes waiting right now: $(waiting)"
+      while read -rep "note> " NOTE; do
+        NOTE="''${NOTE//$'\n'/ }"
+        [ -n "''${NOTE//[[:space:]]/}" ] || continue
+        [ "$NOTE" = "q" ] && break
+        flock "$LIST" sh -c 'printf "[ ] @%s: %s\n" "$1" "$2" >> "$3"' _ "$KEY" "$NOTE" "$LIST"
+        echo "  Added. Notes waiting: $(waiting)"
+      done
+      echo "Closed. Your notes are kept in $LIST."
+    '')
+
+    (pkgs.writeShellScriptBin "work-notes" ''
+      #!${pkgs.stdenv.shell}
+      set -uo pipefail
+      if [ "$(id -u)" -ne 0 ]; then
+        exec sudo "$0" "$@"
+      fi
+      LIST="${notesList}"
+      BRANCH="blaney/notes-$(date +%F)"
+      RULES="$(cat ${ccnRules})"
+      # Its own worktree, so a ccn chat in the main checkout never has its branch switched
+      # (or its uncommitted work swept up) by a note being worked on.
+      REPO="${nixosConfigDir}-worktrees/''${BRANCH#blaney/}"
+      [ -d "$REPO" ] || (cd "${nixosConfigDir}" && sudo -u ${userName} wt new "$BRANCH") \
+        || { echo "Couldn't set up a folder for the notes work — tell Lando."; exit 1; }
+      cd "$REPO" || { echo "Can't find the notes work folder at $REPO — tell Lando."; exit 1; }
+      touch "$LIST"
+      chown ${userName}:${userGroup} "$LIST"
+
+      # Set line N's marker to $2 ([ ], [~], [x] or [!]).
+      mark() {
+        flock "$LIST" sh -c 'awk -v n="$1" -v m="$2" "NR==n{sub(/^\\[.\\]/, m)}1" "$3" > "$3.tmp" && cat "$3.tmp" > "$3" && rm -f "$3.tmp"' _ "$1" "$2" "$LIST"
+      }
+      # A note left half-done by a closed window goes back in the queue.
+      flock "$LIST" sed -i 's/^\[~\]/[ ]/' "$LIST"
+
+      echo "Claude is working through your notes list by itself. Leave this window open."
+      echo "Add notes with the add-notes command in another terminal. Close this window to stop."
+      # The Glade panel's bar covers the notes since the list last ran dry: DONE_N of TOTAL.
+      # When notes are added mid-way the bar is started again at the bigger total and
+      # stepped back up to where it was (glade-status has no "set" command).
+      WAITING_SHOWN="" DONE_N=0 TOTAL=0
+      export SUDO_USER="''${SUDO_USER:-${userName}}" # glade-status finds his home through it
+      shopt -s lastpipe # the token reader at the end of the claude pipeline sets NOTE_TOK
+      kfmt() { awk -v n="$1" 'BEGIN { if (n >= 1000) printf "%.1fk", n / 1000; else print n }'; }
+      st() { ${gladeStatus} "$@" >/dev/null 2>&1; }
+      while true; do
+        N=$(grep -n '^\[ \]' "$LIST" | head -1 | cut -d: -f1)
+        if [ -z "$N" ]; then
+          if [ -z "$WAITING_SHOWN" ]; then
+            echo; echo "All caught up — waiting for new notes..."
+            [ "$TOTAL" -gt 0 ] && st done
+            WAITING_SHOWN=1 DONE_N=0 TOTAL=0
+          fi
+          sleep 5
+          continue
+        fi
+        WAITING_SHOWN=""
+        NOTE=$(sed -n "''${N}p" "$LIST" | cut -c5-)
+        mark "$N" "[~]"
+        WANT=$((DONE_N + $(grep -c '^\[[ ~]\]' "$LIST")))
+        if [ "$WANT" -ne "$TOTAL" ]; then
+          TOTAL=$WANT
+          st title "Working on your notes"
+          st progress "$TOTAL" "$NOTE"
+          for _ in $(seq "$DONE_N"); do st step "" "$NOTE"; done
+        elif [ "$DONE_N" -gt 0 ]; then
+          st step "$PREV" "$NOTE"
+        fi
+        echo
+        echo "=== Working on: $NOTE ==="
+
+        PROMPT=$(cat <<EOF
+      (Started by work-notes: one note from his notes list.)
+
+      THIS RUN IS UNATTENDED. He asked for his notes to be worked through without being
+      asked anything, so this overrides the "ask him first" and "have him confirm" rules:
+      never ask a question and never wait for input. Make every decision yourself,
+      including how things look and behave, in the spirit of his current setup and saved
+      preferences, and verify the change yourself (commands, logs, screenshots).
+      The Glade panel's title and progress bar track the whole notes list and are set by
+      the wrapper: do not run glade-status title, progress, step or done yourself.
+
+      A note starting "@setup:" is about this config. One starting "@<name>:" is about his
+      app in ~/projects/<name>. With no "@", work out which from the note itself.
+      If the note is about one of his own apps in ~/projects (for example his R6 game,
+      r62d), make the change there instead, following that project's own CLAUDE.md and
+      docs/hosts/blaney-vibe-projects.md: commit to its main and push it. Only touch this
+      config (the branch below) if the app is packaged here and its pin needs bumping.
+
+      For a config change: work only in this worktree, $REPO, which is on the branch
+      $BRANCH (never touch the main checkout at ${nixosConfigDir}; another chat uses it).
+      Bring $BRANCH up to date with origin/main first. Earlier notes from today are already
+      on it; keep their changes. Make the change, chown the worktree to ${userName},
+      rebuild --take (this worktree must own the live system), check it works, commit, and push $BRANCH. If $BRANCH
+      has no open PR yet, open one with gh pr create; otherwise add a line for this note to
+      the PR body (gh pr edit). The PR body keeps a list of the notes done, plus sections
+      "Decisions I made for Blaney" and "Needs checking in person". If the note needs him
+      physically (a password, hardware), do what you can and list the rest there. Do not
+      reboot, power off or log out, and leave the repo on $BRANCH when done.
+
+      His note:
+      $NOTE
+      EOF
+        )
+        # Shown live, like a chat he watches: Claude's words, and one line per thing it does
+        # with the note's running token count (each message's new input + cache writes +
+        # output; cache reads left out, as they cost a tenth). A message's content blocks
+        # arrive as separate events with the same usage, hence the seen-by-id check. The
+        # final "@@TOKENS n" line is caught below for the per-note and per-day totals.
+        NOTE_TOK=0
+        timeout --kill-after=5m 2h \
+          claude -p "$PROMPT" --settings ${gladeHooks} --append-system-prompt "$RULES" \
+            --permission-mode auto --permission-prompts none \
+            --output-format stream-json --verbose \
+          | ${pkgs.jq}/bin/jq -nr --unbuffered '
+              def k: if . >= 1000 then "\((. / 100 | floor) / 10)k" else tostring end;
+              foreach (inputs | select(.type == "assistant" or .type == "result")) as $e
+                ({seen: {}, total: 0, out: []};
+                 if $e.type == "result" then .out = ["@@TOKENS \(.total)"]
+                 else ($e.message.usage // {}) as $u
+                   | (if .seen[$e.message.id] then 0
+                      else ($u.input_tokens // 0) + ($u.cache_creation_input_tokens // 0)
+                           + ($u.output_tokens // 0) end) as $add
+                   | .seen[$e.message.id] = true | .total += $add | .total as $t
+                   | .out = [$e.message.content[]
+                       | if .type == "text" then "\n" + .text + "\n"
+                         elif .type == "tool_use" then
+                           "  > " + .name + ": " + ((.input.description // .input.command
+                             // .input.file_path // .input.pattern // "") | tostring
+                             | gsub("\n"; " ") | .[0:120]) + "   [\($t | k) tokens]"
+                         else empty end]
+                 end;
+                 .out[])' 2>/dev/null \
+          | while IFS= read -r LINE; do
+              case "$LINE" in
+                "@@TOKENS "*) NOTE_TOK=''${LINE#@@TOKENS } ;;
+                *) printf '%s\n' "$LINE" ;;
+              esac
+            done
+        RC=''${PIPESTATUS[0]}
+        # Today's total, kept across windows in "<date> <tokens>".
+        TOKFILE="${cfg.user.home}/.local/state/work-notes-tokens"
+        read -r TDAY TTOK < "$TOKFILE" 2>/dev/null || true
+        [ "''${TDAY:-}" = "$(date +%F)" ] || TTOK=0
+        TTOK=$((''${TTOK:-0} + NOTE_TOK))
+        echo "$(date +%F) $TTOK" > "$TOKFILE"
+        chown ${userName}:${userGroup} "$TOKFILE"
+        TOKS="(this note: $(kfmt "$NOTE_TOK") tokens, today: $(kfmt "$TTOK"))"
+        chown -R ${userName}:${userGroup} "$REPO"
+        if [ "$RC" -eq 0 ]; then
+          mark "$N" "[x]"
+          echo "=== Done: $NOTE $TOKS ==="
+        else
+          mark "$N" "[!]"
+          echo "=== Claude couldn't finish this one (marked [!] in your list): $NOTE $TOKS ==="
+        fi
+        DONE_N=$((DONE_N + 1)) PREV="$NOTE"
+      done
+    '')
+
+    # The "Notes" tree squid on his Glade (hosts/blaney-pc/home.nix): the notes window,
+    # plus the work window unless one is already running (two would fight over the list).
+    (pkgs.writeShellScriptBin "notes-windows" ''
+      #!${pkgs.stdenv.shell}
+      setsid kitty --title "Notes" add-notes >/dev/null 2>&1 &
+      if ! pgrep -f "bin/work-notes" >/dev/null; then
+        setsid kitty --title "Claude working on notes" work-notes >/dev/null 2>&1 &
+      fi
+    '')
+
     (pkgs.writeShellScriptBin "blaney-help" ''
       #!${pkgs.stdenv.shell}
       cat <<'EOF'
@@ -1280,6 +1492,9 @@ in
         ccn                    Talk to Claude about your computer: start a new
                                chat, or pick up an old one
         claude-rebuild-failed  Ask Claude to fix a failed rebuild and make a PR
+        add-notes              Type notes into your list of things to change
+        work-notes             Have Claude work through that list by itself
+                               (run it in a second terminal)
 
       BUILD YOUR OWN APPS
         vibe                   Start a new app of your own, or carry on with one
