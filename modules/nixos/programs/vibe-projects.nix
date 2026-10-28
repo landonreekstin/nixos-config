@@ -20,6 +20,11 @@ let
   gdCfg = cfg.profiles.development.gamedev;
   gdEnabled = gdCfg.enable;
 
+  # Games shared with lando (prin-rpg): lando's repos, so a clone here is a team project
+  # with its own PR rules rather than one of his own. name<TAB>owner/repo<TAB>title lines.
+  sharedGames = lib.optionalString gdEnabled (lib.concatStrings (lib.mapAttrsToList
+    (name: p: "${name}\t${p.repo}\t${p.title}\n") gdCfg.sharedProjects));
+
   # The Glade Claude-panel hooks every plain project session gets; game sessions pass
   # them through the gamedev launcher too.
   panelHooks = (import ../../home-manager/hyprland/desktops/glade/claude-panel.nix { inherit pkgs; }).hooks;
@@ -192,6 +197,8 @@ let
     GD_LAUNCHER="${lib.optionalString gdEnabled "${gdCfg.launcher}"}"
     GD_SCAFFOLD="${lib.optionalString gdEnabled "${gdCfg.scaffold}"}"
     GD_CLAUDE_MD="${lib.optionalString gdEnabled "${gameProjectClaudeMd}"}"
+    GD_GUARD_HOOKS="${lib.optionalString gdEnabled "${gdCfg.mainGuardHooks}"}"
+    SHARED_GAMES=${lib.escapeShellArg sharedGames}
 
     mkdir -p "$PROJECTS_DIR"
 
@@ -395,8 +402,21 @@ let
     # --- existing project ------------------------------------------------------
 
     open_project() {
-      local dir="$1" title="$2" kind choice noun
+      local dir="$1" title="$2" kind choice noun shared team=""
       kind=$(marker_field "$dir" kind)
+      shared=$(marker_field "$dir" shared)
+      if [ -n "$shared" ]; then
+        # Re-pointed on every open: the hooks are a store path that moves on rebuild.
+        [ -n "$GD_GUARD_HOOKS" ] && git -C "$dir" config core.hooksPath "$GD_GUARD_HOOKS"
+        team="
+
+    This is a SHARED game: lando's repo github.com/$shared, which he works on too. The
+    \"Working together: git and PRs\" section of its CLAUDE.md is binding here and replaces
+    the \"commit to main freely\" and \"Where his app's code is allowed to live\" rules of
+    ../CLAUDE.md: every change goes on a blaney/ branch and into a PR that lando merges.
+    Follow its \"Every session, before anything else\" steps first, lando's PR comments
+    included."
+      fi
       case "$kind" in re|game) ;; *) kind=app ;; esac
       case "$kind" in re) noun="project" ;; game) noun="game" ;; *) noun="app" ;; esac
       prepare_dir "$dir"
@@ -458,7 +478,7 @@ let
 
     It already exists. Read its CLAUDE.md and anything in docs/ before you do anything
     else, and look at the git log to see where it was left. Then ask him what he wants to
-    change or add next — or whether something in it doesn't feel right when he plays it."
+    change or add next — or whether something in it doesn't feel right when he plays it.$team"
           else
             launch "$dir" app "The app is called: $title
     Its folder is: $dir
@@ -469,6 +489,30 @@ let
           fi
           ;;
       esac
+    }
+
+    # open_shared <name> <owner/repo> <title>
+    # A game lando shares with him. Cloned on first open, as him (this script runs as
+    # him), over HTTPS with his gh login. The marker stays out of the shared repo through
+    # .git/info/exclude.
+    open_shared() {
+      local name="$1" repo="$2" title="$3" dir="$PROJECTS_DIR/$1"
+      if [ ! -d "$dir" ]; then
+        echo
+        echo "Downloading $title from GitHub..."
+        if ! git -c credential.helper= -c credential.helper='!gh auth git-credential' \
+             clone -q "https://github.com/$repo.git" "$dir"; then
+          echo "Couldn't download $title — tell Lando."
+          exit 1
+        fi
+        git -C "$dir" config user.name "${userName}"
+        git -C "$dir" config user.email "${userEmail}"
+        git -C "$dir" config credential.helper ""
+        git -C "$dir" config --add credential.helper '!gh auth git-credential'
+        printf 'title=%s\nslug=%s\nshell=gamedev\nkind=game\nshared=%s\n' "$title" "$name" "$repo" > "$dir/.vibe-project"
+        printf '.vibe-project\n' >> "$dir/.git/info/exclude"
+      fi
+      open_project "$dir" "$title"
     }
 
     pick_project() {
@@ -483,6 +527,8 @@ let
         label="$t"
         if [ "$k" = re ]; then
           label="$label  (taking apart)"
+        elif [ "$k" = game ] && [ -n "$(marker_field "$d" shared)" ]; then
+          label="$label  (game, with Lando)"
         elif [ "$k" = game ]; then
           label="$label  (game)"
         elif [ -n "$s" ]; then
@@ -539,6 +585,10 @@ let
     TOP_LABELS+=("Start a brand new app"); TOP_ACTIONS+=(new-app)
     if [ -n "$GD_LAUNCHER" ]; then
       TOP_LABELS+=("Make a game of your own"); TOP_ACTIONS+=(new-game)
+      while IFS=$'\t' read -r sname srepo stitle; do
+        [ -n "$sname" ] || continue
+        TOP_LABELS+=("Work on $stitle with Lando"); TOP_ACTIONS+=("shared:$sname:$srepo:$stitle")
+      done <<< "$SHARED_GAMES"
     fi
     if [ -n "$RE_LAUNCHER" ]; then
       TOP_LABELS+=("Take apart a program or game to see how it works (reverse engineering)")
@@ -565,6 +615,10 @@ let
       new-app) new_project app ;;
       new-re) new_project re ;;
       new-game) new_project game ;;
+      shared:*)
+        IFS=: read -r _ sname srepo stitle <<< "''${TOP_ACTIONS[$((TOP - 1))]}"
+        open_shared "$sname" "$srepo" "$stitle"
+        ;;
     esac
   '';
 in

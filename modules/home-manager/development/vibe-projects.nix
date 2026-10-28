@@ -44,6 +44,26 @@ let
       below. Don't download assets from the internet unless he asks, and then only ones
       whose licence lets him use them, recorded in `docs/credits.md`.
 
+    ### Games shared with lando (`shared=` in `.vibe-project`)
+
+    A game whose `.vibe-project` has a `shared=owner/repo` line (prin-rpg) is **lando's
+    repo**, which he works on too. `vibe` cloned it and added it to the menu. There, the
+    project's own `CLAUDE.md` section "Working together: git and PRs" is binding, and it
+    **replaces** two rules above: "The project repo is his — commit to main freely" and
+    "Where his app's code is allowed to live".
+    - Every change goes on a `blaney/` branch and into a PR (`gh pr create --base main`),
+      and then you **stop**. Lando merges it. **Never commit to `main`, push to `main`, or
+      merge anything.** The clone's git hooks refuse it; never use `--no-verify`.
+    - Start every session, a resumed one included, with that section's "Every session,
+      before anything else" steps. Lando's PR comments come first.
+    - Push and use `gh` **as him**, after the `chown` from "File ownership": his GitHub
+      login is `cblaney00`, and this session's root may not have one.
+      `sudo -u ${userName} -H git push -u origin <branch>` and
+      `sudo -u ${userName} -H gh pr create ...`.
+    - Its code stays in that repo. It never moves to his account or into the NixOS config.
+    - Everything else in this game section still applies: play it on his screen, verify
+      before you commit.
+
     The rest of this section, down to the end-of-section line, is the same text lando's
     own game workspace uses.
 

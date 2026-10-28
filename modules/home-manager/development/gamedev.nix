@@ -24,6 +24,24 @@ let
     and the engines on PATH. A plain `claude` started here has neither — if the
     `gamedev:router` skill is missing, say so and ask the user to relaunch through `gd`.
 
+    ## Shared projects (lando's repos that Blaney works on too)
+
+    ${lib.concatStringsSep ", " (lib.mapAttrsToList (n: p: "`${n}` (github.com/${p.repo})") cfg.sharedProjects)}.
+    `gd` clones one on first open. The rules for working in one are in the
+    "Working together: git and PRs" section of the project's own `CLAUDE.md`, and they are
+    binding. In short:
+    - lando may commit to `main`. Bigger or riskier work goes on a `feat/`, `fix/` or
+      `tweak/` branch with a PR, as in the NixOS config.
+    - Blaney works only on `blaney/` branches through PRs. His clone has hooks that refuse
+      `main`. Merge his PRs only when lando asks, and only after the branch has been run
+      and played: `gh pr checkout <n>`, `make test`, play it, then `gh pr merge <n> --merge`.
+    - Start every session with `git fetch` and a look at the open PRs.
+    - Verify before you commit: tests pass **and** the game has been run and looked at.
+      Messages are `type(scope): description`, with no Co-Authored-By or AI attribution
+      lines.
+    - Push and use `gh` over HTTPS through gh's login. The clone's credential helper is
+      `gh auth git-credential`.
+
   '' + import ./gamedev-rules.nix {
     runGameRule = ''
       - Run the game as yourself; it is our own code. For a real window on the desktop,

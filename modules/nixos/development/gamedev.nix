@@ -97,6 +97,37 @@ let
     git
   ];
 
+  # --- Shared projects -----------------------------------------------------------------
+  # Games on GitHub that more than one of us works on (prin-rpg). `gd` and Blaney's `vibe`
+  # both list them, cloning on first open. The rules for working in one live in its own
+  # CLAUDE.md, committed to its repo, so every clone reads the same text.
+  sharedProjects = lib.mapAttrsToList (name: p: p // { inherit name; }) cfg.sharedProjects;
+
+  # git hooks that refuse a commit on, or a push to, `main`. Only Blaney's clones get them
+  # (vibe points core.hooksPath here on every open): his changes go through a PR that lando
+  # merges. A private repo on a free GitHub plan has no server-side branch rules, so this
+  # is the enforcement, and his rules forbid `--no-verify`.
+  mainGuardHooks = pkgs.runCommand "gd-main-guard-hooks" { } ''
+    mkdir -p $out
+    cat > $out/pre-commit <<'EOF'
+    #!/bin/sh
+    if [ "$(git symbolic-ref --short -q HEAD)" = main ]; then
+      echo "No commits on main here. Make a blaney/ branch, commit there, push it and open a PR." >&2
+      exit 1
+    fi
+    EOF
+    cat > $out/pre-push <<'EOF'
+    #!/bin/sh
+    while read -r _lref _lsha rref _rsha; do
+      if [ "$rref" = refs/heads/main ]; then
+        echo "Never push to main here. Push your blaney/ branch and open a PR (gh pr create)." >&2
+        exit 1
+      fi
+    done
+    EOF
+    chmod +x $out/pre-commit $out/pre-push
+  '';
+
   # --- Project scaffold ---------------------------------------------------------------
   projectGitignore = pkgs.writeText "gd-gitignore" ''
     # Godot
@@ -150,7 +181,7 @@ let
 
   gd = pkgs.writeShellApplication {
     name = "gd";
-    runtimeInputs = with pkgs; [ coreutils git findutils ];
+    runtimeInputs = with pkgs; [ coreutils git findutils gawk gnused gh ];
     text = ''
       ws=${lib.escapeShellArg workspace}
       mkdir -p "$ws"
@@ -177,13 +208,38 @@ let
       }
 
       open_project() {
+        ensure_cloned "$1"
         local dir="$ws/$1"; shift
         if [ ! -d "$dir" ]; then echo "gd: no project '$1' in $ws (gd new <name>)" >&2; exit 1; fi
         cd "$dir"
         exec ${launcher} "$@"
       }
 
-      projects() { find "$ws" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -printf '%f\n' | sort; }
+      # name<TAB>owner/repo for each shared project (see `sharedProjects` above).
+      shared() {
+        cat <<'EOF'
+      ${lib.concatMapStrings (p: "${p.name}\t${p.repo}\n") sharedProjects}EOF
+      }
+      shared_repo() { shared | awk -F'\t' -v n="$1" '$1 == n { print $2 }'; }
+
+      # Clone a shared project on first open. HTTPS through gh's login, so it needs no
+      # SSH key; the helper is kept in the clone's config for later pushes.
+      ensure_cloned() {
+        local repo dir="$ws/$1"
+        [ -d "$dir" ] && return 0
+        repo=$(shared_repo "$1")
+        [ -n "$repo" ] || return 0
+        echo "Cloning $repo into $dir"
+        git -c credential.helper= -c credential.helper='!gh auth git-credential' \
+          clone -q "https://github.com/$repo.git" "$dir"
+        git -C "$dir" config credential.helper ""
+        git -C "$dir" config --add credential.helper '!gh auth git-credential'
+      }
+
+      projects() {
+        { find "$ws" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -printf '%f\n'
+          shared | cut -f1 | sed '/^$/d'; } | sort -u
+      }
 
       case "''${1:-}" in
         -h|--help|help) usage ;;
@@ -195,7 +251,11 @@ let
         "")
           mapfile -t list < <(projects)
           echo "Game projects in $ws:"
-          for i in "''${!list[@]}"; do printf '  %d) %s\n' "$((i + 1))" "''${list[$i]}"; done
+          for i in "''${!list[@]}"; do
+            label="''${list[$i]}"
+            if [ -n "$(shared_repo "$label")" ]; then label="$label  (shared: $(shared_repo "$label"))"; fi
+            printf '  %d) %s\n' "$((i + 1))" "$label"
+          done
           echo "  n) new project"
           read -rp "> " pick
           if [ "$pick" = n ]; then
@@ -233,6 +293,37 @@ in
         game projects are only reached through `vibe` (blaney-pc): `gd` runs Claude
         without sudo, and that user's Claude login exists only for root.
       '';
+    };
+
+    sharedProjects = mkOption {
+      type = types.attrsOf (types.submodule {
+        options = {
+          repo = mkOption {
+            type = types.str;
+            example = "landonreekstin/prin-rpg";
+            description = "GitHub `owner/repo` to clone over HTTPS with gh's login.";
+          };
+          title = mkOption {
+            type = types.str;
+            description = "Plain-English name shown in Blaney's `vibe` menu.";
+          };
+        };
+      });
+      default = { };
+      description = ''
+        Games on GitHub that several people work on, keyed by folder name. `gd` lists them
+        and clones one into ~/gamedev on first open. `vibe` lists them as well, and clones
+        into its projects folder with git hooks that keep the user off `main`. The rules
+        for working in one are in its own CLAUDE.md.
+      '';
+    };
+
+    mainGuardHooks = mkOption {
+      type = types.package;
+      internal = true;
+      readOnly = true;
+      default = mainGuardHooks;
+      description = "core.hooksPath directory refusing commits on and pushes to main.";
     };
 
     devShell = mkOption {

@@ -22,6 +22,8 @@
     development.gamedev = {
       enable = true;
       workspace.enable = false;
+      # lando's game, worked on from `vibe` through blaney/ branches and PRs.
+      sharedProjects.prin-rpg = { repo = "landonreekstin/prin-rpg"; title = "prin-rpg (the Principia campus game)"; };
     };
   };
 }

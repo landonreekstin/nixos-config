@@ -178,6 +178,28 @@ reverse-engineering mode point for point:
 Everything the profile pulls in is in cache.nixos.org (unstable godot, love, pygame-ce,
 libresprite …); only the plugin copy and the small wrappers build locally.
 
+### Games shared with lando (prin-rpg)
+
+`customConfig.profiles.development.gamedev.sharedProjects` (set in each host's
+`profiles.nix`) lists lando's game repos that insideabush works on too. Each one adds a top
+menu entry, "Work on <title> with Lando". On first use it clones the repo over HTTPS as him,
+using his `gh` login, into `~/projects/<name>`. It writes a `.vibe-project` with
+`kind=game` and `shared=<owner/repo>`, which stays out of the repo through
+`.git/info/exclude`. After that the game also shows in the "already started" list as
+"(game, with Lando)".
+
+These are **not** his repos, so the "commit to main freely" rule doesn't apply. Instead:
+- On every open, `vibe` sets the clone's `core.hooksPath` to `gamedev.mainGuardHooks`, git
+  hooks that refuse a commit on `main` and a push to `main`. That's the only enforcement:
+  the repo is private on a free GitHub plan, so there are no server-side branch rules, and
+  a collaborator on a personal repo always has write access.
+- The binding rules are in the project's own `CLAUDE.md` ("Working together: git and PRs").
+  Every clone reads the same text: `blaney/` branches, a PR, stop, and lando merges.
+  The "Games shared with lando" part of `~/projects/CLAUDE.md` says that this overrides
+  the commit-to-main rules, so a resumed chat knows it too.
+- Pushes and `gh` run as him (`sudo -u insideabush -H ...`), because the session is
+  root.
+
 ## Adding a language toolchain
 
 Only when none of the existing shells fits. Five touch points, and the third is the one

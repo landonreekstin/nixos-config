@@ -53,6 +53,24 @@ Checking a game without a display: `xvfb-run` + `--rendering-driver opengl3` ren
 Godot on llvmpipe, and `magick import -window root` grabs the frame — the recipe is in
 the rules file and was checked when this was added.
 
+## Shared projects (prin-rpg)
+
+`gamedev.sharedProjects.<name> = { repo; title; }` lists a game repo that more than one
+person works on. `gd` shows it in `gd ls` and in the picker, and the first time you open it,
+it clones the repo into `~/gamedev/<name>` over HTTPS with `gh auth git-credential` as the
+credential helper. Blaney's `vibe` gets a "Work on <title> with Lando" entry; see
+[hosts/blaney-vibe-projects.md](hosts/blaney-vibe-projects.md#games-shared-with-lando-prin-rpg).
+
+The rules mirror this config's own:
+- lando commits to `main`, or uses a branch and PR for bigger work.
+- Blaney uses only `blaney/` branches and PRs, and lando merges them.
+- Verify before you commit.
+
+They are written in the project's own `CLAUDE.md` and summarised in `~/gamedev/CLAUDE.md`.
+GitHub can't enforce them, because the repo is private on a free plan. Blaney's clone gets
+`mainGuardHooks` (pre-commit and pre-push hooks that refuse `main`) instead. On GitHub the
+repo allows merge commits only and deletes branches once they're merged.
+
 ## Known gaps
 
 - **Unity, Unreal, Roblox**: no Linux/Nix path. The rules tell sessions to say so rather
