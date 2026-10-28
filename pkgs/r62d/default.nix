@@ -21,8 +21,8 @@ stdenvNoCC.mkDerivation {
   src = fetchFromGitHub {
     owner = "cblaney00";
     repo = "r62d";
-    rev = "b1516aa1e528e853019faad282f47407825de43c";
-    hash = "sha256-eU/+l8mjIDhmY0yVcpBd27R/rhoBmrjTn+Vnq9BIsGw=";
+    rev = "3d2ce3260ba63f013178b5f5accd729ae964e0a0";
+    hash = "sha256-n3pFt8XX8hWR72TDLT9qB96Z1gtNaANAx1AiOYz40+8=";
   };
 
   nativeBuildInputs = [ makeWrapper ];
