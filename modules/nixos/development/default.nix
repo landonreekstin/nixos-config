@@ -12,5 +12,6 @@
     ./vibe-python.nix
     ./vibe-web.nix
     ./reverse-engineering.nix
+    ./gamedev.nix
   ];
 }

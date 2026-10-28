@@ -318,6 +318,9 @@
 
       # ~/reverse-engineering workspace (REA + recompilation toolchains).
       reverse-engineering = referenceHostConfig.customConfig.profiles.development.reverse-engineering.devShell;
+
+      # ~/gamedev workspace (Godot, LÖVE, pygame-ce, Node + asset tools).
+      gamedev = referenceHostConfig.customConfig.profiles.development.gamedev.devShell;
     };
 
   };

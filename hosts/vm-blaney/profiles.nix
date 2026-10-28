@@ -17,5 +17,11 @@
       enable = true;
       workspace.enable = false;
     };
+    # Engines + the gamedev skills for the "make a game" projects in `vibe`. Only the
+    # tools, like reverse-engineering above. See docs/hosts/blaney-vibe-projects.md.
+    development.gamedev = {
+      enable = true;
+      workspace.enable = false;
+    };
   };
 }

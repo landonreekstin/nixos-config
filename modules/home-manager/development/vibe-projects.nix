@@ -11,6 +11,56 @@ let
   userDirenv = "/etc/profiles/per-user/${userName}/bin/direnv";
   shellList = lib.concatStringsSep ", " cfg.shells;
   reEnabled = customConfig.profiles.development.reverse-engineering.enable;
+  gdEnabled = customConfig.profiles.development.gamedev.enable;
+
+  # Rules for the game projects `vibe` offers where the gamedev profile is on. Same file
+  # and same reasoning as reRulesText below; the body is shared with lando's ~/gamedev
+  # workspace. It is emitted BEFORE the reverse-engineering section, because that one
+  # claims everything to the end of the file.
+  gameRulesText = ''
+
+    ## Game projects (`kind=game` in `.vibe-project`)
+
+    This section applies **only** to projects whose `.vibe-project` has `kind=game`. In
+    those, ${userName} is making a game of his own. Everything above still applies; this
+    adds to it.
+
+    - **`vibe` opened this session with the game tools loaded**: the `gamedev` skills
+      plugin and every engine below on PATH. Ignore "Running commands" above for these —
+      no `nix develop`, just run `godot`, `love`, `python3`, `npm` directly. If the
+      `gamedev:router` skill is missing, tell him in one sentence to close this and open
+      the game again through `vibe`.
+    - **He decides what the game is**: what you do in it, how it looks and sounds, how hard
+      it is, what counts as winning. Ask him about those in plain English, a couple of
+      short questions at a time. You decide the engine and everything technical — pick
+      Godot unless there is a real reason not to, and don't ask him.
+    - Build the smallest thing he can play first, then grow it one change at a time, each
+      one played by him before the next.
+    - **Playtesting is his job, and the best feedback you will get.** After each change,
+      put the game on his screen (below) and tell him exactly what to try: "Press the
+      arrow keys to move, Space to jump — does the jump feel too floaty?" Ask how it
+      *feels*, not whether the code is right.
+    - Art and sound: draw simple shapes or pixel art in code, or make it with the tools
+      below. Don't download assets from the internet unless he asks, and then only ones
+      whose licence lets him use them, recorded in `docs/credits.md`.
+
+    The rest of this section, down to the end-of-section line, is the same text lando's
+    own game workspace uses.
+
+  '' + import ./gamedev-rules.nix {
+    runGameRule = ''
+      - **To let him play, put it on his screen as him**, from the project folder, after the
+        `chown` from "File ownership" above: `play-on-desktop ${userName} godot --path .`
+        (or `love .`, `python3 main.py`, ...). It borrows his desktop session and starts
+        the game detached, so this chat keeps going. Never start the game as root on his
+        screen any other way.'';
+    missingToolRule = ''
+      If a tool is missing, do not install anything; tell him in one sentence to close
+      this and run `ccn` to ask for it.'';
+  } + ''
+
+    *(End of the game-projects section.)*
+  '';
 
   # Rules for the reverse-engineering projects `vibe` offers where the REA profile is on.
   # They live in this same file rather than one of their own because this is the file
@@ -234,7 +284,8 @@ let
       covers; if that is impossible, say so and point him at `ccn`.
     - Keep anything long in the project's `docs/` folder, and keep its `CLAUDE.md` current.
       A future session starts by reading them.
-  '' + lib.optionalString reEnabled reRulesText;
+  '' + lib.optionalString gdEnabled gameRulesText
+     + lib.optionalString reEnabled reRulesText;
 
   readmeText = ''
     # Your apps
@@ -247,6 +298,10 @@ let
         vibe
 
     It gives you a numbered list — pick a number and Claude opens on that app.
+  '' + lib.optionalString gdEnabled ''
+
+    It can also start a game of your own — pick "Make a game" — and Claude builds it with
+    you. Your games live in here too.
   '' + lib.optionalString reEnabled ''
 
     The same list also lets you take apart a program or game someone else made, to see

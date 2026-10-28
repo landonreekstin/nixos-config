@@ -15,6 +15,8 @@
       emulation.enable = true;
       # REA + Ghidra + the `re` launcher and ~/reverse-engineering workspace.
       reverse-engineering.enable = true;
+      # Godot/LÖVE/pygame + the gamedev skills, the `gd` launcher and ~/gamedev.
+      gamedev.enable = true;
       # Not used on this host. flake.nix builds every devShell from THIS host's
       # evaluated config (referenceHostConfig), so a shell left disabled here does not
       # exist as a flake output at all — and blaney-pc's project .envrc files point at

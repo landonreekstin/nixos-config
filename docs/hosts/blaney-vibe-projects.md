@@ -87,6 +87,7 @@ language choice belongs to the session, after it knows what the app is for.
 | The language toolchains | `modules/nixos/development/vibe-python.nix`, `vibe-web.nix` |
 | Enabled for the host | `hosts/blaney-pc/{apps,profiles}.nix`, mirrored in `hosts/vm-blaney/` |
 | Reverse-engineering mode (REA launcher, scaffold, shared RE rules) | `modules/nixos/development/reverse-engineering.nix`, `modules/home-manager/development/reverse-engineering-rules.nix` — see [below](#reverse-engineering-projects) |
+| Game mode (gamedev launcher, scaffold, `play-on-desktop`, shared game rules) | `modules/nixos/development/gamedev.nix`, `modules/home-manager/development/gamedev-rules.nix` — see [below](#game-projects) |
 
 `vibe-prepare` is a root-only store script, never advertised in `blaney-help`, that `vibe`
 calls once per launch via `sudo`. It does two things that need root and are best done in a
@@ -148,6 +149,34 @@ Everything the profile pulls in is in cache.nixos.org (checked when this was add
 mame.tools, unstable ghidra/unblob/objdiff, both mingw gccs, mcfgthreads, wine, cutter,
 imhex, jadx). Only small local derivations build on blaney-pc: ghidra-unsp, naken_asm and
 the wrappers.
+
+## Game projects
+
+Where `customConfig.profiles.development.gamedev.enable` is on (blaney-pc), `vibe` also
+offers **make a game of your own**. It is lando's `gd` setup from
+[gamedev.md](../gamedev.md) — the awesome-gamedev-agent-skills plugin (router + 77 skills)
+and Godot / LÖVE / pygame-ce / Node — applied to a vibe project. It mirrors the
+reverse-engineering mode point for point:
+
+- **Marker**: `kind=game` (and `shell=gamedev`) in `.vibe-project`; the pick list labels
+  these `(game)`.
+- **Rules**: a "Game projects" section in `~/projects/CLAUDE.md`, emitted only when the
+  profile is on, placed *before* the RE section (which claims everything to the end of
+  the file) and closed with an end-of-section line. Its second half is
+  `gamedev-rules.nix`, the same text as lando's `~/gamedev/CLAUDE.md`.
+- **Every launch goes through `gamedev.launcher`**, resumed chats included, as
+  `sudo <launcher> --settings <glade panel hooks> [-c|-r|prompt]` — so game chats get the
+  Glade Claude panel like plain app chats do.
+- **Layout** from `gamedev.scaffold` (`assets/ docs/` + engine-aware `.gitignore`), plus
+  the vibe `.gitignore` lines.
+- **He plays it on his own screen**: the session is root, so the rules require
+  `play-on-desktop insideabush <cmd>`, which runs the game as him inside his desktop
+  session. Claude checks its own work headless first (`xvfb-run` screenshot).
+- `workspace.enable = false` on blaney-pc hides `gd` and `~/gamedev`, for the same reason
+  as `re`.
+
+Everything the profile pulls in is in cache.nixos.org (unstable godot, love, pygame-ce,
+libresprite …); only the plugin copy and the small wrappers build locally.
 
 ## Adding a language toolchain
 

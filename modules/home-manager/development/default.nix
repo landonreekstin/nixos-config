@@ -9,5 +9,6 @@
     ./emulation.nix
     ./vibe-projects.nix
     ./reverse-engineering.nix
+    ./gamedev.nix
   ];
 }
