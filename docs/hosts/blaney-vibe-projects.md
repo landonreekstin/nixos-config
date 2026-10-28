@@ -87,6 +87,7 @@ language choice belongs to the session, after it knows what the app is for.
 | The language toolchains | `modules/nixos/development/vibe-python.nix`, `vibe-web.nix` |
 | Enabled for the host | `hosts/blaney-pc/{apps,profiles}.nix`, mirrored in `hosts/vm-blaney/` |
 | Reverse-engineering mode (REA launcher, scaffold, shared RE rules) | `modules/nixos/development/reverse-engineering.nix`, `modules/home-manager/development/reverse-engineering-rules.nix` — see [below](#reverse-engineering-projects) |
+| Game mode (gamedev launcher, scaffold, `play-on-desktop`, shared game rules) | `modules/nixos/development/gamedev.nix`, `modules/home-manager/development/gamedev-rules.nix` — see [below](#game-projects) |
 
 `vibe-prepare` is a root-only store script, never advertised in `blaney-help`, that `vibe`
 calls once per launch via `sudo`. It does two things that need root and are best done in a
@@ -148,6 +149,67 @@ Everything the profile pulls in is in cache.nixos.org (checked when this was add
 mame.tools, unstable ghidra/unblob/objdiff, both mingw gccs, mcfgthreads, wine, cutter,
 imhex, jadx). Only small local derivations build on blaney-pc: ghidra-unsp, naken_asm and
 the wrappers.
+
+## Game projects
+
+Where `customConfig.profiles.development.gamedev.enable` is on (blaney-pc), `vibe` also
+offers **make a game of your own**. It is lando's `gd` setup from
+[gamedev.md](../gamedev.md) — the awesome-gamedev-agent-skills plugin (router + 77 skills)
+and Godot / LÖVE / pygame-ce / Node — applied to a vibe project. It mirrors the
+reverse-engineering mode point for point:
+
+- **Marker**: `kind=game` (and `shell=gamedev`) in `.vibe-project`; the pick list labels
+  these `(game)`.
+- **Rules**: a "Game projects" section in `~/projects/CLAUDE.md`, emitted only when the
+  profile is on, placed *before* the RE section (which claims everything to the end of
+  the file) and closed with an end-of-section line. Its second half is
+  `gamedev-rules.nix`, the same text as lando's `~/gamedev/CLAUDE.md`.
+- **Every launch goes through `gamedev.launcher`**, resumed chats included, as
+  `sudo <launcher> --settings <glade panel hooks> [-c|-r|prompt]` — so game chats get the
+  Glade Claude panel like plain app chats do.
+- **Layout** from `gamedev.scaffold` (`assets/ docs/` + engine-aware `.gitignore`), plus
+  the vibe `.gitignore` lines.
+- **He plays it on his own screen**: the session is root, so the rules require
+  `play-on-desktop insideabush <cmd>`, which runs the game as him inside his desktop
+  session. Claude checks its own work headless first (`xvfb-run` screenshot).
+- `workspace.enable = false` on blaney-pc hides `gd` and `~/gamedev`, for the same reason
+  as `re`.
+
+Everything the profile pulls in is in cache.nixos.org (unstable godot, love, pygame-ce,
+libresprite …); only the plugin copy and the small wrappers build locally.
+
+### Games shared with lando (prin-rpg)
+
+`customConfig.profiles.development.gamedev.sharedProjects` (set in each host's
+`profiles.nix`) lists lando's game repos that insideabush works on too. Each one adds a top
+menu entry, "Work on <title> with Lando". On first use it clones the repo over HTTPS as him,
+using his `gh` login, into `~/projects/<name>`. It writes a `.vibe-project` with
+`kind=game` and `shared=<owner/repo>`, which stays out of the repo through
+`.git/info/exclude`. After that the game also shows in the "already started" list as
+"(game, with Lando)".
+
+These are **not** his repos, so the "commit to main freely" rule doesn't apply. Instead:
+- On every open, `vibe` sets the clone's `core.hooksPath` to `gamedev.mainGuardHooks`, git
+  hooks that refuse a commit on `main` and a push to `main`. That's the only enforcement:
+  the repo is private on a free GitHub plan, so there are no server-side branch rules, and
+  a collaborator on a personal repo always has write access.
+- The binding rules are in the project's own `CLAUDE.md` ("Working together: git and PRs").
+  Every clone reads the same text: `blaney/` branches, a PR, stop, and lando merges.
+  The "Games shared with lando" part of `~/projects/CLAUDE.md` says that this overrides
+  the commit-to-main rules, so a resumed chat knows it too.
+- Pushes and `gh` run as him (`sudo -u insideabush -H ...`), because the session is
+  root.
+- **His look-and-feel calls are recorded.** The project's `docs/style.md` holds the
+  current style and a dated direction log of every call he or lando makes, in their own
+  words. Sessions read it before any visible change and update it in the same commit,
+  and the PR flags a "Style conflict" when one of you overrides the other. The rules are
+  in the project's `CLAUDE.md` ("Look and feel") and repeated in his game rules.
+
+**"Play it"** appears in the per-game menu of every game project, shared or his own,
+that has a `project.godot` or `main.lua`. It starts the game on his screen as him, with no
+Claude chat, playing whatever branch his copy is on. Godot gets a headless `--import`
+first: the game's script classes are registered in the gitignored `.godot/`, so a fresh
+clone or newly pulled scripts fail with "Could not find type …" without it.
 
 ## Adding a language toolchain
 

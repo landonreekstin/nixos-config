@@ -29,6 +29,7 @@ in `docs/` — read the matching file when the task calls for it:
 | [docs/parallel-sessions.md](docs/parallel-sessions.md) | another session is working on this config at the same time, or a `rebuild` was REFUSED because another worktree owns the live system |
 | [docs/vr.md](docs/vr.md) | the Quest 2 / WiVRn VR setup on gaming-pc, `vr-connect`, `dcs-vr-setup`, or a WiVRn version bump failing eval |
 | [docs/reverse-engineering.md](docs/reverse-engineering.md) | REA / Ghidra, the `re` launcher or `~/reverse-engineering` workspace, or bumping the pinned `rea-agents` version |
+| [docs/gamedev.md](docs/gamedev.md) | the `gd` launcher, `~/gamedev`, the gamedev skills plugin (bumping its pin), engine toolchains, or `play-on-desktop` |
 | [docs/xbox360.md](docs/xbox360.md) | the "Xbox 360 Dashboard" session: its Quickshell shell, dashboard menus, app workspaces, controller daemon, Guide or pages |
 
 ## Choosing the Right Host to Work On

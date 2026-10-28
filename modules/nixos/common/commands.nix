@@ -1283,7 +1283,8 @@ in
 
       BUILD YOUR OWN APPS
         vibe                   Start a new app of your own, or carry on with one
-                               (also: take apart a program or game)
+                               (also: make a game, or take apart a program
+                               or game)
 
       GAMES
         batman join    The Batman: play Robin in Lando's game (homelab VPN on)

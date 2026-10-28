@@ -16,6 +16,19 @@ let
   reCfg = cfg.profiles.development.reverse-engineering;
   reEnabled = reCfg.enable;
 
+  # Game projects ("make a game") likewise, behind the gamedev profile.
+  gdCfg = cfg.profiles.development.gamedev;
+  gdEnabled = gdCfg.enable;
+
+  # Games shared with lando (prin-rpg): lando's repos, so a clone here is a team project
+  # with its own PR rules rather than one of his own. name<TAB>owner/repo<TAB>title lines.
+  sharedGames = lib.optionalString gdEnabled (lib.concatStrings (lib.mapAttrsToList
+    (name: p: "${name}\t${p.repo}\t${p.title}\n") gdCfg.sharedProjects));
+
+  # The Glade Claude-panel hooks every plain project session gets; game sessions pass
+  # them through the gamedev launcher too.
+  panelHooks = (import ../../home-manager/hyprland/desktops/glade/claude-panel.nix { inherit pkgs; }).hooks;
+
   # --- Text assets -----------------------------------------------------------------
   # Every multi-line text below is a writeText store file that the script `cat`s or
   # `install`s, not a heredoc inside the script. `blaney-todo` builds its prompt with an
@@ -71,6 +84,27 @@ let
 
     *(What has been worked out, what is reconstructed in `recomp/`, and how closely it
     matches the original — tests passing, functions byte-identical.)*
+  '';
+
+  # The game counterpart. The "Game projects" section of ../CLAUDE.md applies here; it is
+  # selected by `kind=game` in .vibe-project.
+  gameProjectClaudeMd = pkgs.writeText "vibe-game-project-CLAUDE.md" ''
+    *Created by the `vibe` command as a game project (`kind=game` in `.vibe-project`). Keep
+    the two sections below current — a future session starts by reading them.*
+
+    > **The rules for working here are in `../CLAUDE.md`** (one directory up), including
+    > its "Game projects" section. They are loaded automatically; if for any reason they
+    > are not in your context, read that file before doing anything else.
+
+    ## The game
+
+    *(Fill this in: what the game is about, how you play it, and what it looks and sounds
+    like. Ask him — that part is his call.)*
+
+    ## How it is built
+
+    *(Fill this in: the engine and why, how the files are laid out, how to run it, how to
+    test it.)*
   '';
 
   projectGitignore = pkgs.writeText "vibe-gitignore" ''
@@ -159,6 +193,15 @@ let
     RE_SCAFFOLD="${lib.optionalString reEnabled "${reCfg.scaffold}"}"
     RE_CLAUDE_MD="${lib.optionalString reEnabled "${reProjectClaudeMd}"}"
 
+    # Likewise empty where the gamedev profile is off.
+    GD_LAUNCHER="${lib.optionalString gdEnabled "${gdCfg.launcher}"}"
+    GD_SCAFFOLD="${lib.optionalString gdEnabled "${gdCfg.scaffold}"}"
+    GD_CLAUDE_MD="${lib.optionalString gdEnabled "${gameProjectClaudeMd}"}"
+    GODOT="${lib.optionalString gdEnabled "${pkgs.unstable.godot_4}/bin/godot"}"
+    LOVE="${lib.optionalString gdEnabled "${pkgs.love}/bin/love"}"
+    GD_GUARD_HOOKS="${lib.optionalString gdEnabled "${gdCfg.mainGuardHooks}"}"
+    SHARED_GAMES=${lib.escapeShellArg sharedGames}
+
     mkdir -p "$PROJECTS_DIR"
 
     # --- helpers ---------------------------------------------------------------
@@ -212,7 +255,16 @@ let
         fi
         exec sudo "$RE_LAUNCHER" "$@"
       fi
-      exec sudo claude --settings ${(import ../../home-manager/hyprland/desktops/glade/claude-panel.nix { inherit pkgs; }).hooks} "$@"
+      # Same for a game project: the launcher is what loads the gamedev skills and puts
+      # the engines on PATH.
+      if [ "$kind" = game ]; then
+        if [ -z "$GD_LAUNCHER" ]; then
+          echo "Making games isn't set up on this computer any more — tell Lando."
+          exit 1
+        fi
+        exec sudo "$GD_LAUNCHER" --settings ${panelHooks} "$@"
+      fi
+      exec sudo claude --settings ${panelHooks} "$@"
     }
 
     launch() {
@@ -228,12 +280,14 @@ let
     # --- new project -----------------------------------------------------------
 
     new_project() {
-      # new_project [app|re]
+      # new_project [app|re|game]
       local kind="''${1:-app}" title slug dir noun
-      if [ "$kind" = re ]; then noun="project"; else noun="app"; fi
+      case "$kind" in re) noun="project" ;; game) noun="game" ;; *) noun="app" ;; esac
       echo
       if [ "$kind" = re ]; then
         read -rp "What do you want to call this project? (the name of the program or game is fine) " title
+      elif [ "$kind" = game ]; then
+        read -rp "What do you want to call your game? (you can change it later) " title
       else
         read -rp "What do you want to call your app? " title
       fi
@@ -275,6 +329,13 @@ let
         { printf '\n'; cat "${projectGitignore}"; } >> "$dir/.gitignore"
         printf 'title=%s\nslug=%s\nshell=reverse-engineering\nkind=re\n' "$title" "$slug" > "$dir/.vibe-project"
         { printf '# %s\n\n' "$title"; cat "$RE_CLAUDE_MD"; } > "$dir/CLAUDE.md"
+      elif [ "$kind" = game ]; then
+        # assets/ docs/ and the engine-aware .gitignore from `gd`'s scaffold, plus the
+        # vibe .gitignore lines.
+        "$GD_SCAFFOLD" "$dir" || { echo "Couldn't set the game up — tell Lando."; exit 1; }
+        { printf '\n'; cat "${projectGitignore}"; } >> "$dir/.gitignore"
+        printf 'title=%s\nslug=%s\nshell=gamedev\nkind=game\n' "$title" "$slug" > "$dir/.vibe-project"
+        { printf '# %s\n\n' "$title"; cat "$GD_CLAUDE_MD"; } > "$dir/CLAUDE.md"
       else
         install -m 0644 "${projectGitignore}" "$dir/.gitignore"
         printf 'title=%s\nslug=%s\nshell=\n' "$title" "$slug" > "$dir/.vibe-project"
@@ -306,6 +367,25 @@ let
     SHA-256. Then ask him what he wants out of it — to see how it works, to change
     something about it, or to rebuild it — because that part is his call. Fill in the two
     sections of CLAUDE.md, then begin."
+      elif [ "$kind" = game ]; then
+        launch "$dir" game "The game is called: $title
+    Its folder is: $dir
+
+    This is a GAME project (kind=game in .vibe-project): he wants to make his own game.
+    The \"Game projects\" section of ../CLAUDE.md applies on top of everything else there.
+    The gamedev skills (start with gamedev:router) and the game engines are already loaded
+    in this session.
+
+    It is brand new. The folder is a git repo on main with one commit: empty assets/ and
+    docs/ folders, a .gitignore, and a CLAUDE.md whose two sections are still to be filled
+    in. No engine has been picked and nothing has been built yet.
+
+    Start by asking him, in plain English, what kind of game he has in mind: what you do in
+    it, what it looks like, and any game it should feel like. That part is his call — ask a
+    couple of short questions, not a questionnaire. Then pick the engine yourself (Godot
+    unless there is a reason not to), fill in the two sections of CLAUDE.md, and build the
+    smallest version he can actually play. Check it runs and look at a screenshot before
+    you hand it over, then tell him how to start it and which keys to press."
       else
         launch "$dir" app "The app is called: $title
     Its folder is: $dir
@@ -324,16 +404,35 @@ let
     # --- existing project ------------------------------------------------------
 
     open_project() {
-      local dir="$1" title="$2" kind choice noun
+      local dir="$1" title="$2" kind choice noun shared team=""
       kind=$(marker_field "$dir" kind)
-      [ "$kind" = re ] || kind=app
-      if [ "$kind" = re ]; then noun="project"; else noun="app"; fi
+      shared=$(marker_field "$dir" shared)
+      if [ -n "$shared" ]; then
+        # Re-pointed on every open: the hooks are a store path that moves on rebuild.
+        [ -n "$GD_GUARD_HOOKS" ] && git -C "$dir" config core.hooksPath "$GD_GUARD_HOOKS"
+        team="
+
+    This is a SHARED game: lando's repo github.com/$shared, which he works on too. The
+    \"Working together: git and PRs\" section of its CLAUDE.md is binding here and replaces
+    the \"commit to main freely\" and \"Where his app's code is allowed to live\" rules of
+    ../CLAUDE.md: every change goes on a blaney/ branch and into a PR that lando merges.
+    Follow its \"Every session, before anything else\" steps first, lando's PR comments
+    included. Read docs/style.md before changing anything he will see, and log every
+    look-and-feel call he makes in its direction log (its \"Look and feel\" rules)."
+      fi
+      case "$kind" in re|game) ;; *) kind=app ;; esac
+      case "$kind" in re) noun="project" ;; game) noun="game" ;; *) noun="app" ;; esac
       prepare_dir "$dir"
 
       echo
       echo "What do you want to do with $title?"
 
       local -a labels=() actions=()
+      # A game he can just play, no chat: Godot or LÖVE ones (what play_game can start).
+      if [ "$kind" = game ] && [ -n "$GD_LAUNCHER" ] \
+           && { [ -f "$dir/project.godot" ] || [ -f "$dir/main.lua" ]; }; then
+        labels+=("Play it")                             ; actions+=(play)
+      fi
       if [ "$SESSIONS" -gt 0 ]; then
         labels+=("Pick up where you left off")          ; actions+=(continue)
         labels+=("Start a fresh chat about this $noun") ; actions+=(fresh)
@@ -358,6 +457,9 @@ let
       fi
 
       case "''${actions[$((choice - 1))]}" in
+        play)
+          play_game "$dir" "$title"
+          ;;
         continue)
           run_claude "$dir" "$kind" -c
           ;;
@@ -377,6 +479,17 @@ let
     It already exists. Read its CLAUDE.md, notes/ and anything in docs/ before you do
     anything else, and look at the git log to see where it was left. Then tell him in a
     sentence or two where things stand, and ask him what he wants to do next."
+          elif [ "$kind" = game ]; then
+            launch "$dir" game "The game is called: $title
+    Its folder is: $dir
+
+    This is a GAME project (kind=game in .vibe-project). The \"Game projects\" section of
+    ../CLAUDE.md applies on top of everything else there. The gamedev skills and the
+    engines are already loaded in this session.
+
+    It already exists. Read its CLAUDE.md and anything in docs/ before you do anything
+    else, and look at the git log to see where it was left. Then ask him what he wants to
+    change or add next — or whether something in it doesn't feel right when he plays it.$team"
           else
             launch "$dir" app "The app is called: $title
     Its folder is: $dir
@@ -387,6 +500,52 @@ let
           fi
           ;;
       esac
+    }
+
+    # play_game <dir> <title>
+    # Starts the game on his screen, as him, with no Claude chat: whatever is in the folder
+    # right now, so on a shared game that is the branch he is on. Godot first needs an
+    # import pass: its list of the game's script classes lives in the gitignored .godot/,
+    # so a fresh clone or newly pulled scripts fail to load ("Could not find type ...")
+    # without one.
+    play_game() {
+      local dir="$1" title="$2"
+      cd "$dir" || exit 1
+      echo
+      if [ -f project.godot ]; then
+        echo "Getting $title ready (this can take a minute the first time)..."
+        "$GODOT" --headless --path . --import >/dev/null 2>&1 || true
+        echo "Starting $title. Close its window when you're done."
+        "$GODOT" --path . >/dev/null 2>&1
+      else
+        echo "Starting $title. Close its window when you're done."
+        "$LOVE" . >/dev/null 2>&1
+      fi
+      echo "Closed. Run vibe again to change something in it."
+    }
+
+    # open_shared <name> <owner/repo> <title>
+    # A game lando shares with him. Cloned on first open, as him (this script runs as
+    # him), over HTTPS with his gh login. The marker stays out of the shared repo through
+    # .git/info/exclude.
+    open_shared() {
+      local name="$1" repo="$2" title="$3" dir="$PROJECTS_DIR/$1"
+      if [ ! -d "$dir" ]; then
+        echo
+        echo "Downloading $title from GitHub..."
+        if ! git -c credential.helper= -c credential.helper='!gh auth git-credential' \
+             clone -q "https://github.com/$repo.git" "$dir"; then
+          echo "Couldn't download $title — tell Lando."
+          exit 1
+        fi
+        git -C "$dir" config user.name "${userName}"
+        git -C "$dir" config user.email "${userEmail}"
+        git -C "$dir" config credential.helper ""
+        git -C "$dir" config --add credential.helper '!gh auth git-credential'
+        printf 'title=%s\nslug=%s\nshell=gamedev\nkind=game\nshared=%s\n' "$title" "$name" "$repo" > "$dir/.vibe-project"
+        printf '.vibe-project\n' >> "$dir/.git/info/exclude"
+      fi
+      open_project "$dir" "$title"
     }
 
     pick_project() {
@@ -401,6 +560,10 @@ let
         label="$t"
         if [ "$k" = re ]; then
           label="$label  (taking apart)"
+        elif [ "$k" = game ] && [ -n "$(marker_field "$d" shared)" ]; then
+          label="$label  (game, with Lando)"
+        elif [ "$k" = game ]; then
+          label="$label  (game)"
         elif [ -n "$s" ]; then
           label="$label  (''${s#vibe-})"
         fi
@@ -440,9 +603,9 @@ let
     shopt -u nullglob
 
     # Nothing yet and nothing else to offer? Skip the menu and get him straight into his
-    # first app. With reverse engineering available there is a real choice to make, so the
-    # menu is shown even then.
-    if [ "''${#EXISTING[@]}" -eq 0 ] && [ -z "$RE_LAUNCHER" ]; then
+    # first app. With reverse engineering or games available there is a real choice to make,
+    # so the menu is shown even then.
+    if [ "''${#EXISTING[@]}" -eq 0 ] && [ -z "$RE_LAUNCHER" ] && [ -z "$GD_LAUNCHER" ]; then
       echo "This is where you build your own apps. You don't have any yet."
       new_project app
       exit 0
@@ -453,6 +616,13 @@ let
       TOP_LABELS+=("Work on something you already started"); TOP_ACTIONS+=(pick)
     fi
     TOP_LABELS+=("Start a brand new app"); TOP_ACTIONS+=(new-app)
+    if [ -n "$GD_LAUNCHER" ]; then
+      TOP_LABELS+=("Make a game of your own"); TOP_ACTIONS+=(new-game)
+      while IFS=$'\t' read -r sname srepo stitle; do
+        [ -n "$sname" ] || continue
+        TOP_LABELS+=("Work on $stitle with Lando"); TOP_ACTIONS+=("shared:$sname:$srepo:$stitle")
+      done <<< "$SHARED_GAMES"
+    fi
     if [ -n "$RE_LAUNCHER" ]; then
       TOP_LABELS+=("Take apart a program or game to see how it works (reverse engineering)")
       TOP_ACTIONS+=(new-re)
@@ -477,6 +647,11 @@ let
       pick) pick_project ;;
       new-app) new_project app ;;
       new-re) new_project re ;;
+      new-game) new_project game ;;
+      shared:*)
+        IFS=: read -r _ sname srepo stitle <<< "''${TOP_ACTIONS[$((TOP - 1))]}"
+        open_shared "$sname" "$srepo" "$stitle"
+        ;;
     esac
   '';
 in

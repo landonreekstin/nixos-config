@@ -16,5 +16,13 @@
       enable = true;
       workspace.enable = false;
     };
+    # Engines + the gamedev skills for the "make a game" projects in `vibe`. Only the
+    # tools, like reverse-engineering above. See docs/hosts/blaney-vibe-projects.md.
+    development.gamedev = {
+      enable = true;
+      workspace.enable = false;
+      # lando's game, worked on from `vibe` through blaney/ branches and PRs.
+      sharedProjects.prin-rpg = { repo = "landonreekstin/prin-rpg"; title = "prin-rpg (the Principia campus game)"; };
+    };
   };
 }
