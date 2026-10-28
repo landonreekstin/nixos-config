@@ -25,6 +25,7 @@ let
   # rest of the glade desktop (hyprland/desktops/glade/claude-panel.nix).
   gladePanel = import ../../home-manager/hyprland/desktops/glade/claude-panel.nix { inherit pkgs; };
   gladeHooks = gladePanel.hooks;
+  gladeStatus = gladePanel.status;
   notesList = "${cfg.user.home}/notes-list.txt"; # blaney-pc `add-notes` / `work-notes`
 
   ccnRules = pkgs.writeText "ccn-blaney-rules.md" ''
@@ -1272,13 +1273,39 @@ in
       LIST="${notesList}"
       touch "$LIST"
       waiting() { grep -c '^\[ \]' "$LIST" 2>/dev/null || true; }
-      echo "Your notes list. Type a note and press Enter to add it."
+
+      # What these notes are about: his config, or one of his own apps in ~/projects. The
+      # pick is put in front of every note as "@<key>:" for work-notes to read.
+      KEYS=(setup) LABELS=("Computer setup")
+      for d in "$HOME"/projects/*/; do
+        k=$(basename "$d")
+        case "$k" in
+          r62d) l="R6 game" ;;
+          hud) l="Glade" ;;
+          breifing-room) l="F-117" ;;
+          spectrobes-rebuild) l="Spectrobes" ;;
+          *) l="$k" ;;
+        esac
+        KEYS+=("$k") LABELS+=("$l")
+      done
+      echo "What are these notes about?"
+      for i in "''${!KEYS[@]}"; do echo "  $((i + 1))) ''${LABELS[$i]}"; done
+      while :; do
+        read -rp "Enter a number: " PICK
+        [[ "$PICK" =~ ^[0-9]+$ ]] && [ "$PICK" -ge 1 ] && [ "$PICK" -le "''${#KEYS[@]}" ] && break
+        echo "That isn't one of the numbers above."
+      done
+      KEY="''${KEYS[$((PICK - 1))]}" LABEL="''${LABELS[$((PICK - 1))]}"
+      printf '\033]2;Notes for: %s\007' "$LABEL"
+      clear
+      echo "Notes for: $LABEL"
+      echo "Type a note and press Enter to add it."
       echo "Type q (or press Ctrl+C) to close. Notes waiting right now: $(waiting)"
       while read -rep "note> " NOTE; do
         NOTE="''${NOTE//$'\n'/ }"
         [ -n "''${NOTE//[[:space:]]/}" ] || continue
         [ "$NOTE" = "q" ] && break
-        flock "$LIST" sh -c 'printf "[ ] %s\n" "$1" >> "$2"' _ "$NOTE" "$LIST"
+        flock "$LIST" sh -c 'printf "[ ] @%s: %s\n" "$1" "$2" >> "$3"' _ "$KEY" "$NOTE" "$LIST"
         echo "  Added. Notes waiting: $(waiting)"
       done
       echo "Closed. Your notes are kept in $LIST."
@@ -1311,17 +1338,35 @@ in
 
       echo "Claude is working through your notes list by itself. Leave this window open."
       echo "Add notes with the add-notes command in another terminal. Close this window to stop."
-      WAITING_SHOWN=""
+      # The Glade panel's bar covers the notes since the list last ran dry: DONE_N of TOTAL.
+      # When notes are added mid-way the bar is started again at the bigger total and
+      # stepped back up to where it was (glade-status has no "set" command).
+      WAITING_SHOWN="" DONE_N=0 TOTAL=0
+      export SUDO_USER="''${SUDO_USER:-${userName}}" # glade-status finds his home through it
+      st() { ${gladeStatus} "$@" >/dev/null 2>&1; }
       while true; do
         N=$(grep -n '^\[ \]' "$LIST" | head -1 | cut -d: -f1)
         if [ -z "$N" ]; then
-          [ -n "$WAITING_SHOWN" ] || { echo; echo "All caught up — waiting for new notes..."; WAITING_SHOWN=1; }
+          if [ -z "$WAITING_SHOWN" ]; then
+            echo; echo "All caught up — waiting for new notes..."
+            [ "$TOTAL" -gt 0 ] && st done
+            WAITING_SHOWN=1 DONE_N=0 TOTAL=0
+          fi
           sleep 5
           continue
         fi
         WAITING_SHOWN=""
         NOTE=$(sed -n "''${N}p" "$LIST" | cut -c5-)
         mark "$N" "[~]"
+        WANT=$((DONE_N + $(grep -c '^\[[ ~]\]' "$LIST")))
+        if [ "$WANT" -ne "$TOTAL" ]; then
+          TOTAL=$WANT
+          st title "Working on your notes"
+          st progress "$TOTAL" "$NOTE"
+          for _ in $(seq "$DONE_N"); do st step "" "$NOTE"; done
+        elif [ "$DONE_N" -gt 0 ]; then
+          st step "$PREV" "$NOTE"
+        fi
         echo
         echo "=== Working on: $NOTE ==="
 
@@ -1333,7 +1378,11 @@ in
       never ask a question and never wait for input. Make every decision yourself,
       including how things look and behave, in the spirit of his current setup and saved
       preferences, and verify the change yourself (commands, logs, screenshots).
+      The Glade panel's title and progress bar track the whole notes list and are set by
+      the wrapper: do not run glade-status title, progress, step or done yourself.
 
+      A note starting "@setup:" is about this config. One starting "@<name>:" is about his
+      app in ~/projects/<name>. With no "@", work out which from the note itself.
       If the note is about one of his own apps in ~/projects (for example his R6 game,
       r62d), make the change there instead, following that project's own CLAUDE.md and
       docs/hosts/blaney-vibe-projects.md: commit to its main and push it. Only touch this
@@ -1354,10 +1403,19 @@ in
       $NOTE
       EOF
         )
+        # Shown live, like a chat he watches: Claude's words, and one line per thing it does.
         timeout --kill-after=5m 2h \
           claude -p "$PROMPT" --settings ${gladeHooks} --append-system-prompt "$RULES" \
-            --permission-mode auto --permission-prompts none
-        RC=$?
+            --permission-mode auto --permission-prompts none \
+            --output-format stream-json --verbose \
+          | ${pkgs.jq}/bin/jq -r --unbuffered '
+              select(.type == "assistant") | .message.content[]
+              | if .type == "text" then "\n" + .text + "\n"
+                elif .type == "tool_use" then
+                  "  > " + .name + ": " + ((.input.description // .input.command // .input.file_path
+                    // .input.pattern // "") | tostring | gsub("\n"; " ") | .[0:140])
+                else empty end' 2>/dev/null
+        RC=''${PIPESTATUS[0]}
         chown -R ${userName}:${userGroup} "$REPO"
         if [ "$RC" -eq 0 ]; then
           mark "$N" "[x]"
@@ -1366,7 +1424,18 @@ in
           mark "$N" "[!]"
           echo "=== Claude couldn't finish this one (marked [!] in your list): $NOTE ==="
         fi
+        DONE_N=$((DONE_N + 1)) PREV="$NOTE"
       done
+    '')
+
+    # The "Notes" tree squid on his Glade (hosts/blaney-pc/home.nix): the notes window,
+    # plus the work window unless one is already running (two would fight over the list).
+    (pkgs.writeShellScriptBin "notes-windows" ''
+      #!${pkgs.stdenv.shell}
+      setsid kitty --title "Notes" add-notes >/dev/null 2>&1 &
+      if ! pgrep -f "bin/work-notes" >/dev/null; then
+        setsid kitty --title "Claude working on notes" work-notes >/dev/null 2>&1 &
+      fi
     '')
 
     (pkgs.writeShellScriptBin "blaney-help" ''
