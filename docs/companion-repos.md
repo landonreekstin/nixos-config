@@ -29,6 +29,17 @@ commit date, and get `hash` with the `lib.fakeHash` build. Pin only commits whos
 out on a `blaney/` branch. Verify by logging into Hyprland on blaney-pc (the Glade on both
 monitors, a board click opens its app).
 
+## r62d
+
+- **Repo:** `github.com/cblaney00/r62d` — insideabush's tactical 5v5 browser game (his vibe
+  project `~/projects/r62d`; he and his sessions keep working on it there).
+- **Pinned in:** `pkgs/r62d/default.nix` (`rev`, `hash`)
+- **Module:** `modules/nixos/programs/r62d.nix` (`customConfig.programs.r62d.enable`, plus
+  `openFirewall` for TCP 6262 so friends can join a game hosted on that machine).
+- **Bump:** same as glade. The repo is plain JavaScript with no npm dependencies, so the
+  package is just the source plus a `r62d-server` wrapper; data lives in
+  `~/.local/share/r62d/data`. The menu entry runs `r62d` (server if needed + Firefox kiosk).
+
 ## f-117
 
 Source: `github:cblaney00/f-117`, a blank-slate copy of insideabush's vibe project
