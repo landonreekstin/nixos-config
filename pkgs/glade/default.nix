@@ -35,13 +35,13 @@ let
 in
 stdenvNoCC.mkDerivation {
   pname = "glade";
-  version = "0-unstable-2026-10-27";
+  version = "0-unstable-2026-10-28";
 
   src = fetchFromGitHub {
     owner = "cblaney00";
     repo = "glade";
-    rev = "cbec11802df8abf80f0f110997a1bd20647132d9";
-    hash = "sha256-YRVkkzpo2G9w0edM9QIzBiFGPKMKZ576I0EgXAXd9Ak=";
+    rev = "8ad6a22f811f3b471bc24b9086c801c518c5473d";
+    hash = "sha256-3hMcFt+neUS+xgONEz3I6jlGfzHhIUrOKNMc3/1ZWoA=";
   };
   sourceRoot = "source/glade";
 
