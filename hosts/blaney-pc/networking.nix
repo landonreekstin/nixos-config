@@ -59,7 +59,8 @@ in
         # restricted: NAS only — plus lando's two gaming-pc peers (10.10.0.2 roaming,
         # 10.10.0.11 wg-nas), so his SSH into this host (remoteAdmin above) is accepted
         # by WireGuard and the replies go back into the tunnel. optiplex-fw passes only
-        # tcp/22 from those two to 10.10.0.5; this host still can't reach them.
+        # tcp/22 from those two to 10.10.0.5 (plus tcp/6262, his R62D game server, once
+        # lando adds it — see docs/networking.md); this host still can't reach them.
         allowedIPs = "192.168.1.76/32;10.10.0.2/32;10.10.0.11/32;";
         persistentKeepalive = 25;         # he's behind NAT; keep the mapping alive
       };
