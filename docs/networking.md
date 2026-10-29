@@ -19,7 +19,7 @@ Spectrum Router (SAX2V1S)
 WAN: 68.184.198.204  /  LAN: 192.168.1.1
     │
     ├── 192.168.1.x  (Main LAN)
-    │   ├── gaming-pc       192.168.1.62
+    │   ├── gaming-pc       192.168.1.101  (DHCP reservation; `ssh gaming-pc` from any lando host)
     │   └── optiplex-fw     192.168.1.189
     │         └─ re0 alias  192.168.1.76  (legacy NAS IP; rdr'd to 192.168.100.76)
     │

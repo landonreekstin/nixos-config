@@ -41,6 +41,14 @@ in
                 forwardAgent = true;
             };
 
+            # Main LAN, direct: the server subnet reaches 192.168.1.0/24 through the fw
+            # (and the NAS has an explicit route around Mullvad). .101 is a DHCP
+            # reservation on the Spectrum router; gaming-pc itself still uses DHCP.
+            "gaming-pc" = {
+                hostname = "192.168.1.101";
+                user = "lando";
+            };
+
             "atl-mini-pc" = {
                 hostname = "192.168.1.206";
                 user = "heather";
