@@ -12,6 +12,10 @@
 # folder (localSrc); the pin below is the release other machines get, bumped only in a
 # release PR of its own — see docs/companion-repos.md.
 #
+# Two more programs from the same source live here too: `glade-dock` (dock.py: the dock and
+# the title bars' minimise button, hyprland/desktops/glade/dock.nix) and libexec/glade-games
+# (games.py: the bar's Games panel; games.nix wraps it with its stylesheet).
+#
 # It also carries the Claude panel's plumbing (claude_state.py in the source): `glade-status`,
 # which the panel's Claude Code hooks and Claude itself run, and share/glade/claude-hooks.json,
 # the hooks, passed with `--settings` by the blaney-pc launchers (ccn, vibe, blaney-todo).
@@ -26,6 +30,8 @@
   gobject-introspection,
   wrapGAppsHook3,
   makeWrapper,
+  glib,
+  librsvg,
   wmctrl,
   xrandr,
   departure-mono,
@@ -49,8 +55,9 @@ stdenvNoCC.mkDerivation {
   sourceRoot = "source/glade";
 
   nativeBuildInputs = [ wrapGAppsHook3 gobject-introspection makeWrapper ];
-  # gtk-layer-shell's typelib is what lets the GTK side make a desktop-layer surface.
-  buildInputs = [ gtk3 gtk-layer-shell ];
+  # gtk-layer-shell's typelib is what lets the GTK side make a desktop-layer surface;
+  # librsvg draws the Games panel's SVG icons.
+  buildInputs = [ gtk3 gtk-layer-shell librsvg ];
 
   # Wrap the python entry point by hand, so the GI typelib paths wrapGAppsHook3
   # collects end up on it.
@@ -70,6 +77,16 @@ stdenvNoCC.mkDerivation {
       --set PYGAME_HIDE_SUPPORT_PROMPT 1 \
       --set GLADE_FONT ${departure-mono}/share/fonts/otf/DepartureMono-Regular.otf \
       --prefix PATH : ${lib.makeBinPath [ wmctrl xrandr ]}
+    # the dock opens apps with `gio launch`
+    makeWrapper ${python}/bin/python $out/bin/glade-dock \
+      "''${gappsWrapperArgs[@]}" \
+      --add-flags $out/share/glade/dock.py \
+      --set PYTHONDONTWRITEBYTECODE 1 \
+      --prefix PATH : ${lib.makeBinPath [ glib.bin ]}
+    makeWrapper ${python}/bin/python $out/libexec/glade-games \
+      "''${gappsWrapperArgs[@]}" \
+      --add-flags $out/share/glade/games.py \
+      --set PYTHONDONTWRITEBYTECODE 1
     makeWrapper ${python}/bin/python $out/bin/glade-status \
       --add-flags $out/share/glade/claude_state.py \
       --set PYTHONDONTWRITEBYTECODE 1
