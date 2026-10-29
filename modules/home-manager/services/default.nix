@@ -9,6 +9,7 @@
     ./update-notification.nix
     ./rebuild-shutdown-notify.nix
     ./shutdown-guard.nix
+    ./release-notes.nix
     ./audio-balance.nix
   ];
 }

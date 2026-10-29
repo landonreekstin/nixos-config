@@ -167,6 +167,34 @@ Two details that matter if you touch it:
   in it** (`ccnLastSession`), not `claude -c`: the remote-control server drops an empty
   session file on every start, and `-c` would continue that into a blank chat.
 
+## Release notes
+
+After an update, insideabush gets a small window, **"Lando's nix release notes for you"**,
+listing what changed for him and any new `blaney-todo` tasks. It comes from
+`customConfig.homeManager.services.releaseNotes` (declared in
+`modules/nixos/common/home-manager.nix`, implemented in
+`modules/home-manager/services/release-notes.nix`).
+
+- **The notes are `hosts/blaney-pc/release-notes.nix`**, a plain list, newest first. Whoever
+  makes a change he would notice adds `{ date = "YYYY-MM-DD"; changes = [ "…" ]; }` (or
+  a line to today's entry) in the same PR, from whichever host the work happens on. Write
+  it for him: one short sentence per change, what he will see or can now do, no jargon, and
+  nothing that only touches other machines. Dependency bumps and refactors get no note.
+- **New tasks are automatic.** Every runbook in `docs/runbooks/blaney/` that he hasn't been
+  shown yet is listed under "New tasks from Lando". Don't write notes for them.
+- **Both lists are baked in at build time**, so a note only appears once the commit that
+  adds it is built on his PC. That is what makes it "after an update".
+- **When it shows:** a user timer runs about 45s after the user systemd manager starts,
+  which means after a boot. Almost every update on his PC ends in a poweroff, so the popup
+  arrives at the next login, in XFCE or the Glade. A live `rebuild` without a reboot, or
+  logging out and into the other session, does not re-trigger it until the next boot.
+- **Seen state** is `~/.local/state/release-notes-seen.json`: hashes of the notes shown and
+  the runbook file names. "Got it" (or closing the window) records them. Because notes are
+  keyed by their text, a note added later on the same date still shows, and rewording an
+  old one brings it back. The first run ever marks the existing runbooks as seen silently.
+- **`whats-new`** (also "What's new" in his app menus) shows every note and every waiting
+  task again, seen or not.
+
 ## His own app projects
 
 Separate from everything above: insideabush also builds his own small apps, with the `vibe`
