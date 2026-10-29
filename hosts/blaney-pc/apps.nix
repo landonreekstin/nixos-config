@@ -49,6 +49,10 @@
       # in the start menu. The first run downloads the ISO from the NAS drop (homelab VPN
       # on). modules/nixos/programs/steel-horizon.nix.
       steel-horizon.enable = true;
+      # Sub of Seas, Lando's co-op submarine game: "Sub of Seas" in the start menu, then Join
+      # (the address is filled in), with the homelab VPN on. Each start fetches Lando's
+      # newest build from the NAS drop. modules/nixos/programs/sub-of-seas.nix.
+      sub-of-seas.enable = true;
       # PC ports and recomps from the Quiver catalog, under Games in the start menu.
       # modules/nixos/programs/quiver.nix.
       quiver.enable = true;

@@ -9,6 +9,7 @@
     ./iw4x.nix
     ./batman.nix
     ./steel-horizon.nix
+    ./sub-of-seas.nix
     ./r62d.nix
     ./quiver.nix
     ./claude-code.nix
