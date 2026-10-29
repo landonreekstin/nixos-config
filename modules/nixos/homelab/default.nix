@@ -30,6 +30,7 @@
     ./qbittorrent.nix
     ./game-servers.nix
     ./game-control.nix
+    ./browser-puck.nix
     ./game-backup.nix
     ./private-backup.nix
     ./dns.nix
