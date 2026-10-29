@@ -1548,6 +1548,7 @@ in
       OTHER
         rebuild-test   Try a rebuild temporarily (undone on reboot)
         ipr            Open the input-remapper (button remap) app
+        whats-new      Show Lando's release notes again
         blaney-help    Show this list again
         sync           Old name for "update" — still works, but use update
         ccn            Old way to talk to Claude — now part of vibe

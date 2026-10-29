@@ -12,6 +12,13 @@
       enable = true;
       offerTasks = true;
     };
+    # "Lando's nix release notes for you": pops up after an update that brings notes or new
+    # blaney-todo tasks. Add a line to release-notes.nix for every change he would notice.
+    services.releaseNotes = {
+      enable = true;
+      entries = import ./release-notes.nix;
+      showNewTasks = true;
+    };
     # His headphones sit heavier on the left; matches the 50L/67R balance he set on Windows.
     services.audioBalance = {
       enable = true;

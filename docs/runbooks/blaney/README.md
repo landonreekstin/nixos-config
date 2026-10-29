@@ -34,6 +34,8 @@ This is separate from `TASKS.md` in the repo root — that stays lando's own lis
   Blaney in person (a login, hardware) clearly separate so it can end in a draft PR.
 - Don't include steps that need LAN/VPN access to the homelab; blaney-pc is remote and
   only reaches GitHub.
+- **The title is also what his release-notes popup shows** under "New tasks from Lando"
+  after the update that brings it, so no separate release note is needed for a new task.
 
 ## Template
 

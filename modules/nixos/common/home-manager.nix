@@ -465,6 +465,37 @@ in
           description = "Show a critical desktop notification at next login if the last `rebuild-shutdown` failed. Enable on hosts where rebuild-shutdown is used unattended.";
         };
       };
+      releaseNotes = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = ''
+            Pop up a short, plain-English "what's new" window at login whenever the build
+            brings notes (or blaney-todo runbooks) the user hasn't seen yet, and install a
+            `whats-new` command that shows them all again.
+          '';
+        };
+        title = mkOption {
+          type = types.str;
+          default = "Lando's nix release notes for you";
+          description = "Window title and heading of the release-notes popup.";
+        };
+        entries = mkOption {
+          type = types.listOf (types.submodule {
+            options = {
+              date = mkOption { type = types.str; description = "YYYY-MM-DD the note was written."; };
+              changes = mkOption { type = types.listOf types.str; description = "One plain-English line per change."; };
+            };
+          });
+          default = [ ];
+          description = "Release notes, newest first (blaney-pc: hosts/blaney-pc/release-notes.nix).";
+        };
+        showNewTasks = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Also list blaney-todo runbooks (docs/runbooks/blaney) added since the last popup.";
+        };
+      };
       shutdownGuard = {
         enable = mkOption {
           type = types.bool;
