@@ -26,7 +26,12 @@ in
         (lib.mkIf cfg.arr.prowlarr.enable { "prowlarr.lan"     = mkProxy 9696; })
         (lib.mkIf cfg.arr.lidarr.enable   { "lidarr.lan"       = mkProxy 8686; })
         (lib.mkIf cfg.navidrome.enable    { "music.lan"        = mkProxy cfg.navidrome.port; })
-        (lib.mkIf cfg.ombi.enable         { "ombi.lan"         = mkProxy cfg.ombi.port; })
+        (lib.mkIf cfg.bookshelf.enable    { "bookshelf.lan"    = mkProxy 8787; })
+        # Audiobook uploads through the web UI are routinely hundreds of MB.
+        (lib.mkIf cfg.audiobookshelf.enable { "books.lan" = mkProxy cfg.audiobookshelf.port // {
+          extraConfig = "client_max_body_size 0;";
+        }; })
+        (lib.mkIf cfg.ombi.enable       { "ombi.lan"         = mkProxy cfg.ombi.port; })
         (lib.mkIf cfg.slskd.enable        { "slskd.lan"        = mkProxy cfg.slskd.webPort; })
         (lib.mkIf cfg.soularr.enable      { "soularr.lan"      = mkProxy cfg.soularr.webPort; })
         (lib.mkIf cfg.gamarr.enable       { "gamarr.lan"       = mkProxy cfg.gamarr.port; })

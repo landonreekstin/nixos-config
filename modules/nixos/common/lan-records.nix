@@ -17,6 +17,8 @@
     # Music stack: music -> Navidrome (listen), ombi -> requests,
     # lidarr -> album manager, slskd -> Soulseek client.
     "lidarr" "music" "ombi" "slskd" "soularr"
+    # Audiobooks: books -> Audiobookshelf (listen), bookshelf -> book manager.
+    "books" "bookshelf"
     # Read-only HTTP file drop for VPN users (homelab/public-files.nix).
     "files"
     # Games: gamarr -> PC game + ROM requests and downloads, qbittorrent ->

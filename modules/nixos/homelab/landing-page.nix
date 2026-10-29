@@ -103,6 +103,11 @@ let
             <span class="card-label">Ombi</span>
             <span class="card-desc">Music Requests</span>
           </a>
+          <a class="card" href="http://books.lan">
+            <span class="card-icon">📚</span>
+            <span class="card-label">Audiobookshelf</span>
+            <span class="card-desc">Audiobooks</span>
+          </a>
         </div>
       </div>
 
@@ -138,6 +143,11 @@ let
             <span class="card-icon">🎶</span>
             <span class="card-label">Lidarr</span>
             <span class="card-desc">Music</span>
+          </a>
+          <a class="card" href="http://bookshelf.lan">
+            <span class="card-icon">📖</span>
+            <span class="card-label">Bookshelf</span>
+            <span class="card-desc">Audiobooks</span>
           </a>
           <a class="card" href="http://slskd.lan">
             <span class="card-icon">🔊</span>

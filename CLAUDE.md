@@ -26,6 +26,7 @@ in `docs/` — read the matching file when the task calls for it:
 | [docs/browsers.md](docs/browsers.md) | Firefox / LibreWolf presets, `customConfig.homeManager.browser`, or the bookmark-secrets path |
 | [docs/subtitles.md](docs/subtitles.md) | subtitles for Jellyfin, Bazarr config/providers, or the `bazarr-provision` unit |
 | [docs/music.md](docs/music.md) | anything music: Lidarr, Navidrome, Ombi requests, slskd/Soulseek, or the `soularr` bridge |
+| [docs/audiobooks.md](docs/audiobooks.md) | anything audiobooks: Bookshelf (the Readarr fork), Audiobookshelf, the self-hosted rreading-glasses metadata proxy, or the yearly Hardcover token renewal |
 | [docs/parallel-sessions.md](docs/parallel-sessions.md) | another session is working on this config at the same time, or a `rebuild` was REFUSED because another worktree owns the live system |
 | [docs/vr.md](docs/vr.md) | the Quest 2 / WiVRn VR setup on gaming-pc, `vr-connect`, `dcs-vr-setup`, or a WiVRn version bump failing eval |
 | [docs/reverse-engineering.md](docs/reverse-engineering.md) | REA / Ghidra, the `re` launcher or `~/reverse-engineering` workspace, or bumping the pinned `rea-agents` version |
@@ -338,6 +339,8 @@ Available via `customConfig.homelab`:
 - Music: Lidarr + Navidrome (listen) + Ombi (request) + slskd/soularr (Soulseek) — see
   [docs/music.md](docs/music.md). Note Jellyseerr cannot do music requests, which is why
   Ombi exists as a *second* request portal.
+- Audiobooks: Bookshelf (maintained Readarr fork) + Audiobookshelf (`books.lan`), with
+  a self-hosted Hardcover metadata proxy — see [docs/audiobooks.md](docs/audiobooks.md).
 
 ## Networking, Firewall, and VPN
 

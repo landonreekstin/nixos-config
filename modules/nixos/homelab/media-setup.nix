@@ -74,6 +74,14 @@ in
       navidrome = lib.mkIf config.customConfig.homelab.navidrome.enable {
         extraGroups = [ "media" ];
       };
+      # Bookshelf's container runs as bookshelf with PGID=media, so the group
+      # is what lets it write the library; Audiobookshelf only reads it.
+      bookshelf = lib.mkIf config.customConfig.homelab.bookshelf.enable {
+        extraGroups = [ "media" ];
+      };
+      audiobookshelf = lib.mkIf config.customConfig.homelab.audiobookshelf.enable {
+        extraGroups = [ "media" ];
+      };
       # Reads and writes its own library tree; also needs the shared download dir,
       # since its imports hardlink out of Transmission's category directory.
       gamarr = lib.mkIf config.customConfig.homelab.gamarr.enable {
@@ -124,6 +132,14 @@ in
     # Gamarr stages its grabs in a dedicated Transmission category dir, the same
     # way lidarr does above, and hardlinks out of it into the games tree. Both
     # sit under storagePath so the link never crosses a filesystem.
+    # Bookshelf is a Readarr fork and health-checks its category dir the same
+    # way Lidarr does above. The library sits beside music/ for the same
+    # reason: one shared tree, Bookshelf writes it, Audiobookshelf reads it.
+    ++ lib.optionals config.customConfig.homelab.bookshelf.enable (
+      [ "d ${config.customConfig.homelab.bookshelf.libraryPath} 2775 ${cfg.user} media -" ]
+      ++ lib.optional config.customConfig.homelab.transmission.enable
+        "d ${cfg.storagePath}/downloads/torrents/${config.customConfig.homelab.bookshelf.provision.downloadCategory} 2775 ${cfg.user} media -"
+    )
     ++ lib.optionals config.customConfig.homelab.qbittorrent.enable [
       "d ${cfg.storagePath}/downloads/incomplete-qbt 2775 ${cfg.user} media -"
     ]
