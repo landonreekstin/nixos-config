@@ -71,6 +71,15 @@
         hostInterfaces = [ "wg-nas" ];
       };
 
+      # Sub of Seas, Lando's co-op submarine game, and hosting it: players join
+      # 192.168.1.76:7845 (the Batman forward, so not both at once). New builds come from
+      # the NAS drop (tools/publish.sh in the game repo). modules/nixos/programs/sub-of-seas.nix.
+      sub-of-seas = {
+        enable = true;
+        host = true;
+        hostInterfaces = [ "wg-nas" ];
+      };
+
       # PC ports and recomps from the Quiver catalog (modules/nixos/programs/quiver.nix).
       quiver.enable = true;
 

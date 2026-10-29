@@ -22,8 +22,9 @@
     development.gamedev = {
       enable = true;
       workspace.enable = false;
-      # lando's game, worked on from `vibe` through blaney/ branches and PRs.
+      # lando's games, worked on from `vibe` through blaney/ branches and PRs.
       sharedProjects.prin-rpg = { repo = "landonreekstin/prin-rpg"; title = "prin-rpg (the Principia campus game)"; };
+      sharedProjects.sub-of-seas = { repo = "landonreekstin/sub-of-seas"; title = "sub-of-seas (the co-op WWII submarine game)"; };
     };
   };
 }

@@ -53,7 +53,7 @@ Checking a game without a display: `xvfb-run` + `--rendering-driver opengl3` ren
 Godot on llvmpipe, and `magick import -window root` grabs the frame — the recipe is in
 the rules file and was checked when this was added.
 
-## Shared projects (prin-rpg)
+## Shared projects (prin-rpg, sub-of-seas)
 
 `gamedev.sharedProjects.<name> = { repo; title; }` lists a game repo that more than one
 person works on. `gd` shows it in `gd ls` and in the picker, and the first time you open it,
@@ -70,6 +70,18 @@ They are written in the project's own `CLAUDE.md` and summarised in `~/gamedev/C
 GitHub can't enforce them, because the repo is private on a free plan. Blaney's clone gets
 `mainGuardHooks` (pre-commit and pre-push hooks that refuse `main`) instead. On GitHub the
 repo allows merge commits only and deletes branches once they're merged.
+
+## Playing a game with others before it has a build (sub-of-seas)
+
+Godot export templates aren't installed, but a Godot **pack** (`.pck`, just the project's
+files) exports without them and runs on any machine with the same Godot:
+`godot --main-pack game.pck`. Sub of Seas ships that way. `tools/publish.sh` in the game
+repo exports the pack to the NAS public drop (`/mnt/nas/public/sub-of-seas/`, served at
+`http://192.168.1.76/public/sub-of-seas/`), and `customConfig.programs.sub-of-seas`
+(`modules/nixos/programs/sub-of-seas.nix`, on gaming-pc and blaney-pc) installs a
+`sub-of-seas` launcher that downloads a new pack whenever its SHA-256 changes and runs it on
+`unstable.godot_4`. New builds reach Blaney without a rebuild on his side. Its online port is
+7845, so it rides the existing Batman forward from optiplex-fw to gaming-pc over the VPN.
 
 ## Known gaps
 
