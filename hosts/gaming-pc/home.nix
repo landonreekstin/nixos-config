@@ -136,6 +136,38 @@
         terminal = false;
         categories = [ "AudioVideo" "Video" ];
       };
+
+      # Discord (Flatpak) decodes H.264 Go Live streams through an OpenH264 library it
+      # downloads into its own cache. Its voice engine asks for the ABI-7 file
+      # (libopenh264-2.5.1-linux64.7.so), but the client's "OpenH264 cleanup" swapped the
+      # cache to 2.7.0 (ABI 8) and deleted that file — so every stream connected and
+      # never decoded a frame ("error 2012", `Failed to initialize decoder` in
+      # logs/discord-webrtc_0). Supply nixpkgs' openh264, which is ABI 7 too, under the
+      # name the engine asks for, and put it back whenever the cleanup deletes it again.
+      # It is copied, not symlinked: the sandbox cannot follow a link into /nix/store,
+      # and the runtime provides the libc/libstdc++ it links against.
+      systemd.user = let
+        dir = "%h/.var/app/com.discordapp.Discord/config/discord/discord_asset_cache/openh264";
+        file = "libopenh264-2.5.1-linux64.7.so";
+        lib' = "${pkgs.openh264}/lib/libopenh264.so.7";
+      in {
+        services.discord-openh264 = {
+          Unit.Description = "Keep Discord's ABI-7 OpenH264 library in place";
+          Service = {
+            Type = "oneshot";
+            ExecStart = "${pkgs.bash}/bin/sh -c '${pkgs.diffutils}/bin/cmp -s ${lib'} \"${dir}/${file}\" || ${pkgs.coreutils}/bin/install -m 0644 ${lib'} \"${dir}/${file}\"'";
+          };
+          Install.WantedBy = [ "default.target" ];
+        };
+        paths.discord-openh264 = {
+          Unit.Description = "Watch Discord's OpenH264 cache";
+          Path = {
+            PathChanged = dir;
+            MakeDirectory = true;
+          };
+          Install.WantedBy = [ "default.target" ];
+        };
+      };
     };
   };
 }
