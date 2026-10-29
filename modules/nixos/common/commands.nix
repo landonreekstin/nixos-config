@@ -15,9 +15,9 @@ let
   # which worktree that is. See docs/parallel-sessions.md.
   worktreeRoot = "${cfg.user.home}/nixos-config-worktrees";
 
-  # --- blaney-pc `ccn` --------------------------------------------------------
-  # Appended to the system prompt of every chat `ccn` opens — new, continued or picked
-  # from the list — so the blaney-pc rules are in force from the first turn instead of
+  # --- blaney-pc config chat (in `vibe`) -----------------------------------------
+  # Appended to the system prompt of every config chat `vibe` opens — new, continued or
+  # picked from the list — so the blaney-pc rules are in force from the first turn instead of
   # depending on the session reading docs/hosts/blaney-pc.md. A store file `cat`ed by the
   # script, never a heredoc, so the backticks below are just text. Keep in sync with
   # docs/hosts/blaney-pc.md (and the blaney-todo preface prompts further down).
@@ -29,7 +29,7 @@ let
   notesList = "${cfg.user.home}/notes-list.txt"; # blaney-pc `add-notes` / `work-notes`
 
   ccnRules = pkgs.writeText "ccn-blaney-rules.md" ''
-    # blaney-pc config session (opened with `ccn`)
+    # blaney-pc config session (opened from `vibe`)
 
     You are working in the NixOS config at ${nixosConfigDir} on blaney-pc, for its
     user ${userName} (Blaney). The full rules are in docs/hosts/blaney-pc.md and CLAUDE.md
@@ -121,7 +121,7 @@ let
 
     ${gladePanel.ccnRules}'';
 
-  # Claude runs as `sudo claude`, so its saved chats live under /root (0700) and `ccn`,
+  # Claude runs as `sudo claude`, so its saved chats live under /root (0700) and the menu,
   # running as the user, cannot look for itself. Prints the newest chat that has a user
   # message in it. Chats with no user message are skipped: `claude remote-control` drops
   # an empty <uuid>.jsonl into the project's history every time its server starts, and
@@ -136,6 +136,63 @@ let
     done
     exit 0
   '';
+  # The blaney-pc config chat: one numbered menu for a new chat (typed straight in here),
+  # the last chat, or an older one, every one of them opened with the blaney-pc rules
+  # appended to the system prompt (ccnRules above). Not a command of its own: it is an
+  # entry in the `vibe` menu (handed over through programs.vibeProjects.configChat below),
+  # because everything Blaney does with Claude starts at `vibe`. Everywhere else
+  # ccn/ccnc/ccnr are plain shell functions (modules/home-manager/system/bash.nix).
+  configChat = pkgs.writeShellScript "blaney-config-chat" ''
+    #!${pkgs.stdenv.shell}
+    set -uo pipefail
+    REPO="${nixosConfigDir}"
+    cd "$REPO" 2>/dev/null || { echo "Can't find your config folder at $REPO — tell Lando."; exit 1; }
+    RULES="$(cat ${ccnRules})"
+
+    # One password prompt here also covers the `sudo claude` below.
+    LAST=$(sudo ${ccnLastSession} "$(pwd -P)" 2>/dev/null) || LAST=""
+
+    new_chat() {
+      local request
+      echo
+      echo "What do you want Claude to do? Type it in your own words and press Enter."
+      echo "(Or just press Enter and Claude will ask you.)"
+      read -rep "> " request
+      if [ -z "''${request//[[:space:]]/}" ]; then
+        request="(New chat from vibe, nothing typed yet. Catch up with GitHub first, as your instructions say, then ask him what he wants to work on.)"
+      else
+        request="(New chat from vibe. Catch up with GitHub first, as your instructions say, then get on with this.)
+
+    $request"
+      fi
+      exec sudo claude --settings ${gladeHooks} --append-system-prompt "$RULES" "$request"
+    }
+
+    # Nothing to go back to? Skip the menu.
+    [ -n "$LAST" ] || new_chat
+
+    echo
+    echo "What do you want to do?"
+    echo "  1) Start a new chat"
+    echo "  2) Pick up where you left off"
+    echo "  3) Look through your older chats"
+    echo
+    read -rp "Enter a number (or q to cancel): " CHOICE
+
+    # A resumed chat renders its system prompt fresh rather than replaying the one it was
+    # started with: chats from before this command have no rules in theirs at all, and
+    # older ones would keep a stale copy after the rules change.
+    RESUME=(--settings ${gladeHooks} --append-system-prompt "$RULES" --system-prompt-snapshot off)
+    case "$CHOICE" in
+      1) new_chat ;;
+      2) exec sudo claude "''${RESUME[@]}" -r "$LAST" \
+           "(He reopened this chat from vibe. Catch up with GitHub first, as your instructions say, then remind him in a sentence or two where things were left and ask what is next.)" ;;
+      3) exec sudo claude "''${RESUME[@]}" -r ;;
+      q) echo "Cancelled — nothing started."; exit 0 ;;
+      *) echo "That wasn't a valid choice. Nothing started."; exit 1 ;;
+    esac
+  '';
+
   wtStateDir = "/var/lib/nixos-config";
   wtOwnerFile = "${wtStateDir}/active-worktree";
   wtLockFile = "${wtStateDir}/rebuild.lock";
@@ -886,72 +943,23 @@ in
       exec update
     '')
 
-    # Claude in the config folder, the blaney-pc way: one numbered menu for a new chat
-    # (typed straight in here), the last chat, or an older one, every one of them opened
-    # with the blaney-pc rules appended to the system prompt (ccnRules above). Everywhere
-    # else ccn/ccnc/ccnr are plain shell functions (modules/home-manager/system/bash.nix).
+    # `ccn` (and ccnc/ccnr below) moved into `vibe` as its "Change or fix something on
+    # your computer" entry. Kept only so muscle memory still lands somewhere useful, like
+    # `sync` above; delete once `vibe` has stuck.
     (pkgs.writeShellScriptBin "ccn" ''
       #!${pkgs.stdenv.shell}
-      set -uo pipefail
-      REPO="${nixosConfigDir}"
-      cd "$REPO" 2>/dev/null || { echo "Can't find your config folder at $REPO — tell Lando."; exit 1; }
-      RULES="$(cat ${ccnRules})"
-
-      # One password prompt here also covers the `sudo claude` below.
-      LAST=$(sudo ${ccnLastSession} "$(pwd -P)" 2>/dev/null) || LAST=""
-
-      new_chat() {
-        local request
-        echo
-        echo "What do you want Claude to do? Type it in your own words and press Enter."
-        echo "(Or just press Enter and Claude will ask you.)"
-        read -rep "> " request
-        if [ -z "''${request//[[:space:]]/}" ]; then
-          request="(New chat from ccn, nothing typed yet. Catch up with GitHub first, as your instructions say, then ask him what he wants to work on.)"
-        else
-          request="(New chat from ccn. Catch up with GitHub first, as your instructions say, then get on with this.)
-
-      $request"
-        fi
-        exec sudo claude --settings ${gladeHooks} --append-system-prompt "$RULES" "$request"
-      }
-
-      # Nothing to go back to? Skip the menu.
-      [ -n "$LAST" ] || new_chat
-
-      echo
-      echo "What do you want to do?"
-      echo "  1) Start a new chat"
-      echo "  2) Pick up where you left off"
-      echo "  3) Look through your older chats"
-      echo
-      read -rp "Enter a number (or q to cancel): " CHOICE
-
-      # A resumed chat renders its system prompt fresh rather than replaying the one it was
-      # started with: chats from before this command have no rules in theirs at all, and
-      # older ones would keep a stale copy after the rules change.
-      RESUME=(--settings ${gladeHooks} --append-system-prompt "$RULES" --system-prompt-snapshot off)
-      case "$CHOICE" in
-        1) new_chat ;;
-        2) exec sudo claude "''${RESUME[@]}" -r "$LAST" \
-             "(He reopened this chat with ccn. Catch up with GitHub first, as your instructions say, then remind him in a sentence or two where things were left and ask what is next.)" ;;
-        3) exec sudo claude "''${RESUME[@]}" -r ;;
-        q) echo "Cancelled — nothing started."; exit 0 ;;
-        *) echo "That wasn't a valid choice. Nothing started."; exit 1 ;;
-      esac
+      echo "Heads up: 'ccn' is now part of 'vibe' — choose \"Change or fix something on your computer\"."
+      exec vibe
     '')
-
-    # Folded into `ccn`. Kept only so muscle memory still lands somewhere useful, like
-    # `sync` above; delete once `ccn` has stuck.
     (pkgs.writeShellScriptBin "ccnc" ''
       #!${pkgs.stdenv.shell}
-      echo "Heads up: 'ccnc' is now part of 'ccn' — choose \"Pick up where you left off\"."
-      exec ccn
+      echo "Heads up: 'ccnc' is now part of 'vibe' — choose \"Change or fix something on your computer\", then \"Pick up where you left off\"."
+      exec vibe
     '')
     (pkgs.writeShellScriptBin "ccnr" ''
       #!${pkgs.stdenv.shell}
-      echo "Heads up: 'ccnr' is now part of 'ccn' — choose \"Look through your older chats\"."
-      exec ccn
+      echo "Heads up: 'ccnr' is now part of 'vibe' — choose \"Change or fix something on your computer\", then \"Look through your older chats\"."
+      exec vibe
     '')
 
     (pkgs.writeShellScriptBin "branch-switch" ''
@@ -1320,7 +1328,7 @@ in
       LIST="${notesList}"
       BRANCH="blaney/notes-$(date +%F)"
       RULES="$(cat ${ccnRules})"
-      # Its own worktree, so a ccn chat in the main checkout never has its branch switched
+      # Its own worktree, so a config chat in the main checkout never has its branch switched
       # (or its uncommitted work swept up) by a note being worked on.
       REPO="${nixosConfigDir}-worktrees/''${BRANCH#blaney/}"
       [ -d "$REPO" ] || (cd "${nixosConfigDir}" && sudo -u ${userName} wt new "$BRANCH") \
@@ -1486,20 +1494,19 @@ in
         rb                Rebuild, then reboot
         c                 Clear the screen
 
-      FIX THINGS WITH CLAUDE
+      TALK TO CLAUDE — start here
+        vibe                   Everything you do with Claude: change or fix
+                               something on your computer, start a new app or
+                               carry on with one, make a game, or take apart
+                               a program or game
+
+      MORE CLAUDE HELPERS
         blaney-todo            See tasks Lando left you and have Claude do one
                                (with you, or on its own and then shut down)
-        ccn                    Talk to Claude about your computer: start a new
-                               chat, or pick up an old one
         claude-rebuild-failed  Ask Claude to fix a failed rebuild and make a PR
         add-notes              Type notes into your list of things to change
         work-notes             Have Claude work through that list by itself
                                (run it in a second terminal)
-
-      BUILD YOUR OWN APPS
-        vibe                   Start a new app of your own, or carry on with one
-                               (also: make a game, or take apart a program
-                               or game)
 
       GAMES
         batman join    The Batman: play Robin in Lando's game (homelab VPN on)
@@ -1510,6 +1517,7 @@ in
         ipr            Open the input-remapper (button remap) app
         blaney-help    Show this list again
         sync           Old name for "update" — still works, but use update
+        ccn            Old way to talk to Claude — now part of vibe
       EOF
     '')
   ]);
@@ -1522,4 +1530,8 @@ in
     "d ${wtStateDir} 0755 root root -"
     "f ${wtLockFile} 0664 root ${userGroup} -"
   ];
+
+  # The config chat is one of `vibe`'s menu entries (modules/nixos/programs/vibe-projects.nix).
+  customConfig.programs.vibeProjects.configChat =
+    lib.mkIf (cfg.user.name == "insideabush") "${configChat}";
 }

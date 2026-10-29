@@ -146,7 +146,8 @@ let
     its code stays on this machine or in a GitHub repo on his own account and never inside
     the NixOS config, his config checkout at ${configDir} gets caught up with `main` (and
     rebuilt) at the start of every session, and anything else needing the config should be
-    handed back to him to run `ccn` for rather than done from here.
+    handed back to him to ask for from the "Change or fix something on your computer"
+    entry of `vibe` rather than done from here.
   '';
 
   # Pre-accept the workspace-trust prompt for a directory, so a non-technical user does not
@@ -201,6 +202,10 @@ let
     LOVE="${lib.optionalString gdEnabled "${pkgs.love}/bin/love"}"
     GD_GUARD_HOOKS="${lib.optionalString gdEnabled "${gdCfg.mainGuardHooks}"}"
     SHARED_GAMES=${lib.escapeShellArg sharedGames}
+
+    # Claude in the NixOS config itself (what `ccn` used to be); empty where no config
+    # chat is wired up (see the configChat option below).
+    CONFIG_CHAT="${lib.optionalString (vibeCfg.configChat != null) vibeCfg.configChat}"
 
     mkdir -p "$PROJECTS_DIR"
 
@@ -603,15 +608,19 @@ let
     shopt -u nullglob
 
     # Nothing yet and nothing else to offer? Skip the menu and get him straight into his
-    # first app. With reverse engineering or games available there is a real choice to make,
-    # so the menu is shown even then.
-    if [ "''${#EXISTING[@]}" -eq 0 ] && [ -z "$RE_LAUNCHER" ] && [ -z "$GD_LAUNCHER" ]; then
+    # first app. With the config chat, reverse engineering or games available there is a
+    # real choice to make, so the menu is shown even then.
+    if [ "''${#EXISTING[@]}" -eq 0 ] && [ -z "$CONFIG_CHAT" ] && [ -z "$RE_LAUNCHER" ] \
+         && [ -z "$GD_LAUNCHER" ]; then
       echo "This is where you build your own apps. You don't have any yet."
       new_project app
       exit 0
     fi
 
     declare -a TOP_LABELS=() TOP_ACTIONS=()
+    if [ -n "$CONFIG_CHAT" ]; then
+      TOP_LABELS+=("Change or fix something on your computer"); TOP_ACTIONS+=(config)
+    fi
     if [ "''${#EXISTING[@]}" -gt 0 ]; then
       TOP_LABELS+=("Work on something you already started"); TOP_ACTIONS+=(pick)
     fi
@@ -644,6 +653,7 @@ let
     fi
 
     case "''${TOP_ACTIONS[$((TOP - 1))]}" in
+      config) exec "$CONFIG_CHAT" ;;
       pick) pick_project ;;
       new-app) new_project app ;;
       new-re) new_project re ;;
@@ -687,6 +697,18 @@ in
         project directly in `$HOME` so that `programs.claudeCode.extraChownPaths` covers
         every present and future project with one entry, and so that one CLAUDE.md above
         them can carry the rules for all of them.
+      '';
+    };
+
+    configChat = mkOption {
+      type = types.nullOr types.str;
+      default = null;
+      internal = true;
+      description = ''
+        Script behind the top-level "Change or fix something on your computer" entry:
+        Claude in the NixOS config with the host's config-session rules. Set by
+        modules/nixos/common/commands.nix on blaney-pc (it is the menu `ccn` used to be,
+        and needs that module's rules and helpers); null hides the entry.
       '';
     };
 

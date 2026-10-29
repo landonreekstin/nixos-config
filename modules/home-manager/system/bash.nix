@@ -40,9 +40,9 @@ in
       ipr = "sudo input-remapper-gtk";
     };
 
-    # On blaney-pc these three are one `ccn` menu command instead, which also hands every
+    # On blaney-pc these three are the config-chat entry of `vibe` instead, which also hands every
     # chat the blaney-pc rules (modules/nixos/common/commands.nix). A shell function would
-    # shadow that command, so they are left out there.
+    # shadow the shim commands pointing him there, so they are left out.
     initExtra = lib.optionalString (customConfig.user.name != "insideabush") ''
       ccnc() {
         cd "$HOME/nixos-config" || return

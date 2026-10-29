@@ -68,7 +68,7 @@ chats, are keyed to the path.
 5. **Every session — resumed ones too — first catches his config up with `main`:** fetch;
    leave a dirty tree alone; fast-forward `main`, or rebase a `blaney/` branch onto
    `origin/main` and `--force-with-lease` it if it has an upstream (a conflict is aborted
-   and handed to `ccn`); then chown and `rebuild` if anything moved. It repeats when he
+   and handed to the config chat); then chown and `rebuild` if anything moved. It repeats when he
    comes back after a break. This is the one config action a vibe session takes, and it
    exists because `branch-switch` leaves him on `blaney/` branches that otherwise drift
    behind main for weeks — and `update` only pulls the branch, not main. It lives in the
@@ -293,7 +293,8 @@ flake resolution happens at run time at all.
 This is the part that comes back here, as a `blaney/` branch and a PR lando merges. It does
 **not** happen from a vibe session: the working directory there loads `~/projects/CLAUDE.md`,
 not this repo's `CLAUDE.md`, so the `blaney/`-branch rules are not the ones in context. The
-rules file tells the session to hand it back instead — "close this, run `ccn`, and say
+rules file tells the session to hand it back instead — "close this, run `vibe`, choose
+"Change or fix something on your computer", and say
 package my `<name>` app". That reuses the proven path with the right rules loaded.
 
 Then:
