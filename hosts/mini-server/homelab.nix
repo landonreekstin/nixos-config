@@ -76,6 +76,8 @@
 
     gameControl.enable = true;
 
+    browserPuck.enable = true;
+
     gameBackup.enable = true;
 
     localCA.enable = true;
