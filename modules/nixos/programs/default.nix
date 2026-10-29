@@ -8,6 +8,7 @@
     ./partydeck.nix
     ./iw4x.nix
     ./batman.nix
+    ./steel-horizon.nix
     ./r62d.nix
     ./quiver.nix
     ./claude-code.nix

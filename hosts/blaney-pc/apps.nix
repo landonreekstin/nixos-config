@@ -45,6 +45,10 @@
       # The Batman (JAKKS TV game) with Lando: "The Batman: Join Online Game" in the start
       # menu, with the homelab VPN on. modules/nixos/programs/batman.nix.
       batman.enable = true;
+      # Steel Horizon RTS, Lando's naval battle game on the PSP game's assets: "Steel Horizon"
+      # in the start menu. The first run downloads the ISO from the NAS drop (homelab VPN
+      # on). modules/nixos/programs/steel-horizon.nix.
+      steel-horizon.enable = true;
       # PC ports and recomps from the Quiver catalog, under Games in the start menu.
       # modules/nixos/programs/quiver.nix.
       quiver.enable = true;
