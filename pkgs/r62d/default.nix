@@ -13,6 +13,7 @@
   makeWrapper,
   nodejs_22,
   procps,
+  coreutils,
 }:
 
 stdenvNoCC.mkDerivation {
@@ -39,7 +40,7 @@ stdenvNoCC.mkDerivation {
     # (pkill: "Quit to desktop" closes the game window)
     makeWrapper ${nodejs_22}/bin/node $out/bin/r62d-server \
       --add-flags $out/share/r62d/server/server.js \
-      --prefix PATH : ${lib.makeBinPath [ procps ]} \
+      --prefix PATH : ${lib.makeBinPath [ procps coreutils ]} \
       --run 'export R62D_DATA="''${R62D_DATA:-''${XDG_DATA_HOME:-$HOME/.local/share}/r62d/data}"; mkdir -p "$R62D_DATA"'
     runHook postInstall
   '';
