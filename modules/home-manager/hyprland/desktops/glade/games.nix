@@ -11,26 +11,10 @@ let
   c = import ./colors.nix;
   glade = pkgs.callPackage ../../../../../pkgs/glade (import ../../../../../pkgs/vibe-local-src.nix customConfig "glade");
 
-  pyEnv = pkgs.python3.withPackages (ps: [ ps.pygobject3 ]);
-
-  gladeGames = pkgs.stdenv.mkDerivation {
-    name = "glade-games";
-    dontUnpack = true;
-    nativeBuildInputs = [ pkgs.wrapGAppsHook3 pkgs.gobject-introspection ];
-    buildInputs = [ pkgs.gtk3 pkgs.gtk-layer-shell pkgs.librsvg pyEnv ];
-    installPhase = ''
-      runHook preInstall
-      mkdir -p $out/bin
-      { echo '#!${pyEnv}/bin/python3'; cat ${glade}/share/glade/games.py; } > $out/bin/.glade-games
-      chmod +x $out/bin/.glade-games
-      runHook postInstall
-    '';
-    # the stylesheet is passed in, so the panel is made of the same night and boards as the bar
-    postFixup = ''
-      makeWrapper $out/bin/.glade-games $out/bin/glade-games "''${gappsWrapperArgs[@]}" --add-flags ${css}
-    '';
-    dontWrapGApps = true;
-  };
+  # the stylesheet is passed in, so the panel is made of the same night and boards as the bar
+  gladeGames = pkgs.writeShellScriptBin "glade-games" ''
+    exec ${glade}/libexec/glade-games ${css} "$@"
+  '';
 
   css = pkgs.writeText "glade-games.css" ''
     #backdrop { background: alpha(${c.night}, 0.0); transition: background 260ms ease-in-out 60ms; }
