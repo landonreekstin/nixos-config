@@ -310,8 +310,12 @@ Then:
    hash by building once with `hash = lib.fakeHash;` and copying the real one from the
    mismatch error — that needs no network command beyond the build itself (a bare
    `nix-prefetch-url` was refused by the auto-mode classifier on blaney-pc during the glade
-   PR). Record the repo in [docs/companion-repos.md](../companion-repos.md), and bump the pin
-   there the same way as any other companion repo.
+   PR). Give the package a `localSrc ? null` argument used in place of the fetch (as
+   `pkgs/glade` does), pass `(import ../pkgs/vibe-local-src.nix customConfig "<name>")` at
+   every `callPackage`, and add the app to `vibeProjects.localApps` in
+   `hosts/blaney-pc/apps.nix`, so his machine keeps running his project folder. Record the
+   repo in [docs/companion-repos.md](../companion-repos.md); from then on the pin moves only
+   for a release, as described there.
 3. `customConfig.packages.homeManager` in `hosts/blaney-pc/apps.nix`.
 4. A `.desktop` entry if it belongs in the Start menu, and a taskbar pin in
    `hosts/blaney-pc/home.nix` (`themes.xfcePanel.pinnedApps` / `themes.pinnedApps`) if he
@@ -327,6 +331,16 @@ Under XFCE he still runs it straight from the project folder.
 
 Until then, running it out of the project folder with `nix develop ... --command` is the
 normal way to use it.
+
+## Packaged apps run from the project folder; the pin is a release
+
+Once packaged, an app is built on blaney-pc from `~/projects/<folder>`, not from its pin
+(`customConfig.programs.vibeProjects.localApps`, resolved by `pkgs/vibe-local-src.nix`).
+So a vibe session gets a change into the installed app by committing and running
+`rebuild` in the config, with no config edit, branch or PR. That is the second, and last,
+reason a project session may go into the config (the first is the catch-up). The pin is
+the version lando gets, and moves only when insideabush asks for a release, in a PR of its
+own: [companion-repos.md](../companion-repos.md#insideabushs-apps-the-pin-is-a-release).
 
 ## Verifying changes to this
 

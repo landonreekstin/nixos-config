@@ -2,7 +2,7 @@
 { lib, pkgs, config, customConfig, ... }:
 
 let
-  gladePanel = import ../hyprland/desktops/glade/claude-panel.nix { inherit pkgs; };
+  gladePanel = import ../hyprland/desktops/glade/claude-panel.nix { inherit pkgs customConfig; };
   cfg = customConfig.programs.vibeProjects;
 
   userName = customConfig.user.name;
@@ -191,6 +191,32 @@ let
     before it can be packaged; an app that is only on this machine runs from its project
     folder, as below.
 
+    ## An installed app runs from this folder: never bump its pin
+
+    Some of his apps are also installed on his computer, built by the config (the Glade
+    desktop, R62D in the menu). **On this computer the installed app is built from this
+    project folder, not from GitHub**: `localApps` in `${configDir}/hosts/blaney-pc/apps.nix`
+    lists which ones. So to get a change into the installed app, nothing in the config
+    changes. Commit here (and push, if the project has a GitHub repo), then rebuild:
+
+    ```
+    cd ${configDir} && rebuild
+    ```
+
+    No `sudo`, no edits, no branch, no PR. If `rebuild` refuses because another worktree
+    owns the live system, run `wt status` and `rebuild` in *that* worktree instead; every
+    worktree builds his apps from this folder. Then tell him how to see it (for the Glade,
+    press Thunderstorm; otherwise close the app and open it again).
+
+    The config also has a *pin* for each of these apps (`rev` and `hash` in
+    `${configDir}/pkgs/<app>/default.nix`). That pin is not for this computer. It is the
+    **release**: the version Lando gets on his machines. **Never change it, and never send
+    him to the config to change it, just because the app changed.** Only when he says he
+    wants Lando to have the current version ("release it", "send this to Lando", "Lando
+    can have this one"): make sure everything is committed and pushed to GitHub, then tell
+    him in one sentence to close this, run `vibe`, choose "Change or fix something on your
+    computer", and say "release my <name> app to Lando".
+
     ## The NixOS config is NOT his — it still needs a PR
 
     The machine itself is configured in `${configDir}`, which is lando's repo and is shared
@@ -202,8 +228,8 @@ let
     - Full rules: `${configDir}/docs/hosts/blaney-pc.md`. Background on this kind of
       project: `${configDir}/docs/hosts/blaney-vibe-projects.md`.
 
-    Better still, **do not go into the config from a project session at all** — the one
-    exception is the catch-up step below. If the app needs something from the system,
+    Better still, **do not go into the config from a project session at all** — the only
+    exceptions are the rebuild for an installed app above and the catch-up step below. If the app needs something from the system,
     finish what you can here and tell him in one sentence to close this, run `vibe` and
     choose "Change or fix something on your computer" instead — that opens Claude in the config folder, where the config rules are the ones
     loaded.

@@ -9,6 +9,7 @@
   lib,
   stdenvNoCC,
   fetchFromGitHub,
+  localSrc ? null,
   makeWrapper,
   nodejs_22,
   procps,
@@ -16,9 +17,11 @@
 
 stdenvNoCC.mkDerivation {
   pname = "r62d";
-  version = "0-unstable-2026-10-28";
+  # The pin is his latest *release*. A host in vibeProjects.localApps passes his project
+  # folder as localSrc instead (pkgs/vibe-local-src.nix), so it runs his newest work.
+  version = if localSrc != null then "0-local" else "0-unstable-2026-10-28";
 
-  src = fetchFromGitHub {
+  src = if localSrc != null then localSrc else fetchFromGitHub {
     owner = "cblaney00";
     repo = "r62d";
     rev = "cce1454aa97c122146844ad02ce2ac8b8bfe316e";

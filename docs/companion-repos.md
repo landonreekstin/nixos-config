@@ -13,21 +13,69 @@ game, a shell UI — lives in its own repo and is only *packaged* here, with a
 Getting the `hash` for a new rev: either the `nix-prefetch-url` recipe under hyprland-keys,
 or set `hash = lib.fakeHash;`, build, and copy the real hash out of the mismatch error.
 
+## insideabush's apps: the pin is a release
+
+glade and r62d below (and any future `owner = "cblaney00"` package) work differently from
+lando's repos. **blaney-pc never runs the pin.** `customConfig.programs.vibeProjects.localApps`
+in `hosts/blaney-pc/apps.nix` maps each app to its folder in `~/projects`, and
+`pkgs/vibe-local-src.nix` hands that folder to the package as `localSrc`, so every
+`rebuild` there builds whatever is in the folder (committed or not; `.git`,
+`node_modules`, `__pycache__`, `.direnv` and `result` left out). His sessions get a change
+onto his computer with a plain `rebuild`, no config edit at all.
+
+The pin is what everyone else gets, lando being the only other user: a **release**.
+
+- It moves only when insideabush asks for one ("release my glade app to Lando"), never
+  as a side effect of working on the app. The commit must be on GitHub's `main`.
+- **One app per PR, and nothing else in it**: `blaney/release-<app>`, cut fresh from
+  `origin/main`, touching only `pkgs/<app>/` (and this file). CI's `release-pins` job
+  fails any PR that moves one of these pins next to other changes, or moves two.
+- One open release PR per app. A newer release re-cuts the same branch from `origin/main`
+  and force-pushes it; a release branch that falls behind or conflicts is re-cut, never
+  rebased or resolved. Since it is three lines (`rev`, `hash`, `version`), that is
+  always trivial.
+- A config PR that needs something new in the app says "needs the release PR merged
+  first" instead of bumping the pin itself.
+
+Why: #242, #248 and #249 all hit merge conflicts on these pins. Each blaney-pc session
+bumped the pin to see its change (and #248/#249 carried cherry-picked bumps from #247),
+while other bumps kept landing on `main` (ten r62d bumps from the notes runs in a day).
+Every PR that touched the pin conflicted with every other one. With his machine building
+from the folder, nothing but a release has a reason to touch the pin.
+
+The rules are in the three places his sessions read: `~/projects/CLAUDE.md`
+(`modules/home-manager/development/vibe-projects.nix`), the config chat's `ccnRules` and
+the `work-notes` prompt (both `modules/nixos/common/commands.nix`).
+
+To check what blaney-pc would build without being on it, point the config at a scratch
+copy of `~/projects`:
+
+```bash
+nix build --impure --no-link --print-out-paths --expr 'let f = builtins.getFlake (toString ./.);
+  c = (f.nixosConfigurations.blaney-pc.extendModules { modules = [ {
+    customConfig.programs.vibeProjects.dir = f.inputs.nixpkgs.lib.mkForce "/path/to/projects"; } ]; }).config;
+in builtins.filter (p: builtins.elem (p.pname or "") [ "glade" "r62d" ])
+  (c.environment.systemPackages ++ c.home-manager.users.insideabush.home.packages)'
+```
+
+The packages come out as `<app>-0-local`. If a listed folder is missing on blaney-pc, eval
+prints a `trace: warning: vibeProjects.localApps.<app>` line and falls back to the pin.
+
 ## glade
 
 Source: `github:cblaney00/glade` (insideabush's own vibe project, checkout at
 `/home/insideabush/projects/hud` on blaney-pc; the program is its `glade/` folder)
 Package: `pkgs/glade/default.nix`, used by `modules/home-manager/hyprland/desktops/glade/desktop.nix`
 
-The Glade, his pixel-art forest desktop. Only his GitHub account can push to the repo, so a
-bump happens on blaney-pc: commit in `~/projects/hud` (his project, his `main` — see
-[blaney-vibe-projects.md](hosts/blaney-vibe-projects.md)) and push it as him
+The Glade, his pixel-art forest desktop. blaney-pc builds it from his project folder, and
+the pin is a release ([above](#insideabushs-apps-the-pin-is-a-release)). Only his GitHub
+account can push to the repo, so a release happens on blaney-pc: his project's `main` is
+pushed as him
 (`sudo -u insideabush -H git -c credential.helper='!gh auth git-credential' push origin main`
 — `gh` is signed in as `cblaney00`). Then set `rev` to the pushed sha, `version` to its
-commit date, and get `hash` with the `lib.fakeHash` build. Pin only commits whose
-`glade/` is meant to ship: his `main` can run ahead of the pin with work still being tried
-out on a `blaney/` branch. Verify by logging into Hyprland on blaney-pc (the Glade on both
-monitors, a board click opens its app).
+commit date, and get `hash` with the `lib.fakeHash` build. Verify a change to the Glade by
+rebuilding and logging into Hyprland on blaney-pc (the Glade on both monitors, a board
+click opens its app); verify a release by building the pinned package.
 
 ## r62d
 
@@ -36,7 +84,7 @@ monitors, a board click opens its app).
 - **Pinned in:** `pkgs/r62d/default.nix` (`rev`, `hash`)
 - **Module:** `modules/nixos/programs/r62d.nix` (`customConfig.programs.r62d.enable`, plus
   `openFirewall` for TCP 6262 so friends can join a game hosted on that machine).
-- **Bump:** same as glade. The repo is plain JavaScript with no npm dependencies, so the
+- **Release:** same as glade; blaney-pc builds it from `~/projects/r62d`. The repo is plain JavaScript with no npm dependencies, so the
   package is just the source plus a `r62d-server` wrapper; data lives in
   `~/.local/share/r62d/data`. The menu entry runs `r62d` (server if needed + Firefox kiosk).
 
