@@ -25,25 +25,6 @@ let
     "f-117.desktop"
   ];
 
-  pyEnv = pkgs.python3.withPackages (ps: [ ps.pygobject3 ]);
-
-  gladeDock = pkgs.stdenv.mkDerivation {
-    name = "glade-dock";
-    dontUnpack = true;
-    nativeBuildInputs = [ pkgs.wrapGAppsHook3 pkgs.gobject-introspection ];
-    buildInputs = [ pkgs.gtk3 pkgs.gtk-layer-shell pyEnv ];
-    installPhase = ''
-      runHook preInstall
-      mkdir -p $out/bin
-      { echo '#!${pyEnv}/bin/python3'; cat ${glade}/share/glade/dock.py; } > $out/bin/glade-dock
-      chmod +x $out/bin/glade-dock
-      runHook postInstall
-    '';
-    # it opens apps with `gio launch`
-    preFixup = ''
-      gappsWrapperArgs+=(--prefix PATH : ${pkgs.glib.bin}/bin)
-    '';
-  };
 
   # Glowing spirit-cloth like the glade's banners: see-through, lit softly from the top,
   # a thin rim of light, the icons floating on it.
@@ -104,24 +85,22 @@ let
   # Kept up like the glade: if the dock ever exits it comes back after a moment.
   dockLoop = pkgs.writeShellScript "glade-dock-loop" ''
     while true; do
-      ${gladeDock}/bin/glade-dock ${lib.escapeShellArg (builtins.toJSON favourites)} ${css} \
+      ${glade}/bin/glade-dock ${lib.escapeShellArg (builtins.toJSON favourites)} ${css} \
         > "''${XDG_RUNTIME_DIR:-/tmp}/glade-dock.log" 2>&1
       sleep 2
     done
   '';
   watchLoop = pkgs.writeShellScript "glade-windows-loop" ''
     while true; do
-      ${gladeDock}/bin/glade-dock watch > "''${XDG_RUNTIME_DIR:-/tmp}/glade-windows.log" 2>&1
+      ${glade}/bin/glade-dock watch > "''${XDG_RUNTIME_DIR:-/tmp}/glade-windows.log" 2>&1
       sleep 2
     done
   '';
 in
 {
   config = lib.mkIf desktop.enabled {
-    home.packages = [ gladeDock ];
-
-    # The title bars' minimise button (glade-dock minimize) is with the others in
-    # desktop.nix.
+    # glade-dock itself is on the PATH with the glade (desktop.nix), for the title bars'
+    # minimise button there.
     hyprDesktops.glade.extraConfig = ''
       exec-once = ${dockLoop}
       exec-once = ${watchLoop}

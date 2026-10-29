@@ -12,6 +12,10 @@
 # main, then bump `rev`, `hash` and `version` (the commit date) — see
 # docs/companion-repos.md#glade.
 #
+# Two more programs from the same source live here too: `glade-dock` (dock.py: the dock and
+# the title bars' minimise button, hyprland/desktops/glade/dock.nix) and libexec/glade-games
+# (games.py: the bar's Games panel; games.nix wraps it with its stylesheet).
+#
 # It also carries the Claude panel's plumbing (claude_state.py in the source): `glade-status`,
 # which the panel's Claude Code hooks and Claude itself run, and share/glade/claude-hooks.json,
 # the hooks, passed with `--settings` by the blaney-pc launchers (ccn, vibe, blaney-todo).
@@ -25,6 +29,8 @@
   gobject-introspection,
   wrapGAppsHook3,
   makeWrapper,
+  glib,
+  librsvg,
   wmctrl,
   xrandr,
   departure-mono,
@@ -40,14 +46,15 @@ stdenvNoCC.mkDerivation {
   src = fetchFromGitHub {
     owner = "cblaney00";
     repo = "glade";
-    rev = "8ad6a22f811f3b471bc24b9086c801c518c5473d";
-    hash = "sha256-3hMcFt+neUS+xgONEz3I6jlGfzHhIUrOKNMc3/1ZWoA=";
+    rev = "6293af71f387aad941f049047807ec96e07c9ad6";
+    hash = "sha256-SJEPIQeAUnNNwebq4Osf9MKctUT7Nbn5xg/UDwP1btA=";
   };
   sourceRoot = "source/glade";
 
   nativeBuildInputs = [ wrapGAppsHook3 gobject-introspection makeWrapper ];
-  # gtk-layer-shell's typelib is what lets the GTK side make a desktop-layer surface.
-  buildInputs = [ gtk3 gtk-layer-shell ];
+  # gtk-layer-shell's typelib is what lets the GTK side make a desktop-layer surface;
+  # librsvg draws the Games panel's SVG icons.
+  buildInputs = [ gtk3 gtk-layer-shell librsvg ];
 
   # Wrap the python entry point by hand, so the GI typelib paths wrapGAppsHook3
   # collects end up on it.
@@ -67,6 +74,16 @@ stdenvNoCC.mkDerivation {
       --set PYGAME_HIDE_SUPPORT_PROMPT 1 \
       --set GLADE_FONT ${departure-mono}/share/fonts/otf/DepartureMono-Regular.otf \
       --prefix PATH : ${lib.makeBinPath [ wmctrl xrandr ]}
+    # the dock opens apps with `gio launch`
+    makeWrapper ${python}/bin/python $out/bin/glade-dock \
+      "''${gappsWrapperArgs[@]}" \
+      --add-flags $out/share/glade/dock.py \
+      --set PYTHONDONTWRITEBYTECODE 1 \
+      --prefix PATH : ${lib.makeBinPath [ glib.bin ]}
+    makeWrapper ${python}/bin/python $out/libexec/glade-games \
+      "''${gappsWrapperArgs[@]}" \
+      --add-flags $out/share/glade/games.py \
+      --set PYTHONDONTWRITEBYTECODE 1
     makeWrapper ${python}/bin/python $out/bin/glade-status \
       --add-flags $out/share/glade/claude_state.py \
       --set PYTHONDONTWRITEBYTECODE 1
