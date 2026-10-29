@@ -41,7 +41,13 @@
       # His own vibe-coded app projects: the `vibe` command, ~/projects, and the dev
       # shells its .envrc files point at (customConfig.profiles.development.vibe-* in
       # ./profiles.nix). See docs/hosts/blaney-vibe-projects.md.
-      vibeProjects.enable = true;
+      vibeProjects = {
+        enable = true;
+        # His packaged apps are built from his project folders here, so a rebuild always
+        # installs his newest work. Their pins are only *releases* for Lando's machines and
+        # are never bumped to get a change onto this one (docs/companion-repos.md).
+        localApps = { glade = "glade"; r62d = "r62d"; };
+      };
       # The Batman (JAKKS TV game) with Lando: "The Batman: Join Online Game" in the start
       # menu, with the homelab VPN on. modules/nixos/programs/batman.nix.
       batman.enable = true;

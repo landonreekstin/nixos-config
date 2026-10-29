@@ -11,7 +11,7 @@
 # ~/.local/share/r62d/server.log. Friends on the VPN connect to this machine's VPN address.
 let
   cfg = config.customConfig.programs.r62d;
-  r62d = pkgs.callPackage ../../../pkgs/r62d { };
+  r62d = pkgs.callPackage ../../../pkgs/r62d (import ../../../pkgs/vibe-local-src.nix config.customConfig "r62d");
 
   launcher = pkgs.writeShellApplication {
     name = "r62d";

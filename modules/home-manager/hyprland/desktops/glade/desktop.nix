@@ -14,7 +14,7 @@
 let
   desktop = (import ../lib.nix { inherit lib; }).state customConfig "glade";
 
-  glade = pkgs.callPackage ../../../../../pkgs/glade { };
+  glade = pkgs.callPackage ../../../../../pkgs/glade (import ../../../../../pkgs/vibe-local-src.nix customConfig "glade");
   colors = import ./colors.nix;
   rgb = c: "rgb(${lib.removePrefix "#" c})";
 

@@ -23,7 +23,7 @@ let
   # docs/hosts/blaney-pc.md (and the blaney-todo preface prompts further down).
   # The Glade's Claude panel: its hooks and the rules telling Claude to use it live with the
   # rest of the glade desktop (hyprland/desktops/glade/claude-panel.nix).
-  gladePanel = import ../../home-manager/hyprland/desktops/glade/claude-panel.nix { inherit pkgs; };
+  gladePanel = import ../../home-manager/hyprland/desktops/glade/claude-panel.nix { inherit pkgs; customConfig = cfg; };
   gladeHooks = gladePanel.hooks;
   gladeStatus = gladePanel.status;
   notesList = "${cfg.user.home}/notes-list.txt"; # blaney-pc `add-notes` / `work-notes`
@@ -118,6 +118,35 @@ let
          reply instead of leaving it unanswered.
        - Open comments on a PR for a different `blaney/` branch: tell him in one sentence
          and offer to switch to that branch to deal with them first.
+
+    ## His own apps' pins are releases: never bump one along the way
+
+    His apps packaged here from his GitHub (`pkgs/glade`, `pkgs/r62d`, anything with
+    `owner = "cblaney00"`) are built on this computer from his project folders in
+    ~/projects (`localApps` in hosts/blaney-pc/apps.nix). A plain `rebuild` already
+    installs his newest version, whatever the pin says. The pin (`rev`, `hash`, `version`)
+    is only what Lando's machines get.
+
+    - **Never change a pin to get a change onto this computer**, and never put a pin change
+      in a branch that does anything else, cherry-picked or not. Every past PR that did
+      ended in merge conflicts.
+    - A pin moves only for a **release**: he says he wants Lando to have the current version
+      of an app ("release my glade app to Lando"). The app's project must be pushed to
+      GitHub first; pin the commit that is on GitHub's `main`.
+    - A release is its own PR, one app per PR, on `blaney/release-<app>`, cut fresh from
+      `origin/main` (`git switch -C blaney/release-<app> origin/main`), touching only
+      `pkgs/<app>/` (plus docs/companion-repos.md if it needs a note). Get the hash with
+      the `lib.fakeHash` build. Rebuild is not needed to verify it on this computer (it
+      builds from the folder anyway); build the pinned package instead:
+      `nix build --impure --no-link --expr '(builtins.getFlake (toString ./.)).inputs.nixpkgs.legacyPackages.x86_64-linux.callPackage ./pkgs/<app> { }'`.
+    - If a release PR for that app is already open, do not open a second one: re-cut the
+      same branch from `origin/main` with the new pin, `git push --force-with-lease`, and
+      update the PR's title and body. Do the same instead of rebasing whenever a release
+      branch is behind `main` or a catch-up rebase of it conflicts: a release branch is
+      never worth resolving, only re-cutting.
+    - A config change that needs a newer version of his app than the pin (it uses
+      something new in the app) still does not bump the pin. Say in its PR body that it
+      needs the release PR for that app merged first.
 
     ${gladePanel.ccnRules}'';
 
@@ -1396,8 +1425,10 @@ in
       app in ~/projects/<name>. With no "@", work out which from the note itself.
       If the note is about one of his own apps in ~/projects (for example his R6 game,
       r62d), make the change there instead, following that project's own CLAUDE.md and
-      docs/hosts/blaney-vibe-projects.md: commit to its main and push it. Only touch this
-      config (the branch below) if the app is packaged here and its pin needs bumping.
+      docs/hosts/blaney-vibe-projects.md: commit to its main and push it. Never bump the
+      app's pin in this config for it: this computer builds his packaged apps from
+      ~/projects, so the rebuild below installs the change by itself. A pin only moves for
+      a release he asks for, in its own PR, never in this notes branch.
 
       For a config change: work only in this worktree, $REPO, which is on the branch
       $BRANCH (never touch the main checkout at ${nixosConfigDir}; another chat uses it).

@@ -27,7 +27,7 @@ let
 
   # The Glade Claude-panel hooks every plain project session gets; game sessions pass
   # them through the gamedev launcher too.
-  panelHooks = (import ../../home-manager/hyprland/desktops/glade/claude-panel.nix { inherit pkgs; }).hooks;
+  panelHooks = (import ../../home-manager/hyprland/desktops/glade/claude-panel.nix { inherit pkgs; customConfig = cfg; }).hooks;
 
   # --- Text assets -----------------------------------------------------------------
   # Every multi-line text below is a writeText store file that the script `cat`s or
@@ -709,6 +709,20 @@ in
         Claude in the NixOS config with the host's config-session rules. Set by
         modules/nixos/common/commands.nix on blaney-pc (it is the menu `ccn` used to be,
         and needs that module's rules and helpers); null hides the entry.
+      '';
+    };
+
+    localApps = mkOption {
+      type = types.attrsOf types.str;
+      default = { };
+      example = { glade = "glade"; r62d = "r62d"; };
+      description = ''
+        Packaged vibe apps this host builds from the user's own project folder instead of
+        their fetchFromGitHub pin: package name (pkgs/<name>) -> folder under `dir`. Every
+        `rebuild` then installs whatever is in that folder, so his machine runs his newest
+        version with no pin bump, and the pin only moves when he releases a version for
+        other machines (docs/companion-repos.md). Resolved by pkgs/vibe-local-src.nix; a
+        package must take `localSrc` for this to reach it.
       '';
     };
 

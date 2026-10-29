@@ -8,9 +8,9 @@
 # the bar (hyprland/desktops/glade), passed in as GLADE_FONT.
 #
 # The source is his own vibe project, ~/projects/hud on blaney-pc, published as
-# github:cblaney00/glade; the program is its glade/ folder. To update: push the project's
-# main, then bump `rev`, `hash` and `version` (the commit date) — see
-# docs/companion-repos.md#glade.
+# github:cblaney00/glade; the program is its glade/ folder. blaney-pc builds it from that
+# folder (localSrc); the pin below is the release other machines get, bumped only in a
+# release PR of its own — see docs/companion-repos.md.
 #
 # It also carries the Claude panel's plumbing (claude_state.py in the source): `glade-status`,
 # which the panel's Claude Code hooks and Claude itself run, and share/glade/claude-hooks.json,
@@ -19,6 +19,7 @@
   lib,
   stdenvNoCC,
   fetchFromGitHub,
+  localSrc ? null,
   python3,
   gtk3,
   gtk-layer-shell,
@@ -35,9 +36,11 @@ let
 in
 stdenvNoCC.mkDerivation {
   pname = "glade";
-  version = "0-unstable-2026-10-28";
+  # The pin is his latest *release*. A host in vibeProjects.localApps passes his project
+  # folder as localSrc instead (pkgs/vibe-local-src.nix), so it runs his newest work.
+  version = if localSrc != null then "0-local" else "0-unstable-2026-10-28";
 
-  src = fetchFromGitHub {
+  src = if localSrc != null then localSrc else fetchFromGitHub {
     owner = "cblaney00";
     repo = "glade";
     rev = "ad00c3f9acc7b40774aa05e9f07fb9c045c42ac7";

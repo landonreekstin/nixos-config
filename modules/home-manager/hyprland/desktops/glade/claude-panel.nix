@@ -12,10 +12,10 @@
 #                call him to the terminal
 #   ccnRules   — the section about the panel in the config-chat rules
 #   vibeRules  — the same, shorter, for vibe projects' CLAUDE.md
-{ pkgs }:
+{ pkgs, customConfig }:
 
 let
-  glade = pkgs.callPackage ../../../../../pkgs/glade { };
+  glade = pkgs.callPackage ../../../../../pkgs/glade (import ../../../../../pkgs/vibe-local-src.nix customConfig "glade");
   gladeStatus = "${glade}/bin/glade-status";
 in
 {

@@ -149,6 +149,12 @@ push), then answered on the PR with `gh pr comment` saying what changed. That re
 the next catch-up knows a comment is handled. Comments on his other open PRs are mentioned,
 with an offer to switch over.
 
+The rules also cover **his own apps' pins** (`pkgs/glade`, `pkgs/r62d`): blaney-pc builds
+those from `~/projects`, so a pin is never bumped to get a change onto his computer, only
+for a release he asks for, in a PR of its own (`blaney/release-<app>`, cut fresh from
+`main`, nothing else in it). See
+[companion-repos.md](../companion-repos.md#insideabushs-apps-the-pin-is-a-release).
+
 **`ccnRules` is a copy of these rules, so change both together.**
 
 Two details that matter if you touch it:

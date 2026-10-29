@@ -10,7 +10,7 @@
 let
   desktop = (import ../lib.nix { inherit lib; }).state customConfig "glade";
   c = import ./colors.nix;
-  glade = pkgs.callPackage ../../../../../pkgs/glade { };
+  glade = pkgs.callPackage ../../../../../pkgs/glade (import ../../../../../pkgs/vibe-local-src.nix customConfig "glade");
 
   # Always in the dock, in this order (the apps the glade's boards open). Anything else
   # that is open joins on the end while it runs.

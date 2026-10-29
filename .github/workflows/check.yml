@@ -39,6 +39,48 @@ jobs:
           done
           exit $failed
 
+  release-pins:
+    name: App pin bumps are their own PR
+    # insideabush's apps (pkgs/<app> with owner = "cblaney00") are built from his project
+    # folders on blaney-pc, so their pins are *releases* for other machines. A pin bump
+    # riding along in a feature PR is what kept conflicting (#242, #248, #249), so a PR
+    # that moves one of those pins may change nothing but that one app's pkgs/<app>/ (and
+    # docs/companion-repos.md). Rules: docs/companion-repos.md.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check release PR shape
+        env:
+          BASE: origin/${{ github.base_ref }}
+        run: |
+          bumped=()
+          for f in $(git diff --name-only "$BASE"...HEAD -- 'pkgs/*/default.nix'); do
+            # a brand-new package (packaging PR) has nothing on the base side to compare
+            git show "$BASE:$f" 2>/dev/null | grep -q 'owner = "cblaney00"' || continue
+            if git diff "$BASE"...HEAD -- "$f" | grep -qE '^[-+][[:space:]]*rev = '; then
+              bumped+=("${f%default.nix}")
+            fi
+          done
+          [ ${#bumped[@]} -eq 0 ] && { echo "No app pin moved."; exit 0; }
+          echo "Pin moved for: ${bumped[*]}"
+          if [ ${#bumped[@]} -gt 1 ]; then
+            echo "::error::A release PR bumps one app. Split these into one PR each: ${bumped[*]}"
+            exit 1
+          fi
+          extra=$(git diff --name-only "$BASE"...HEAD |
+            grep -v -e "^${bumped[0]}" -e '^docs/companion-repos.md$' || true)
+          if [ -n "$extra" ]; then
+            echo "::error::This PR bumps the ${bumped[0]} pin and also changes other files. A pin bump is a release and goes in its own PR (blaney/release-<app>, cut from main); drop it from this one."
+            printf '  %s\n' $extra
+            exit 1
+          fi
+          echo "Release PR: only ${bumped[0]} changes."
+
   build:
     name: Build fragile derivations
     # Runs on the self-hosted runner on optiplex-nas — its Nix store is warm from the
