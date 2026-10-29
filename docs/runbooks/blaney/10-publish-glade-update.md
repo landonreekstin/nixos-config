@@ -9,16 +9,16 @@ amorphous blob…", commit 89b73e6 in PR #203) is in `pkgs/glade/src` but was **
 to `cblaney00/glade`, whose `main` is still `e7d5c2f`, and only Blaney's account can push there.
 
 **Where:**
-- `~/projects/hud` on blaney-pc — the project; its `glade/*.py` are the program
+- `~/projects/glade` on blaney-pc — the project; its `glade/*.py` are the program
 - `pkgs/glade/default.nix` and `pkgs/glade/src/` in nixos-config
 - `docs/companion-repos.md` — "Still vendored" list; add a `## glade` section
 
 **Do this:**
-1. In `~/projects/hud`: `git status` and `git log --oneline -5`; `git remote -v` should point
+1. In `~/projects/glade`: `git status` and `git log --oneline -5`; `git remote -v` should point
    at `cblaney00/glade`. Commit anything uncommitted under `glade/` (his project, his `main`,
    per `docs/hosts/blaney-vibe-projects.md`), then `git push origin main`.
 2. Confirm the published code is what blaney-pc runs today: every file in
-   `~/projects/hud/glade/*.py` at the pushed commit must be byte-identical to
+   `~/projects/glade/glade/*.py` at the pushed commit must be byte-identical to
    `pkgs/glade/src/*.py` on `origin/main` of nixos-config (`diff -r`). If they differ, stop
    and say which is newer — do not guess.
 3. On a `blaney/` branch from `origin/main`, change `pkgs/glade/default.nix` to

@@ -64,7 +64,7 @@ prints a `trace: warning: vibeProjects.localApps.<app>` line and falls back to t
 ## glade
 
 Source: `github:cblaney00/glade` (insideabush's own vibe project, checkout at
-`/home/insideabush/projects/hud` on blaney-pc; the program is its `glade/` folder)
+`/home/insideabush/projects/glade` on blaney-pc; the program is its `glade/` folder)
 Package: `pkgs/glade/default.nix`, used by `modules/home-manager/hyprland/desktops/glade/desktop.nix`
 
 The Glade, his pixel-art forest desktop. blaney-pc builds it from his project folder, and

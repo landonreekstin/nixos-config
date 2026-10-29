@@ -617,7 +617,20 @@ let
       exit 0
     fi
 
+    # His Glade (the desktop program, an ordinary vibe project) gets its own line at the
+    # top so he need not dig for it in the project list. Found by its GitHub repo
+    # being called "glade", so a renamed folder or title still matches.
+    GLADE_DIR=""
+    for m in "''${EXISTING[@]}"; do
+      case "$(git -C "$(dirname "$m")" remote get-url origin 2>/dev/null)" in
+        */glade|*/glade.git) GLADE_DIR=$(dirname "$m"); break ;;
+      esac
+    done
+
     declare -a TOP_LABELS=() TOP_ACTIONS=()
+    if [ -n "$GLADE_DIR" ]; then
+      TOP_LABELS+=("Work on your Glade"); TOP_ACTIONS+=(glade)
+    fi
     if [ -n "$CONFIG_CHAT" ]; then
       TOP_LABELS+=("Change or fix something on your computer"); TOP_ACTIONS+=(config)
     fi
@@ -653,6 +666,7 @@ let
     fi
 
     case "''${TOP_ACTIONS[$((TOP - 1))]}" in
+      glade) open_project "$GLADE_DIR" "the Glade" ;;
       config) exec "$CONFIG_CHAT" ;;
       pick) pick_project ;;
       new-app) new_project app ;;
