@@ -7,7 +7,7 @@ let
   # commit that adds it has actually been built on this machine — i.e. after an update.
   entriesJson = pkgs.writeText "release-notes.json" (builtins.toJSON cfg.entries);
 
-  # Same folder and the same title rule as `blaney-todo` (modules/nixos/common/commands.nix):
+  # Same folder and the same title rule as `blaney-todo` (modules/nixos/common/blaney-commands.nix):
   # every .md except README.md, titled by its first `# ` heading minus any "Runbook: ".
   runbookDir = ../../../docs/runbooks/blaney;
   runbookTitle = file:

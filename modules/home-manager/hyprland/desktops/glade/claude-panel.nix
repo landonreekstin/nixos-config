@@ -2,7 +2,7 @@
 #
 # The Glade's Claude panel (claude_panel.py in pkgs/glade): a small panel on insideabush's
 # lower screen for the Claude chat he has open. Not a module: the launchers that start
-# Claude import it, the NixOS ones (the config chat in common/commands.nix, vibe in
+# Claude import it, the NixOS ones (the config chat in common/blaney-commands.nix, vibe in
 # programs/vibe-projects.nix) as well as home-manager's vibe CLAUDE.md, so they all pass
 # the same hooks and tell Claude the same rules.
 #

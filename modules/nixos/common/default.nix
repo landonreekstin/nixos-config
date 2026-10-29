@@ -15,6 +15,7 @@
     ./lan-hosts.nix
     ./audio.nix
     ./commands.nix
+    ./blaney-commands.nix
     ./auto-update.nix
     ./home-manager.nix
   ];

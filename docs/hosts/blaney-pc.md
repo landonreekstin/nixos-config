@@ -119,6 +119,29 @@ insideabush's files (`modules/nixos/services/remote-admin.nix`):
   from 10.10.0.2/10.10.0.11 to 10.10.0.5 ahead of the `<restricted_peers>` block; and his
   NM profile's `allowed-ips` include those two addresses so WireGuard accepts them.
 
+## His commands
+
+Every command made for insideabush lives in **`modules/nixos/common/blaney-commands.nix`**,
+gated on `cfg.user.name == "insideabush"` so it is a no-op on every other host:
+`branch-switch`, `blaney-todo`, `add-notes`/`work-notes`, `smart-rebuild`,
+`claude-rebuild-failed`, `blaney-help`, the `vibe` config chat, and the deprecated shims.
+
+- **Create new blaney commands there and change existing ones there.** Never add one to
+  `modules/nixos/common/commands.nix` (the shared `rebuild`/`update`/`wt`, used by every
+  host) or as a shell function in `modules/home-manager/system/bash.nix`.
+- A command is a `(pkgs.writeShellScriptBin "<name>" '' … '')` entry in the module's
+  `environment.systemPackages` list. Shared values (`nixosConfigDir`, `userName`,
+  `gladeHooks`, `ccnRules`, …) are in the module's `let`.
+- Write it for him: plain-language messages, numbered menus rather than flags, and a clear
+  "tell Lando" when something fails.
+- **Every user-facing command gets a line in `blaney-help`** (at the bottom of the module) —
+  that is his command index — plus a release note
+  ([Release notes](#release-notes)).
+- **Renaming one?** Leave the old name as a short shim that says the new name and runs it
+  (see `sync` and `ccn`), so his muscle memory and older runbooks keep working.
+- Something the whole repo needs (lando's hosts too) is not a blaney command — it belongs in
+  `commands.nix`, which is lando's call.
+
 ## Claude in the config: `vibe` → "Change or fix something on your computer"
 
 **Everything he does with Claude starts at `vibe`**, whatever the project. Talking to
@@ -128,10 +151,10 @@ command, `ccn`.
 
 Everywhere else `ccn`/`ccnc`/`ccnr` are three shell functions (new / continue / resume) in
 `modules/home-manager/system/bash.nix`. On blaney-pc those functions are left out; the
-config chat is the `configChat` script in `modules/nixos/common/commands.nix`, handed to
-`vibe` through the internal `customConfig.programs.vibeProjects.configChat` option (it
-lives in commands.nix because it shares `ccnRules` with `work-notes` and the other blaney
-commands). Picking the entry opens a numbered menu to **start a new chat** (he types what
+config chat is the `configChat` script in `modules/nixos/common/blaney-commands.nix`, handed
+to `vibe` through the internal `customConfig.programs.vibeProjects.configChat` option (it
+lives with [his other commands](#his-commands) because it shares `ccnRules` with
+`work-notes`). Picking the entry opens a numbered menu to **start a new chat** (he types what
 he wants right there), **pick up where you left off**, or **look through older chats**.
 With no saved chats it goes straight to the new-chat question. `ccn`, `ccnc` and `ccnr`
 remain as shims that say where it moved and open `vibe`.
@@ -219,7 +242,7 @@ The loop:
 1. lando adds `docs/runbooks/blaney/<name>.md` on `main` and pushes
 2. insideabush runs `blaney-todo`, which fetches `origin/main`, lists the runbooks by
    number, and launches `claude` on the chosen one with the blaney-pc preface prompt
-   (defined in `modules/nixos/common/commands.nix` — keep it in sync with the rules above)
+   (defined in `modules/nixos/common/blaney-commands.nix` — keep it in sync with the rules above)
 3. Claude does the work on a `blaney/` branch and opens a PR
 4. **lando merges the PR and deletes the runbook file** — deleting it is the only thing
    that removes the task from the menu

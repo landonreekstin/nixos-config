@@ -144,7 +144,7 @@
       '';
       # His notes list as a tree squid holding a glowing scroll and quill (his pick):
       # opens add-notes and work-notes side by side
-      # (notes-windows in modules/nixos/common/commands.nix)
+      # (notes-windows in modules/nixos/common/blaney-commands.nix)
       home.file."Desktop/Notes.desktop".text = ''
         [Desktop Entry]
         Type=Application
