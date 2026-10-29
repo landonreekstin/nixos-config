@@ -29,6 +29,11 @@ commit date, and get `hash` with the `lib.fakeHash` build. Pin only commits whos
 out on a `blaney/` branch. Verify by logging into Hyprland on blaney-pc (the Glade on both
 monitors, a board click opens its app).
 
+The glade itself (not glade-status, games or dock) also follows `main` without a bump:
+`modules/home-manager/hyprland/desktops/glade/follow.nix` builds each new `main` commit into
+`~/.local/state/glade/latest` every two minutes, and Thunderstorm loads it. The pin is the
+fallback, so still bump it for anything outside the glade itself.
+
 ## r62d
 
 - **Repo:** `github.com/cblaney00/r62d` — insideabush's tactical 5v5 browser game (his vibe

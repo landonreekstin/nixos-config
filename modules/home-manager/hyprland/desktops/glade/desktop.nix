@@ -31,11 +31,25 @@ let
   # Each time round it starts the glade that is installed *now*, so after a rebuild the glade can
   # switch itself to the new version when his Thunderstorm button is pressed (resume.py in pkgs/glade)
   # and come back where it was, instead of needing a restart by hand.
+  # A build of github main (follow.nix) wins over the pin, and its bin goes first on PATH so
+  # resume.py counts it as installed. If it dies within 10s three times it is skipped until
+  # main moves again, and the pinned glade runs instead.
   gladeDesktop = pkgs.writeShellScriptBin "glade-desktop" ''
+    latest="$HOME/.local/state/glade/latest/bin"
+    bad="" fails=0
     while true; do
       exe="/etc/profiles/per-user/$USER/bin/glade"
       [ -x "$exe" ] || exe="${glade}/bin/glade"
-      "$exe" > "''${XDG_RUNTIME_DIR:-/tmp}/glade.log" 2>&1
+      target=$(readlink -f "$latest/glade" 2>/dev/null || true)
+      [ -n "$target" ] && [ "$target" != "$bad" ] && exe="$latest/glade"
+      start=$(date +%s)
+      PATH="$latest:$PATH" "$exe" > "''${XDG_RUNTIME_DIR:-/tmp}/glade.log" 2>&1
+      if [ "$exe" = "$latest/glade" ] && [ $(( $(date +%s) - start )) -lt 10 ]; then
+        fails=$((fails + 1))
+        [ "$fails" -ge 3 ] && bad="$target" fails=0
+      else
+        fails=0
+      fi
       sleep 1
     done
   '';

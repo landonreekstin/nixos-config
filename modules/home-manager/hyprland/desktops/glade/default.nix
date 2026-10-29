@@ -11,10 +11,12 @@
 #                  new windows taking the keyboard as they open (dock.py in pkgs/glade)
 # - snap.nix     — drag a window to the left or right edge and it fills that half
 # - games.nix    — the Games tab on the bar: every installed game as box art (games.py in pkgs/glade)
+# - follow.nix   — the glade follows github main by itself; Thunderstorm loads each new one
 { ... }:
 {
   imports = [
     ./desktop.nix
+    ./follow.nix
     ./dock.nix
     ./games.nix
     ./snap.nix
