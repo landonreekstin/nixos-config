@@ -81,7 +81,7 @@ doas pfctl -si                # statistics
 | Lando (gaming-pc) | 10.10.0.2 | Full | |
 | Lando (Android) | 10.10.0.3 | Full | full tunnel (0.0.0.0/0) |
 | Chris | 10.10.0.4 | Restricted | NAS only (192.168.1.76) |
-| Blaney | 10.10.0.5 | Restricted | NAS only. Re-keyed 2026-08-02 (`52c397b`); client is the declarative NM profile in `hosts/blaney-pc/networking.nix`, key in `secrets/blaney-pc.yaml`. Inbound exception: pf passes tcp/22 from 10.10.0.2/10.10.0.11 to it (lando's `ssh blaney`, see [hosts/blaney-pc.md](hosts/blaney-pc.md#lando-over-ssh)). **Wanted:** tcp/6262 from the same two, so lando can join Blaney's R62D game at `http://10.10.0.5:6262` (blaney-pc's own firewall already opens 6262 via `customConfig.programs.r62d.openFirewall`, and its WireGuard `allowedIPs` already route replies to those peers). |
+| Blaney | 10.10.0.5 | Restricted | NAS only. Re-keyed 2026-08-02 (`52c397b`); client is the declarative NM profile in `hosts/blaney-pc/networking.nix`, key in `secrets/blaney-pc.yaml`. Inbound exception: pf passes tcp/22 from 10.10.0.2/10.10.0.11 to it (lando's `ssh blaney`, see [hosts/blaney-pc.md](hosts/blaney-pc.md#lando-over-ssh)). Also tcp/6262 from the same two (lando joining an R62D game hosted on blaney-pc at `http://10.10.0.5:6262`); the shared server is now on mini-server, see [R62D](#r62d-port-6262). |
 | Emily | 10.10.0.6 | Restricted | NAS only |
 | Russell | 10.10.0.7 | Restricted | NAS only |
 | Cmoore | 10.10.0.8 | Restricted | NAS only |
@@ -89,7 +89,7 @@ doas pfctl -si                # statistics
 | Lando (gaming-pc wg-nas) | 10.10.0.11 | NAS Samba only | Dedicated LAN tunnel for encrypted SMB; allowed-ips 192.168.100.76/32. See `nasViaLanWg` in `hosts/gaming-pc/vars.nix`. |
 | AJ | 10.10.0.13 | Restricted | NAS only |
 
-Restricted peers can reach (all via the legacy 192.168.1.76 alias, rdr'd to the NAS at 192.168.100.76, except The Batman, which goes to gaming-pc): The Batman netplay (7845, see below), Jellyfin (8096), Jellyseerr (5055), article2pod/reader (8100) on the NAS, and game-control dashboard (8080) + Vaultwarden (8222) + browser-puck (8787, see below) on mini-server. Transmission is no longer exposed to restricted peers. All other traffic blocked via `<restricted_peers>` PF table.
+Restricted peers can reach (all via the legacy 192.168.1.76 alias, rdr'd to the NAS at 192.168.100.76, except The Batman, which goes to gaming-pc): The Batman netplay (7845, see below), Jellyfin (8096), Jellyseerr (5055), article2pod/reader (8100) on the NAS, and game-control dashboard (8080) + Vaultwarden (8222) + browser-puck (8787) + R62D (6262), both see below, on mini-server. Transmission is no longer exposed to restricted peers. All other traffic blocked via `<restricted_peers>` PF table.
 
 ## NAS-behind-firewall specifics
 
@@ -221,6 +221,22 @@ pass in quick on re0 proto tcp to $nas_legacy_ip port 8787 rdr-to 192.168.100.10
 
 Unlike The Batman, no tunnel trick is needed: mini-server already routes replies to
 `10.10.0.0/24` and `192.168.1.0/24` through optiplex-fw, as it does for game-control.
+
+### R62D (port 6262)
+
+insideabush's 5v5 browser game (`modules/nixos/homelab/r62d.nix`) runs on mini-server as one
+shared server, so every VPN client plays in the same lobby. Everyone opens
+**`http://192.168.1.76:6262`**, the one address restricted peers route; the page's WebSocket is
+on the same origin. Same shape as browser-puck, placed before the `<restricted_peers>` block:
+
+```
+pass in quick on wg0    proto tcp from 10.10.0.0/24 to $nas_legacy_ip port $r62d_port rdr-to $mini_server keep state
+pass in      on $ext_if proto tcp from $lan_net     to $nas_legacy_ip port $r62d_port rdr-to $mini_server keep state
+```
+
+Nothing from the internet: the Spectrum router forwards nothing to 6262 and there is no
+`($ext_if)` rdr. mini-server routes replies to `10.10.0.0/24` and `192.168.1.0/24` back through
+optiplex-fw. Profiles (by name, no password) and match history are in `/var/lib/r62d`.
 
 ### Hairpin NAT Limitation
 
