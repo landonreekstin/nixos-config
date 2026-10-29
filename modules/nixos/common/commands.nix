@@ -1346,9 +1346,9 @@ in
 
       echo "Claude is working through your notes list by itself. Leave this window open."
       echo "Add notes with the add-notes command in another terminal. Close this window to stop."
-      # The Glade panel's bar covers the notes since the list last ran dry: DONE_N of TOTAL.
-      # When notes are added mid-way the bar is started again at the bigger total and
-      # stepped back up to where it was (glade-status has no "set" command).
+      # The Glade panel's bar covers the notes since the list last ran dry: DONE_N of TOTAL,
+      # started again at the current total and stepped back up to DONE_N each time
+      # (glade-status has no "set" command).
       WAITING_SHOWN="" DONE_N=0 TOTAL=0
       export SUDO_USER="''${SUDO_USER:-${userName}}" # glade-status finds his home through it
       shopt -s lastpipe # the token reader at the end of the claude pipeline sets NOTE_TOK
@@ -1368,15 +1368,16 @@ in
         WAITING_SHOWN=""
         NOTE=$(sed -n "''${N}p" "$LIST" | cut -c5-)
         mark "$N" "[~]"
-        WANT=$((DONE_N + $(grep -c '^\[[ ~]\]' "$LIST")))
-        if [ "$WANT" -ne "$TOTAL" ]; then
-          TOTAL=$WANT
-          st title "Working on your notes"
+        TOTAL=$((DONE_N + $(grep -c '^\[[ ~]\]' "$LIST")))
+        # Each new claude resets the panel as it starts (its SessionStart hook), so the bar
+        # is put back a few seconds later, and again every half minute in case.
+        bar() {
+          st title "Working on your notes ($((DONE_N + 1)) of $TOTAL)"
           st progress "$TOTAL" "$NOTE"
           for _ in $(seq "$DONE_N"); do st step "" "$NOTE"; done
-        elif [ "$DONE_N" -gt 0 ]; then
-          st step "$PREV" "$NOTE"
-        fi
+        }
+        ( sleep 5; while :; do bar; sleep 30; done ) &
+        BAR_PID=$!
         echo
         echo "=== Working on: $NOTE ==="
 
@@ -1449,6 +1450,7 @@ in
               esac
             done
         RC=''${PIPESTATUS[0]}
+        kill "$BAR_PID" 2>/dev/null
         # Today's total, kept across windows in "<date> <tokens>".
         TOKFILE="${cfg.user.home}/.local/state/work-notes-tokens"
         read -r TDAY TTOK < "$TOKFILE" 2>/dev/null || true
@@ -1465,7 +1467,7 @@ in
           mark "$N" "[!]"
           echo "=== Claude couldn't finish this one (marked [!] in your list): $NOTE $TOKS ==="
         fi
-        DONE_N=$((DONE_N + 1)) PREV="$NOTE"
+        DONE_N=$((DONE_N + 1))
       done
     '')
 
