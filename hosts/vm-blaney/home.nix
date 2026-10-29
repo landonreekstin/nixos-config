@@ -8,6 +8,12 @@
     services.rebuildShutdownNotify.enable = true;
     # Mirror blaney-pc: offer to update first at shutdown when main has new commits.
     services.shutdownGuard.enable = true;
+    # Mirror blaney-pc: the release-notes popup, with his real notes.
+    services.releaseNotes = {
+      enable = true;
+      entries = import ../blaney-pc/release-notes.nix;
+      showNewTasks = true;
+    };
     hyprland.desktops.enabled = [ "glade" ]; # mirrors blaney-pc
     themes = {
       # XFCE windows7 taskbar — mirror blaney-pc EXACTLY so the pre-PR VM check shows his
