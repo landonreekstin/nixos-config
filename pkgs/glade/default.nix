@@ -16,6 +16,10 @@
 # the title bars' minimise button, hyprland/desktops/glade/dock.nix) and libexec/glade-games
 # (games.py: the bar's Games panel; games.nix wraps it with its stylesheet).
 #
+# `glade` alone is the desktop (only looks); `glade --game` is the game, which takes the
+# desktop's place under a running Glade desktop on Hyprland and is an ordinary window
+# (class glade-world) anywhere else. Its menu entry, "The Glade", runs `glade --game`.
+#
 # It also carries the Claude panel's plumbing (claude_state.py in the source): `glade-status`,
 # which the panel's Claude Code hooks and Claude itself run, and share/glade/claude-hooks.json,
 # the hooks, passed with `--settings` by the blaney-pc launchers (ccn, vibe, blaney-todo).
@@ -30,6 +34,8 @@
   gobject-introspection,
   wrapGAppsHook3,
   makeWrapper,
+  makeDesktopItem,
+  copyDesktopItems,
   glib,
   librsvg,
   wmctrl,
@@ -49,12 +55,12 @@ stdenvNoCC.mkDerivation {
   src = if localSrc != null then localSrc else fetchFromGitHub {
     owner = "cblaney00";
     repo = "glade";
-    rev = "d21e70e0b0d93c4e744ac20db6df299256cf818d";
-    hash = "sha256-5rPFH+xR/tk8nX4spwVumV2LcdWz7wz7T0TRhEPF8j0=";
+    rev = "165675c961bfbf41f4d8ef624cb0c4786cff668c";
+    hash = "sha256-ecEx7EDGrW1u01Dz2PlS2er/RJzjbY7pZy1IsBWFwUw=";
   };
   sourceRoot = "source/glade";
 
-  nativeBuildInputs = [ wrapGAppsHook3 gobject-introspection makeWrapper ];
+  nativeBuildInputs = [ wrapGAppsHook3 gobject-introspection makeWrapper copyDesktopItems ];
   # gtk-layer-shell's typelib is what lets the GTK side make a desktop-layer surface;
   # librsvg draws the Games panel's SVG icons.
   buildInputs = [ gtk3 gtk-layer-shell librsvg ];
@@ -62,6 +68,18 @@ stdenvNoCC.mkDerivation {
   # Wrap the python entry point by hand, so the GI typelib paths wrapGAppsHook3
   # collects end up on it.
   dontWrapGApps = true;
+
+  desktopItems = [
+    (makeDesktopItem {
+      name = "glade-game";
+      desktopName = "The Glade";
+      comment = "Explore the forest, battle and fill the Dex";
+      exec = "glade --game";
+      icon = "applications-games";
+      categories = [ "Game" ];
+      startupWMClass = "glade-world";
+    })
+  ];
 
   installPhase = ''
     runHook preInstall
