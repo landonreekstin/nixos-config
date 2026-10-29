@@ -707,7 +707,7 @@ in
       description = ''
         Script behind the top-level "Change or fix something on your computer" entry:
         Claude in the NixOS config with the host's config-session rules. Set by
-        modules/nixos/common/commands.nix on blaney-pc (it is the menu `ccn` used to be,
+        modules/nixos/common/blaney-commands.nix on blaney-pc (it is the menu `ccn` used to be,
         and needs that module's rules and helpers); null hides the entry.
       '';
     };

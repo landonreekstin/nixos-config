@@ -45,7 +45,7 @@ from the folder, nothing but a release has a reason to touch the pin.
 
 The rules are in the three places his sessions read: `~/projects/CLAUDE.md`
 (`modules/home-manager/development/vibe-projects.nix`), the config chat's `ccnRules` and
-the `work-notes` prompt (both `modules/nixos/common/commands.nix`).
+the `work-notes` prompt (both `modules/nixos/common/blaney-commands.nix`).
 
 To check what blaney-pc would build without being on it, point the config at a scratch
 copy of `~/projects`:

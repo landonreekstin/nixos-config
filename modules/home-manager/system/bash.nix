@@ -41,7 +41,7 @@ in
     };
 
     # On blaney-pc these three are the config-chat entry of `vibe` instead, which also hands every
-    # chat the blaney-pc rules (modules/nixos/common/commands.nix). A shell function would
+    # chat the blaney-pc rules (modules/nixos/common/blaney-commands.nix). A shell function would
     # shadow the shim commands pointing him there, so they are left out.
     initExtra = lib.optionalString (customConfig.user.name != "insideabush") ''
       ccnc() {
@@ -64,14 +64,8 @@ in
         cd "$HOME/nixos-config" && sudo claude -r
       }
     '' + ''
-      claude-rebuild-failed() {
-        cd "$HOME/nixos-config" && sudo claude "A NixOS rebuild failed. Run \`rebuild\` to reproduce the error, diagnose the cause, and fix it. Then create a PR with the fix. This is a blaney-pc session: follow all blaney-pc rules in CLAUDE.md (branch prefix blaney/, never push to main). Keep all explanations brief and simple — the user is non-technical and does not know Nix, Linux, or code, so do not rely on their knowledge or ask them to make technical decisions. Take full ownership of every technical decision and recommendation and just get the system working. Lando reviews and approves the PR, so make the best call and proceed."
-      }
       claude-auto-update-failed() {
         cd "$HOME/nixos-config" && sudo claude "The latest weekly auto-update PR failed CI. Investigate the failure (check the open 'chore(flake): weekly update' PR with gh pr checks / CI logs), diagnose the cause, and fix it on the update/* branch. See the 'Automated Weekly Flake Updates' section in CLAUDE.md for the workflow. Keep me posted with a brief summary of what broke and how you fixed it."
-      }
-      smart-rebuild() {
-        cd "$HOME/nixos-config" && sudo claude "Do a smart rebuild. This is a blaney-pc session — follow all blaney-pc rules in CLAUDE.md (branch prefix blaney/, never push to main), keep every explanation brief and simple for a non-technical user, and take full ownership of every technical decision. Never discard, delete, or overwrite any branch, commit, or stash without asking the user first. Steps: 1) Run git fetch and git stash list, and note the current branch. 2) Check for any work-in-progress (uncommitted or unpushed) changes on the current branch; if there are any, decide the best way to preserve them — stash them, commit them to the current branch, or open a WIP PR — and tell the user in one sentence what you did and where their work now lives. If git stash list showed pre-existing saved changes from an earlier session, mention them so they aren't forgotten. 3) Switch to main and pull the latest. 4) Run \`rebuild\`. 5) If the rebuild fails, diagnose and fix the error, rebuild again until it succeeds, and open a PR with the fix. 6) After the rebuild succeeds, ask the user whether they want to go back to what they were working on before (switch back to their WIP branch, or restore a saved stash including any pre-existing one) or stay on the latest main, then do whatever they choose. Lando reviews and approves all PRs, so make the best call and proceed."
       }
     '';
 
