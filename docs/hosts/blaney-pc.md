@@ -44,7 +44,7 @@ When running on the `blaney-pc` host, apply these additional guidelines:
 - insideabush's Claude sessions CANNOT: push to `main`, push to any non-`blaney/` branch, merge a `blaney/` branch into a non-`blaney/` branch
 - When insideabush confirms a feature is working and acceptable: open a PR from the `blaney/` branch to `main` via `gh pr create`
 - **Never merge the PR** — lando (`landonreekstin`) merges all PRs from blaney-pc
-- **Lando's PR comments come first**: whenever work starts or continues, check the open `blaney/` PRs for comments and reviews from `landonreekstin`, make the requested changes or fixes on that branch, push, and reply on the PR saying what was done (see the catch-up procedure under [`ccn`](#claude-in-the-config-ccn))
+- **Lando's PR comments come first**: whenever work starts or continues, check the open `blaney/` PRs for comments and reviews from `landonreekstin`, make the requested changes or fixes on that branch, push, and reply on the PR saying what was done (see the catch-up procedure under [the config chat](#claude-in-the-config-vibe--change-or-fix-something-on-your-computer))
 
 **Safety**:
 - Always use `nixos-rebuild test` before `rebuild` for significant changes, so insideabush can verify before permanently switching
@@ -119,14 +119,22 @@ insideabush's files (`modules/nixos/services/remote-admin.nix`):
   from 10.10.0.2/10.10.0.11 to 10.10.0.5 ahead of the `<restricted_peers>` block; and his
   NM profile's `allowed-ips` include those two addresses so WireGuard accepts them.
 
-## Claude in the config: `ccn`
+## Claude in the config: `vibe` → "Change or fix something on your computer"
+
+**Everything he does with Claude starts at `vibe`**, whatever the project. Talking to
+Claude about the computer itself — the NixOS config — is the first entry of `vibe`'s
+top-level menu, "Change or fix something on your computer". It used to be its own
+command, `ccn`.
 
 Everywhere else `ccn`/`ccnc`/`ccnr` are three shell functions (new / continue / resume) in
-`modules/home-manager/system/bash.nix`. On blaney-pc those functions are left out and
-`ccn` is a command in `modules/nixos/common/commands.nix` instead, built like `vibe`: a
-numbered menu to **start a new chat** (he types what he wants right there), **pick up where
-you left off**, or **look through older chats**. With no saved chats it goes straight to
-the new-chat question. `ccnc` and `ccnr` remain as shims that say so and open `ccn`.
+`modules/home-manager/system/bash.nix`. On blaney-pc those functions are left out; the
+config chat is the `configChat` script in `modules/nixos/common/commands.nix`, handed to
+`vibe` through the internal `customConfig.programs.vibeProjects.configChat` option (it
+lives in commands.nix because it shares `ccnRules` with `work-notes` and the other blaney
+commands). Picking the entry opens a numbered menu to **start a new chat** (he types what
+he wants right there), **pick up where you left off**, or **look through older chats**.
+With no saved chats it goes straight to the new-chat question. `ccn`, `ccnc` and `ccnr`
+remain as shims that say where it moved and open `vibe`.
 
 Every chat it opens — resumed ones included — runs with `ccnRules` appended to the system
 prompt: a summary of the rules on this page plus a **catch-up procedure** that runs before

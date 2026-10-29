@@ -82,7 +82,8 @@ let
         screen any other way.'';
     missingToolRule = ''
       If a tool is missing, do not install anything; tell him in one sentence to close
-      this and run `ccn` to ask for it.'';
+      this, run `vibe` and choose "Change or fix something on your
+      computer" to ask for it.'';
   } + ''
 
     *(End of the game-projects section.)*
@@ -124,7 +125,8 @@ let
         on purpose.'';
     missingToolRule = ''
       If a tool is missing, do not install anything; tell him in one sentence to close
-      this and run `ccn` to ask for it.'';
+      this, run `vibe` and choose "Change or fix something on your
+      computer" to ask for it.'';
   };
 
   # THE rules for any Claude session in a vibe project, and the reason they live one
@@ -202,8 +204,8 @@ let
 
     Better still, **do not go into the config from a project session at all** — the one
     exception is the catch-up step below. If the app needs something from the system,
-    finish what you can here and tell him in one sentence to close this and run `ccn`
-    instead — that opens Claude in the config folder, where the config rules are the ones
+    finish what you can here and tell him in one sentence to close this, run `vibe` and
+    choose "Change or fix something on your computer" instead — that opens Claude in the config folder, where the config rules are the ones
     loaded.
 
     ## Keep his computer caught up with `main` — every time work continues
@@ -223,8 +225,8 @@ let
        - `main`: `git -C ${configDir} merge --ff-only origin/main`.
        - a `blaney/` branch: `git -C ${configDir} rebase origin/main`. If the rebase stops
          on a conflict, run `git -C ${configDir} rebase --abort`, leave the config alone,
-         and tell him in one sentence to run `ccn` later and say "my config branch can't
-         catch up with main". If it succeeded and the branch is on GitHub
+         and tell him in one sentence to run `vibe` later, choose "Change or fix something
+         on your computer", and say "my config branch can't catch up with main". If it succeeded and the branch is on GitHub
          (`git -C ${configDir} rev-parse --abbrev-ref @{upstream}` works), push it with
          `git -C ${configDir} push --force-with-lease`. Pushing a `blaney/` branch is
          allowed; this is never a push to `main`.
@@ -232,8 +234,9 @@ let
     4. If that moved the config at all, run `chown -R ${userName}:users ${configDir}` and
        then `cd ${configDir} && rebuild` (no `sudo` — `rebuild` handles that itself), then
        `cd` back to the project. If the rebuild fails, his computer simply stays as it was:
-       tell him in one sentence to run `ccn` later and say "rebuild failed after catching
-       up with main", and carry on with the app.
+       tell him in one sentence to run `vibe` later, choose "Change or fix something on
+       your computer", and say "rebuild failed after catching up with main", and carry on
+       with the app.
 
     Never resolve conflicts, edit config files, or commit to the config as part of this.
     It is a catch-up only.
@@ -298,8 +301,8 @@ let
     does not happen here. If the project has no GitHub repo yet, make one first (see "Where
     his app's code is allowed to live" — ask him, since it puts his code on the internet)
     and push `main` to it. Then tell him, in one sentence: close this, open a terminal, run
-    `ccn`, and say "package my <name> app from github.com/cblaney00/<folder> as a real
-    app". That reuses the normal `blaney/`-branch-and-PR path with the right rules loaded.
+    `vibe`, choose "Change or fix something on your computer", and say "package my <name>
+    app from github.com/cblaney00/<folder> as a real app". That reuses the normal `blaney/`-branch-and-PR path with the right rules loaded.
 
     ## Other things to know
 
@@ -307,7 +310,8 @@ let
       homelab, the NAS, or anything on lando's LAN. Do not write steps that need them.
     - If a project needs a library the dev shell does not have, do **not** install it
       system-wide and do not fight it with pip or npm. Prefer something the shell already
-      covers; if that is impossible, say so and point him at `ccn`.
+      covers; if that is impossible, say so and point him at
+      `vibe` → "Change or fix something on your computer".
     - Keep anything long in the project's `docs/` folder, and keep its `CLAUDE.md` current.
       A future session starts by reading them.
   '' + lib.optionalString gdEnabled gameRulesText
