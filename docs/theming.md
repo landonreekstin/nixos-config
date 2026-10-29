@@ -467,7 +467,7 @@ unset.
 
 `customConfig.homeManager.hyprland.desktops.enabled = [ "glade" ]` (blaney-pc, mirrored on vm-blaney)
 makes the Hyprland session insideabush's **Glade**: his own pixel-art forest scene
-(`pkgs/glade`, pinned from `github:cblaney00/glade`, his `~/projects/hud`, see
+(`pkgs/glade`, pinned from `github:cblaney00/glade`, his `~/projects/glade`, see
 [blaney-vibe-projects.md](hosts/blaney-vibe-projects.md#packaging-a-finished-app)) as the
 desktop on both monitors, and a session he can drive with the **mouse alone** — or steer
 from the keyboard — every target labelled in words. He asked for exactly that, and chose
@@ -495,7 +495,7 @@ Behaviour worth knowing before changing it:
 - **Every place and app has a fixed name board** drawn by the glade itself (Departure
   Mono, passed to the package as `GLADE_FONT`); they never move, and the board is
   clickable as well as the object. The scene's own docs (how the lighting works, what
-  each file holds) are in its `CLAUDE.md` in `~/projects/hud` on blaney-pc.
+  each file holds) are in its `CLAUDE.md` in `~/projects/glade` on blaney-pc.
 - **"Glade" button = `glade-show`.** Hyprland has no minimise, so every monitor that has
   windows moves to a fresh empty workspace (ids from 100, clear of any workspace rule);
   the windows stay where they were and the bar's `wlr/taskbar` list brings them back

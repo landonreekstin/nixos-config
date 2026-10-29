@@ -16,11 +16,11 @@ or set `hash = lib.fakeHash;`, build, and copy the real hash out of the mismatch
 ## glade
 
 Source: `github:cblaney00/glade` (insideabush's own vibe project, checkout at
-`/home/insideabush/projects/hud` on blaney-pc; the program is its `glade/` folder)
+`/home/insideabush/projects/glade` on blaney-pc; the program is its `glade/` folder)
 Package: `pkgs/glade/default.nix`, used by `modules/home-manager/hyprland/desktops/glade/desktop.nix`
 
 The Glade, his pixel-art forest desktop. Only his GitHub account can push to the repo, so a
-bump happens on blaney-pc: commit in `~/projects/hud` (his project, his `main` — see
+bump happens on blaney-pc: commit in `~/projects/glade` (his project, his `main` — see
 [blaney-vibe-projects.md](hosts/blaney-vibe-projects.md)) and push it as him
 (`sudo -u insideabush -H git -c credential.helper='!gh auth git-credential' push origin main`
 — `gh` is signed in as `cblaney00`). Then set `rev` to the pushed sha, `version` to its

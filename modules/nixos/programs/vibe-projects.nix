@@ -618,7 +618,7 @@ let
     fi
 
     # His Glade (the desktop program, an ordinary vibe project) gets its own line at the
-    # top so he need not dig for it under its old project name. Found by its GitHub repo
+    # top so he need not dig for it in the project list. Found by its GitHub repo
     # being called "glade", so a renamed folder or title still matches.
     GLADE_DIR=""
     for m in "''${EXISTING[@]}"; do
