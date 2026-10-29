@@ -7,7 +7,7 @@
 # It is always night there; its name banners use Departure Mono, the same pixel font as
 # the bar (hyprland/desktops/glade), passed in as GLADE_FONT.
 #
-# The source is his own vibe project, ~/projects/hud on blaney-pc, published as
+# The source is his own vibe project, ~/projects/glade on blaney-pc, published as
 # github:cblaney00/glade; the program is its glade/ folder. blaney-pc builds it from that
 # folder (localSrc); the pin below is the release other machines get, bumped only in a
 # release PR of its own — see docs/companion-repos.md.
