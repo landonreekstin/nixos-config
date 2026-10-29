@@ -69,6 +69,20 @@ path `/home/lando/xbox360-dashboard` and repo name `xbox360-dashboard`, and bump
 `customConfig.homeManager.themes.xbox360.devSource = "/home/lando/xbox360-dashboard";` in the
 host and `rebuild` (never commit it). Verify by logging into "Xbox 360 Dashboard".
 
+## steel-horizon-recomp
+
+Source: `github:landonreekstin/steel-horizon-recomp`
+Package: `pkgs/steel-horizon/default.nix`, used by `modules/nixos/programs/steel-horizon.nix`
+
+Steel Horizon RTS, the naval battle game on the PSP game's assets. Bump like hyprland-keys
+below, with repo path `/home/lando/reverse-engineering/steel-horizon-recomp` and repo name
+`steel-horizon-recomp`, and bump `version` (the date). The ISO is not in the package: it
+sits in the NAS public drop (`/mnt/nas/public/steel-horizon/steel-horizon.iso` from
+gaming-pc) and the launcher rebuilds `~/.local/share/steel-horizon/assets` from it whenever
+the package path changes, so a bump also picks up new asset tools. Online games are
+lockstep: players need the same pin. Verify with `steel-horizon` from the start menu
+(first run: download and unpack, then the game's menu).
+
 ## jakks-batman-recomp
 
 Source: `github:landonreekstin/jakks-batman-recomp`
