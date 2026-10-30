@@ -5,6 +5,14 @@
 # New blaney-todo tasks are listed automatically — don't add notes for them.
 [
   {
+    date = "2026-10-30";
+    changes = [
+      "VibeNote is now a proper app: open it from your app menu like any other."
+      "VibeNote is in your dock and has its own tree squid in the Glade."
+      "VibeNote has its own icon now: a glowing green notepad."
+    ];
+  }
+  {
     date = "2026-10-29";
     changes = [
       "The Notes icon is gone from your desktop. Your notes list and the add-notes / work-notes commands still work."

@@ -23,6 +23,7 @@ let
     "steam.desktop"
     # his own app (hosts/blaney-pc/home.nix); a favourite that isn't installed is skipped
     "f-117.desktop"
+    "vibenote.desktop" # his VibeNote app (modules/nixos/programs/vibenote.nix)
   ];
 
 
