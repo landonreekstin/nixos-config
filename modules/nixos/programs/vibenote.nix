@@ -14,6 +14,8 @@ let
     exec = "vibenote";
     icon = "accessories-text-editor";
     categories = [ "Utility" ];
+    # its Tk window's class (main.py), so the Glade's dock can tell the window is VibeNote's
+    startupWMClass = "vibenote";
   };
 in
 {

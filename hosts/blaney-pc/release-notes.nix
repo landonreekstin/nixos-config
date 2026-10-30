@@ -8,6 +8,7 @@
     date = "2026-10-30";
     changes = [
       "VibeNote is now a proper app: open it from your app menu like any other."
+      "VibeNote is in your dock and has its own tree squid in the Glade."
     ];
   }
   {

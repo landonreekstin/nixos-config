@@ -142,6 +142,17 @@
         Terminal=false
         StartupWMClass=${f117.settings.StartupWMClass}
       '';
+      # VibeNote (modules/nixos/programs/vibenote.nix) on his Desktop too, for its tree squid
+      home.file."Desktop/VibeNote.desktop".text = ''
+        [Desktop Entry]
+        Type=Application
+        Name=VibeNote
+        Comment=Notes for each of your projects, sent to Claude in batches
+        Exec=vibenote
+        Icon=accessories-text-editor
+        Terminal=false
+        StartupWMClass=vibenote
+      '';
       # Open one fresh Dolphin window like Explorer/Finder, not every tab from last time.
       # plasma-manager writes this as a key, not a symlink, since Dolphin rewrites
       # dolphinrc itself.
