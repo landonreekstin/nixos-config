@@ -12,7 +12,7 @@ let
     desktopName = "VibeNote";
     comment = "Notes for each of your projects, sent to Claude in batches";
     exec = "vibenote";
-    icon = "accessories-text-editor";
+    icon = "vibenote"; # pkgs/vibenote installs it from assets/icon.svg
     categories = [ "Utility" ];
     # its Tk window's class (main.py), so the Glade's dock can tell the window is VibeNote's
     startupWMClass = "vibenote";

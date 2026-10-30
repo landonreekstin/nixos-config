@@ -9,6 +9,7 @@
     changes = [
       "VibeNote is now a proper app: open it from your app menu like any other."
       "VibeNote is in your dock and has its own tree squid in the Glade."
+      "VibeNote has its own icon now: a glowing green notepad."
     ];
   }
   {

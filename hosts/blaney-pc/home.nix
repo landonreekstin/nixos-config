@@ -149,7 +149,7 @@
         Name=VibeNote
         Comment=Notes for each of your projects, sent to Claude in batches
         Exec=vibenote
-        Icon=accessories-text-editor
+        Icon=vibenote
         Terminal=false
         StartupWMClass=vibenote
       '';

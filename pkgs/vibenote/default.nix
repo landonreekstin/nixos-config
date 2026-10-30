@@ -38,6 +38,10 @@ stdenvNoCC.mkDerivation {
     runHook preInstall
     mkdir -p $out/share/vibenote
     cp main.py projects.py sender.py store.py open_chat.sh $out/share/vibenote/
+    # its own icon (his pick: a glowing green notepad); a release from before it had none
+    if [ -f assets/icon.svg ]; then
+      install -Dm644 assets/icon.svg $out/share/icons/hicolor/scalable/apps/vibenote.svg
+    fi
     makeWrapper ${python}/bin/python $out/bin/vibenote \
       --add-flags $out/share/vibenote/main.py \
       --prefix PATH : ${lib.makeBinPath [ git ]}
