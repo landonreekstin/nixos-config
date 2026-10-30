@@ -87,7 +87,11 @@ doas pfctl -si                # statistics
 | Cmoore | 10.10.0.8 | Restricted | NAS only |
 | Alex | 10.10.0.10 | Restricted | NAS only |
 | Lando (gaming-pc wg-nas) | 10.10.0.11 | NAS Samba only | Dedicated LAN tunnel for encrypted SMB; allowed-ips 192.168.100.76/32. See `nasViaLanWg` in `hosts/gaming-pc/vars.nix`. |
+| Heather | 10.10.0.12 | Restricted | NAS only |
 | AJ | 10.10.0.13 | Restricted | NAS only |
+| Henry | 10.10.0.14 | Restricted | NAS only |
+| Lucas | 10.10.0.15 | Restricted | NAS only |
+| Justus | 10.10.0.16 | Restricted | NAS only |
 
 Restricted peers can reach (all via the legacy 192.168.1.76 alias, rdr'd to the NAS at 192.168.100.76, except The Batman, which goes to gaming-pc): The Batman netplay (7845, see below), Jellyfin (8096), Jellyseerr (5055), article2pod/reader (8100) on the NAS, and game-control dashboard (8080) + Vaultwarden (8222) + browser-puck (8787) + R62D (6262), both see below, on mini-server. Transmission is no longer exposed to restricted peers. All other traffic blocked via `<restricted_peers>` PF table.
 
