@@ -7,6 +7,7 @@
   {
     date = "2026-10-29";
     changes = [
+      "The Notes icon is gone from your desktop. Your notes list and the add-notes / work-notes commands still work."
       "After an update, this window now tells you what Lando changed. Type whats-new to see it again."
       "Lando moved your commands (blaney-todo, branch-switch, add-notes, smart-rebuild and the rest) to a new home and couldn't test it on your PC. If one of them acts strangely, that's probably why. Tell Claude in vibe or tell Lando."
     ];
