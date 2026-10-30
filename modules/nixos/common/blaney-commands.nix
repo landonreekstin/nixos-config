@@ -127,7 +127,7 @@ let
 
     ## His own apps' pins are releases: never bump one along the way
 
-    His apps packaged here from his GitHub (`pkgs/glade`, `pkgs/r62d`, anything with
+    His apps packaged here from his GitHub (`pkgs/glade`, `pkgs/r62d`, `pkgs/vibenote`, anything with
     `owner = "cblaney00"`) are built on this computer from his project folders in
     ~/projects (`localApps` in hosts/blaney-pc/apps.nix). A plain `rebuild` already
     installs his newest version, whatever the pin says. The pin (`rev`, `hash`, `version`)

@@ -11,6 +11,7 @@
     ./steel-horizon.nix
     ./sub-of-seas.nix
     ./r62d.nix
+    ./vibenote.nix
     ./quiver.nix
     ./claude-code.nix
     ./vibe-projects.nix
