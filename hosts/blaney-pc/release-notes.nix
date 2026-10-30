@@ -7,6 +7,7 @@
   {
     date = "2026-10-30";
     changes = [
+      "Sub of Seas got a big update: sounds, music, a settings menu, bot crewmen and a rec room. It also starts without the homelab VPN now (you still need it to join Lando)."
       "VibeNote is now a proper app: open it from your app menu like any other."
       "VibeNote is in your dock and has its own tree squid in the Glade."
       "VibeNote has its own icon now: a glowing green notepad."

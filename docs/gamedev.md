@@ -75,13 +75,13 @@ repo allows merge commits only and deletes branches once they're merged.
 
 Godot export templates aren't installed, but a Godot **pack** (`.pck`, just the project's
 files) exports without them and runs on any machine with the same Godot:
-`godot --main-pack game.pck`. Sub of Seas ships that way. `tools/publish.sh` in the game
-repo exports the pack to the NAS public drop (`/mnt/nas/public/sub-of-seas/`, served at
-`http://192.168.1.76/public/sub-of-seas/`), and `customConfig.programs.sub-of-seas`
-(`modules/nixos/programs/sub-of-seas.nix`, on gaming-pc and blaney-pc) installs a
-`sub-of-seas` launcher that downloads a new pack whenever its SHA-256 changes and runs it on
-`unstable.godot_4`. New builds reach Blaney without a rebuild on his side. Its online port is
-7845, so it rides the existing Batman forward from optiplex-fw to gaming-pc over the VPN.
+`godot --main-pack game.pck`. Sub of Seas ships that way. `pkgs/sub-of-seas` pins the
+(public) game repo and exports the pack during the Nix build, and
+`customConfig.programs.sub-of-seas` (`modules/nixos/programs/sub-of-seas.nix`, on gaming-pc
+and blaney-pc) installs a `sub-of-seas` launcher that runs it on `unstable.godot_4`. A new
+build reaches players by bumping the pin (docs/companion-repos.md) and rebuilding; host and
+players must be on the same pin. Its online port is 7845, so it rides the existing Batman
+forward from optiplex-fw to gaming-pc over the VPN.
 
 ## Known gaps
 
