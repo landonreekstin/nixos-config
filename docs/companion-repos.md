@@ -151,6 +151,17 @@ Pinned with `fetchFromGitHub`, and bumped like hyprland-keys below: use the repo
 Online players must run the same build (the host refuses any other), so gaming-pc and
 blaney-pc both need to be on the new pin. Bump `version` (the date) too.
 
+## sub-of-seas
+
+Source: `github:landonreekstin/sub-of-seas`
+Package: `pkgs/sub-of-seas/default.nix`, used by `modules/nixos/programs/sub-of-seas.nix`
+
+Lando's co-op Godot submarine game. Bump like hyprland-keys below, with repo path
+`/home/lando/gamedev/sub-of-seas` and repo name `sub-of-seas`, and bump `version` (the
+date). The build exports a `.pck` with the pin's short rev as its build name; players and
+host must match, so gaming-pc and blaney-pc both need the new pin. Verify with
+`sub-of-seas` from the start menu (the main menu says "Build <short rev>").
+
 ## game-control
 
 Source: `github:landonreekstin/game-control`
