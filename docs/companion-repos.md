@@ -54,7 +54,7 @@ copy of `~/projects`:
 nix build --impure --no-link --print-out-paths --expr 'let f = builtins.getFlake (toString ./.);
   c = (f.nixosConfigurations.blaney-pc.extendModules { modules = [ {
     customConfig.programs.vibeProjects.dir = f.inputs.nixpkgs.lib.mkForce "/path/to/projects"; } ]; }).config;
-in builtins.filter (p: builtins.elem (p.pname or "") [ "glade" "r62d" ])
+in builtins.filter (p: builtins.elem (p.pname or "") [ "glade" "r62d" "vibenote" ])
   (c.environment.systemPackages ++ c.home-manager.users.insideabush.home.packages)'
 ```
 
@@ -87,6 +87,16 @@ click opens its app); verify a release by building the pinned package.
 - **Release:** same as glade; blaney-pc builds it from `~/projects/r62d`. The repo is plain JavaScript with no npm dependencies, so the
   package is just the source plus a `r62d-server` wrapper; data lives in
   `~/.local/share/r62d/data`. The menu entry runs `r62d` (server if needed + Firefox kiosk).
+
+## vibenote
+
+- **Repo:** `github.com/cblaney00/vibenote` — insideabush's per-project notes app (his vibe
+  project `~/projects/vibenote`; he and his sessions keep working on it there).
+- **Pinned in:** `pkgs/vibenote/default.nix` (`rev`, `hash`)
+- **Module:** `modules/nixos/programs/vibenote.nix` (`customConfig.programs.vibenote.enable`).
+- **Release:** same as glade; blaney-pc builds it from `~/projects/vibenote`. Plain Python,
+  standard library only (tkinter), so the package is the source plus a `vibenote` wrapper;
+  notes live in `~/.local/share/vibenote/notes.json`. The menu entry runs `vibenote`.
 
 ## f-117
 

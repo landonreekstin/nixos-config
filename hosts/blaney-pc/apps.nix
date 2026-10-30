@@ -38,6 +38,8 @@
       claudeCode.enable = true;
       # His R62D game (github.com/cblaney00/r62d) as an app; port 6262 open so friends can join his games.
       r62d = { enable = true; openFirewall = true; };
+      # His VibeNote notes app (github.com/cblaney00/vibenote): "VibeNote" in the start menu.
+      vibenote.enable = true;
       # His own vibe-coded app projects: the `vibe` command, ~/projects, and the dev
       # shells its .envrc files point at (customConfig.profiles.development.vibe-* in
       # ./profiles.nix). See docs/hosts/blaney-vibe-projects.md.
@@ -46,7 +48,7 @@
         # His packaged apps are built from his project folders here, so a rebuild always
         # installs his newest work. Their pins are only *releases* for Lando's machines and
         # are never bumped to get a change onto this one (docs/companion-repos.md).
-        localApps = { glade = "glade"; r62d = "r62d"; };
+        localApps = { glade = "glade"; r62d = "r62d"; vibenote = "vibenote"; };
       };
       # The Batman (JAKKS TV game) with Lando: "The Batman: Join Online Game" in the start
       # menu, with the homelab VPN on. modules/nixos/programs/batman.nix.

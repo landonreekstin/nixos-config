@@ -7,6 +7,9 @@
   {
     date = "2026-10-30";
     changes = [
+      "VibeNote is now a proper app: open it from your app menu like any other."
+      "VibeNote is in your dock and has its own tree squid in the Glade."
+      "VibeNote has its own icon now: a glowing green notepad."
       "The top bar now shows whether you're on the VPN: \"VPN on\" glows green, \"VPN off\" is grey. Click it to switch."
     ];
   }
