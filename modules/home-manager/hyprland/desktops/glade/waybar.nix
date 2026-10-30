@@ -41,7 +41,7 @@ in
       tooltip label { color: ${c.text}; }
 
       #custom-glade-home, #custom-glade-apps, #custom-glade-games, #custom-power,
-      #taskbar button, #pulseaudio, #clock, #tray {
+      #taskbar button, #pulseaudio, #clock, #tray, #custom-vpn {
         margin: 5px 4px 6px 4px;
         padding: 0 12px;
         color: ${c.text};
@@ -68,6 +68,11 @@ in
       #taskbar button.minimized { opacity: 0.6; }
 
       #clock, #pulseaudio, #tray { color: ${c.amber}; }
+
+      /* the VPN board glows green while connected and goes dim when it isn't */
+      #custom-vpn.on  { color: ${c.moss}; border-color: alpha(${c.moss}, 0.7); text-shadow: 0 0 6px ${c.moss}; }
+      #custom-vpn.off { color: alpha(${c.text}, 0.45); }
+      #custom-vpn:hover { color: #ffffff; background: ${c.boardHi}; border-color: ${c.pink}; }
     '';
   };
 }
