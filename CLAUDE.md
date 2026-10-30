@@ -398,11 +398,15 @@ its branch, its uncommitted count, and a `*` on the one that owns the live syste
 4. **`rebuild`** ← REQUIRED before committing
 5. **Verify** the changes work correctly (open the app, check the setting, confirm the behavior)
 6. **Commit** — only after steps 4 and 5 succeed
-7. **PR** — only after step 6; do not open a PR before the change is verified working on the current host
+7. **Rebase on `main`** — `git fetch origin && git rebase origin/main`, then re-run the
+   eval-check (and re-`rebuild` + re-verify if the rebase had conflicts or pulled in changes
+   to the same files) before pushing (`--force-with-lease` if already pushed). Every PR is
+   opened against current `main`, never a stale base.
+8. **PR** — only after step 7; do not open a PR before the change is verified working on the current host
 
 **Exception**: changes that can only be tested on a different host (different machine,
-hardware, or display required) skip steps 4–5 locally. Instead: eval-check → commit → PR
-(note in-person testing needed) → merge after confirmed on target.
+hardware, or display required) skip steps 4–5 locally. Instead: eval-check → commit →
+rebase on `main` → re-eval → PR (note in-person testing needed) → merge after confirmed on target.
 
 **Never commit to main before rebuilding and verifying**, even for "obviously correct"
 changes. `rebuild` detects the current host — **never manually specify the hostname** — and
@@ -497,7 +501,8 @@ When asked to work on tasks, follow this workflow for each task:
    ```
    CI (GitHub Actions) also runs this automatically on every PR, and it *does* cover
    every configuration — so a green local run against a stale list proves nothing.
-4. **Commit and push** the branch
+4. **Commit, rebase on `main`, and push** the branch — `git fetch origin && git rebase origin/main`,
+   re-run the eval-check, then push (`--force-with-lease` if it was already pushed)
 5. **Open a PR** via `gh pr create`
 6. **Check off** the task in `TASKS.md` on `main` (or mark it as pending in-person testing if it needs a reboot/display to verify)
 
