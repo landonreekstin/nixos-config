@@ -18,6 +18,26 @@ let
   colors = import ./colors.nix;
   rgb = c: "rgb(${lib.removePrefix "#" c})";
 
+  # The homelab VPN board in the bar: "VPN on" / "VPN off", and a click switches it.
+  vpn = customConfig.services.wireguard.nmClient;
+  nmcli = "${pkgs.networkmanager}/bin/nmcli";
+  vpnIsUp = "${nmcli} -t -f NAME connection show --active | grep -qx '${vpn.connectionName}'";
+  vpnStatus = pkgs.writeShellScript "glade-vpn-status" ''
+    if ${vpnIsUp}; then
+      echo '{"text":"🔒 VPN on","class":"on","tooltip":"Connected to the homelab VPN. Click to disconnect"}'
+    else
+      echo '{"text":"🔓 VPN off","class":"off","tooltip":"Not connected to the VPN. Click to connect"}'
+    fi
+  '';
+  vpnToggle = pkgs.writeShellScript "glade-vpn-toggle" ''
+    if ${vpnIsUp}; then
+      ${nmcli} connection down '${vpn.connectionName}'
+    else
+      ${nmcli} connection up '${vpn.connectionName}'
+    fi
+    ${pkgs.procps}/bin/pkill -RTMIN+9 waybar # show the change straight away
+  '';
+
   # The bar goes on the main monitor only, like the XFCE taskbar: the glade's lower
   # monitor is the ground in front of the scene, and a bar along its top would cut
   # across the path where it carries on from the screen above. waybar takes an output
@@ -215,7 +235,8 @@ in
       output = lib.mkIf (barOutput != null) barOutput;
       modules-left = lib.mkForce [ "custom/glade-home" "custom/glade-apps" "custom/glade-games" ];
       modules-center = lib.mkForce [ "wlr/taskbar" ];
-      modules-right = lib.mkForce [ "pulseaudio" "tray" "clock" "custom/power" ];
+      modules-right = lib.mkForce ([ "pulseaudio" "tray" ]
+        ++ lib.optional vpn.enable "custom/vpn" ++ [ "clock" "custom/power" ]);
 
       "custom/glade-home" = {
         format = "🌿 Glade";
@@ -246,6 +267,13 @@ in
         tooltip-format = "Volume — scroll to change it, click for sound settings";
         on-click = "${pkgs.pavucontrol}/bin/pavucontrol";
         scroll-step = 5;
+      };
+      "custom/vpn" = lib.mkIf vpn.enable {
+        exec = "${vpnStatus}";
+        return-type = "json";
+        interval = 5;
+        signal = 9;
+        on-click = "${vpnToggle}";
       };
       "custom/power" = {
         on-click = lib.mkForce "wlogout -b 3";

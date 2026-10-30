@@ -5,6 +5,12 @@
 # New blaney-todo tasks are listed automatically — don't add notes for them.
 [
   {
+    date = "2026-10-30";
+    changes = [
+      "The top bar now shows whether you're on the VPN: \"VPN on\" glows green, \"VPN off\" is grey. Click it to switch."
+    ];
+  }
+  {
     date = "2026-10-29";
     changes = [
       "The Notes icon is gone from your desktop. Your notes list and the add-notes / work-notes commands still work."
