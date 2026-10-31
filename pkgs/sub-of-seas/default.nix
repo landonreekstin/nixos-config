@@ -17,13 +17,13 @@
 
 stdenvNoCC.mkDerivation rec {
   pname = "sub-of-seas";
-  version = "0-unstable-2026-10-30";
+  version = "0-unstable-2026-10-31";
 
   src = fetchFromGitHub {
     owner = "landonreekstin";
     repo = "sub-of-seas";
-    rev = "3a43195a73b3f5666e61a203e218698178c72b8e";
-    hash = "sha256-sJIBzPOglginOIuPqqrKEbSHJCsnQE8AemsCVVUea38=";
+    rev = "b15b6ee930a7f89b7ea9194af09d01a32d2ffd49";
+    hash = "sha256-8R5kd/KykJ0bABCkqqRu55ErEtqck3zXtWVh4I//X+0=";
   };
 
   nativeBuildInputs = [ godot makeWrapper ];
