@@ -7,6 +7,7 @@
     ./flatpak.nix
     ./partydeck.nix
     ./iw4x.nix
+    ./vault-install.nix
     ./batman.nix
     ./steel-horizon.nix
     ./sub-of-seas.nix
