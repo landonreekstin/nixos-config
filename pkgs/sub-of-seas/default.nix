@@ -23,7 +23,7 @@ stdenvNoCC.mkDerivation rec {
     owner = "landonreekstin";
     repo = "sub-of-seas";
     rev = "0530cd5965d801cf89c62455e63584de6f944037";
-    hash = "sha256-8R5kd/KykJ0bABCkqqRu55ErEtqck3zXtWVh4I//X+0=";
+    hash = "sha256-lDrvTK1mQ819JngEWcDLPGYN/rII2czBfM12kTXSQEA=";
   };
 
   nativeBuildInputs = [ godot makeWrapper ];
