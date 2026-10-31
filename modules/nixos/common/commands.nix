@@ -140,7 +140,9 @@ let
         sudo install -d -m 0755 "$WT_STATE_DIR" 2>/dev/null || true
         sudo install -m 0664 -o root -g ${userGroup} /dev/null "$WT_LOCK" 2>/dev/null || true
       fi
-      exec 9>"$WT_LOCK" 2>/dev/null || return 0
+      # Braced: a bare `exec 9>lock 2>/dev/null` makes the 2>/dev/null permanent too,
+      # silently discarding all of nixos-rebuild's output (it logs to stderr).
+      { exec 9>"$WT_LOCK"; } 2>/dev/null || return 0
       if ! flock -n 9 2>/dev/null; then
         echo "Another rebuild is running on this machine — waiting for it to finish..."
         flock 9 2>/dev/null || true
