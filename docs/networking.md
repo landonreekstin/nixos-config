@@ -174,6 +174,11 @@ Run `~/openbsd-dotfiles/scripts/add-vpn-client.sh <name> [--jellyfin]` from opti
 
 After running: commit the updated configs in openbsd-dotfiles, then add the new row to the Peers table above.
 
+**Then copy the client config to the NAS storage share** as `<name>-client.conf`: on the NAS
+that is `/mnt/storage/` (clients mount it at `/mnt/nas/storage`), where every peer's config
+already lives. Not the private share. The fw-side copy in
+`~/openbsd-dotfiles/wireguard-clients/` stays as the original.
+
 ### WireGuard Management Commands
 
 ```bash
