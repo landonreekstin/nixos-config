@@ -98,6 +98,13 @@
         mediaDir = "/mnt/nas/games/installers/Call Of Duty Modern Warfare 2 [English][PC][2DVDs][WwW.GamesTorrents.CoM]";
       };
 
+      # `vault-install`: Gamarr PC grabs from the NAS -> /mnt/games/vault -> Heroic.
+      # vaultDir defaults to /mnt/nas/games/vault, which nasClient already mounts here.
+      vaultInstall = {
+        enable = true;
+        installDir = "/mnt/games/vault";
+      };
+
       claudeCode = {
         enable = true;
         # Merging to main needs `--admin` (branch ruleset), which auto mode otherwise
