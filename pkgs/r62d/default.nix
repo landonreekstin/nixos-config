@@ -25,7 +25,7 @@ stdenvNoCC.mkDerivation {
   src = if localSrc != null then localSrc else fetchFromGitHub {
     owner = "cblaney00";
     repo = "r62d";
-    rev = "8aba27143fb9424ab4b99af34aa9a827aa56b403";
+    rev = "e6e0f72d4b1ee47dd7963ded158bbc909e3711fb";
     hash = "sha256-RJ1tQ+TCcdoNzlz7EFhRpOU1SIhg5/rLkyd/df5HA+g=";
   };
 
