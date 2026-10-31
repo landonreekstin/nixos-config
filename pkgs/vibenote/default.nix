@@ -27,8 +27,8 @@ stdenvNoCC.mkDerivation {
   src = if localSrc != null then localSrc else fetchFromGitHub {
     owner = "cblaney00";
     repo = "vibenote";
-    rev = "b8cc599b3170422934a41454e2bfa8aea565a994";
-    hash = "sha256-XZ1EvwQC1kCfb6PNGqDIbQUy0HwTslkPCCa/DJOQ5o0=";
+    rev = "02ba13dc6782a6287a91cccd6d59b68b6e16df0a";
+    hash = "sha256-D5zTrt3Bh5BzwQLSbvMQBL3Mocp6CIVOhfDsjq1w45s=";
   };
 
   nativeBuildInputs = [ makeWrapper ];
