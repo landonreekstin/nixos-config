@@ -20,13 +20,13 @@ stdenvNoCC.mkDerivation {
   pname = "r62d";
   # The pin is his latest *release*. A host in vibeProjects.localApps passes his project
   # folder as localSrc instead (pkgs/vibe-local-src.nix), so it runs his newest work.
-  version = if localSrc != null then "0-local" else "0-unstable-2026-10-30";
+  version = if localSrc != null then "0-local" else "0-unstable-2026-10-31";
 
   src = if localSrc != null then localSrc else fetchFromGitHub {
     owner = "cblaney00";
     repo = "r62d";
-    rev = "1801e913c169455ad824b5bf7e570e072c13931f";
-    hash = "sha256-RJ1tQ+TCcdoNzlz7EFhRpOU1SIhg5/rLkyd/df5HA+g=";
+    rev = "2f9a9a98f8ed92526f6d5dab0f27fa59a2e6f478";
+    hash = "sha256-L/k8JglqIqduA5v3MNaDCrRZnMp++g+AaPySsgzPCNI=";
   };
 
   nativeBuildInputs = [ makeWrapper ];
