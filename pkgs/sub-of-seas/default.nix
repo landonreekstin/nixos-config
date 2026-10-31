@@ -22,7 +22,7 @@ stdenvNoCC.mkDerivation rec {
   src = fetchFromGitHub {
     owner = "landonreekstin";
     repo = "sub-of-seas";
-    rev = "b15b6ee930a7f89b7ea9194af09d01a32d2ffd49";
+    rev = "0530cd5965d801cf89c62455e63584de6f944037";
     hash = "sha256-8R5kd/KykJ0bABCkqqRu55ErEtqck3zXtWVh4I//X+0=";
   };
 
