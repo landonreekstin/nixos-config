@@ -10,11 +10,24 @@
 #   <Release>.rar.extracted/       Gamarr's unpack of it
 #   <Release>.rar.gamarr.json      { "is_pc": true, "title": "...", ... }
 #
+# or, when the torrent was a folder rather than one archive, as the folder itself
+# with the metadata inside it:
+#
+#   <Release>/.gamarr.json
+#
 # Most of what the indexers return are pre-installed repacks: somewhere under the
 # .extracted/ dir is a `game/` folder that already runs. This command copies that
 # folder onto a local disk (running off the CIFS mount means slow loads, and the game
 # writing its saves into the NAS library) and registers it with Heroic as a sideloaded
 # Windows game with its own Proton prefix.
+#
+# Scene releases are the other shape: an .iso holding setup.exe and a crack folder
+# named after the group (RUNE/, CODEX/, ...). Their setup-1.bin is usually a
+# FreeArc-style repack that only the installer's own ISDone/unarc DLLs can unpack, so
+# innoextract (which mw2-install uses) gets nothing out of it -- the installer has to
+# really run. It runs under the same Proton and in the same prefix Heroic will later
+# launch the game with, silently, pointed at the install dir; then the crack folder
+# is laid over the result.
 #
 # Heroic's sideload store is plain electron-store JSON, written here exactly as its
 # own "Add Game" dialog writes it (2.22: addNewApp → sideload_apps/library.json under
@@ -27,7 +40,7 @@ let
 
   vault-install = pkgs.writeShellApplication {
     name = "vault-install";
-    runtimeInputs = with pkgs; [ coreutils findutils gnused gnugrep jq rsync curl procps ];
+    runtimeInputs = with pkgs; [ coreutils findutils gnused gnugrep jq rsync curl procps p7zip umu-launcher ];
     text = ''
       VAULT_DIR="${cfg.vaultDir}"
       INSTALL_DIR="${cfg.installDir}"
@@ -64,9 +77,12 @@ let
 
       # "Sea Power : Naval Combat in the Missile Age (v2026.07.23)" -> "Sea Power - Naval Combat in the Missile Age"
       # The version suffix goes so a re-grab of a newer build replaces the old install
-      # instead of sitting beside it; the rest is made safe for a directory name.
+      # instead of sitting beside it, as does a scene group tag ("Korea IL-2 Series-RUNE");
+      # the rest is made safe for a directory name.
       clean_title() {
-        sed -E -e 's/ *\([vV][0-9][^)]*\)$//' -e 's/ *: */ - /g' -e 's#[/\\*?"<>|]##g' -e 's/  +/ /g' -e 's/^ +| +$//g'
+        sed -E -e 's/ *\([vV][0-9][^)]*\)$//' \
+               -e 's/[-.](RUNE|CODEX|SKIDROW|PLAZA|TENOKE|FLT|DOGE|EMPRESS|RAZOR1911|RELOADED|HOODLUM|PROPHET|CPY|TiNYiSO|DARKSiDERS|GOG|ElAmigos|FitGirl|DODI)$//I' \
+               -e 's/ *: */ - /g' -e 's#[/\\*?"<>|]##g' -e 's/  +/ /g' -e 's/^ +| +$//g'
       }
 
       # Lowercase alphanumerics only, for loose "does this exe look like the game" matching.
@@ -75,15 +91,23 @@ let
       # ---- What's in the vault -------------------------------------------------
       TITLES=()
       SOURCES=()
-      while IFS= read -r meta; do
-        jq -e '.is_pc == true' "$meta" >/dev/null 2>&1 || continue
-        ext="''${meta%.gamarr.json}.extracted"
-        [ -d "$ext" ] || continue
-        title=$(jq -r '.title // empty' "$meta" | clean_title)
-        [ -n "$title" ] || title=$(basename "''${meta%.gamarr.json}" | clean_title)
+      add_game() { # <metadata file> <source dir> <fallback name>
+        jq -e '.is_pc == true' "$1" >/dev/null 2>&1 || return 0
+        [ -d "$2" ] || return 0
+        local title
+        title=$(jq -r '.title // empty' "$1" | clean_title)
+        [ -n "$title" ] || title=$(printf '%s' "$3" | clean_title)
         TITLES+=("$title")
-        SOURCES+=("$ext")
+        SOURCES+=("$2")
+      }
+      # Archive grabs: <Release>.rar.gamarr.json beside <Release>.rar.extracted/
+      while IFS= read -r meta; do
+        add_game "$meta" "''${meta%.gamarr.json}.extracted" "$(basename "''${meta%.gamarr.json}")"
       done < <(find "$VAULT_DIR" -maxdepth 1 -name '*.gamarr.json' | sort)
+      # Folder grabs: <Release>/.gamarr.json
+      while IFS= read -r meta; do
+        add_game "$meta" "$(dirname "$meta")" "$(basename "$(dirname "$meta")")"
+      done < <(find "$VAULT_DIR" -mindepth 2 -maxdepth 2 -name '.gamarr.json' | sort)
 
       if [ "''${#TITLES[@]}" -eq 0 ]; then
         echo "No PC games in $VAULT_DIR yet."
@@ -127,33 +151,155 @@ let
           -printf '%d\t%P\n' | sort -t$'\t' -k1,1n -k2,2 | cut -f2
       }
 
-      mapfile -t src_exes < <(exe_candidates "$SRC")
-      if [ "''${#src_exes[@]}" -eq 0 ]; then
-        echo "\"$TITLE\" isn't a ready-to-run game -- there's no game .exe in:" >&2
-        echo "  $SRC" >&2
-        echo "It is probably an installer (setup.exe / .iso). Run that through Heroic's Add Game instead." >&2
-        exit 1
-      fi
-
       DEST="$INSTALL_DIR/$TITLE"
-      echo
-      echo "Game:     $TITLE"
-      echo "From:     $SRC"
-      echo "To:       $DEST  ($(du -sh "$SRC" | cut -f1))"
-      echo
-
-      # ---- Copy ------------------------------------------------------------------
-      # Into a .partial sibling first: an interrupted copy resumes on the next run, and
-      # a directory under the real name always means a finished one.
+      PREFIX_ROOT=$(jq -r '.defaultSettings.defaultWinePrefix // empty' "$HEROIC_DIR/config.json" 2>/dev/null || true)
+      [ -n "$PREFIX_ROOT" ] || PREFIX_ROOT="$HOME/Games/Heroic/Prefixes/default"
+      PREFIX="$PREFIX_ROOT/$TITLE"
       mkdir -p "$INSTALL_DIR"
-      if [ -d "$DEST" ]; then
-        read -rp "Already installed. Copy it again over the top (keeps your saves in the prefix)? [y/N] " again
-        if [[ "$again" =~ ^[yY] ]]; then
-          rsync -rlt --info=progress2 "$SRC/" "$DEST/"
+
+      mapfile -t src_exes < <(exe_candidates "$SRC")
+      if [ "''${#src_exes[@]}" -gt 0 ]; then
+        echo
+        echo "Game:     $TITLE"
+        echo "From:     $SRC"
+        echo "To:       $DEST  ($(du -sh "$SRC" | cut -f1))"
+        echo
+
+        # ---- Copy a ready-to-run game -----------------------------------------------
+        # Into a .partial sibling first: an interrupted copy resumes on the next run, and
+        # a directory under the real name always means a finished one.
+        if [ -d "$DEST" ]; then
+          read -rp "Already installed. Copy it again over the top (keeps your saves in the prefix)? [y/N] " again
+          if [[ "$again" =~ ^[yY] ]]; then
+            rsync -rlt --info=progress2 "$SRC/" "$DEST/"
+          fi
+        else
+          rsync -rlt --info=progress2 "$SRC/" "$DEST.partial/"
+          mv "$DEST.partial" "$DEST"
         fi
       else
-        rsync -rlt --info=progress2 "$SRC/" "$DEST.partial/"
-        mv "$DEST.partial" "$DEST"
+        # ---- Run an installer ---------------------------------------------------------
+        ISO=$(find "$SRC" -maxdepth 1 -iname '*.iso' | sort | head -n1)
+        SETUP=$(find "$SRC" -maxdepth 1 -iname 'setup*.exe' | sort | head -n1)
+        if [ -z "$ISO" ] && [ -z "$SETUP" ]; then
+          echo "\"$TITLE\" has neither a game .exe nor an installer (.iso / setup.exe) in:" >&2
+          echo "  $SRC" >&2
+          exit 1
+        fi
+
+        echo
+        echo "Game:     $TITLE  (installer)"
+        echo "From:     ''${ISO:-$SETUP}"
+        echo "To:       $DEST"
+        echo
+
+        RUN_SETUP=1
+        if [ -d "$DEST" ]; then
+          read -rp "Already installed. Run the installer again? [y/N] " again
+          [[ "$again" =~ ^[yY] ]] || RUN_SETUP=0
+        fi
+
+        if [ "$RUN_SETUP" = 1 ]; then
+          # Unpacked onto the local games disk, not /tmp: these are 10-20 GB, and the
+          # installer reads its .bin files far faster from here than over CIFS.
+          STAGING="$INSTALL_DIR/.staging/$TITLE"
+          CRACK_ROOT="$SRC"
+          if [ -n "$ISO" ]; then
+            # A finished unpack from an earlier attempt is reused -- 7z writes setup.exe
+            # last, so its presence means the .bin files beside it are complete.
+            if [ -z "$(find "$STAGING" -maxdepth 1 -iname 'setup*.exe' 2>/dev/null)" ]; then
+              echo "Unpacking $(basename "$ISO") ($(du -h "$ISO" | cut -f1)) to $STAGING ..."
+              mkdir -p "$STAGING"
+              7z x -y -bso0 -bsp1 -o"$STAGING" "$ISO"
+            fi
+            SETUP=$(find "$STAGING" -maxdepth 1 -iname 'setup*.exe' | sort | head -n1)
+            CRACK_ROOT="$STAGING"
+            if [ -z "$SETUP" ]; then
+              echo "No setup.exe inside $(basename "$ISO") -- left unpacked in $STAGING." >&2
+              exit 1
+            fi
+          fi
+
+          # The same Proton Heroic is set to use by default, so the prefix the installer
+          # creates is one Heroic can launch from without a version upgrade in between.
+          PROTON=$(jq -r 'if .defaultSettings.wineVersion.type == "proton" then .defaultSettings.wineVersion.bin else empty end' \
+                     "$HEROIC_DIR/config.json" 2>/dev/null || true)
+          if [ -n "$PROTON" ] && [ -x "$PROTON" ]; then
+            PROTON=$(dirname "$PROTON")
+          else
+            PROTON="${pkgs.proton-ge-bin.steamcompattool}"
+          fi
+
+          # Which drive letter the install dir goes through matters. Repacks check free
+          # space on the *drive root*, and inside Proton's container Z:\ is the
+          # container's own small root (33 GB on gaming-pc), so /DIR=Z:\mnt\games\...
+          # was refused with "not enough of free space on selected disk" while the
+          # games disk had 370 GB. Proton maps every real mount to its own letter on
+          # each start (gaming-pc: S: -> /mnt/games) and rewrites dosdevices as it does,
+          # so a letter added by hand does not survive; instead the prefix is created
+          # first (wineboot, no window) and the letter whose target is the deepest
+          # ancestor of the install dir -- never z:, the bare / -- is used.
+          echo "Preparing the Proton prefix ($(basename "$PROTON")) ..."
+          mkdir -p "$DEST" "$PREFIX_ROOT"
+          GAMEID="umu-0" PROTONPATH="$PROTON" WINEPREFIX="$PREFIX" PROTON_VERB=run \
+            umu-run wineboot -u >/dev/null 2>&1 || true
+          DOSDEV="$PREFIX/pfx/dosdevices"
+          [ -d "$DOSDEV" ] || DOSDEV="$PREFIX/dosdevices"
+          DRIVE=""
+          DRIVE_ROOT=""
+          for link in "$DOSDEV"/?:; do
+            [ -L "$link" ] || continue
+            target=$(readlink -f "$link")
+            case "$target" in /|"$PREFIX"*) continue ;; esac
+            if [[ "$DEST/" == "$target/"* ]] && [ "''${#target}" -gt "''${#DRIVE_ROOT}" ]; then
+              DRIVE=$(basename "$link" | tr '[:lower:]' '[:upper:]')
+              DRIVE_ROOT="$target"
+            fi
+          done
+          if [ -z "$DRIVE" ]; then
+            echo "Proton gave $INSTALL_DIR no drive letter of its own; the installer may misjudge free space." >&2
+            DRIVE="Z:"
+            DRIVE_ROOT=""
+          fi
+          rel="''${DEST#"$DRIVE_ROOT"}"
+          WIN_DEST="$DRIVE''${rel//\//\\}"
+          echo "Installing to $WIN_DEST"
+
+          # Inno Setup flags: /SILENT shows the progress bar but asks nothing, and /DIR
+          # takes the install dir as a Windows path.
+          echo "Installing -- a setup progress window will open."
+          GAMEID="umu-0" PROTONPATH="$PROTON" WINEPREFIX="$PREFIX" \
+            umu-run "$SETUP" /SP- /SILENT /SUPPRESSMSGBOXES /NORESTART /NOICONS "/DIR=$WIN_DEST" || true
+          # setup.exe hands off to setup.tmp (Inno's real installer) and repacks then
+          # shell out to unarc; wait until none of that is left running.
+          while pgrep -u "$(id -u)" -fi 'is-[a-z0-9]+[.]tmp|setup[.]tmp|unarc' >/dev/null; do
+            sleep 5
+          done
+
+          if [ -z "$(exe_candidates "$DEST")" ]; then
+            echo "The installer didn't put a game into $DEST." >&2
+            echo "Its setup.exe is $SETUP -- try running it from Heroic's Add Game instead." >&2
+            exit 1
+          fi
+
+          # The crack: every top-level folder beside setup.exe that isn't a bundled
+          # redistributable mirrors the install dir's layout (RUNE/bin/game/... ->
+          # bin/game/...), so it is laid straight over the top.
+          for d in "$CRACK_ROOT"/*/; do
+            [ -d "$d" ] || continue
+            name=$(basename "$d")
+            case "''${name,,}" in
+              redist*|_redist|_commonredist|directx|dotnet*|vcredist*|support) continue ;;
+            esac
+            echo "Applying $name over the install"
+            rsync -rlt "$d" "$DEST/"
+          done
+
+          if [ -n "$ISO" ]; then
+            rm -rf "$STAGING"
+            rmdir --ignore-fail-on-non-empty "$INSTALL_DIR/.staging"
+          fi
+        fi
       fi
 
       # ---- Which exe launches it ---------------------------------------------------------
@@ -196,20 +342,23 @@ let
       # Cover art from Steam's store search, best effort: no key needed, and every
       # title Gamarr grabs here is a Steam release. Without it Heroic shows its
       # placeholder, which is fine.
+      # Falls back to the part before " - ": clean_title turned "Sea Power : Naval ..."
+      # into "Sea Power - Naval ...", which Steam's search no longer matches.
+      steam_appid() {
+        local query
+        query=$(jq -rn --arg t "$1" '$t | @uri')
+        curl -fsS --max-time 10 "https://store.steampowered.com/api/storesearch/?term=$query&cc=us&l=en" \
+          | jq -er '.items[0].id'
+      }
       ART_COVER=""
       ART_SQUARE=""
-      query=$(jq -rn --arg t "$TITLE" '$t | @uri')
-      if appid=$(curl -fsS --max-time 10 "https://store.steampowered.com/api/storesearch/?term=$query&cc=us&l=en" \
-                   | jq -er '.items[0].id'); then
+      if appid=$(steam_appid "$TITLE") || appid=$(steam_appid "''${TITLE%% - *}"); then
         ART_COVER="https://shared.steamstatic.com/store_item_assets/steam/apps/$appid/header.jpg"
         ART_SQUARE="https://shared.steamstatic.com/store_item_assets/steam/apps/$appid/library_600x900.jpg"
         curl -fsI --max-time 10 "$ART_SQUARE" >/dev/null 2>&1 || ART_SQUARE="$ART_COVER"
       fi
 
       APP_NAME="vault-$(printf '%s' "$TITLE" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-|-$//g')"
-      PREFIX_ROOT=$(jq -r '.defaultSettings.defaultWinePrefix // empty' "$HEROIC_DIR/config.json" 2>/dev/null || true)
-      [ -n "$PREFIX_ROOT" ] || PREFIX_ROOT="$HOME/Games/Heroic/Prefixes/default"
-      PREFIX="$PREFIX_ROOT/$TITLE"
 
       mkdir -p "$HEROIC_DIR/sideload_apps" "$HEROIC_DIR/GamesConfig"
       LIB="$HEROIC_DIR/sideload_apps/library.json"
@@ -253,7 +402,7 @@ let
       echo "  runs:   $EXE"
       echo "  prefix: $PREFIX"
       echo
-      echo "Once it plays, the .rar on the NAS can go -- the .extracted folder holds the full game."
+      echo "Once it plays, the download in $VAULT_DIR is no longer needed by this machine."
     '';
   };
 in
