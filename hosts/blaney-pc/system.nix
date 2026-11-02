@@ -29,4 +29,8 @@
   # flyout instead (XF86PowerOff in modules/home-manager/themes/windows7-xfce/keybindings.nix),
   # which runs the shutdown guard. Without this, logind would still hard-poweroff on the key.
   services.logind.settings.Login.HandlePowerKey = "ignore";
+
+  # Over this machine's Wi-Fi, nix's single multiplexed HTTP/2 connection to cache.nixos.org
+  # crawls at ~0.3 MB/s; one connection per download (HTTP/1.1) measured ~16 MB/s.
+  nix.settings.http2 = false;
 }
