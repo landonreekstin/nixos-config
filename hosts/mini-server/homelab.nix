@@ -79,7 +79,7 @@
     browserPuck.enable = true;
 
     # R62D (insideabush's 5v5 browser game) for every VPN player: http://192.168.1.76:6262
-    r62d.enable = true;
+    r62d.enable = false;
 
     gameBackup.enable = true;
 
