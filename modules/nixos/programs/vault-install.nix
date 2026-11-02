@@ -350,12 +350,23 @@ let
         curl -fsS --max-time 10 "https://store.steampowered.com/api/storesearch/?term=$query&cc=us&l=en" \
           | jq -er '.items[0].id'
       }
+      # Newer Steam apps keep their art under a hashed path (apps/<id>/<hash>/header.jpg),
+      # so the old fixed URLs 404. The store's GetItems API lists the real file names.
+      steam_art() {
+        local input
+        input=$(jq -cn --argjson id "$1" '{ids:[{appid:$id}],context:{language:"english",country_code:"US"},data_request:{include_assets:true}}')
+        curl -fsSG --max-time 10 "https://api.steampowered.com/IStoreBrowseService/GetItems/v1/" \
+            --data-urlencode "input_json=$input" \
+          | jq -er --arg want "$2" '.response.store_items[0].assets
+              | select(.[$want] != null) as $a
+              | "https://shared.steamstatic.com/store_item_assets/" + ($a.asset_url_format | sub("\\$\\{FILENAME\\}"; $a[$want]))'
+      }
       ART_COVER=""
       ART_SQUARE=""
       if appid=$(steam_appid "$TITLE") || appid=$(steam_appid "''${TITLE%% - *}"); then
-        ART_COVER="https://shared.steamstatic.com/store_item_assets/steam/apps/$appid/header.jpg"
-        ART_SQUARE="https://shared.steamstatic.com/store_item_assets/steam/apps/$appid/library_600x900.jpg"
-        curl -fsI --max-time 10 "$ART_SQUARE" >/dev/null 2>&1 || ART_SQUARE="$ART_COVER"
+        ART_COVER=$(steam_art "$appid" header || true)
+        ART_SQUARE=$(steam_art "$appid" library_capsule || true)
+        ART_SQUARE=''${ART_SQUARE:-$ART_COVER}
       fi
 
       APP_NAME="vault-$(printf '%s' "$TITLE" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-|-$//g')"
@@ -395,6 +406,19 @@ let
           | { ($id): (($d | with_entries(select(.key as $k | $keys | index($k)))) + { winePrefix: $prefix }),
               version: "v0", explicit: true }
         ' "$HEROIC_DIR/config.json" > "$GCFG" 2>/dev/null || echo '{}' > "$GCFG"
+      fi
+
+      # Intel's OpenMP runtime (libiomp5md.dll, shipped by Korea IL-2 Series) asks
+      # Windows for its NUMA layout through GetNumaNodeProcessorMaskEx, which Wine
+      # before Proton 11 only stubs, and aborts mid-load with "OMP: Error #179".
+      # Turning off its thread pinning skips that call; added on reinstalls too.
+      if find "$DEST" -iname 'libiomp5md.dll' -print -quit | grep -q .; then
+        tmp=$(mktemp "$GCFG.XXXXXX")
+        jq --arg id "$APP_NAME" '
+          .[$id].enviromentOptions = ([(.[$id].enviromentOptions // [])[] | select(.key != "KMP_AFFINITY")]
+                                      + [{key: "KMP_AFFINITY", value: "disabled"}])
+        ' "$GCFG" > "$tmp"
+        mv "$tmp" "$GCFG"
       fi
 
       echo
