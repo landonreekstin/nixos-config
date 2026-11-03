@@ -74,6 +74,10 @@ sudo systemctl start podman-comfyui
 
 ComfyUI keeps the last model in VRAM between runs. Stop the unit before a GPU-heavy game.
 
+**Pure-noise output:** ComfyUI runs with `--fast fp16_accumulation`, not bare `--fast`. Bare
+`--fast` also enables fp8 matrix multiplication, and some fp8 all-in-one checkpoints then
+produce nothing but noise. Keep it that way in `extraArgs`.
+
 **Bumping the image:** pick a newer `cu130-slim-<date>` tag (cu130 needs NVIDIA driver
 580+) and take its digest:
 

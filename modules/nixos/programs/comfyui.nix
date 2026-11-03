@@ -62,7 +62,9 @@ in
 
     extraArgs = mkOption {
       type = types.str;
-      default = "--fast";
+      # Not bare --fast: that also turns on fp8 matrix multiplication, which makes some
+      # fp8 checkpoints (merged all-in-one Qwen edit models) output pure noise.
+      default = "--fast fp16_accumulation";
       description = "Extra ComfyUI command-line arguments.";
     };
   };
