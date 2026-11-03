@@ -68,8 +68,10 @@ One step at a time, in plain words. He does these, Claude can't:
 - Install in Steam: **DCS World** and **War Thunder** are free, **Phasmophobia** he has to
   own. Because Part 1 ran `vr-setup` first, they install already set up for VR. No need to
   run it again, unless he deletes and reinstalls a game.
-- Then, with the headset plugged in: click **DCS World (VR)** / **War Thunder (VR)** /
-  **Phasmophobia (VR)** once. Notifications go "Starting … in VR" → "… is loading" → game in
+- Then click **DCS World (VR)** / **War Thunder (VR)** / **Phasmophobia (VR)** once. The order
+  doesn't matter: clicking first and plugging in within 2 minutes works too (docs/vr.md →
+  "Order doesn't matter"). Tell him **Steam's own Play button starts War Thunder and
+  Phasmophobia flat**: VR is always the "(VR)" entries. Notifications go "Starting … in VR" → "… is loading" → game in
   the headset. The first start of each takes a minute or two (Proton sets up the game);
   don't let him click twice.
 - **War Thunder account:** VR only works in Steam's War Thunder (the Windows client under
@@ -82,13 +84,15 @@ One step at a time, in plain words. He does these, Claude can't:
 
 | What he sees | What it is | Fix |
 |---|---|---|
-| Headset: "cannot connect to localhost: connection refused", over and over | USB link re-enumerating every few seconds: `journalctl -k \| grep "usb .*USB disconnect"` shows dozens. vr-connect restarts on each, and the adb tunnel dies with it. On gaming-pc it stopped once nothing reconnected for a while; cable and port were fine. | `systemctl --user -M insideabush@ mask --runtime vr-connect`, `pkill -u insideabush -x adb`, wait 30 s and confirm no new disconnects, then `unmask --runtime` and replug. If it keeps happening on every plug-in, add a settle delay/debounce to vr-connect in vr.nix and tell lando. |
+| Headset: "cannot connect to localhost: connection refused" or "headset incompatible with session", over and over | USB link re-enumerating every few seconds: `journalctl -k \| grep "USB disconnect"` shows dozens, often with `error -71`. Not our software (it kept dropping on gaming-pc with nothing on the PC touching the headset). See docs/vr.md → Gotchas → USB "drop storm". | Have him move the cable to a **different USB port** (rear motherboard port), then reboot the PC if it still drops. On gaming-pc that combination fixed it. |
 | Headset connects but stays **black** | The WiVRn session left stuck by a messy connect (log only says `failed to recenter local spaces`). | `systemctl --user -M insideabush@ restart wivrn`, then replug or reopen WiVRn in the headset. |
 | Clicking a game does nothing; Steam log says `DCS.exe: cannot execute binary file` | Steam doesn't see GE-Proton. Fixed in `profiles/gaming.nix` (a bare `steam` package used to shadow `programs.steam`). | Check `steam` on PATH carries `STEAM_EXTRA_COMPAT_TOOLS_PATHS` (in its fhsenv `etc/profile`), and that Steam was restarted after the rebuild. |
 | Game starts **flat** on the monitor | No headset session when the game started, or the login session predates the VR profile (Part 1 step 5). | Headset streaming first, then the launcher. Log out/in once. |
 | Fullscreen game opens on the **lower** monitor, mouse stuck there | XWayland primary output; see docs/vr.md → War Thunder → "XWayland primary output". Hyprland sets it for the monitor named `main`. | Check under whichever session he plays in (XFCE or Glade). |
 | War Thunder: black fullscreen after **Exit** | Known, harmless, happens on every Proton build. | Close it from the taskbar / force-quit. A minidump in `.game_logs/reports/` is expected. |
 | Phasmophobia: "Uploading Crash Report" in Player.log | A `NullReferenceException` in the game's own `VRLocalPlayerCalibrator`; it carries on to the VR menu. | Nothing. |
+| Notification "VR: restart the game" after the cable came out | WiVRn can't put the headset back into a game's running session. Expected. | Quit the game, click its "(VR)" entry again; the launcher starts a fresh session. |
+| Clicked a "(VR)" entry, nothing plugged in | Launcher waits 2 min, then "Plug in and power on the headset, then click … again". The game doesn't start. | Expected. |
 | Anything after a `rebuild` while in the headset | wivrn-server crashes when the switch re-executes the user manager. | Replug, or `vr-connect`. Don't rebuild mid-session. |
 
 Logs: DCS `…/compatdata/223750/pfx/drive_c/users/steamuser/Saved Games/DCS/Logs/dcs.log`

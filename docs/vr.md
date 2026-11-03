@@ -24,14 +24,32 @@ game ──OpenXR──▶ WiVRn server (Monado + NVENC h265 10-bit) ──adb r
    avahi announcement) and port 9757 isn't opened in the firewall. Fallback if a session
    stutters: airplane mode for that session, to rule out background downloads.
 2. Plug the USB-C cable in. A notification says "Headset detected" → "VR connected".
-3. **DCS: click "DCS World (VR)"** in the app launcher (or run `dcs-vr`), then put the headset on
-   when the notification asks. It starts WiVRn if needed and waits for a headset session,
-   re-sending the connect intent every 10 s (the Quest ignores it while off-head). Then it runs
-   `steam://launch/223750/VR`, which skips Steam's OpenXR/Oculus picker. Verified with the
-   headset plugged in first. **War Thunder: "War Thunder (VR)"** (`wt-vr`), the same flow; see
+3. **DCS: click "DCS World (VR)"** in the app launcher (or run `dcs-vr`). It ends with
+   `steam://launch/223750/VR`, which skips Steam's OpenXR/Oculus picker.
+   **War Thunder: "War Thunder (VR)"** (`wt-vr`), the same flow; see
    [War Thunder](#war-thunder-steam-appid-236390). **Phasmophobia: "Phasmophobia (VR)"**
    (`phasmo-vr`); see [Phasmophobia](#phasmophobia-steam-appid-739630). Other games: launch from Steam with the headset
-   already streaming.
+   already streaming. Steam's own Play button starts War Thunder and Phasmophobia **flat**
+   (on purpose: forcing VR in their launch options would make flat play impossible).
+
+### Order doesn't matter (verified 2026-11-02)
+The launchers (`mkVrLauncher`) and `vr-connect` are built so plugging in, putting the headset on
+and clicking can happen in any order:
+
+| Order | What happens |
+|---|---|
+| Plug in → headset on → click | Game starts straight away. |
+| Click first, then plug in / put on | "Waiting for the headset"; the game starts by itself once it connects. Gives up after **2 min** with "Plug in and power on the headset, then click … again", so a forgotten click can't start a game later out of nowhere. |
+| Headset already plugged in at login | `vr-connect` is also `wantedBy default.target` (the udev event fired before the session existed); it exits quietly if no headset is attached. |
+| Headset off and back on mid-game | Session goes `FOCUSED → SYNCHRONIZED` and back; the game keeps running and resumes. |
+| **Cable pulled mid-game** | **Not recoverable**: WiVRn refuses the headset back into the session the game holds (`headset config incompatible with current session`). `vr-connect` spots that line and notifies "VR: restart the game". |
+| Click after any unplug | The session lives on without a headset (wayvr keeps it alive), so the launcher restarts `wivrn.service` first and the headset gets a fresh session. |
+
+How it decides: "is a headset there" is WiVRn's D-Bus `HeadsetConnected` property, **not** "does
+wivrn-server have a child process". The per-client process outlives an unplug, and the old check
+launched games with no headset (they came up as a VR mirror on the desktop). Double clicks are
+caught by a lock in `$XDG_RUNTIME_DIR`. adb runs with that fd closed, because the adb server forks
+off and lives on, and would otherwise hold the lock forever.
 
 Manual fallbacks: `vr-connect` (same thing the udev rule runs), `vr-client-install`,
 `journalctl --user -u wivrn -u vr-connect`.
@@ -104,6 +122,14 @@ bitrate. The MiG-21 flew smoothly in VR with the HOTAS. Raise refresh/scale/bitr
   headset is connected. Without one, DCS logs `XR_ERROR_RUNTIME_UNAVAILABLE` and starts flat on the desktop.
 - Steam's launch picker: choose **OpenXR**. "Oculus VR" needs Meta's Windows runtime.
 - To open WiVRn's own window (settings, stats, disconnect) during a stream, **click both thumbsticks**.
+- **USB "drop storm".** The headset re-enumerates every few seconds (`journalctl -k | grep "USB
+  disconnect"`, `error -71`) and every reconnect fails. This is **not** our software: with vr-connect
+  masked and no adb running it still dropped 6 times in 45 s, and restarting the headset didn't
+  help. It went away on a rear motherboard port after a PC reboot. Both changed at once, so it is
+  either the front port or its controller getting stuck. Try another port first, then reboot.
+  To stop vr-connect for a test, `systemctl --user mask vr-connect` (persistent, in
+  `~/.config`, so **unmask afterwards**). `mask --runtime` does nothing here: `/etc/systemd/user`
+  outranks `$XDG_RUNTIME_DIR/systemd/user`.
 - **Don't `rebuild` during a VR session.** The switch re-executes the user systemd manager, and
   wivrn-server 26.6.2 segfaults in `systemd_units_manager::on_unit_result`. The unit restarts
   on its own, but the headset drops to the Quest menu; replug or run `vr-connect`.

@@ -35,6 +35,7 @@ let
   clientPackage = "org.meumeu.wivrn.github";
 
   adb = "${pkgs.android-tools}/bin/adb";
+  questVendor = "2833"; # Oculus / Meta
   busctl = "${pkgs.systemd}/bin/busctl";
   wivrnBus = "io.github.wivrn.Server /io/github/wivrn/Server io.github.wivrn.Server";
 
@@ -56,6 +57,12 @@ let
   vr-connect = pkgs.writeShellScriptBin "vr-connect" ''
     set -uo pipefail
     notify() { ${pkgs.libnotify}/bin/notify-send -a "VR" -i io.github.wivrn.wivrn "$@" 2>/dev/null || true; echo "$*"; }
+
+    # Also started at login (a headset plugged in before then sent its udev event
+    # to nobody): nothing to do if none is attached.
+    if ! ${pkgs.usbutils}/bin/lsusb -d ${questVendor}: >/dev/null; then
+      echo "no headset attached"; exit 0
+    fi
 
     # Waits through the "Allow USB debugging?" prompt in the headset, which only
     # needs answering once if "Always allow" is ticked.
@@ -79,6 +86,7 @@ let
     fi
 
     systemctl --user start wivrn.service
+    since=$(date '+%Y-%m-%d %H:%M:%S')
     ${adb} reverse tcp:9757 tcp:9757
     ${adb} shell am start -a android.intent.action.VIEW -d "wivrn+tcp://localhost" ${clientPackage} >/dev/null
     notify "VR connected" "WiVRn ${wivrn.version} over USB"
@@ -97,6 +105,21 @@ let
         "VR pairing code: $pin" "Put the headset on. When WiVRn asks for a PIN, type $pin. Only needed once." || true
       echo "pairing code: $pin"
     fi
+
+    # Cable pulled mid-game: WiVRn refuses the headset back into the session the
+    # game still holds ("headset config incompatible with current session") and
+    # only restarting the game recovers. Say so, rather than leaving the headset
+    # on WiVRn's error screen.
+    (
+      for _ in $(seq 60); do
+        if ${pkgs.systemd}/bin/journalctl --user -u wivrn.service --since "$since" -q 2>/dev/null \
+            | grep -q "incompatible with current session"; then
+          notify "VR: restart the game" "The headset can't rejoin a game that was running when the cable came out. Quit the game, then start it again from its (VR) entry."
+          break
+        fi
+        sleep 1
+      done
+    ) &
 
     # Prefer the V-Cache CCD for the whole headset session. gamemoderun can't do it
     # for Proton games: it is a /nix/store bash script, and inside Steam's runtime it
@@ -345,35 +368,46 @@ let
       notify "${title} is already running" "Look in the headset."; exit 0
     fi
 
-    # A headset session = wivrn-server has forked its per-client server process.
-    streaming() {
-      local main; main=$(systemctl --user show wivrn.service -p MainPID --value)
-      [ "''${main:-0}" != 0 ] && pgrep -P "$main" >/dev/null
+    # The adb server forks off and lives on: it must not inherit the lock (fd 9),
+    # or every later click would report "already starting".
+    adb() { ${adb} "$@" 9>&-; }
+    # Ask WiVRn itself. Its per-client server process outlives an unplug (the
+    # session just pauses), so "has a child process" is not "a headset is there".
+    headset_connected() {
+      ${busctl} --user get-property ${wivrnBus} HeadsetConnected 2>/dev/null | grep -qx "b true"
     }
 
-    if ! streaming; then
-      systemctl --user start wivrn.service
-      if ! ${adb} get-state 2>/dev/null | grep -qx device; then
-        notify "Plug in the headset" "Waiting for the Quest on USB…"
-        # The udev rule starts vr-connect once it appears.
-        timeout 120 ${adb} wait-for-usb-device || { notify "No headset found" "Gave up after 2 minutes."; exit 1; }
-      elif ! systemctl --user is-active --quiet vr-connect.service; then
-        systemctl --user start vr-connect.service
-      else
-        # Tunnel is up but the app isn't connected (e.g. it was closed): reopen it.
-        ${adb} shell am start -a android.intent.action.VIEW -d "wivrn+tcp://localhost" ${clientPackage} >/dev/null
+    # Works in any order: headset unplugged, plugged in but asleep, plugged in before
+    # login (no udev event reached this session), WiVRn app closed. Keep nudging
+    # until the headset connects, but only for 2 minutes, so a forgotten click
+    # can't start the game out of nowhere later.
+    systemctl --user start wivrn.service
+    if ! headset_connected; then
+      # A session with no headset in it is stale: left paused by an unplug, or one
+      # that refuses the headset back after the cable came out mid-game ("headset
+      # config incompatible with current session"). wayvr keeps it alive after the
+      # game quits, so a relaunch would join it and never connect. Only wayvr is
+      # attached at this point, so restart for a fresh one, and close the headset
+      # app (maybe on WiVRn's error screen) so the intents below start it clean.
+      if ${busctl} --user get-property ${wivrnBus} SessionRunning 2>/dev/null | grep -qx "b true"; then
+        systemctl --user restart wivrn.service
+        adb get-state 2>/dev/null | grep -qx device && adb shell am force-stop ${clientPackage}
       fi
-      notify "Put the headset on" "Waiting for WiVRn to connect…"
-      # The headset ignores the connect intent while it's off your head (the app
-      # cold-starts without it), so keep re-sending it until the stream is up.
+      notify "Waiting for the headset" "Plug it in and put it on. ${title} starts by itself once it connects."
       for i in $(seq 120); do
-        streaming && break
-        if [ $((i % 10)) = 0 ]; then
-          ${adb} shell am start -a android.intent.action.VIEW -d "wivrn+tcp://localhost" ${clientPackage} >/dev/null 2>&1
+        headset_connected && break
+        if adb get-state 2>/dev/null | grep -qx device; then
+          # Plugged in: make sure vr-connect is up (it owns the tunnel), and keep
+          # re-sending the connect intent, which the headset ignores while off-head.
+          systemctl --user is-active --quiet vr-connect.service \
+            || systemctl --user start vr-connect.service
+          [ $((i % 10)) = 1 ] && adb shell am start -a android.intent.action.VIEW \
+            -d "wivrn+tcp://localhost" ${clientPackage} >/dev/null 2>&1
         fi
         sleep 1
       done
-      streaming || { notify "Headset didn't connect" "Open WiVRn in the headset and run ${name} again."; exit 1; }
+      headset_connected || { notify "Headset didn't connect" "Plug in and power on the headset, then click ${title} (VR) again."; exit 1; }
+      notify "Headset connected"
     fi
 
     # launch/<appid>/VR skips Steam's launch-option picker. DCS: runs the default
@@ -489,7 +523,7 @@ in
 
     # Plug in the headset → vr-connect runs in the seat user's session.
     services.udev.extraRules = ''
-      ACTION=="add", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="2833", TAG+="systemd", ENV{SYSTEMD_USER_WANTS}+="vr-connect.service"
+      ACTION=="add", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="${questVendor}", TAG+="systemd", ENV{SYSTEMD_USER_WANTS}+="vr-connect.service"
 
       # Let gamemode (running as the user) flip the 7900X3D's scheduler preference to the V-Cache CCD.
       ACTION=="add|bind", SUBSYSTEM=="platform", DRIVER=="amd_x3d_vcache", RUN+="${pkgs.coreutils}/bin/chgrp gamemode /sys%p/amd_x3d_mode", RUN+="${pkgs.coreutils}/bin/chmod g+w /sys%p/amd_x3d_mode"
@@ -508,6 +542,7 @@ in
 
     systemd.user.services.vr-connect = {
       description = "Connect a USB-attached headset to WiVRn";
+      wantedBy = [ "default.target" ];
       serviceConfig = {
         Type = "simple";
         ExecStart = "${vr-connect}/bin/vr-connect";
