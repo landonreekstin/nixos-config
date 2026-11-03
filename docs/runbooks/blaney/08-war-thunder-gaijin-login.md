@@ -78,3 +78,29 @@ his own progress, and gets into a match or test drive.
   in the module. Don't patch the binary.
 - If the game can't be made to work at all, write down what you tried and what failed, tell
   Blaney to pass it on to Lando, and stop. Don't open a PR for a half-working setup.
+
+## Progress so far (2026-11-03, paused at Blaney's request)
+
+Branch `blaney/war-thunder-gaijin`, no PR yet: not confirmed working.
+
+- Done: `customConfig.programs.warThunder` (`modules/nixos/programs/war-thunder.nix`), "War
+  Thunder (Gaijin)" in the Games menu and on the Desktop. Rebuilt and running on blaney-pc.
+- The launcher comes from
+  `https://yupmaster.gaijinent.com/launcher/current.php?id=WarThunderLauncherLinux`, runs
+  under `steam-run`, and the game downloaded and started (about 24 GB in
+  `~/.local/share/WarThunder`). Steam's 91 GB copy couldn't be reused: only 53 GB was free.
+- Blaney signs in on the game's own login screen, not in the launcher.
+- **Open problem:** the screen stayed on "Logging in, please wait...". The game's log shows
+  one attempt, ~74 s in: `auth.gaijinent.com/login.php` answered `Authentication failed`
+  (`LOGINERROR`, error 3), then an error box was loaded. No second attempt followed, and
+  there was no network traffic while it sat there, so it looks like a rejected login hidden
+  behind the spinner, not a connection problem. Unconfirmed: he is retrying.
+- Logs are `~/.config/WarThunder/.game_logs/*.clog`, XOR-encoded with a repeating 128-byte
+  key; they can hold his email, so hide it when reading them.
+
+Next: he retries, retyping his password carefully. If it fails again with the right
+password, check whether 2FA or a new-device email is involved. Then finish steps 5 and 6.
+
+Also waiting (separate from this task): he wants the R62D Desktop icon to open a Linux build
+of the Electron program in `desktop/` of his r62d project (PLAY / HOST / JOIN screen, no
+Firefox). Today it still runs `play.sh`. Start only when his other R62D chat is finished.

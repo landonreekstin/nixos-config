@@ -18,6 +18,12 @@
     ];
   }
   {
+    date = "2026-11-03";
+    changes = [
+      "New icon: War Thunder (Gaijin) signs you in with your Gaijin account, so you get your real progress. Starting it from Steam still works the old way."
+    ];
+  }
+  {
     date = "2026-10-30";
     changes = [
       "Sub of Seas got a big update: sounds, music, a settings menu, bot crewmen and a rec room. It also starts without the homelab VPN now (you still need it to join Lando)."

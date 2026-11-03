@@ -53,6 +53,9 @@
       # The Batman (JAKKS TV game) with Lando: "The Batman: Join Online Game" in the start
       # menu, with the homelab VPN on. modules/nixos/programs/batman.nix.
       batman.enable = true;
+      # War Thunder on his Gaijin account, via Gaijin's own launcher: "War Thunder (Gaijin)" in
+      # the start menu. Steam's copy is untouched. modules/nixos/programs/war-thunder.nix.
+      warThunder.enable = true;
       # Steel Horizon RTS, Lando's naval battle game on the PSP game's assets: "Steel Horizon"
       # in the start menu. The first run downloads the ISO from the NAS drop (homelab VPN
       # on). modules/nixos/programs/steel-horizon.nix.

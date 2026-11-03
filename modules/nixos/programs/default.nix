@@ -9,6 +9,7 @@
     ./iw4x.nix
     ./vault-install.nix
     ./batman.nix
+    ./war-thunder.nix
     ./steel-horizon.nix
     ./sub-of-seas.nix
     ./r62d.nix

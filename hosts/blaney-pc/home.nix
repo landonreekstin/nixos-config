@@ -164,6 +164,17 @@
         categories = [ "System" "TerminalEmulator" ];
         settings.StartupWMClass = "kitty";
       };
+      # War Thunder (modules/nixos/programs/war-thunder.nix) on his Desktop too, for its tree squid
+      home.file."Desktop/War Thunder (Gaijin).desktop".text = ''
+        [Desktop Entry]
+        Type=Application
+        Name=War Thunder (Gaijin)
+        Comment=War Thunder on your Gaijin account
+        Exec=war-thunder-gaijin
+        Icon=steam_icon_236390
+        Terminal=false
+        Categories=Game;
+      '';
       # Open one fresh Dolphin window like Explorer/Finder, not every tab from last time.
       # plasma-manager writes this as a key, not a symlink, since Dolphin rewrites
       # dolphinrc itself.
