@@ -31,6 +31,7 @@ in `docs/` — read the matching file when the task calls for it:
 | [docs/reverse-engineering.md](docs/reverse-engineering.md) | REA / Ghidra, the `re` launcher or `~/reverse-engineering` workspace, or bumping the pinned `rea-agents` version |
 | [docs/gamedev.md](docs/gamedev.md) | the `gd` launcher, `~/gamedev`, the gamedev skills plugin (bumping its pin), engine toolchains, or `play-on-desktop` |
 | [docs/xbox360.md](docs/xbox360.md) | the "Xbox 360 Dashboard" session: its Quickshell shell, dashboard menus, app workspaces, controller daemon, Guide or pages |
+| [docs/comfyui.md](docs/comfyui.md) | ComfyUI on gaming-pc: who can reach it, where models go (never in Nix/git), or bumping its container image |
 
 ## Choosing the Right Host to Work On
 

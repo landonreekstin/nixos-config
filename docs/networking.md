@@ -210,6 +210,10 @@ the state the inbound rdr created. The outbound rules never see it, so the nat-t
 applied. That rule was removed on 2026-10-18. The file from before any of this is
 `/etc/pf.conf.bak-before-batman`.
 
+### ComfyUI (port 8188)
+
+ComfyUI runs on gaming-pc and is for full peers only. They reach it at **`http://10.10.0.11:8188`** (gaming-pc's wg-nas address) over the same no-NAT path as The Batman, and gaming-pc's firewall accepts 8188 on `wg-nas` from 10.10.0.2 and 10.10.0.3 only. No pf rule and no `.76` forward, so restricted peers never reach it. See [comfyui.md](comfyui.md).
+
 ### browser-puck (port 8787)
 
 The browser air-hockey game (`modules/nixos/homelab/browser-puck.nix`) runs on mini-server.
