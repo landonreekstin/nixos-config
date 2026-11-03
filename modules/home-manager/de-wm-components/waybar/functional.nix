@@ -16,6 +16,9 @@ let
   # theme is active AND its night mode is on.
   hasCenturyNight = customConfig.homeManager.hyprland.desktops.default == "century-series"
     && customConfig.homeManager.themes.centurySeries.night.enable;
+  # Comms-log notification widget; defined by the century-series waybar module
+  # (it drives dunst, which only that desktop runs).
+  hasCenturyNotif = customConfig.homeManager.hyprland.desktops.default == "century-series";
   hyprsunsetDayTemp = toString customConfig.homeManager.services.hyprsunset.dayTemp;
   systemctlUser = "${pkgs.systemd}/bin/systemctl --user";
   # The same day/night predicate the schedule timer uses, so the widget and the
@@ -491,6 +494,7 @@ in
               "custom/audio-sink"
               "cpu"
               "memory"
+            ] ++ lib.optionals hasCenturyNotif [ "custom/notifications" ] ++ [
               "clock"
               "tray"
               "custom/power"
