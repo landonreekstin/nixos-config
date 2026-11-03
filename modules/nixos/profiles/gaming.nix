@@ -35,7 +35,8 @@ in
 
     environment.systemPackages = (with pkgs.unstable; [
       # Launchers / Compatibility Layers
-      steam # Check prerequisites (32-bit libs, vulkan drivers - nvidia module should handle these)
+      # No bare `steam` here: it shadowed programs.steam.package below, the wrapper
+      # that carries STEAM_EXTRA_COMPAT_TOOLS_PATHS, so Steam never saw proton-ge-bin.
       dolphin-emu
       wineWow64Packages.stable # Wine (stable branch, includes 32-bit/WoW64)
       winetricks
