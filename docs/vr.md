@@ -40,7 +40,26 @@ Manual fallbacks: `vr-connect` (same thing the udev rule runs), `vr-client-insta
 
 1. Meta Horizon phone app → the headset → Developer Mode on (needs a Meta developer org).
 2. Plug in, put the headset on, accept **Allow USB debugging** with *Always allow* ticked.
-3. On the first connection the server may show a pairing PIN (`journalctl --user -u wivrn`); enter it in the headset.
+3. On the first connection the headset asks for a pairing PIN. `vr-connect` sends it as a
+   notification ("VR pairing code: 123456") whenever the server is in pairing mode, which it
+   is while no headset is paired. wivrn-server's own bare "PIN" notification goes out at
+   login, long before anyone plugs in, so it is easy to miss. Fallback: `journalctl --user -u wivrn`.
+4. **Games: run `vr-setup`** (see [below](#vr-setup-all-three-games-in-one-step)).
+
+### `vr-setup`: all three games in one step
+`vr-setup` closes Steam if it is open, then sets the compat tool and launch options for DCS,
+War Thunder and Phasmophobia, whether or not they are installed yet: Steam keeps both for an
+uninstalled app, so War Thunder downloads as the Windows client straight away (the native
+Linux client has no VR). It then reopens Steam, with the Proton BattlEye Runtime's install
+dialog if that is missing. Safe to re-run. The per-game `dcs-vr-setup` / `wt-vr-setup` /
+`phasmo-vr-setup` do one game each and need Steam already closed.
+
+All three games run on the newest **GE-Proton 11, 11-9 or newer**, that Steam can see:
+either one unpacked into `~/.local/share/Steam/compatibilitytools.d`, or the gaming profile's
+`proton-ge-bin` (`programs.steam.extraCompatPackages`, Steam's internal name plain
+`GE-Proton`, GE-Proton11-11 from unstable on 2026-11-02). So no machine needs a
+hand-downloaded build. The highest version wins; the `version` file in each tool directory
+says which it is. Why 11-9: see [War Thunder](#why-each-piece-is-needed-all-found-the-hard-way).
 
 ### Client/server version pinning
 The headset app must match the server version exactly. `vr.nix` pins the GitHub
@@ -51,12 +70,15 @@ evaluation fails with the `nix-prefetch-url` command to run. Add the new hash to
 ## DCS World (Steam appid 223750)
 
 1. Install DCS in Steam. Steam's default library is on `/`; `/mnt/games/SteamLibrary` has more room.
-2. Quit Steam fully, run `dcs-vr-setup`. It sets the compat tool to GE-Proton (keeping any GE-Proton build already chosen in Steam — GE-Proton10-34 on gaming-pc) and these launch options:
+2. `vr-setup` (or `dcs-vr-setup` with Steam closed) maps it to GE-Proton 11 and sets these launch options:
    `PROTON_ENABLE_NVAPI=1 WINEDLLOVERRIDES=wbemprox=n %command% --no-launcher --force_enable_VR --force_OpenXR`
    (`dcs-vr-setup flat` writes the same without the VR flags.)
-3. Start DCS once to create the Proton prefix, quit, then run `dcs-vr-setup` again. That installs
-   consolas/corefonts/d3dcompiler_47/xact (best effort — xact fails under GE-Proton10-34 and is skipped; Proton has FAudio built in) and imports the `HKCU\Software\Wine\VR` keys that
-   wineopenxr needs (from the [LVRA DCS page](https://vronlinux.org/docs/games/dcs-world/)).
+
+There is no prefix step. DCS used to run on GE-Proton10-34, which needed a second pass after the
+first start: winetricks extras plus the `HKCU\Software\Wine\VR` keys from the
+[LVRA DCS page](https://vronlinux.org/docs/games/dcs-world/), imported by hand. GE-Proton 11
+writes those keys itself whenever WiVRn is reachable at start-up, as it does for War Thunder,
+and the winetricks verbs were never VR requirements.
 
 ### Quality tuning (Quest 2 + 4070 Ti SUPER)
 - WiVRn does no motion reprojection (only rotational timewarp on the headset), so a **locked**
@@ -102,19 +124,13 @@ launcher as DCS's (`mkVrLauncher` in vr.nix): it waits for the headset session, 
 `beac_wt_mlauncher.exe -config:gameplay/enableVR:b=yes`. Steam's normal "Launch Game" entry
 passes `enableVR:b=no` and always starts flat.
 
-**One-time setup:**
-1. In Steam → War Thunder → Properties → Compatibility, pick a GE-Proton so Steam downloads the
-   Windows client (~90 GB).
-2. Install **GE-Proton11-9 or newer** into `~/.local/share/Steam/compatibilitytools.d`
-   ([releases](https://github.com/GloriousEggroll/proton-ge-custom/releases); nixpkgs'
-   `proton-ge-bin` was still 11-7 on 2026-10-18). The tarball's directory name is fine as is,
-   because Steam maps games by the tool's *internal* name (`GE-Proton11-9-x86_64`).
-3. Install the **Proton BattlEye Runtime**: `steam steam://install/1161040`. Without it the game
-   runs but online play refuses with "anti-cheat is not loaded". Once it's installed, Steam passes
-   `PROTON_BATTLEYE_RUNTIME` to the game by itself. With it installed (2026-10-19), sim battles
-   queued. A full match had not been played yet.
-4. Quit Steam, run `wt-vr-setup`. It checks for the BattlEye runtime, maps the game to the newest
-   GE-Proton11, and sets the launch options to `PROTON_DISABLE_NVAPI=1 XR_SRGB_FIX=1 %command%`.
+**One-time setup:** `vr-setup`, ideally before installing the game, so Steam downloads the
+Windows client (~90 GB) rather than the native one. It maps the game to GE-Proton 11, sets the
+launch options to `PROTON_DISABLE_NVAPI=1 XR_SRGB_FIX=1 %command%`, and opens Steam's install
+dialog for the **Proton BattlEye Runtime** (`steam://install/1161040`) if it is missing. Without
+the runtime the game runs, but online play refuses with "anti-cheat is not loaded". Once it's
+installed, Steam passes `PROTON_BATTLEYE_RUNTIME` to the game by itself. With it installed
+(2026-10-19), sim battles queued. A full match had not been played yet.
 
 No registry keys or winetricks are needed: GE-Proton 11 writes the `HKCU\Software\Wine\VR`
 keys itself at start-up, provided WiVRn is reachable.
@@ -177,6 +193,10 @@ no stutter.
 - War Thunder's logs (`.game_logs/*.clog`) are XOR-obfuscated with a 128-byte repeating key. To
   read them, recover the key from byte frequency: per position mod 128, assume the most common
   plaintext byte is a space. Look for `[XR][device]` lines.
+- **Exit hangs on a black fullscreen.** After clicking Exit the window stays black until it is
+  force-quit (Super+Q, or close it from the taskbar). The kill leaves a minidump in
+  `.game_logs/reports/` (access violation at an address outside any module). Seen on GE-Proton11-9
+  and 11-11 alike; harmless, play is unaffected.
 - Reports elsewhere mention breakage after game updates. If VR stops working after a patch, check the
   `.clog` for `[XR]` errors first.
 
@@ -189,8 +209,7 @@ through wineopenxr, and xrizer is not involved. No anti-cheat.
 This uses the same `mkVrLauncher` as DCS and War Thunder and ends with `steam://launch/739630/VR`, which is
 Steam's "Phasmophobia in VR (exc. Steam Home)" entry (`Phasmophobia.exe --enable-vr`).
 
-**One-time setup:** quit Steam and run `phasmo-vr-setup`. It maps the game to the newest
-GE-Proton11 (11-9 or newer, for the same wineopenxr reason as War Thunder) and resets its
-launch options to plain `%command%`.
+**One-time setup:** `vr-setup` (or `phasmo-vr-setup` with Steam closed). It maps the game to
+GE-Proton 11 and resets its launch options to plain `%command%`.
 
 Verified 2026-10-26: starts in VR from the launcher on GE-Proton11-9; no colour fix needed.

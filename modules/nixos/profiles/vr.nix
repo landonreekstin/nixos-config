@@ -35,6 +35,8 @@ let
   clientPackage = "org.meumeu.wivrn.github";
 
   adb = "${pkgs.android-tools}/bin/adb";
+  busctl = "${pkgs.systemd}/bin/busctl";
+  wivrnBus = "io.github.wivrn.Server /io/github/wivrn/Server io.github.wivrn.Server";
 
   # 7900X3D: "cache" makes the scheduler prefer the V-Cache CCD (what DCS wants),
   # "frequency" the high-clock one. The udev rule below makes it gamemode-group writable.
@@ -81,6 +83,21 @@ let
     ${adb} shell am start -a android.intent.action.VIEW -d "wivrn+tcp://localhost" ${clientPackage} >/dev/null
     notify "VR connected" "WiVRn ${wivrn.version} over USB"
 
+    # No headset paired yet: the server is in pairing mode and the headset will ask
+    # for a PIN. wivrn-server's own notification ("PIN" + the code) goes out when the
+    # server starts at login, long before anyone plugs a headset in, so repeat it
+    # here with words. The D-Bus name appears a moment after the unit starts.
+    for _ in $(seq 10); do
+      pairing=$(${busctl} --user get-property ${wivrnBus} PairingEnabled 2>/dev/null) && break
+      sleep 1
+    done
+    if [ "''${pairing:-}" = "b true" ]; then
+      pin=$(${busctl} --user get-property ${wivrnBus} Pin | sed 's/^s "\(.*\)"$/\1/')
+      ${pkgs.libnotify}/bin/notify-send -a "VR" -i dialog-password -u critical -t 600000 \
+        "VR pairing code: $pin" "Put the headset on. When WiVRn asks for a PIN, type $pin. Only needed once." || true
+      echo "pairing code: $pin"
+    fi
+
     # Prefer the V-Cache CCD for the whole headset session. gamemoderun can't do it
     # for Proton games: it is a /nix/store bash script, and inside Steam's runtime it
     # loads the runtime's libc and dies (undefined symbol __pointer_chk_guard).
@@ -93,17 +110,17 @@ let
     ${adb} kill-server
   '';
 
-  # One-shot Steam/prefix setup for DCS World (Steam appid 223750). Idempotent.
   dcsAppId = "223750";
-  vdfEdit = pkgs.writers.writePython3 "dcs-vr-vdf" { libraries = [ pkgs.python3Packages.vdf ]; } ''
+  # Sets a game's compat tool (config.vdf) and launch options (every
+  # localconfig.vdf). Steam must be closed. Idempotent.
+  vdfEdit = pkgs.writers.writePython3 "vr-steam-vdf" { libraries = [ pkgs.python3Packages.vdf ]; } ''
     import glob
     import os
     import sys
 
     import vdf
 
-    # keep: a compat tool already mapped whose name starts with this is left alone.
-    steam, appid, launch_opts, tool, keep = sys.argv[1:6]
+    steam, appid, launch_opts, tool = sys.argv[1:5]
 
 
     def child(d, key):
@@ -127,7 +144,7 @@ let
         with open(path, encoding="utf-8") as f:
             data = vdf.load(f, mapper=vdf.VDFDict, escaped=False)
         fn(data)
-        tmp = path + ".dcs-vr-tmp"
+        tmp = path + ".vr-setup-tmp"
         with open(tmp, "w", encoding="utf-8") as f:
             vdf.dump(data, f, pretty=True, escaped=False)
         os.replace(tmp, path)
@@ -137,12 +154,6 @@ let
     def compat(data):
         m = child(child(child(child(child(data, "InstallConfigStore"),
                   "Software"), "Valve"), "Steam"), "CompatToolMapping")
-        # Keep a build picked by hand in Steam (e.g. GE-Proton10-34 from
-        # protonup-qt) when it matches `keep`.
-        current = m.get(appid, {}).get("name", "")
-        if current.startswith(keep):
-            print("keeping compat tool", current)
-            return
         put(m, appid, {"name": tool, "config": "", "priority": "250"})
 
 
@@ -160,147 +171,156 @@ let
         edit(p, launch)
   '';
 
-  dcs-vr-setup = pkgs.writeShellScriptBin "dcs-vr-setup" ''
-    set -euo pipefail
+  # Shell helpers shared by the setup scripts below.
+  # * Steam rewrites its config files on exit, so they refuse to run while it is open.
+  # * $tool is set to the newest GE-Proton 11 (11-9 or newer) Steam can see, by Steam's
+  #   internal tool name: either one unpacked into compatibilitytools.d (protonup-qt,
+  #   GitHub tarball) or the one programs.steam.extraCompatPackages installs (the
+  #   gaming profile's proton-ge-bin, internal name plain "GE-Proton"), so a machine
+  #   needs no hand-downloaded build. Older wineopenxr leaves
+  #   xrConvertWin32PerformanceCounterToTimeKHR unimplemented (black headset in War
+  #   Thunder), and only Proton 11 writes the HKCU\Software\Wine\VR keys itself.
+  nixCompatTools = lib.optionals config.programs.steam.enable
+    (map (lib.getOutput "steamcompattool") config.programs.steam.extraCompatPackages);
+  steamHelpers = ''
     STEAM="$HOME/.local/share/Steam"
-    APPID=${dcsAppId}
-    MODE="''${1:-vr}"
+    steam_running() {
+      pgrep -u "$(id -u)" -x steam >/dev/null || pgrep -u "$(id -u)" steamwebhelper >/dev/null
+    }
+    # Library folder an app is installed in; fails if it isn't installed.
+    game_lib() {
+      local l
+      for l in "$STEAM" $(sed -n 's/^\s*"path"\s*"\(.*\)"/\1/p' "$STEAM/steamapps/libraryfolders.vdf" 2>/dev/null); do
+        [ -f "$l/steamapps/appmanifest_$1.acf" ] && { echo "$l"; return 0; }
+      done
+      return 1
+    }
+    # Steam keeps a compat tool and launch options for an app that isn't installed
+    # yet, so setup can run first. War Thunder then downloads as the Windows client
+    # (the native Linux one has no VR) instead of needing a re-download.
+    not_installed_note() {
+      game_lib "$1" >/dev/null || echo "($2 isn't installed yet — set up anyway, so it installs ready for VR.)"
+    }
+  '';
+  geProton11Setup = ''
+    set -euo pipefail
+    ${steamHelpers}
+    if steam_running; then
+      echo "Steam is running — it rewrites its config on exit. Quit Steam fully and re-run." >&2
+      exit 1
+    fi
+    tool=""; best=-1
+    for dir in "$STEAM"/compatibilitytools.d/* ${lib.concatStringsSep " " nixCompatTools}; do
+      [ -f "$dir/version" ] && [ -f "$dir/compatibilitytool.vdf" ] || continue
+      # `version` reads "<timestamp> GE-Proton11-9" for every GE-Proton build.
+      v=$(sed -n 's/^[0-9]* GE-Proton11-\([0-9]*\)$/\1/p' "$dir/version")
+      [ -n "$v" ] && [ "$v" -ge 9 ] && [ "$v" -gt "$best" ] || continue
+      best=$v
+      tool=$(sed -n 's/^\s*"\([^"]*\)"\s*\/\/ Internal name.*/\1/p' "$dir/compatibilitytool.vdf")
+    done
+    if [ -z "$tool" ]; then
+      echo "Needs GE-Proton11-9 or newer. Enable the gaming profile (proton-ge-bin) or unpack one" >&2
+      echo "into $STEAM/compatibilitytools.d from https://github.com/GloriousEggroll/proton-ge-custom/releases" >&2
+      exit 1
+    fi
+    echo "Using $tool (GE-Proton11-$best)"
+  '';
 
-    # No double quotes in here: localconfig.vdf is written unescaped (see dcs-vr-vdf).
+  # DCS World (Steam appid 223750) under GE-Proton 11. Proton 11 writes the Wine
+  # OpenXR registry keys itself whenever WiVRn is reachable at start-up, so there is
+  # no prefix step: this only sets the compat tool and launch options, and works
+  # before DCS has ever been started.
+  dcs-vr-setup = pkgs.writeShellScriptBin "dcs-vr-setup" ''
+    ${geProton11Setup}
+    MODE="''${1:-vr}"
+    # No double quotes in here: localconfig.vdf is written unescaped (see vr-steam-vdf).
     common='PROTON_ENABLE_NVAPI=1 WINEDLLOVERRIDES=wbemprox=n %command% --no-launcher'
     case "$MODE" in
       vr)   OPTS="$common --force_enable_VR --force_OpenXR" ;;
       flat) OPTS="$common" ;;
       *)    echo "usage: dcs-vr-setup [vr|flat]" >&2; exit 2 ;;
     esac
-
-    if pgrep -u "$(id -u)" steamwebhelper >/dev/null; then
-      echo "Steam is running — it rewrites its config on exit. Quit Steam fully and re-run." >&2
-      exit 1
-    fi
-
-    # Find the library DCS is installed in.
-    LIB=""
-    for l in $(sed -n 's/^\s*"path"\s*"\(.*\)"/\1/p' "$STEAM/steamapps/libraryfolders.vdf"); do
-      [ -f "$l/steamapps/appmanifest_$APPID.acf" ] && LIB="$l" && break
-    done
-    if [ -z "$LIB" ]; then
-      echo "DCS World is not installed yet. Install it in Steam (steam steam://install/$APPID), then re-run." >&2
-      exit 1
-    fi
-    echo "DCS library: $LIB"
-
-    echo "== Steam: GE-Proton + $MODE launch options"
-    ${vdfEdit} "$STEAM" "$APPID" "$OPTS" GE-Proton GE-Proton
-
-    PREFIX="$LIB/steamapps/compatdata/$APPID/pfx"
-    if [ ! -d "$PREFIX/drive_c" ]; then
-      echo
-      echo "The Proton prefix doesn't exist yet. Start DCS once from Steam (let it reach"
-      echo "the main menu), quit, then run dcs-vr-setup again to finish the prefix setup."
-      exit 0
-    fi
-
-    # Under GE-Proton10-34, a Wine command whose stderr goes to a file under /tmp
-    # prints nothing on stdout. winetricks redirects stderr to its temp dir
-    # (TMPDIR, else /tmp), so every %AppData% lookup came back empty and it
-    # aborted. Any temp dir outside /tmp works.
-    export TMPDIR="''${XDG_CACHE_HOME:-$HOME/.cache}/dcs-vr-setup"
-    mkdir -p "$TMPDIR"
-
-    echo "== Prefix: winetricks components"
-    # Nice-to-haves from the standalone-DCS guide, not VR requirements: GE-Proton
-    # already ships d3dcompiler_47 and xact (FAudio). Under GE-Proton10-34 the 32-bit regedit these
-    # verbs use has segfaulted (139) — consolas once, xact every time so far — so a
-    # failure is reported and skipped rather than aborting before the VR keys.
-    for verb in consolas corefonts d3dcompiler_47 xact; do
-      ${pkgs.protontricks}/bin/protontricks "$APPID" -q "$verb" >/dev/null 2>&1 \
-        && echo "  $verb: ok" || echo "  $verb: FAILED (skipped)"
-    done
-
-    echo "== Prefix: Wine OpenXR registry keys"
-    # PCI ids of the NVIDIA card specifically — this host also has the Raphael iGPU.
-    read -r VID PID < <(${pkgs.pciutils}/bin/lspci -nn -d 10de::0300 \
-      | sed -n 's/.*\[\(10de\):\([0-9a-f]\{4\}\)\].*/\1 \2/p' | head -n1)
-    REG=$(mktemp --suffix=.reg)
-    cat > "$REG" <<EOF
-    Windows Registry Editor Version 5.00
-
-    [HKEY_CURRENT_USER\\Software\\Wine\\VR]
-    "openxr_vulkan_device_extensions"="VK_KHR_external_fence VK_KHR_external_memory VK_KHR_external_semaphore VK_KHR_dedicated_allocation VK_KHR_get_memory_requirements2 VK_KHR_external_memory_fd VK_KHR_external_semaphore_fd VK_KHR_external_fence_fd VK_KHR_image_format_list VK_KHR_timeline_semaphore"
-    "openxr_vulkan_instance_extensions"="VK_KHR_external_memory_capabilities VK_KHR_get_physical_device_properties2 VK_KHR_external_semaphore_capabilities VK_KHR_external_fence_capabilities"
-    "openxr_vulkan_device_vid"=dword:0000$VID
-    "openxr_vulkan_device_pid"=dword:0000$PID
-    "state"=dword:00000001
-    EOF
-    ${pkgs.protontricks}/bin/protontricks -c "wine regedit /S '$REG'" "$APPID"
-    rm -f "$REG"
-
-    echo
-    echo "Done. Recommended in-game VR settings are in ~/nixos-config/docs/vr.md."
+    not_installed_note ${dcsAppId} "DCS World"
+    echo "== Steam: $tool + $MODE launch options"
+    ${vdfEdit} "$STEAM" ${dcsAppId} "$OPTS" "$tool"
+    echo "Done. Start it with the DCS World (VR) launcher (or dcs-vr)."
   '';
 
-  # War Thunder (Steam appid 236390), Windows client under GE-Proton.
-  #
-  # * It needs GE-Proton 11-9 or newer: older wineopenxr leaves
-  #   xrConvertWin32PerformanceCounterToTimeKHR unimplemented, the game calls it every
-  #   frame for its head pose, and the headset stays black (sound only).
+  # War Thunder (Steam appid 236390), Windows client under GE-Proton 11.
   # * Steam already has a hidden "vr" launch entry (beac_wt_mlauncher.exe
   #   -config:gameplay/enableVR:b=yes); steam://launch/236390/VR runs it.
   # * XR_SRGB_FIX turns on xr-srgb-fix (below) for this game only.
-  # Shared start of the GE-Proton 11 setup scripts: Steam must be closed, and
-  # $tool is set to the newest GE-Proton11-9+ (Steam's internal tool name).
-  geProton11Setup = ''
-    set -euo pipefail
-    STEAM="$HOME/.local/share/Steam"
-    if pgrep -u "$(id -u)" steamwebhelper >/dev/null; then
-      echo "Steam is running — it rewrites its config on exit. Quit Steam fully and re-run." >&2
-      exit 1
-    fi
-    # Newest GE-Proton 11 in compatibilitytools.d (protonup-qt / GitHub tarball).
-    dir=$(ls -d "$STEAM"/compatibilitytools.d/GE-Proton11-* 2>/dev/null | sort -V | tail -n1 || true)
-    ver=$(basename "''${dir:-none}" | sed -n 's/^GE-Proton11-\([0-9]*\).*/\1/p')
-    if [ -z "$ver" ] || [ "$ver" -lt 9 ]; then
-      echo "Needs GE-Proton11-9 or newer in $STEAM/compatibilitytools.d (found: ''${dir:-none})." >&2
-      echo "Get it from https://github.com/GloriousEggroll/proton-ge-custom/releases" >&2
-      exit 1
-    fi
-    # Steam maps games by the tool's internal name, not the directory name.
-    tool=$(sed -n 's/^\s*"\([^"]*\)"\s*\/\/ Internal name.*/\1/p' "$dir/compatibilitytool.vdf")
-  '';
-
+  # * Online play needs Valve's Proton BattlEye Runtime (appid 1161040); Steam passes
+  #   PROTON_BATTLEYE_RUNTIME to the game by itself once it is installed.
   wtAppId = "236390";
+  battlEyeAppId = "1161040";
   wt-vr-setup = pkgs.writeShellScriptBin "wt-vr-setup" ''
     ${geProton11Setup}
-    # Without Valve's Proton BattlEye Runtime the game starts, but online play
-    # refuses with "anti-cheat is not loaded". Steam passes PROTON_BATTLEYE_RUNTIME
-    # to the game by itself once it is installed (in any library).
-    be=$(ls "$STEAM"/steamapps/appmanifest_1161040.acf \
-      $(sed -n 's/^\s*"path"\s*"\(.*\)"/\1\/steamapps\/appmanifest_1161040.acf/p' "$STEAM/steamapps/libraryfolders.vdf") \
-      2>/dev/null | head -n1 || true)
-    if [ -z "$be" ]; then
-      echo "Missing the Proton BattlEye Runtime (online matches will refuse to start)." >&2
-      echo "Start Steam, run: steam steam://install/1161040 — then re-run wt-vr-setup." >&2
-      exit 1
-    fi
+    not_installed_note ${wtAppId} "War Thunder"
     echo "== Steam: $tool + VR launch options"
     # PROTON_DISABLE_NVAPI: game build 2.59.0.78 (2026-10-20) crashes in dxvk-nvapi's
     # nvapi64.dll right after DX11 init (seen flat; VR shares that path). DLSS is off anyway.
-    ${vdfEdit} "$STEAM" ${wtAppId} "PROTON_DISABLE_NVAPI=1 XR_SRGB_FIX=1 %command%" "$tool" "$tool"
+    ${vdfEdit} "$STEAM" ${wtAppId} "PROTON_DISABLE_NVAPI=1 XR_SRGB_FIX=1 %command%" "$tool"
+    if ! game_lib ${battlEyeAppId} >/dev/null; then
+      echo "Missing the Proton BattlEye Runtime: online matches will refuse to start." >&2
+      echo "Install it with: steam steam://install/${battlEyeAppId} (vr-setup does this for you)." >&2
+    fi
     echo "Done. Start it with the War Thunder (VR) launcher (or wt-vr)."
   '';
 
-  # Phasmophobia (Steam appid 739630), Windows build under GE-Proton. Unity's
+  # Phasmophobia (Steam appid 739630), Windows build under GE-Proton 11. Unity's
   # OpenXR plugin, so it reaches WiVRn through wineopenxr like War Thunder.
-  # * Steam's "Phasmophobia in VR" launch entry passes --enable-vr;
-  #   steam://launch/739630/VR runs it.
-  # * GE-Proton 11-9+ for the same wineopenxr reason as War Thunder.
+  # Steam's "Phasmophobia in VR" launch entry passes --enable-vr;
+  # steam://launch/739630/VR runs it.
   phasmoAppId = "739630";
   phasmo-vr-setup = pkgs.writeShellScriptBin "phasmo-vr-setup" ''
     ${geProton11Setup}
+    not_installed_note ${phasmoAppId} "Phasmophobia"
     echo "== Steam: $tool"
-    ${vdfEdit} "$STEAM" ${phasmoAppId} "%command%" "$tool" "$tool"
+    ${vdfEdit} "$STEAM" ${phasmoAppId} "%command%" "$tool"
     echo "Done. Start it with the Phasmophobia (VR) launcher (or phasmo-vr)."
+  '';
+
+  # The one setup command: closes Steam if it's open, sets up all three VR games
+  # (installed or not), then reopens Steam, installing the BattlEye runtime War
+  # Thunder needs if it's missing. Safe to re-run any time.
+  vr-setup = pkgs.writeShellScriptBin "vr-setup" ''
+    set -uo pipefail
+    ${steamHelpers}
+    was_running=0
+    if steam_running; then
+      was_running=1
+      echo "Closing Steam (it reopens when setup is done)…"
+      steam -shutdown >/dev/null 2>&1 &
+      for _ in $(seq 60); do steam_running || break; sleep 1; done
+      if steam_running; then
+        echo "Steam didn't close. Quit it (Steam menu → Exit) and run vr-setup again." >&2
+        exit 1
+      fi
+    fi
+
+    ready=(); missing=(); failed=()
+    setup() { # appid, title, command
+      echo; echo "### $2"
+      if "$3"; then ready+=("$2"); else failed+=("$2"); return; fi
+      game_lib "$1" >/dev/null || missing+=("$2")
+    }
+    setup ${dcsAppId} "DCS World" ${dcs-vr-setup}/bin/dcs-vr-setup
+    setup ${wtAppId} "War Thunder" ${wt-vr-setup}/bin/wt-vr-setup
+    setup ${phasmoAppId} "Phasmophobia" ${phasmo-vr-setup}/bin/phasmo-vr-setup
+
+    echo
+    [ ''${#ready[@]} -gt 0 ] && echo "Set up for VR: $(IFS=,; echo "''${ready[*]}" | sed 's/,/, /g')"
+    [ ''${#missing[@]} -gt 0 ] && echo "Still to install in Steam (no need to run vr-setup again): $(IFS=,; echo "''${missing[*]}" | sed 's/,/, /g')"
+    [ ''${#failed[@]} -gt 0 ] && echo "FAILED: $(IFS=,; echo "''${failed[*]}" | sed 's/,/, /g') (see above)"
+
+    if ! game_lib ${battlEyeAppId} >/dev/null; then
+      echo "Opening Steam to install the Proton BattlEye Runtime War Thunder needs online — click Install."
+      setsid -f steam steam://install/${battlEyeAppId} >/dev/null 2>&1
+    elif [ "$was_running" = 1 ]; then
+      setsid -f steam >/dev/null 2>&1
+    fi
+    [ ''${#failed[@]} -eq 0 ]
   '';
 
   # OpenXR layer that undoes Proton's double sRGB encode (washed-out colours in
@@ -315,8 +335,14 @@ let
     set -uo pipefail
     notify() { ${pkgs.libnotify}/bin/notify-send -a "${title} VR" -i steam_icon_${appId} "$@" 2>/dev/null || true; echo "$*"; }
 
-    if pgrep -u "$(id -u)" -f '${process}' >/dev/null; then
-      notify "${title} is already running"; exit 0
+    # A second click while the first is still waiting for the headset or for Steam.
+    exec 9>"''${XDG_RUNTIME_DIR:-/tmp}/${name}.lock"
+    if ! ${pkgs.util-linux}/bin/flock -n 9; then
+      notify "${title} is already starting" "Give it a moment; it opens in the headset."; exit 0
+    fi
+    running() { pgrep -u "$(id -u)" -f '${process}' >/dev/null; }
+    if running; then
+      notify "${title} is already running" "Look in the headset."; exit 0
     fi
 
     # A headset session = wivrn-server has forked its per-client server process.
@@ -353,8 +379,19 @@ let
     # launch/<appid>/VR skips Steam's launch-option picker. DCS: runs the default
     # entry, which dcs-vr-setup's launch options turn into OpenXR VR. War Thunder
     # and Phasmophobia: run their own "vr" entry.
-    notify "Starting ${title} in VR"
-    exec steam "steam://launch/${appId}/VR"
+    # Steam can take a while (cold start, or its first-run step after a Proton
+    # update), so report until the game process exists instead of going quiet.
+    # 9>&- : Steam must not inherit the lock.
+    notify "Starting ${title} in VR" "Steam is launching it. This can take a minute."
+    setsid -f steam "steam://launch/${appId}/VR" >/dev/null 2>&1 9>&-
+    for _ in $(seq 180); do
+      if running; then
+        notify "${title} is loading" "It appears in the headset when it's ready."; exit 0
+      fi
+      sleep 1
+    done
+    notify "${title} didn't start" "Check the Steam window for a message, then try again."
+    exit 1
   '';
 
   mkVrDesktop = { name, title, appId, launcher }: pkgs.makeDesktopItem {
@@ -443,6 +480,7 @@ in
       wt-vr
       wt-vr-desktop
       phasmo-vr-setup
+      vr-setup
       phasmo-vr
       phasmo-vr-desktop
       vr-browser
