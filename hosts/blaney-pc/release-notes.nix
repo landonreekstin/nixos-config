@@ -18,6 +18,12 @@
     ];
   }
   {
+    date = "2026-11-04";
+    changes = [
+      "The top bar now sits behind your windows, so you can always grab a window that was stuck under it, and fullscreen games cover it."
+    ];
+  }
+  {
     date = "2026-11-03";
     changes = [
       "New icon: War Thunder (Gaijin) signs you in with your Gaijin account, so you get your real progress. Starting it from Steam still works the old way."
