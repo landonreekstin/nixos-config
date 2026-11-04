@@ -80,6 +80,18 @@
         hostInterfaces = [ "wg-nas" ];
       };
 
+      # ComfyUI in a GPU container; web UI only for lando's full VPN peers, through
+      # wg-nas at http://10.10.0.11:8188. Models live in /var/lib/comfyui/models, not
+      # in Nix. modules/nixos/programs/comfyui.nix, docs/comfyui.md.
+      comfyui = {
+        enable = true;
+        interfaces = [ "wg-nas" ];
+        allowedSources = [ "10.10.0.2/32" "10.10.0.3/32" ];
+        # Uploads, outputs (prompts embedded), workflows and logs live on the NAS's
+        # encrypted share; ComfyUI only runs while `private-share` has it mounted.
+        private.dir = "/mnt/nas-private/generated";
+      };
+
       # PC ports and recomps from the Quiver catalog (modules/nixos/programs/quiver.nix).
       quiver.enable = true;
 

@@ -16,5 +16,6 @@
     ./quiver.nix
     ./claude-code.nix
     ./vibe-projects.nix
+    ./comfyui.nix
   ];
 }
