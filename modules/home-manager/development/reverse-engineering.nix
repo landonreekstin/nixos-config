@@ -19,11 +19,12 @@ let
     *Managed by nixos-config (modules/home-manager/development/reverse-engineering.nix).
     Edits here are overwritten on rebuild — change the module instead.*
 
-    Each subdirectory is one project, created with `re new <name>` and opened with
-    `re <name>`. `re` is what loads REA: it starts Claude with the REA plugin (MCP server
-    + `reverse-engineer-anything` skill) and the recompilation toolchains on PATH. A plain
-    `claude` started here has neither — if REA's tools are missing, say so and ask the
-    user to relaunch through `re` rather than running `rea setup`.
+    Each subdirectory is one project, created with `re new <name>`. The `.envrc` here
+    (direnv) loads the reverse-engineering dev shell, whose `claude` wrapper starts Claude
+    with the REA plugin (MCP server + `reverse-engineer-anything` skill), with the
+    recompilation toolchains on PATH. If REA's tools are missing, the session was started
+    outside that shell: say so and ask the user to `cd` into the project (`direnv allow`
+    if prompted) and start `claude` again, rather than running `rea setup`.
 
   '' + import ./reverse-engineering-rules.nix {
     runTargetRule = ''

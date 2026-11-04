@@ -13,9 +13,10 @@ toolchains for writing recompilations.
 ```bash
 re new dxball          # creates ~/reverse-engineering/dxball/{target,notes,evidence,recomp,tests}
 cp ~/Downloads/DXBALL.EXE ~/reverse-engineering/dxball/target/
-re dxball              # Claude with REA's MCP tools + skill, toolchains on PATH
-re dxball -c           # extra args go to claude (continue / resume)
-re                     # numbered picker
+cd ~/reverse-engineering/dxball
+claude                 # direnv's dev shell: REA's MCP tools + skill, toolchains on PATH
+claude -c              # continue / resume as usual
+re ls                  # list projects
 rea doctor --json      # REA's own health check (same env as the MCP server)
 ```
 
@@ -32,9 +33,9 @@ don't use it.** Instead:
 |---|---|
 | `rea` | wrapper: exports `reaEnv` (every engine as an absolute store path — `GHIDRA_INSTALL_DIR`, `JAVA_HOME`, `REA_*_COMMAND`), then `npx --yes rea-agents@<reaVersion>`. npx caches the pinned version in `~/.npm`. |
 | REA plugin | a store-path Claude Code plugin: `.mcp.json` running `rea mcp`, and the `reverse-engineer-anything` skill copied from the **same npm tarball**. |
-| `re` | launcher: `cd` into the project, put engines + recomp toolchains on PATH, `exec claude --plugin-dir <plugin>`. Only these sessions see REA's ~150 tools. |
-| dev shell | `nix develop ~/nixos-config#reverse-engineering`, or direnv in `~/reverse-engineering`. Same tools and env as `re`, for working without Claude. |
-| `launcher` / `scaffold` | read-only internal options: the `re-claude` script (env + `exec claude --plugin-dir …`) and `re-scaffold <dir>` (project layout). `re` uses both, and so does the reverse-engineering mode of Blaney's `vibe` — see [hosts/blaney-vibe-projects.md](hosts/blaney-vibe-projects.md#reverse-engineering-projects). |
+| dev shell | `nix develop ~/nixos-config#reverse-engineering`, or direnv in `~/reverse-engineering` (so every project under it). Engines, recomp toolchains, `reaEnv`, and a `claude` wrapper (`devClaude`) that runs the next `claude` on PATH with `--plugin-dir <plugin>`. Only sessions started inside it see REA's ~150 tools. |
+| `re` | `re new <name>` (scaffold + stub `CLAUDE.md` + `git init`) and `re ls`. Opening a project is just `cd` + `claude`. |
+| `launcher` / `scaffold` | read-only internal options: the `re-claude` script (env + `exec claude --plugin-dir …`) and `re-scaffold <dir>` (project layout). Used by the reverse-engineering mode of Blaney's `vibe`, which runs Claude under `sudo` with no direnv — see [hosts/blaney-vibe-projects.md](hosts/blaney-vibe-projects.md#reverse-engineering-projects). `re new` uses `scaffold`. |
 
 `workspace.enable` (default `true`) gates `re` and the `~/reverse-engineering` workspace.
 blaney-pc sets it `false`: there REA is reached only through `vibe`. The project rules are

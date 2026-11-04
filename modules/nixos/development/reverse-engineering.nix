@@ -274,8 +274,7 @@ let
     .PHONY: clean
   '';
 
-  # Every entry point into a REA session goes through this: `re` below, and the
-  # reverse-engineering mode of `vibe` (modules/nixos/programs/vibe-projects.nix). Its own
+  # Blaney's way into a REA session: the reverse-engineering mode of `vibe` (modules/nixos/programs/vibe-projects.nix). Its own
   # store script rather than a function inside `re` because `vibe` runs it under `sudo`,
   # which resets the environment — the exports have to happen after sudo, not before.
   launcher = pkgs.writeShellScript "re-claude" ''
@@ -287,6 +286,18 @@ let
     export PKG_CONFIG_PATH=${lib.makeSearchPath "lib/pkgconfig" [ (lib.getDev pkgs.SDL2) ]}''${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}
     export DEV_ENV_NAME="reverse-engineering"
     exec claude --plugin-dir ${reaPlugin} "$@"
+  '';
+
+  # `claude` inside the dev shell (direnv in ~/reverse-engineering): the real claude, found
+  # further down PATH, plus the REA plugin (MCP server + skill). So `cd` into a project and run `claude` (or
+  # `claude -c` / `-r`) as anywhere else. Only these sessions load it.
+  devClaude = pkgs.writeShellScriptBin "claude" ''
+    for c in $(type -ap claude); do
+      [ "$(readlink -f "$c")" = "$(readlink -f "$0")" ] && continue
+      exec "$c" --plugin-dir ${reaPlugin} "$@"
+    done
+    echo "claude: no claude found on PATH besides this dev-shell wrapper" >&2
+    exit 127
   '';
 
   # Lays out a project directory. Shared with `vibe` for the same reason as `launcher`;
@@ -308,10 +319,10 @@ let
 
       usage() {
         cat <<'EOF'
-      re                 pick a project (or start one) and open Claude in it
       re new <name>      create ~/reverse-engineering/<name>
-      re <name> [args]   open Claude in a project; extra args go to claude (-c, -r ...)
       re ls              list projects
+
+      Then: cd ~/reverse-engineering/<name> && claude   (direnv loads the tools and REA)
       EOF
       }
 
@@ -325,41 +336,17 @@ let
         install -m 644 ${projectClaudeMd} "$dir/CLAUDE.md"
         git -C "$dir" init -q -b main
         echo "Created $dir — put the binary you want to study in $dir/target/"
+        echo "Then: cd $dir && claude"
       }
-
-      open_project() {
-        local dir="$ws/$1"; shift
-        if [ ! -d "$dir" ]; then echo "re: no project '$1' in $ws (re new <name>)" >&2; exit 1; fi
-        cd "$dir"
-        exec ${launcher} "$@"
-      }
-
-      projects() { find "$ws" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -printf '%f\n' | sort; }
 
       case "''${1:-}" in
-        -h|--help|help) usage ;;
-        ls) projects ;;
+        ls) find "$ws" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -printf '%f\n' | sort ;;
         new)
           [ -n "''${2:-}" ] || { usage; exit 1; }
           create "$2"
           ;;
-        "")
-          mapfile -t list < <(projects)
-          echo "Reverse-engineering projects in $ws:"
-          for i in "''${!list[@]}"; do printf '  %d) %s\n' "$((i + 1))" "''${list[$i]}"; done
-          echo "  n) new project"
-          read -rp "> " pick
-          if [ "$pick" = n ]; then
-            read -rp "Project name: " name
-            create "$name"
-            open_project "$name"
-          elif [[ "$pick" =~ ^[0-9]+$ ]] && [ "$pick" -ge 1 ] && [ "$pick" -le "''${#list[@]}" ]; then
-            open_project "''${list[$((pick - 1))]}"
-          else
-            echo "re: nothing picked" >&2; exit 1
-          fi
-          ;;
-        *) open_project "$@" ;;
+        -h|--help|help|"") usage ;;
+        *) usage; exit 1 ;;
       esac
     '';
   };
@@ -420,7 +407,7 @@ in
 
     customConfig.profiles.development.reverse-engineering.devShell = pkgs.mkShell {
       name = "reverse-engineering";
-      packages = analysisTools ++ recompTools ++ [ rea ];
+      packages = [ devClaude ] ++ analysisTools ++ recompTools ++ [ rea ];
       shellHook = ''
         ${reaExports}
         ${recompExports}
