@@ -1,15 +1,24 @@
 # ~/nixos-config/modules/nixos/programs/comfyui.nix
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, utils, ... }:
 
 # ComfyUI (node-based image/video generation UI) in a GPU container.
 #
 # ComfyUI is not in nixpkgs and its Python stack and custom nodes change weekly, so it runs
 # from the yanwk/comfyui-boot image (podman + NVIDIA CDI) instead of being packaged here.
-# Everything it keeps lives under dataDir, outside the store and outside git:
+# Everything it keeps lives outside the store and outside git:
 #
 #   dataDir/root       the container's /root: ComfyUI itself, custom nodes, pip installs
 #   dataDir/models     model weights (checkpoints, diffusion_models, vae, loras, ...)
-#   dataDir/input, output, workflows
+#   dataDir/hf-hub, torch-hub   download caches
+#
+# Personal data (uploads, generated files with their prompts embedded, saved workflows,
+# settings and ComfyUI's own log) goes in `private.dir` when that is set, otherwise in
+# dataDir/{input,output,workflows}. ComfyUI's preview/temp files are kept in RAM only.
+#
+# With `private.dir` set, ComfyUI only runs while `private.mountPoint` is mounted: it is not
+# started at boot, refuses to start without the mount, and is stopped when it goes away
+# (BindsTo the mount unit systemd creates for any mount). So nothing personal ever lands on
+# the local disk when the private share isn't there.
 #
 # Models are never declared in Nix: download them into dataDir/models by hand or with
 # ComfyUI-Manager in the web UI. See docs/comfyui.md.
@@ -21,6 +30,70 @@
 let
   cfg = config.customConfig.programs.comfyui;
   port = toString cfg.port;
+  priv = cfg.private;
+  usePrivate = priv.dir != null;
+  mountUnit = "${utils.escapeSystemdPath priv.mountPoint}.mount";
+
+  # comfy-start / comfy-stop: one command each way, private share included.
+  # private-share runs without DISPLAY/WAYLAND_DISPLAY so it doesn't open a file manager.
+  mountShare = lib.optionalString usePrivate ''
+    env -u DISPLAY -u WAYLAND_DISPLAY private-share
+  '';
+  unmountShare = lib.optionalString usePrivate ''
+    env -u DISPLAY -u WAYLAND_DISPLAY private-share -u
+  '';
+
+  comfyStart = pkgs.writeShellApplication {
+    name = "comfy-start";
+    runtimeInputs = [ pkgs.curl pkgs.iproute2 pkgs.gawk ];
+    text = ''
+      SUDO=/run/wrappers/bin/sudo
+      ${mountShare}
+      echo "Starting ComfyUI..."
+      "$SUDO" systemctl start podman-comfyui
+      for _ in $(seq 1 100); do
+        curl -sf -o /dev/null "http://127.0.0.1:${port}/" && break
+        sleep 3
+      done
+      if ! curl -sf -o /dev/null "http://127.0.0.1:${port}/"; then
+        echo "ComfyUI didn't come up. Logs:  journalctl -u podman-comfyui -e" >&2
+        exit 1
+      fi
+      echo "ComfyUI is ready:"
+      echo "  here:        http://localhost:${port}"
+      ifaces=(${lib.escapeShellArgs cfg.interfaces})
+      for iface in "''${ifaces[@]}"; do
+        addr=$(ip -4 -o addr show "$iface" 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | head -1)
+        if [ -n "$addr" ]; then echo "  over VPN:    http://$addr:${port}"; fi
+      done
+      echo "Stop it (and free the GPU) with:  comfy-stop"
+    '';
+  };
+
+  comfyStop = pkgs.writeShellApplication {
+    name = "comfy-stop";
+    text = ''
+      SUDO=/run/wrappers/bin/sudo
+      echo "Stopping ComfyUI..."
+      "$SUDO" systemctl stop podman-comfyui
+      ${unmountShare}
+      if command -v nvidia-smi >/dev/null; then
+        echo "GPU memory in use now: $(nvidia-smi --query-gpu=memory.used,memory.total --format=csv,noheader)"
+      fi
+      echo "GPU is free for gaming."
+    '';
+  };
+
+  personalVolumes =
+    if usePrivate then [
+      "${priv.dir}/input:/root/ComfyUI/input"
+      "${priv.dir}/output:/root/ComfyUI/output"
+      "${priv.dir}/user:/root/ComfyUI/user"
+    ] else [
+      "${cfg.dataDir}/input:/root/ComfyUI/input"
+      "${cfg.dataDir}/output:/root/ComfyUI/output"
+      "${cfg.dataDir}/workflows:/root/ComfyUI/user/default/workflows"
+    ];
 in
 {
   options.customConfig.programs.comfyui = with lib; {
@@ -43,7 +116,24 @@ in
     dataDir = mkOption {
       type = types.str;
       default = "/var/lib/comfyui";
-      description = "Where ComfyUI, its custom nodes, models and outputs are kept.";
+      description = "Where ComfyUI, its custom nodes, models and caches are kept.";
+    };
+
+    private = {
+      dir = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        example = "/mnt/nas-private/generated";
+        description = ''
+          Where uploads, outputs, saved workflows, settings and logs go. Must be under
+          `private.mountPoint`. When set, ComfyUI only runs while that is mounted.
+        '';
+      };
+      mountPoint = mkOption {
+        type = types.str;
+        default = "/mnt/nas-private";
+        description = "The (manually mounted) filesystem `private.dir` lives on.";
+      };
     };
 
     interfaces = mkOption {
@@ -70,8 +160,15 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    assertions = [{
+      assertion = !usePrivate || lib.hasPrefix "${priv.mountPoint}/" priv.dir;
+      message = "customConfig.programs.comfyui.private.dir must be under private.mountPoint.";
+    }];
+
     hardware.nvidia-container-toolkit.enable = true;
     virtualisation.podman.enable = true;
+
+    environment.systemPackages = [ comfyStart comfyStop ];
 
     # models is group-writable so lando can download weights without sudo.
     systemd.tmpfiles.rules = [
@@ -80,6 +177,7 @@ in
       "d ${cfg.dataDir}/models 2775 root users -"
       "d ${cfg.dataDir}/hf-hub 0755 root root -"
       "d ${cfg.dataDir}/torch-hub 0755 root root -"
+    ] ++ lib.optionals (!usePrivate) [
       "d ${cfg.dataDir}/input 2775 root users -"
       "d ${cfg.dataDir}/output 2775 root users -"
       "d ${cfg.dataDir}/workflows 2775 root users -"
@@ -87,27 +185,43 @@ in
 
     virtualisation.oci-containers.containers.comfyui = {
       image = cfg.image;
-      autoStart = true;
+      # Behind a manual mount there is nothing to start at boot.
+      autoStart = !usePrivate;
       volumes = [
         "${cfg.dataDir}/root:/root"
         "${cfg.dataDir}/models:/root/ComfyUI/models"
         "${cfg.dataDir}/hf-hub:/root/.cache/huggingface/hub"
         "${cfg.dataDir}/torch-hub:/root/.cache/torch/hub"
-        "${cfg.dataDir}/input:/root/ComfyUI/input"
-        "${cfg.dataDir}/output:/root/ComfyUI/output"
-        "${cfg.dataDir}/workflows:/root/ComfyUI/user/default/workflows"
-      ];
+      ] ++ personalVolumes;
       # The image runs `main.py --listen --port 8188 $CLI_ARGS`; a later --port wins.
       environment.CLI_ARGS = "--port ${port} ${cfg.extraArgs}";
       extraOptions = [
         "--network=host"
         "--device=nvidia.com/gpu=all"
         "--security-opt=label=disable"
+        # previews and temp images: RAM only
+        "--tmpfs=/root/ComfyUI/temp"
       ];
     };
 
-    # The first start pulls a several-GB image; the default start timeout is too short.
-    systemd.services.podman-comfyui.serviceConfig.TimeoutStartSec = lib.mkForce "30min";
+    systemd.services.podman-comfyui = lib.mkMerge [
+      # The first start pulls a several-GB image; the default start timeout is too short.
+      { serviceConfig.TimeoutStartSec = lib.mkForce "30min"; }
+
+      (lib.mkIf usePrivate {
+        bindsTo = [ mountUnit ];
+        after = [ mountUnit ];
+        # Checked before anything is created, so a missing mount can never leave
+        # directories (or data) on the root filesystem.
+        preStart = lib.mkBefore ''
+          if ! ${pkgs.util-linux}/bin/mountpoint -q ${lib.escapeShellArg priv.mountPoint}; then
+            echo "comfyui: ${priv.mountPoint} is not mounted; run private-share first" >&2
+            exit 1
+          fi
+          mkdir -p ${lib.escapeShellArg priv.dir}/{input,output,user}
+        '';
+      })
+    ];
 
     networking.firewall.extraCommands = lib.concatMapStrings (iface:
       lib.concatMapStrings (src: ''

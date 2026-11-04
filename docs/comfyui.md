@@ -57,22 +57,47 @@ Pick the fp8 or GGUF (Q4–Q6) versions instead.
 
 ## Where the rest lives
 
-Everything sits under `/var/lib/comfyui`, outside the store:
+ComfyUI itself, models and caches sit under `/var/lib/comfyui`, outside the store:
 
 - `root/`: the container's `/root`. ComfyUI itself, custom nodes, pip installs. Updating
   ComfyUI or nodes through the Manager writes here and survives image bumps.
-- `input/`, `output/`, `workflows/`: uploads, generated files, saved workflows.
+- `models/`, `hf-hub/`, `torch-hub/`: weights and download caches.
+
+**Personal data lives on the NAS's encrypted private share**, at
+`/mnt/nas-private/generated` (`private.dir`), never on gaming-pc's disk:
+
+- `input/`: uploaded source images.
+- `output/`: generated images and videos. ComfyUI embeds the prompt and workflow in each
+  file's metadata, so the prompts live here too.
+- `user/`: saved workflows, UI settings, ComfyUI-Manager's config, and ComfyUI's own log.
+
+Preview and temp images go to a RAM-only tmpfs. With `private.dir` unset, the module falls
+back to `input/`, `output/`, `workflows/` under `/var/lib/comfyui`.
 
 ## Operating it
 
+ComfyUI does **not** start at boot. Two commands, run as lando (they ask for sudo):
+
 ```bash
-systemctl status podman-comfyui      # running?
-journalctl -u podman-comfyui -f      # logs (first start pulls a multi-GB image)
-sudo systemctl stop podman-comfyui   # free the GPU for gaming
-sudo systemctl start podman-comfyui
+comfy-start   # mount the private share (private-share), start ComfyUI, print its URLs
+comfy-stop    # stop ComfyUI (frees the GPU), unmount the share, show GPU memory in use
 ```
 
-ComfyUI keeps the last model in VRAM between runs. Stop the unit before a GPU-heavy game.
+Underneath they are just:
+
+```bash
+private-share                        # mount /mnt/nas-private (the NAS's encrypted drive)
+sudo systemctl start podman-comfyui  # start ComfyUI (refuses if the share isn't mounted)
+sudo systemctl stop podman-comfyui   # stop it
+private-share -u                     # unmount; ComfyUI is stopped automatically if running
+journalctl -u podman-comfyui -f      # logs (first start pulls a multi-GB image)
+```
+
+The unit `BindsTo` the share's mount unit (`mnt-nas\x2dprivate.mount`, which systemd creates
+for any mount), and its pre-start refuses to run unless `/mnt/nas-private` is a mountpoint.
+So a missing share can never leave personal files on the root filesystem.
+
+ComfyUI keeps the last model in VRAM between runs. Run `comfy-stop` before a GPU-heavy game.
 
 **Pure-noise output:** ComfyUI runs with `--fast fp16_accumulation`, not bare `--fast`. Bare
 `--fast` also enables fp8 matrix multiplication, and some fp8 all-in-one checkpoints then
