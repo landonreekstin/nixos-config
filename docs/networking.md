@@ -252,6 +252,12 @@ Nothing from the internet: the Spectrum router forwards nothing to 6262 and ther
 `($ext_if)` rdr. mini-server routes replies to `10.10.0.0/24` and `192.168.1.0/24` back through
 optiplex-fw. Profiles (by name, no password) and match history are in `/var/lib/r62d`.
 
+**Hosting from blaney-pc instead** (Lando joins at `http://10.10.0.5:6262`; only his two
+gaming-pc peers may). The `homelab-vpn` profile has autoconnect off, so if nothing reaches
+10.10.0.5, first check it is switched on. On blaney-pc there is no HOST to pick: PLAY/HOST/JOIN
+belong to the separate desktop build (`desktop/app.js`). Started from his folder with `play.sh`,
+the server listens on `0.0.0.0:6262` by default, and OPEN TO LAN only shows the address.
+
 ### Hairpin NAT Limitation
 
 The Spectrum router does not support hairpin NAT. Gaming-pc works around this with a static route: `68.184.198.204/32 via 192.168.1.189` (configured in `hosts/gaming-pc/networking.nix` via `networking.networkmanager.dispatcherScripts`). OpenBSD has matching rdr-to rules for this traffic.
