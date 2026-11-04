@@ -160,13 +160,24 @@ let
     *(Engine and version, how the files are laid out, how to run it and test it.)*
   '';
 
-  # Every entry point into a gamedev session goes through this: `gd` below, and the game
-  # mode of `vibe` (modules/nixos/programs/vibe-projects.nix), which runs it under `sudo`
+  # Blaney's way into a gamedev session: the game mode of `vibe` (modules/nixos/programs/vibe-projects.nix), which runs it under `sudo`
   # — so the PATH has to be set after sudo, by this script, not before.
   launcher = pkgs.writeShellScript "gd-claude" ''
     export PATH=${lib.makeBinPath gameTools}:"$PATH"
     export DEV_ENV_NAME="gamedev"
     exec claude --plugin-dir ${skillsPlugin} "$@"
+  '';
+
+  # `claude` inside the dev shell (direnv in ~/gamedev): the real claude, found
+  # further down PATH, plus the gamedev skills plugin. So `cd` into a project and run `claude` (or
+  # `claude -c` / `-r`) as anywhere else. Only these sessions load it.
+  devClaude = pkgs.writeShellScriptBin "claude" ''
+    for c in $(type -ap claude); do
+      [ "$(readlink -f "$c")" = "$(readlink -f "$0")" ] && continue
+      exec "$c" --plugin-dir ${skillsPlugin} "$@"
+    done
+    echo "claude: no claude found on PATH besides this dev-shell wrapper" >&2
+    exit 127
   '';
 
   # Lays out a project directory. Shared with `vibe` for the same reason as `launcher`;
@@ -188,31 +199,11 @@ let
 
       usage() {
         cat <<'EOF'
-      gd                 pick a game (or start one) and open Claude in it
-      gd new <name>      create ~/gamedev/<name>
-      gd <name> [args]   open Claude in a game; extra args go to claude (-c, -r ...)
-      gd ls              list games
+      gd new <name>      create ~/gamedev/<name> (or clone it, for a shared project)
+      gd ls              list games, shared ones included
+
+      Then: cd ~/gamedev/<name> && claude   (direnv loads the engines and the skills)
       EOF
-      }
-
-      create() {
-        local name="$1" dir="$ws/$1"
-        if [[ ! "$name" =~ ^[A-Za-z0-9._-]+$ ]]; then
-          echo "gd: project names are letters, digits, '.', '_' and '-' only" >&2; exit 1
-        fi
-        if [ -e "$dir" ]; then echo "gd: $dir already exists" >&2; exit 1; fi
-        ${scaffold} "$dir"
-        install -m 644 ${projectClaudeMd} "$dir/CLAUDE.md"
-        git -C "$dir" init -q -b main
-        echo "Created $dir"
-      }
-
-      open_project() {
-        ensure_cloned "$1"
-        local dir="$ws/$1"; shift
-        if [ ! -d "$dir" ]; then echo "gd: no project '$1' in $ws (gd new <name>)" >&2; exit 1; fi
-        cd "$dir"
-        exec ${launcher} "$@"
       }
 
       # name<TAB>owner/repo for each shared project (see `sharedProjects` above).
@@ -222,53 +213,45 @@ let
       }
       shared_repo() { shared | awk -F'\t' -v n="$1" '$1 == n { print $2 }'; }
 
-      # Clone a shared project on first open. HTTPS through gh's login, so it needs no
-      # SSH key; the helper is kept in the clone's config for later pushes.
-      ensure_cloned() {
-        local repo dir="$ws/$1"
-        [ -d "$dir" ] && return 0
-        repo=$(shared_repo "$1")
-        [ -n "$repo" ] || return 0
-        echo "Cloning $repo into $dir"
-        git -c credential.helper= -c credential.helper='!gh auth git-credential' \
-          clone -q "https://github.com/$repo.git" "$dir"
-        git -C "$dir" config credential.helper ""
-        git -C "$dir" config --add credential.helper '!gh auth git-credential'
+      create() {
+        local name="$1" dir="$ws/$1" repo
+        if [[ ! "$name" =~ ^[A-Za-z0-9._-]+$ ]]; then
+          echo "gd: project names are letters, digits, '.', '_' and '-' only" >&2; exit 1
+        fi
+        if [ -e "$dir" ]; then echo "gd: $dir already exists" >&2; exit 1; fi
+        repo=$(shared_repo "$name")
+        if [ -n "$repo" ]; then
+          # HTTPS through gh's login, so it needs no SSH key; the helper is kept in the
+          # clone's config for later pushes.
+          echo "Cloning $repo into $dir"
+          git -c credential.helper= -c credential.helper='!gh auth git-credential' \
+            clone -q "https://github.com/$repo.git" "$dir"
+          git -C "$dir" config credential.helper ""
+          git -C "$dir" config --add credential.helper '!gh auth git-credential'
+        else
+          ${scaffold} "$dir"
+          install -m 644 ${projectClaudeMd} "$dir/CLAUDE.md"
+          git -C "$dir" init -q -b main
+          echo "Created $dir"
+        fi
+        echo "Then: cd $dir && claude"
       }
 
       projects() {
-        { find "$ws" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -printf '%f\n'
-          shared | cut -f1 | sed '/^$/d'; } | sort -u
+        find "$ws" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -printf '%f\n' | sort
+        shared | while IFS=$'\t' read -r n r; do
+          if [ -n "$n" ] && [ ! -d "$ws/$n" ]; then echo "$n  (shared: $r, not cloned — gd new $n)"; fi
+        done
       }
 
       case "''${1:-}" in
-        -h|--help|help) usage ;;
         ls) projects ;;
         new)
           [ -n "''${2:-}" ] || { usage; exit 1; }
           create "$2"
           ;;
-        "")
-          mapfile -t list < <(projects)
-          echo "Game projects in $ws:"
-          for i in "''${!list[@]}"; do
-            label="''${list[$i]}"
-            if [ -n "$(shared_repo "$label")" ]; then label="$label  (shared: $(shared_repo "$label"))"; fi
-            printf '  %d) %s\n' "$((i + 1))" "$label"
-          done
-          echo "  n) new project"
-          read -rp "> " pick
-          if [ "$pick" = n ]; then
-            read -rp "Project name: " name
-            create "$name"
-            open_project "$name"
-          elif [[ "$pick" =~ ^[0-9]+$ ]] && [ "$pick" -ge 1 ] && [ "$pick" -le "''${#list[@]}" ]; then
-            open_project "''${list[$((pick - 1))]}"
-          else
-            echo "gd: nothing picked" >&2; exit 1
-          fi
-          ;;
-        *) open_project "$@" ;;
+        -h|--help|help|"") usage ;;
+        *) usage; exit 1 ;;
       esac
     '';
   };
@@ -359,7 +342,7 @@ in
 
     customConfig.profiles.development.gamedev.devShell = pkgs.mkShell {
       name = "gamedev";
-      packages = gameTools;
+      packages = [ devClaude ] ++ gameTools;
       shellHook = ''
         export DEV_ENV_NAME="gamedev"
       '';

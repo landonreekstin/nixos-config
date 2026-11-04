@@ -31,6 +31,7 @@ in `docs/` — read the matching file when the task calls for it:
 | [docs/reverse-engineering.md](docs/reverse-engineering.md) | REA / Ghidra, the `re` launcher or `~/reverse-engineering` workspace, or bumping the pinned `rea-agents` version |
 | [docs/gamedev.md](docs/gamedev.md) | the `gd` launcher, `~/gamedev`, the gamedev skills plugin (bumping its pin), engine toolchains, or `play-on-desktop` |
 | [docs/xbox360.md](docs/xbox360.md) | the "Xbox 360 Dashboard" session: its Quickshell shell, dashboard menus, app workspaces, controller daemon, Guide or pages |
+| [docs/comfyui.md](docs/comfyui.md) | ComfyUI on gaming-pc: who can reach it, where models go (never in Nix/git), or bumping its container image |
 
 ## Choosing the Right Host to Work On
 
@@ -85,6 +86,7 @@ git config user.email  # should be: landonreekstin@gmail.com
 - `upgrade` - Update flake inputs and rebuild system in one command
 - `update-shutdown` - Pull the latest config, rebuild, then power off — the weekly auto-update on demand. (`rebuild-shutdown` is the one that rebuilds *without* pulling.)
 - `post-install` - Complete initial setup after fresh NixOS installation
+- `landon-todo` - lando's hosts only (`modules/nixos/common/lando-commands.nix`): numbered menu of the runbooks in `docs/runbooks/lando/`, opens Claude on the chosen one. The counterpart to `blaney-todo`. See [its README](docs/runbooks/lando/README.md).
 
 #### blaney-pc-only commands (gated to the `insideabush` user)
 Defined in their own module, `modules/nixos/common/blaney-commands.nix` (gated on `cfg.user.name == "insideabush"`). **New or changed blaney commands go there, never in `commands.nix`** (shared by every host) — see [His commands](docs/hosts/blaney-pc.md#his-commands):

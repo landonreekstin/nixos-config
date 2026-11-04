@@ -210,6 +210,10 @@ the state the inbound rdr created. The outbound rules never see it, so the nat-t
 applied. That rule was removed on 2026-10-18. The file from before any of this is
 `/etc/pf.conf.bak-before-batman`.
 
+### ComfyUI (port 8188)
+
+ComfyUI runs on gaming-pc and is for full peers only. They reach it at **`http://10.10.0.11:8188`** (gaming-pc's wg-nas address) over the same no-NAT path as The Batman, and gaming-pc's firewall accepts 8188 on `wg-nas` from 10.10.0.2 and 10.10.0.3 only. No pf rule and no `.76` forward, so restricted peers never reach it. See [comfyui.md](comfyui.md).
+
 ### browser-puck (port 8787)
 
 The browser air-hockey game (`modules/nixos/homelab/browser-puck.nix`) runs on mini-server.
@@ -247,6 +251,12 @@ pass in      on $ext_if proto tcp from $lan_net     to $nas_legacy_ip port $r62d
 Nothing from the internet: the Spectrum router forwards nothing to 6262 and there is no
 `($ext_if)` rdr. mini-server routes replies to `10.10.0.0/24` and `192.168.1.0/24` back through
 optiplex-fw. Profiles (by name, no password) and match history are in `/var/lib/r62d`.
+
+**Hosting from blaney-pc instead** (Lando joins at `http://10.10.0.5:6262`; only his two
+gaming-pc peers may). The `homelab-vpn` profile has autoconnect off, so if nothing reaches
+10.10.0.5, first check it is switched on. On blaney-pc there is no HOST to pick: PLAY/HOST/JOIN
+belong to the separate desktop build (`desktop/app.js`). Started from his folder with `play.sh`,
+the server listens on `0.0.0.0:6262` by default, and OPEN TO LAN only shows the address.
 
 ### Hairpin NAT Limitation
 

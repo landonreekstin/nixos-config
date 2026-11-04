@@ -16,9 +16,10 @@ shipping skills. It is built the same way as [reverse-engineering.md](reverse-en
 
 ```bash
 gd new pong          # creates ~/gamedev/pong/{assets,docs} + .gitignore, git init
-gd pong              # Claude with the gamedev skills, engines on PATH
-gd pong -c           # extra args go to claude (continue / resume)
-gd                   # numbered picker
+cd ~/gamedev/pong
+claude               # direnv's dev shell: gamedev skills, engines on PATH
+claude -c            # continue / resume as usual
+gd ls                # list games (shared ones too)
 nix develop ~/nixos-config#gamedev   # same tools without Claude (direnv does this in ~/gamedev)
 ```
 
@@ -30,8 +31,9 @@ unless there is a reason not to — the router's own default) and creates its fi
 | Piece | What it is |
 |---|---|
 | skills plugin | `fetchFromGitHub` pin of the skills repo, copied into a store-path Claude Code plugin. The repo is a plugin *marketplace* with no `plugin.json`, so the build generates one with `jq` from the marketplace's `gamedev` entry (router + every skill). The tree keeps its layout so the router's `skills/<category>/<name>` paths and each skill's `references/` resolve. Skills show up as `gamedev:<name>`. |
-| `gd` | cd into the project, then the launcher. Only these sessions see the 78 skill descriptions. |
-| `launcher` / `scaffold` | read-only internal options: `gd-claude` (engines on PATH, `exec claude --plugin-dir <plugin>`) and `gd-scaffold <dir>`. `gd` uses both, and so does the game mode of Blaney's `vibe` — see [hosts/blaney-vibe-projects.md](hosts/blaney-vibe-projects.md#game-projects). |
+| dev shell | `nix develop ~/nixos-config#gamedev`, or direnv in `~/gamedev` (so every project under it). Engines plus a `claude` wrapper (`devClaude`) that runs the next `claude` on PATH with `--plugin-dir <plugin>`. Only sessions started inside it see the 78 skill descriptions. |
+| `gd` | `gd new <name>` (scaffold, or clone for a shared project) and `gd ls`. Opening a game is just `cd` + `claude`. |
+| `launcher` / `scaffold` | read-only internal options: `gd-claude` (engines on PATH, `exec claude --plugin-dir <plugin>`) and `gd-scaffold <dir>`. Used by the game mode of Blaney's `vibe`, which runs Claude under `sudo` with no direnv — see [hosts/blaney-vibe-projects.md](hosts/blaney-vibe-projects.md#game-projects). `gd new` uses `scaffold`. |
 | `play-on-desktop <user> <cmd…>` | on the launcher's PATH. Runs a game on a user's real screen from a session that is someone else (Blaney's root `vibe` sessions): it copies `WAYLAND_DISPLAY`/`DISPLAY`/`XDG_RUNTIME_DIR`/… from any of that user's processes that has them and `runuser`s the command detached. Log in `/tmp/play-on-desktop-<user>.log`. |
 | dev shell | `devShells.gamedev`, built from gaming-pc's config like every other shell. |
 
@@ -56,8 +58,8 @@ the rules file and was checked when this was added.
 ## Shared projects (prin-rpg, sub-of-seas)
 
 `gamedev.sharedProjects.<name> = { repo; title; }` lists a game repo that more than one
-person works on. `gd` shows it in `gd ls` and in the picker, and the first time you open it,
-it clones the repo into `~/gamedev/<name>` over HTTPS with `gh auth git-credential` as the
+person works on. `gd ls` lists it (marked if not yet cloned), and `gd new <name>` for it
+clones the repo into `~/gamedev/<name>` over HTTPS with `gh auth git-credential` as the
 credential helper. Blaney's `vibe` gets a "Work on <title> with Lando" entry; see
 [hosts/blaney-vibe-projects.md](hosts/blaney-vibe-projects.md#games-shared-with-lando-prin-rpg).
 

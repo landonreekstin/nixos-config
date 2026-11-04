@@ -83,6 +83,9 @@
       unstable-override = [
         "obs-studio"
         "vscode"
+        # "firefox" comes from unstable while stable's 158.0.1 (2026-W44 update) is
+        # not in the cache yet and would source-build. Drop it once stable is cached.
+        "firefox"
         # "firefox" was overridden here because 25.11's pin (152.0.4) had fallen
         # out of the cache and source-rebuilt until the flake-updater timed out
         # on W39. 26.05 ships a cached 156.0, so stable is fine again.

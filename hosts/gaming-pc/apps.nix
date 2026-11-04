@@ -62,6 +62,9 @@
       # it, so it is off rather than half-working. See modules/nixos/programs/partydeck.nix.
       partydeck.enable = false;
 
+      # R62D, insideabush's tactical 5v5 browser game (`r62d` + menu entry).
+      r62d.enable = true;
+
       # The Batman (JAKKS TV game, native), and hosting its online co-op: players join
       # 192.168.1.76:7845, which optiplex-fw forwards to this host through wg-nas
       # (see modules/nixos/programs/batman.nix and networking.nix).
@@ -78,6 +81,18 @@
         enable = true;
         host = true;
         hostInterfaces = [ "wg-nas" ];
+      };
+
+      # ComfyUI in a GPU container; web UI only for lando's full VPN peers, through
+      # wg-nas at http://10.10.0.11:8188. Models live in /var/lib/comfyui/models, not
+      # in Nix. modules/nixos/programs/comfyui.nix, docs/comfyui.md.
+      comfyui = {
+        enable = true;
+        interfaces = [ "wg-nas" ];
+        allowedSources = [ "10.10.0.2/32" "10.10.0.3/32" ];
+        # Uploads, outputs (prompts embedded), workflows and logs live on the NAS's
+        # encrypted share; ComfyUI only runs while `private-share` has it mounted.
+        private.dir = "/mnt/nas-private/generated";
       };
 
       # PC ports and recomps from the Quiver catalog (modules/nixos/programs/quiver.nix).

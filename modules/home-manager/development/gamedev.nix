@@ -19,15 +19,16 @@ let
     *Managed by nixos-config (modules/home-manager/development/gamedev.nix).
     Edits here are overwritten on rebuild — change the module instead.*
 
-    Each subdirectory is one game, created with `gd new <name>` and opened with
-    `gd <name>`. `gd` is what loads the skills: it starts Claude with the gamedev plugin
-    and the engines on PATH. A plain `claude` started here has neither — if the
-    `gamedev:router` skill is missing, say so and ask the user to relaunch through `gd`.
+    Each subdirectory is one game, created with `gd new <name>`. The `.envrc` here
+    (direnv) loads the gamedev dev shell, whose `claude` wrapper starts Claude with the
+    gamedev skills plugin, with the engines on PATH. If the `gamedev:router` skill is
+    missing, the session was started outside that shell: say so and ask the user to `cd`
+    into the project (`direnv allow` if prompted) and start `claude` again.
 
     ## Shared projects (lando's repos that Blaney works on too)
 
     ${lib.concatStringsSep ", " (lib.mapAttrsToList (n: p: "`${n}` (github.com/${p.repo})") cfg.sharedProjects)}.
-    `gd` clones one on first open. The rules for working in one are in the
+    `gd new <name>` clones one. The rules for working in one are in the
     "Working together: git and PRs" section of the project's own `CLAUDE.md`, and they are
     binding. In short:
     - lando may commit to `main`. Bigger or riskier work goes on a `feat/`, `fix/` or
