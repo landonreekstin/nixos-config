@@ -62,6 +62,9 @@
       # it, so it is off rather than half-working. See modules/nixos/programs/partydeck.nix.
       partydeck.enable = false;
 
+      # R62D, insideabush's tactical 5v5 browser game (`r62d` + menu entry).
+      r62d.enable = true;
+
       # The Batman (JAKKS TV game, native), and hosting its online co-op: players join
       # 192.168.1.76:7845, which optiplex-fw forwards to this host through wg-nas
       # (see modules/nixos/programs/batman.nix and networking.nix).
