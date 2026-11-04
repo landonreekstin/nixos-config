@@ -86,6 +86,7 @@ git config user.email  # should be: landonreekstin@gmail.com
 - `upgrade` - Update flake inputs and rebuild system in one command
 - `update-shutdown` - Pull the latest config, rebuild, then power off — the weekly auto-update on demand. (`rebuild-shutdown` is the one that rebuilds *without* pulling.)
 - `post-install` - Complete initial setup after fresh NixOS installation
+- `landon-todo` - lando's hosts only (`modules/nixos/common/lando-commands.nix`): numbered menu of the runbooks in `docs/runbooks/lando/`, opens Claude on the chosen one. The counterpart to `blaney-todo`. See [its README](docs/runbooks/lando/README.md).
 
 #### blaney-pc-only commands (gated to the `insideabush` user)
 Defined in their own module, `modules/nixos/common/blaney-commands.nix` (gated on `cfg.user.name == "insideabush"`). **New or changed blaney commands go there, never in `commands.nix`** (shared by every host) — see [His commands](docs/hosts/blaney-pc.md#his-commands):
