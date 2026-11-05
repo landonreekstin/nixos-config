@@ -279,6 +279,12 @@ let
     Use the shell named on the `shell=` line of the project's `.vibe-project`. The
     available ones are: ${shellList}.
 
+    Every project is a tree squid in his Glade desktop, which starts the project when he
+    clicks it. A Godot project, `play.sh` or `run.sh` is found by itself; anything else
+    needs a `play=<command>` line in `.vibe-project` (run from inside the project). The
+    squid's picture is the `icon=<path>` line (in the project, or `~/...`), else
+    `icon.png`/`icon.svg` in it; `name=` overrides the name it shows.
+
     **Never put `sudo` in front of that.** This session is already root, and a second,
     nested `sudo` resets `SUDO_UID` to 0, which makes nix refuse to read the config repo:
 

@@ -5,6 +5,13 @@
 # New blaney-todo tasks are listed automatically — don't add notes for them.
 [
   {
+    date = "2026-11-05";
+    changes = [
+      "The squids and owls in the Glade's trees now hold only your own projects. Click one to start that project and try it. New projects get a squid by themselves."
+      "The terminal on your dock has a green-on-black screen picture instead of the cat."
+    ];
+  }
+  {
     date = "2026-10-30";
     changes = [
       "Sub of Seas got a big update: sounds, music, a settings menu, bot crewmen and a rec room. It also starts without the homelab VPN now (you still need it to join Lando)."
