@@ -152,11 +152,13 @@ def main():
     print(f"Scanning {a.dir} ...", flush=True)
     todo = []
     for root, dirs, files in os.walk(a.dir):
-        dirs.sort()
+        # Hidden files and folders are never photos: macOS leaves a 4 KB "._name.png"
+        # (AppleDouble metadata) beside every file it copies, plus __MACOSX in zips.
+        dirs[:] = sorted(d for d in dirs if not d.startswith(".") and d != "__MACOSX")
         names = set(files)
         for f in sorted(files):
             stem, ext = os.path.splitext(f)
-            if ext.lower() not in EXTS or stem.endswith(a.suffix):
+            if f.startswith(".") or ext.lower() not in EXTS or stem.endswith(a.suffix):
                 continue
             if stem + a.suffix + ".png" not in names:
                 todo.append((os.path.join(root, f), os.path.join(root, stem + a.suffix + ".png")))
