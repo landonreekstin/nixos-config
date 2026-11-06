@@ -18,8 +18,13 @@
       # Godot/LÖVE/pygame + the gamedev skills, the `gd` launcher and ~/gamedev.
       gamedev = {
         enable = true;
-        # Shared with Blaney, who works on it through PRs from `vibe`.
-        sharedProjects.prin-rpg = { repo = "landonreekstin/prin-rpg"; title = "prin-rpg (the Principia campus game)"; };
+        # Shared with Blaney (`vibe`). prin-rpg is on our Forgejo (docs/forgejo.md) and he
+        # commits to main; sub-of-seas is on GitHub and he goes through PRs.
+        forgejo.tokenFile = config.sops.secrets.forgejo-token.path;
+        sharedProjects.prin-rpg = {
+          repo = "lando/prin-rpg"; forge = "forgejo"; blaneyCommitsToMain = true;
+          title = "prin-rpg (the Principia campus game)";
+        };
         sharedProjects.sub-of-seas = { repo = "landonreekstin/sub-of-seas"; title = "sub-of-seas (the co-op WWII submarine game)"; };
       };
       # Not used on this host. flake.nix builds every devShell from THIS host's
@@ -30,5 +35,12 @@
       vibe-python.enable = true;
       vibe-web.enable = true;
     };
+  };
+
+  # This host's Forgejo access token, for the `homelab` git credential helper
+  # (gamedev.forgejo.tokenFile above, docs/forgejo.md).
+  sops.secrets.forgejo-token = {
+    sopsFile = ../../secrets/gaming-pc.yaml;
+    owner = config.customConfig.user.name;
   };
 }

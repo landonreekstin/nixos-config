@@ -57,21 +57,22 @@ the rules file and was checked when this was added.
 
 ## Shared projects (prin-rpg, sub-of-seas)
 
-`gamedev.sharedProjects.<name> = { repo; title; }` lists a game repo that more than one
-person works on. `gd ls` lists it (marked if not yet cloned), and `gd new <name>` for it
-clones the repo into `~/gamedev/<name>` over HTTPS with `gh auth git-credential` as the
-credential helper. Blaney's `vibe` gets a "Work on <title> with Lando" entry; see
+`gamedev.sharedProjects.<name> = { repo; title; forge; blaneyCommitsToMain; }` lists a game
+repo that more than one person works on. `gd ls` lists it (marked if not yet cloned), and
+`gd new <name>` for it clones the repo into `~/gamedev/<name>` over HTTPS. Blaney's `vibe`
+gets a "Work on <title> with Lando" entry; see
 [hosts/blaney-vibe-projects.md](hosts/blaney-vibe-projects.md#games-shared-with-lando-prin-rpg).
 
-The rules mirror this config's own:
-- lando commits to `main`, or uses a branch and PR for bigger work.
-- Blaney uses only `blaney/` branches and PRs, and lando merges them.
-- Verify before you commit.
+| Game | Where | Credential helper | Blaney |
+|---|---|---|---|
+| prin-rpg | our Forgejo, `http://192.168.1.76:3000/lando/prin-rpg` ([forgejo.md](forgejo.md)) | `homelab` (the host's Forgejo token) | commits to `main` |
+| sub-of-seas | GitHub `landonreekstin/sub-of-seas` | `gh auth git-credential` | `blaney/` branches + PRs that lando merges |
 
-They are written in the project's own `CLAUDE.md` and summarised in `~/gamedev/CLAUDE.md`.
-GitHub can't enforce them, because the repo is private on a free plan. Blaney's clone gets
-`mainGuardHooks` (pre-commit and pre-push hooks that refuse `main`) instead. On GitHub the
-repo allows merge commits only and deletes branches once they're merged.
+The rules are written in each project's own `CLAUDE.md` and summarised in
+`~/gamedev/CLAUDE.md`. Verify before you commit, either way. GitHub's free plan can't
+enforce the PR flow on a private repo, so for a PR-flow game Blaney's clone gets
+`mainGuardHooks` (pre-commit and pre-push hooks that refuse `main`). `vibe` sets or
+removes them on every open, following `blaneyCommitsToMain`.
 
 ## Playing a game with others before it has a build (sub-of-seas)
 

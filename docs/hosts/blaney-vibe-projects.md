@@ -182,28 +182,40 @@ libresprite …); only the plugin copy and the small wrappers build locally.
 
 `customConfig.profiles.development.gamedev.sharedProjects` (set in each host's
 `profiles.nix`) lists lando's game repos that insideabush works on too. Each one adds a top
-menu entry, "Work on <title> with Lando". On first use it clones the repo over HTTPS as him,
-using his `gh` login, into `~/projects/<name>`. It writes a `.vibe-project` with
-`kind=game` and `shared=<owner/repo>`, which stays out of the repo through
-`.git/info/exclude`. After that the game also shows in the "already started" list as
-"(game, with Lando)".
+menu entry, "Work on <title> with Lando". On first use it clones the repo over HTTPS as him
+into `~/projects/<name>`. GitHub repos use his `gh` login; ours on Forgejo use the
+`homelab` credential helper with his token (`secrets/blaney-pc-forgejo.yaml`, see
+[../forgejo.md](../forgejo.md)). It writes a `.vibe-project` with `kind=game` and
+`shared=<owner/repo>`, which stays out of the repo through `.git/info/exclude`. After that
+the game also shows in the "already started" list as "(game, with Lando)".
 
-These are **not** his repos, so the "commit to main freely" rule doesn't apply. Instead:
-- On every open, `vibe` sets the clone's `core.hooksPath` to `gamedev.mainGuardHooks`, git
-  hooks that refuse a commit on `main` and a push to `main`. That's the only enforcement:
-  the repo is private on a free GitHub plan, so there are no server-side branch rules, and
-  a collaborator on a personal repo always has write access.
-- The binding rules are in the project's own `CLAUDE.md` ("Working together: git and PRs").
-  Every clone reads the same text: `blaney/` branches, a PR, stop, and lando merges.
-  The "Games shared with lando" part of `~/projects/CLAUDE.md` says that this overrides
-  the commit-to-main rules, so a resumed chat knows it too.
-- Pushes and `gh` run as him (`sudo -u insideabush -H ...`), because the session is
+On **every open**, `vibe` re-points the clone's `origin` and credential helper at what the
+config says, so a repo that moves servers follows without anyone touching his PC. The
+first time the address changes, it first writes a `git bundle` of the whole clone to
+`~/projects/.backups/`, then pushes all his local branches to the new server (see
+[Moving a repo off GitHub](../forgejo.md#moving-a-repo-off-github-without-losing-anyones-work)).
+
+These are **not** his repos. Each game is one of two kinds (`blaneyCommitsToMain`):
+- **He commits to `main`** (prin-rpg, on our Forgejo). `vibe` removes the main-guard
+  hooks, and his session's prompt says to `git pull --rebase` first and before every
+  push, never to discard work left on an old `blaney/` branch, and to push as him.
+- **PR flow** (sub-of-seas, on GitHub). `vibe` sets `core.hooksPath` to
+  `gamedev.mainGuardHooks`, git hooks that refuse a commit on `main` and a push to
+  `main`. Those hooks are the only enforcement, because a private repo on a free GitHub
+  plan has no server-side branch rules. He works on `blaney/` branches, opens a PR, and
+  stops; lando merges.
+
+In both cases:
+- The binding rules are in the project's own `CLAUDE.md` ("Working together"). The "Games
+  shared with lando" part of `~/projects/CLAUDE.md` says that this overrides the
+  commit-to-main-freely rules for his own apps, so a resumed chat knows it too.
+- Pushes (and `gh`) run as him (`sudo -u insideabush -H ...`), because the session is
   root.
 - **His look-and-feel calls are recorded.** The project's `docs/style.md` holds the
   current style and a dated direction log of every call he or lando makes, in their own
-  words. Sessions read it before any visible change and update it in the same commit,
-  and the PR flags a "Style conflict" when one of you overrides the other. The rules are
-  in the project's `CLAUDE.md` ("Look and feel") and repeated in his game rules.
+  words. Sessions read it before any visible change and update it in the same commit.
+  The rules are in the project's `CLAUDE.md` ("Look and feel") and repeated in his game
+  rules.
 
 **"Play it"** appears in the per-game menu of every game project, shared or his own,
 that has a `project.godot` or `main.lua`. It starts the game on his screen as him, with no

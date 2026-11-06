@@ -27,16 +27,20 @@ let
 
     ## Shared projects (lando's repos that Blaney works on too)
 
-    ${lib.concatStringsSep ", " (lib.mapAttrsToList (n: p: "`${n}` (github.com/${p.repo})") cfg.sharedProjects)}.
-    `gd new <name>` clones one. The rules for working in one are in the
-    "Working together: git and PRs" section of the project's own `CLAUDE.md`, and they are
-    binding. In short:
+    ${lib.concatMapStringsSep "\n" (p: "- `${p.name}`: ${p.webUrl}${lib.optionalString p.blaneyCommitsToMain " (Blaney commits to `main` too)"}") cfg.sharedProjectsResolved}
+
+    `gd new <name>` clones one. The rules for working in one are in the "Working together"
+    section of the project's own `CLAUDE.md`, and they are binding. In short:
     - lando may commit to `main`. Bigger or riskier work goes on a `feat/`, `fix/` or
-      `tweak/` branch with a PR, as in the NixOS config.
-    - Blaney works only on `blaney/` branches through PRs. His clone has hooks that refuse
-      `main`. Merge his PRs only when lando asks, and only after the branch has been run
-      and played: `gh pr checkout <n>`, `make test`, play it, then `gh pr merge <n> --merge`.
-    - Start every session with `git fetch` and a look at the open PRs.
+      `tweak/` branch, as in the NixOS config.
+    - On our Forgejo (`http://192.168.1.76:3000`), Blaney commits to `main` as well. Start
+      every session with `git pull --rebase`, and pull again right before every push.
+      The clone's credential helper is `homelab` (this host's Forgejo token).
+    - On GitHub, Blaney works only on `blaney/` branches through PRs. His clone has hooks
+      that refuse `main`. Merge his PRs only when lando asks, and only after the branch has
+      been run and played: `gh pr checkout <n>`, `make test`, play it, then
+      `gh pr merge <n> --merge`. Start every session with `git fetch` and a look at the
+      open PRs.
     - Look and feel are in the project's `docs/style.md`. Read it before any visible
       change. Log every look-and-feel direction from either person in its direction log,
       and update its current style in the same commit. Blaney's calls count as much as
@@ -44,8 +48,8 @@ let
     - Verify before you commit: tests pass **and** the game has been run and looked at.
       Messages are `type(scope): description`, with no Co-Authored-By or AI attribution
       lines.
-    - Push and use `gh` over HTTPS through gh's login. The clone's credential helper is
-      `gh auth git-credential`.
+    - On GitHub, push and use `gh` over HTTPS through gh's login. The clone's credential
+      helper is `gh auth git-credential`.
 
   '' + import ./gamedev-rules.nix {
     runGameRule = ''

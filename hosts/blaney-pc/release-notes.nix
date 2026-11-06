@@ -5,6 +5,12 @@
 # New blaney-todo tasks are listed automatically — don't add notes for them.
 [
   {
+    date = "2026-11-06";
+    changes = [
+      "prin-rpg now lives on Lando's own server instead of GitHub, and you save your changes straight into the game: no more waiting for Lando to merge. Turn the VPN on (top bar) when you work on it."
+    ];
+  }
+  {
     date = "2026-11-05";
     changes = [
       "The squids and owls in the Glade's trees now hold only your own projects. Click one to start that project and try it. New projects get a squid by themselves."

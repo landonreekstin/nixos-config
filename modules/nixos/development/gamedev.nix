@@ -98,10 +98,29 @@ let
   ];
 
   # --- Shared projects -----------------------------------------------------------------
-  # Games on GitHub that more than one of us works on (prin-rpg). `gd` and Blaney's `vibe`
-  # both list them, cloning on first open. The rules for working in one live in its own
-  # CLAUDE.md, committed to its repo, so every clone reads the same text.
-  sharedProjects = lib.mapAttrsToList (name: p: p // { inherit name; }) cfg.sharedProjects;
+  # Games that more than one of us works on (prin-rpg, sub-of-seas), on GitHub or on our
+  # own Forgejo (docs/forgejo.md). `gd` and Blaney's `vibe` both list them, cloning on
+  # first open. The rules for working in one live in its own CLAUDE.md, committed to its
+  # repo, so every clone reads the same text.
+  fjCfg = cfg.forgejo;
+  sharedProjects = lib.mapAttrsToList (name: p:
+    let onForgejo = p.forge == "forgejo"; in p // {
+      inherit name;
+      webUrl = if onForgejo then "${fjCfg.url}/${p.repo}" else "https://github.com/${p.repo}";
+      cloneUrl = if onForgejo then "${fjCfg.url}/${p.repo}.git" else "https://github.com/${p.repo}.git";
+      # git's credential.helper: gh's login on GitHub, our token file on Forgejo.
+      credentialHelper = if onForgejo then "homelab" else "!gh auth git-credential";
+    }) cfg.sharedProjects;
+
+  # `credential.helper = homelab` runs this. It only answers git's `get`, with this host's
+  # Forgejo user and the token from `forgejo.tokenFile` (a sops secret the user can read).
+  # A stable name on PATH, so clones never hold a store path that a rebuild moves.
+  homelabCredential = pkgs.writeShellScriptBin "git-credential-homelab" ''
+    [ "''${1:-}" = get ] || exit 0
+    [ -r ${lib.escapeShellArg (toString fjCfg.tokenFile)} ] || exit 0
+    printf 'username=%s\npassword=%s\n' ${lib.escapeShellArg fjCfg.user} \
+      "$(cat ${lib.escapeShellArg (toString fjCfg.tokenFile)})"
+  '';
 
   # git hooks that refuse a commit on, or a push to, `main`. Only Blaney's clones get them
   # (vibe points core.hooksPath here on every open): his changes go through a PR that lando
@@ -206,28 +225,28 @@ let
       EOF
       }
 
-      # name<TAB>owner/repo for each shared project (see `sharedProjects` above).
+      # name<TAB>clone URL<TAB>credential helper for each shared project (`sharedProjects` above).
       shared() {
         cat <<'EOF'
-      ${lib.concatMapStrings (p: "${p.name}\t${p.repo}\n") sharedProjects}EOF
+      ${lib.concatMapStrings (p: "${p.name}\t${p.cloneUrl}\t${p.credentialHelper}\n") sharedProjects}EOF
       }
-      shared_repo() { shared | awk -F'\t' -v n="$1" '$1 == n { print $2 }'; }
+      shared_field() { shared | awk -F'\t' -v n="$1" -v f="$2" '$1 == n { print $f }'; }
 
       create() {
-        local name="$1" dir="$ws/$1" repo
+        local name="$1" dir="$ws/$1" url helper
         if [[ ! "$name" =~ ^[A-Za-z0-9._-]+$ ]]; then
           echo "gd: project names are letters, digits, '.', '_' and '-' only" >&2; exit 1
         fi
         if [ -e "$dir" ]; then echo "gd: $dir already exists" >&2; exit 1; fi
-        repo=$(shared_repo "$name")
-        if [ -n "$repo" ]; then
-          # HTTPS through gh's login, so it needs no SSH key; the helper is kept in the
-          # clone's config for later pushes.
-          echo "Cloning $repo into $dir"
-          git -c credential.helper= -c credential.helper='!gh auth git-credential' \
-            clone -q "https://github.com/$repo.git" "$dir"
-          git -C "$dir" config credential.helper ""
-          git -C "$dir" config --add credential.helper '!gh auth git-credential'
+        url=$(shared_field "$name" 2)
+        if [ -n "$url" ]; then
+          # HTTPS, so it needs no SSH key: gh's login for GitHub, the `homelab` helper
+          # (our Forgejo token) for Forgejo. The helper stays in the clone for later pushes.
+          helper=$(shared_field "$name" 3)
+          echo "Cloning $url into $dir"
+          git -c credential.helper= -c credential.helper="$helper" clone -q "$url" "$dir"
+          git -C "$dir" config --replace-all credential.helper ""
+          git -C "$dir" config --add credential.helper "$helper"
         else
           ${scaffold} "$dir"
           install -m 644 ${projectClaudeMd} "$dir/CLAUDE.md"
@@ -239,7 +258,7 @@ let
 
       projects() {
         find "$ws" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -printf '%f\n' | sort
-        shared | while IFS=$'\t' read -r n r; do
+        shared | while IFS=$'\t' read -r n r _; do
           if [ -n "$n" ] && [ ! -d "$ws/$n" ]; then echo "$n  (shared: $r, not cloned — gd new $n)"; fi
         done
       }
@@ -284,7 +303,23 @@ in
           repo = mkOption {
             type = types.str;
             example = "landonreekstin/prin-rpg";
-            description = "GitHub `owner/repo` to clone over HTTPS with gh's login.";
+            description = "`owner/repo` on `forge`, cloned over HTTPS.";
+          };
+          forge = mkOption {
+            type = types.enum [ "github" "forgejo" ];
+            default = "github";
+            description = ''
+              Where the repo lives: GitHub (credentials from gh's login) or our own Forgejo
+              at `forgejo.url` (credentials from `forgejo.tokenFile`).
+            '';
+          };
+          blaneyCommitsToMain = mkOption {
+            type = types.bool;
+            default = false;
+            description = ''
+              Blaney commits and pushes straight to `main`, like lando. Off: his clone gets
+              `mainGuardHooks` and his changes go through `blaney/` branches and PRs.
+            '';
           };
           title = mkOption {
             type = types.str;
@@ -294,11 +329,41 @@ in
       });
       default = { };
       description = ''
-        Games on GitHub that several people work on, keyed by folder name. `gd` lists them
-        and clones one into ~/gamedev on first open. `vibe` lists them as well, and clones
-        into its projects folder with git hooks that keep the user off `main`. The rules
-        for working in one are in its own CLAUDE.md.
+        Games several people work on, keyed by folder name. `gd` lists them and clones one
+        into ~/gamedev on first open. `vibe` lists them as well and clones into its projects
+        folder (with git hooks that keep the user off `main`, unless `blaneyCommitsToMain`).
+        The rules for working in one are in its own CLAUDE.md.
       '';
+    };
+
+    forgejo = {
+      url = mkOption {
+        type = types.str;
+        default = "http://192.168.1.76:3000";
+        description = "Our Forgejo (modules/nixos/homelab/forgejo.nix), no trailing slash.";
+      };
+      user = mkOption {
+        type = types.str;
+        default = config.customConfig.user.name;
+        defaultText = literalExpression "config.customConfig.user.name";
+        description = "This host's Forgejo username.";
+      };
+      tokenFile = mkOption {
+        type = types.nullOr types.path;
+        default = null;
+        description = ''
+          File holding this host's Forgejo access token, readable by the user (a sops
+          secret). Installs the `homelab` git credential helper that hands it to git.
+        '';
+      };
+    };
+
+    sharedProjectsResolved = mkOption {
+      type = types.listOf types.attrs;
+      internal = true;
+      readOnly = true;
+      default = sharedProjects;
+      description = "`sharedProjects` as a list, with name, webUrl, cloneUrl and credentialHelper.";
     };
 
     mainGuardHooks = mkOption {
@@ -338,7 +403,8 @@ in
     environment.systemPackages = [
       pkgs.unstable.godot_4 # the editor, for opening a project by hand
       pkgs.libresprite
-    ] ++ lib.optional cfg.workspace.enable gd;
+    ] ++ lib.optional cfg.workspace.enable gd
+      ++ lib.optional (fjCfg.tokenFile != null) homelabCredential;
 
     customConfig.profiles.development.gamedev.devShell = pkgs.mkShell {
       name = "gamedev";
