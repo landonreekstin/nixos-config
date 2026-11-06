@@ -18,6 +18,12 @@
     ];
   }
   {
+    date = "2026-11-04";
+    changes = [
+      "The top bar now sits behind your windows, so you can always grab a window that was stuck under it, and fullscreen games cover it."
+    ];
+  }
+  {
     date = "2026-10-30";
     changes = [
       "Sub of Seas got a big update: sounds, music, a settings menu, bot crewmen and a rec room. It also starts without the homelab VPN now (you still need it to join Lando)."
