@@ -32,6 +32,7 @@ in `docs/` — read the matching file when the task calls for it:
 | [docs/gamedev.md](docs/gamedev.md) | the `gd` launcher, `~/gamedev`, the gamedev skills plugin (bumping its pin), engine toolchains, or `play-on-desktop` |
 | [docs/xbox360.md](docs/xbox360.md) | the "Xbox 360 Dashboard" session: its Quickshell shell, dashboard menus, app workspaces, controller daemon, Guide or pages |
 | [docs/comfyui.md](docs/comfyui.md) | ComfyUI on gaming-pc: who can reach it, where models go (never in Nix/git), or bumping its container image |
+| [docs/forgejo.md](docs/forgejo.md) | our own git server on mini-server (Forgejo, `http://192.168.1.76:3000`): accounts, `tea`, branch protection, moving a repo off GitHub |
 
 ## Choosing the Right Host to Work On
 

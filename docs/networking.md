@@ -94,7 +94,7 @@ doas pfctl -si                # statistics
 | Justus | 10.10.0.16 | Restricted | NAS only |
 | Blaney (mobile) | 10.10.0.17 | Restricted | NAS only. Same access as Blaney; none of blaney-pc's inbound SSH/R62D exceptions. |
 
-Restricted peers can reach (all via the legacy 192.168.1.76 alias, rdr'd to the NAS at 192.168.100.76, except The Batman, which goes to gaming-pc): The Batman netplay (7845, see below), Jellyfin (8096), Jellyseerr (5055), article2pod/reader (8100) on the NAS, and game-control dashboard (8080) + Vaultwarden (8222) + browser-puck (8787) + R62D (6262), both see below, on mini-server. Transmission is no longer exposed to restricted peers. All other traffic blocked via `<restricted_peers>` PF table.
+Restricted peers can reach (all via the legacy 192.168.1.76 alias, rdr'd to the NAS at 192.168.100.76, except The Batman, which goes to gaming-pc): The Batman netplay (7845, see below), Jellyfin (8096), Jellyseerr (5055), article2pod/reader (8100) on the NAS, and game-control dashboard (8080) + Vaultwarden (8222) + browser-puck (8787) + R62D (6262), both see below, on mini-server. Blaney's two peers (.5, .17) can also reach Forgejo (3000) on mini-server, see [Forgejo](#forgejo-port-3000). Transmission is no longer exposed to restricted peers. All other traffic blocked via `<restricted_peers>` PF table.
 
 ## NAS-behind-firewall specifics
 
@@ -257,6 +257,23 @@ gaming-pc peers may). The `homelab-vpn` profile has autoconnect off, so if nothi
 10.10.0.5, first check it is switched on. On blaney-pc there is no HOST to pick: PLAY/HOST/JOIN
 belong to the separate desktop build (`desktop/app.js`). Started from his folder with `play.sh`,
 the server listens on `0.0.0.0:6262` by default, and OPEN TO LAN only shows the address.
+
+### Forgejo (port 3000)
+
+Our git server (`modules/nixos/homelab/forgejo.nix`, see [forgejo.md](forgejo.md)) runs on
+mini-server. Everyone uses **`http://192.168.1.76:3000`**. Unlike browser-puck/R62D, the
+VPN rule is limited to the `<git_peers>` table (lando's 10.10.0.2/.3/.11, Blaney's
+10.10.0.5/.17); every other restricted peer falls through to the `<restricted_peers>` block.
+
+```
+forgejo_port = "3000"
+table <git_peers> { 10.10.0.2, 10.10.0.3, 10.10.0.5, 10.10.0.11, 10.10.0.17 }
+pass in       on $ext_if proto tcp from $lan_net    to $nas_legacy_ip port $forgejo_port rdr-to $mini_server keep state
+pass in quick on wg0     proto tcp from <git_peers> to $nas_legacy_ip port $forgejo_port rdr-to $mini_server keep state
+```
+
+To let another peer contribute: `doas pfctl -t git_peers -T add 10.10.0.N`, then add the
+address to the table line in `pf.conf` (and to `openbsd-dotfiles`).
 
 ### Hairpin NAT Limitation
 
