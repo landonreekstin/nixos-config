@@ -23,7 +23,7 @@ repos lando and Blaney share, prin-rpg first. It replaces GitHub for those repos
 | Forgejo user | Who | Role |
 |---|---|---|
 | `lando` | lando | site admin, owns the repos |
-| `insideabush` | Blaney | collaborator (write) on shared repos; branch protection keeps him off `main` |
+| `insideabush` | Blaney | collaborator (write) on shared repos |
 
 Create them on mini-server:
 
@@ -34,41 +34,67 @@ sudo forgejo-admin user create --username insideabush \
   --email cblaney00@gmail.com --random-password --must-change-password=false
 ```
 
-Each command prints the generated password. Make access tokens under
-*Settings → Applications*, with scopes `repository` and `user` (read/write) so `tea` works.
-Or have the CLI make them: `sudo forgejo-admin user generate-access-token --username <u>
---token-name tea --scopes write:repository,write:user,read:organization`.
-
-## Clients: git + `tea`
-
-`tea` is the Forgejo/Gitea CLI (the `gh` equivalent). One login sets up both the CLI and
-git's credential helper:
+Each command prints the generated password. For git, make a token:
 
 ```bash
-tea login add --name homelab --url http://192.168.1.76:3000 --token <token>
-git config --global credential.http://192.168.1.76:3000.helper '!tea login helper'
+sudo forgejo-admin user generate-access-token --username <u> --token-name <host> \
+  --scopes write:repository --raw
 ```
 
-The `gh` commands it replaces: `tea pr ls`, `tea pr create --base main --head <branch>`,
-`tea pr checkout <n>`, `tea pr merge --style merge <n>`, `tea comment <n> "…"`.
+## Clients: the `homelab` credential helper
 
-## Repo settings for a shared repo (prin-rpg)
+git reads each machine's token from a sops secret. `gamedev.forgejo.tokenFile`
+(`modules/nixos/development/gamedev.nix`) installs `git-credential-homelab`. It answers
+git's `get` with `gamedev.forgejo.user` (default: the host's user) and the token, and a
+clone uses it through `credential.helper = homelab`. No token goes in a URL or in
+`~/.git-credentials`.
+
+| Host | Forgejo user | Secret |
+|---|---|---|
+| gaming-pc | `lando` | `forgejo-token` in `secrets/gaming-pc.yaml` |
+| blaney-pc | `insideabush` | `forgejo-token` in `secrets/blaney-pc-forgejo.yaml` |
+
+blaney-pc's token is in its own file because adding a key to `blaney-pc.yaml` needs
+the admin age key (asus-laptop), while creating a new file only needs the recipients'
+public keys (`.sops.yaml` matches `blaney-pc(-admin|-forgejo)?.yaml`).
+
+A shared game is moved by setting `forge = "forgejo"` on its
+`gamedev.sharedProjects.<name>` entry (in each host's `profiles.nix`).
+`blaneyCommitsToMain = true` drops the main-guard hooks from Blaney's clone and gives his
+sessions commit-to-main rules instead of the PR flow. `tea` (the Forgejo `gh`) works but
+isn't needed for that flow.
+
+## Repo settings for a shared repo
 
 - *Settings → Collaborators:* `insideabush`, **Write**.
-- *Settings → Branches → protect `main`:* push allowlist = `lando` only, merge allowlist =
-  `lando` only. This is real server-side enforcement. On GitHub's free plan the only guard
-  was the client-side `gamedev.mainGuardHooks`, which stays as the friendly early error.
-- *Settings → Repository:* merge style "Create merge commit" only, delete branch after
-  merge.
+- Merge commits only, branch deleted after merge (set through the API at migration).
+- No branch protection on prin-rpg: both people commit to `main`. Protecting `main`
+  (push/merge allowlist = `lando`) is the server-side way back to a PR flow.
 
-## Moving a repo off GitHub
+## Moving a repo off GitHub, without losing anyone's work
 
-1. *New Migration → GitHub* in the web UI, as `lando`. Give it a GitHub token
-   (`gh auth token`) so it can read a private repo, and tick issues, pull requests,
-   labels, milestones and releases. Open PRs and their comments come across.
-2. Apply the repo settings above.
-3. On every clone, point `origin` at Forgejo:
-   `git remote set-url origin http://192.168.1.76:3000/lando/<repo>.git`. Blaney's clone
-   is re-pointed by `vibe`.
-4. Update the repo's own `CLAUDE.md` ("Working together") from `gh` to `tea`.
-5. Delete the GitHub repo only once both people have pushed to the new remote.
+1. **Import:** `POST /api/v1/repos/migrate` (or *New Migration → GitHub*) as `lando`
+   with `service: github`, `auth_token: $(gh auth token)`, `private`, and issues, PRs,
+   labels, milestones, releases, wiki and LFS on. Every branch and PR comes across. Check
+   that `git ls-remote` `main` matches GitHub's.
+2. **Hosts:** `forge = "forgejo"` on its `sharedProjects` entry. Re-point lando's clone by
+   hand: `git remote set-url origin <forgejo url>`, then
+   `git config --replace-all credential.helper ""` and
+   `git config --add credential.helper homelab`. Blaney's clone is moved by `vibe` the
+   next time he opens the game. Before it touches anything, it writes a full
+   `git bundle` of the clone to `~/projects/.backups/<name>-before-move-<time>.bundle`.
+   Then it pushes every local branch to the new server (once, retried until the server is
+   reachable). His working tree is never touched, so uncommitted work stays put.
+3. **Freeze GitHub only after blaney-pc has updated.** Until then his sessions still push
+   there. Archive it then (*Settings → Archive*), which makes it read-only.
+4. **Final sync:** copy anything that reached GitHub after the import. This is a no-force
+   push, so a branch that diverged is *rejected* and listed rather than overwritten.
+   ```bash
+   git clone -q --mirror https://github.com/landonreekstin/<repo>.git /tmp/gh-final
+   git -C /tmp/gh-final -c credential.helper=homelab push \
+     http://192.168.1.76:3000/lando/<repo>.git 'refs/heads/*:refs/heads/*'
+   ```
+   Resolve any rejected branch by hand, then keep `/tmp/gh-final` (or a bundle of it)
+   until step 5.
+5. **Delete GitHub** once Blaney has pushed from his moved clone (his commit shows on
+   the server) and step 4 reported nothing left.

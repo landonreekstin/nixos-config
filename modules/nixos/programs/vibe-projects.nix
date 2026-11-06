@@ -21,9 +21,14 @@ let
   gdEnabled = gdCfg.enable;
 
   # Games shared with lando (prin-rpg): lando's repos, so a clone here is a team project
-  # with its own PR rules rather than one of his own. name<TAB>owner/repo<TAB>title lines.
-  sharedGames = lib.optionalString gdEnabled (lib.concatStrings (lib.mapAttrsToList
-    (name: p: "${name}\t${p.repo}\t${p.title}\n") gdCfg.sharedProjects));
+  # with its own rules rather than one of his own. One tab-separated line per game: name,
+  # clone URL, credential helper, 1 if he commits to main, title, web address, owner/repo
+  # (read back with shared_field in the script).
+  sharedGames = lib.optionalString gdEnabled (lib.concatMapStrings (p:
+    lib.concatStringsSep "\t" [
+      p.name p.cloneUrl p.credentialHelper (if p.blaneyCommitsToMain then "1" else "0")
+      p.title p.webUrl p.repo
+    ] + "\n") gdCfg.sharedProjectsResolved);
 
   # The Glade Claude-panel hooks every plain project session gets; game sessions pass
   # them through the gamedev launcher too.
@@ -413,17 +418,65 @@ let
       kind=$(marker_field "$dir" kind)
       shared=$(marker_field "$dir" shared)
       if [ -n "$shared" ]; then
-        # Re-pointed on every open: the hooks are a store path that moves on rebuild.
-        [ -n "$GD_GUARD_HOOKS" ] && git -C "$dir" config core.hooksPath "$GD_GUARD_HOOKS"
-        team="
+        local sname surl shelper smain sweb
+        sname=$(basename "$dir")
+        surl=$(shared_field "$sname" 2); shelper=$(shared_field "$sname" 3)
+        smain=$(shared_field "$sname" 4); sweb=$(shared_field "$sname" 6)
+        # Re-pointed on every open, so a repo that moves (GitHub -> our Forgejo) follows
+        # the config without anyone touching his clone. Nothing in the working tree is
+        # touched, so uncommitted work stays exactly where it is.
+        if [ -n "$surl" ]; then
+          local sold
+          sold=$(git -C "$dir" remote get-url origin 2>/dev/null || true)
+          if [ -n "$sold" ] && [ "$sold" != "$surl" ]; then
+            # The repo moved. First a full copy of every commit and branch in his clone,
+            # so nothing that only exists on this PC can be lost however the move goes.
+            mkdir -p "$PROJECTS_DIR/.backups"
+            git -C "$dir" bundle create -q \
+              "$PROJECTS_DIR/.backups/$sname-before-move-$(date +%Y%m%d-%H%M%S).bundle" --all \
+              2>/dev/null || true
+          fi
+          git -C "$dir" remote set-url origin "$surl"
+          git -C "$dir" config --replace-all credential.helper ""
+          git -C "$dir" config --add credential.helper "$shelper"
+          # Then, once per server, push all his branches there, so commits that only ever
+          # reached the old remote's copy on this PC (or not even that) are on the new one.
+          # Rejected (behind) branches are fine; a server it can't reach (VPN off) is
+          # simply retried next time.
+          if [ "$(git -C "$dir" config vibe.pushedTo || true)" != "$surl" ] \
+               && timeout 15 git -C "$dir" ls-remote -q origin >/dev/null 2>&1; then
+            git -C "$dir" push -q origin --all >/dev/null 2>&1 || true
+            git -C "$dir" config vibe.pushedTo "$surl"
+          fi
+        fi
+        # The hooks are a store path that moves on rebuild, so they are re-pointed too.
+        if [ "$smain" = 1 ]; then
+          git -C "$dir" config --unset core.hooksPath || true
+          team="
 
-    This is a SHARED game: lando's repo github.com/$shared, which he works on too. The
+    This is a SHARED game: lando's repo $sweb, which he works on too. The \"Working
+    together\" section of its CLAUDE.md is binding here. He commits to main like lando
+    does: no branches or PRs. Pull first (git pull --rebase) at the start of every session
+    and before every push, so neither of you overwrites the other's work, and push as him
+    (sudo -u $(id -un) -H git push). If the clone is on a blaney/ branch from the GitHub
+    days, or has uncommitted changes, never throw any of it away: finish and commit it on
+    that branch, and once it plays well merge it into an up-to-date main and push. Its
+    code stays in that repo: it never moves to his
+    own GitHub or into the NixOS config. Read docs/style.md before changing anything he
+    will see, and log every look-and-feel call he makes in its direction log (its \"Look
+    and feel\" rules)."
+        else
+          [ -n "$GD_GUARD_HOOKS" ] && git -C "$dir" config core.hooksPath "$GD_GUARD_HOOKS"
+          team="
+
+    This is a SHARED game: lando's repo $sweb, which he works on too. The
     \"Working together: git and PRs\" section of its CLAUDE.md is binding here and replaces
     the \"commit to main freely\" and \"Where his app's code is allowed to live\" rules of
     ../CLAUDE.md: every change goes on a blaney/ branch and into a PR that lando merges.
     Follow its \"Every session, before anything else\" steps first, lando's PR comments
     included. Read docs/style.md before changing anything he will see, and log every
     look-and-feel call he makes in its direction log (its \"Look and feel\" rules)."
+        fi
       fi
       case "$kind" in re|game) ;; *) kind=app ;; esac
       case "$kind" in re) noun="project" ;; game) noun="game" ;; *) noun="app" ;; esac
@@ -529,24 +582,29 @@ let
       echo "Closed. Run vibe again to change something in it."
     }
 
-    # open_shared <name> <owner/repo> <title>
+    # Fields of SHARED_GAMES for one game: shared_field <name> <n>, n = 2 clone URL,
+    # 3 credential helper, 4 "1" if he commits to main, 5 title, 6 web address, 7 owner/repo.
+    shared_field() {
+      awk -F'\t' -v n="$1" -v f="$2" '$1 == n { print $f }' <<< "$SHARED_GAMES"
+    }
+
+    # open_shared <name>
     # A game lando shares with him. Cloned on first open, as him (this script runs as
-    # him), over HTTPS with his gh login. The marker stays out of the shared repo through
-    # .git/info/exclude.
+    # him), over HTTPS: his gh login for GitHub, his Forgejo token (the `homelab` helper)
+    # for ours. The marker stays out of the shared repo through .git/info/exclude.
     open_shared() {
-      local name="$1" repo="$2" title="$3" dir="$PROJECTS_DIR/$1"
+      local name="$1" dir="$PROJECTS_DIR/$1" url helper title repo
+      url=$(shared_field "$name" 2); helper=$(shared_field "$name" 3)
+      title=$(shared_field "$name" 5); repo=$(shared_field "$name" 7)
       if [ ! -d "$dir" ]; then
         echo
-        echo "Downloading $title from GitHub..."
-        if ! git -c credential.helper= -c credential.helper='!gh auth git-credential' \
-             clone -q "https://github.com/$repo.git" "$dir"; then
+        echo "Downloading $title..."
+        if ! git -c credential.helper= -c credential.helper="$helper" clone -q "$url" "$dir"; then
           echo "Couldn't download $title — tell Lando."
           exit 1
         fi
         git -C "$dir" config user.name "${userName}"
         git -C "$dir" config user.email "${userEmail}"
-        git -C "$dir" config credential.helper ""
-        git -C "$dir" config --add credential.helper '!gh auth git-credential'
         printf 'title=%s\nslug=%s\nshell=gamedev\nkind=game\nshared=%s\n' "$title" "$name" "$repo" > "$dir/.vibe-project"
         printf '.vibe-project\n' >> "$dir/.git/info/exclude"
       fi
@@ -640,9 +698,9 @@ let
     TOP_LABELS+=("Start a brand new app"); TOP_ACTIONS+=(new-app)
     if [ -n "$GD_LAUNCHER" ]; then
       TOP_LABELS+=("Make a game of your own"); TOP_ACTIONS+=(new-game)
-      while IFS=$'\t' read -r sname srepo stitle; do
+      while IFS=$'\t' read -r sname _ _ _ stitle _; do
         [ -n "$sname" ] || continue
-        TOP_LABELS+=("Work on $stitle with Lando"); TOP_ACTIONS+=("shared:$sname:$srepo:$stitle")
+        TOP_LABELS+=("Work on $stitle with Lando"); TOP_ACTIONS+=("shared:$sname")
       done <<< "$SHARED_GAMES"
     fi
     if [ -n "$RE_LAUNCHER" ]; then
@@ -673,8 +731,7 @@ let
       new-re) new_project re ;;
       new-game) new_project game ;;
       shared:*)
-        IFS=: read -r _ sname srepo stitle <<< "''${TOP_ACTIONS[$((TOP - 1))]}"
-        open_shared "$sname" "$srepo" "$stitle"
+        open_shared "''${TOP_ACTIONS[$((TOP - 1))]#shared:}"
         ;;
     esac
   '';
