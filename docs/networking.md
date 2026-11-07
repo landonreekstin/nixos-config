@@ -16,7 +16,7 @@ Internet
     │
     ▼
 Spectrum Router (SAX2V1S)
-WAN: 68.184.198.204  /  LAN: 192.168.1.1
+WAN: 35.144.13.132  /  LAN: 192.168.1.1
     │
     ├── 192.168.1.x  (Main LAN)
     │   ├── gaming-pc       192.168.1.101  (DHCP reservation; `ssh gaming-pc` from any lando host)
@@ -65,6 +65,57 @@ doas pfctl -si                # statistics
 1. **Router**: add forward in mySpectrum app → 192.168.1.189
 2. **optiplex-fw** `/etc/pf.conf`: add rdr-to rule, then `doas pfctl -f /etc/pf.conf`
 3. Commit change to openbsd-dotfiles repo
+4. Add the port to the table below
+
+## Spectrum router settings (rebuild checklist)
+
+Everything the homelab needs from the router. This is the whole list to re-enter after a
+factory reset (last done 2026-11-07, when the reset also changed the WAN IP from
+`68.184.198.204` to `35.144.13.132`).
+
+**DHCP reservations**
+
+| Device | MAC | IP |
+|---|---|---|
+| optiplex-fw `re0` | `f4:8e:38:89:3a:a0` | `192.168.1.189` (the fw is static; the reservation stops the router handing it out) |
+| gaming-pc `enp8s0` | `10:ff:e0:36:db:4b` | `192.168.1.101` |
+
+`192.168.1.76` is a second, static address on the fw's MAC and cannot be reserved. Keep
+it out of the DHCP pool if the router allows, otherwise watch for an IP conflict.
+
+**Port forwards**, all to `192.168.1.189` (pf then rdr's the game ports to mini-server).
+pf already has an rdr rule for every one of these, so turning a game on only needs the
+router forward:
+
+| Port | Proto | Service | Router forward |
+|---|---|---|---|
+| 51822 | UDP | WireGuard | **on** |
+| 7777, 27777 | UDP | Astroneer | **on** |
+| 25565, 25566 | TCP | Minecraft Java + minigames | off: server not running |
+| 19134–19137 | UDP | Minecraft Bedrock (two worlds) | off: server not running |
+| 34216 | TCP | Astroneer RCON | off: not needed |
+
+Before turning the **Minecraft** forwards back on (2026-11-07): start the server first, and
+make sure mini-server's kernel has the fix for **CVE-2026-98432** (remote root via TCP
+connections carrying IPv4 options; mini-server was on an unconfirmed 6.12.110 when this was
+written). Java is TCP, so it is the exposed one; Bedrock is UDP and unaffected. pf already
+drops packets with IP options (there is no `allow-opts` in `pf.conf`), so the fw blocks the
+known attack path, but don't rely on that alone. Keep a forward off while nothing listens behind it.
+
+Never forward 22: pf passes SSH to the fw from any source.
+
+The Spectrum app only port-forwards to a device with a DHCP reservation, and only reserves
+devices that got their address from it by DHCP. The fw is static, so to reserve it, run
+`doas ifconfig re0 inet autoconf` (dhcpleased asks for the fw's current .189, so nothing
+moves), reserve it in the app, then `doas ifconfig re0 inet -autoconf` **and** re-apply the
+boot config with `doas sh /etc/netstart re0` from a detached shell, since dropping the lease
+can drop .189. **Not `-inet autoconf`**: `-inet` deletes every IPv4 address on re0,
+including the `.76` alias.
+
+**If the WAN IP changes**, replace the old IP everywhere: `grep -rn <old-ip>` here (client
+endpoints, gaming-pc's hairpin route) and in openbsd-dotfiles (the two hairpin rdr rules
+in `pf.conf`, `add-vpn-client.sh`, `wireguard-clients/`), the `*-client.conf` copies on
+the NAS's `/mnt/storage/`, and every peer's phone/PC config by hand.
 
 ## WireGuard VPN
 
@@ -277,7 +328,7 @@ address to the table line in `pf.conf` (and to `openbsd-dotfiles`).
 
 ### Hairpin NAT Limitation
 
-The Spectrum router does not support hairpin NAT. Gaming-pc works around this with a static route: `68.184.198.204/32 via 192.168.1.189` (configured in `hosts/gaming-pc/networking.nix` via `networking.networkmanager.dispatcherScripts`). OpenBSD has matching rdr-to rules for this traffic.
+The Spectrum router does not support hairpin NAT. Gaming-pc works around this with a static route: `35.144.13.132/32 via 192.168.1.189` (configured in `hosts/gaming-pc/networking.nix` via `networking.networkmanager.dispatcherScripts`). OpenBSD has matching rdr-to rules for this traffic.
 
 ## Wake-on-LAN
 

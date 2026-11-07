@@ -124,7 +124,7 @@ in
           # Route to server subnet (192.168.100.x) via OpenBSD firewall
           ${pkgs.iproute2}/bin/ip route add 192.168.100.0/24 via 192.168.1.189 dev enp8s0 || true
           # Route for Astroneer public IP hairpin NAT
-          ${pkgs.iproute2}/bin/ip route add 68.184.198.204/32 via 192.168.1.189 dev enp8s0 || true
+          ${pkgs.iproute2}/bin/ip route add 35.144.13.132/32 via 192.168.1.189 dev enp8s0 || true
         fi
       '';
       type = "basic";

@@ -14,7 +14,7 @@
       peer = {
         publicKey = "Z1ZtZiXE59cBZvmjkvcWr5nlEtmHVJJ16P0pb4QtFiY=";
         allowedIPs = [ "0.0.0.0/0" ];
-        endpoint = "68.184.198.204:51822";
+        endpoint = "35.144.13.132:51822";
         persistentKeepalive = 25;
       };
     };
