@@ -438,6 +438,33 @@ let
     fi
   '';
 
+  # ---- case fans (RGB Fusion 2 D_LED1) ------------------------------------
+  # Same contract as the keyboard above: night selects RED (index 2 of the
+  # shared cycle) and remembers the day colour on the first crossing; day puts
+  # it back. Only the colour moves: brightness and effect (STEADY/PULSE) stay
+  # as the user set them, because `set-color` rewrites just the index. A click
+  # on the CASE widget during the night sticks until the next boundary.
+  caseRgbScripts = import ./case-rgb-scripts.nix { inherit pkgs; };
+  hasCaseNight = customConfig.hardware.peripherals.caseRgb.enable && cfg.caseFans;
+
+  caseRgbApply = side: optionalString hasCaseNight ''
+    CASE_BIN="${caseRgbScripts.caseRgb}/bin/case-rgb"
+    CASE_SAVED="${homeDir}/.cache/century-night-case-saved"
+    read -r CASE_IDX _ _ < <("$CASE_BIN" get)
+  ${if side == "night" then ''
+    [ ! -f "$CASE_SAVED" ] && echo "$CASE_IDX" > "$CASE_SAVED"
+    CASE_WANT=2
+  '' else ''
+    CASE_WANT=$(cat "$CASE_SAVED" 2>/dev/null || echo "$CASE_IDX")
+    case "$CASE_WANT" in ""|*[!0-3]*) CASE_WANT=0 ;; esac
+    ${pkgs.coreutils}/bin/rm -f "$CASE_SAVED"
+  ''}
+    if [ "$CASE_IDX" != "$CASE_WANT" ]; then
+      "$CASE_BIN" set-color "$CASE_WANT" || true
+      ${pkgs.procps}/bin/pkill -RTMIN+18 waybar 2>/dev/null || true
+    fi
+  '';
+
   dunstApply = side: ''
     ${pkgs.dunst}/bin/dunstctl reload ${
       if side == "night" then dunstNightRc else dunstDayRc
@@ -453,7 +480,7 @@ let
       ${pkgs.coreutils}/bin/mv -f ${escapeShellArg (e.live + ".new")} ${escapeShellArg e.live}
       ${e.reload}
     fi
-  '') swappable) + "\n" + dunstApply side + "\n" + ckbApply side;
+  '') swappable) + "\n" + dunstApply side + "\n" + ckbApply side + "\n" + caseRgbApply side;
 
   appThemeScript = pkgs.writeShellScriptBin "century-apps-apply" ''
     set -u
