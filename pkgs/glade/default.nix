@@ -50,13 +50,13 @@ stdenvNoCC.mkDerivation {
   pname = "glade";
   # The pin is his latest *release*. A host in vibeProjects.localApps passes his project
   # folder as localSrc instead (pkgs/vibe-local-src.nix), so it runs his newest work.
-  version = if localSrc != null then "0-local" else "0-unstable-2026-10-29";
+  version = if localSrc != null then "0-local" else "0-unstable-2026-11-05";
 
   src = if localSrc != null then localSrc else fetchFromGitHub {
     owner = "cblaney00";
     repo = "glade";
-    rev = "165675c961bfbf41f4d8ef624cb0c4786cff668c";
-    hash = "sha256-ecEx7EDGrW1u01Dz2PlS2er/RJzjbY7pZy1IsBWFwUw=";
+    rev = "f5c6b10baf5dd9ee97f71d5c52beea234d349111";
+    hash = "sha256-2Z3IpeqIX2k0u24heYGtoeB0OQbcLMBQwLKi6Tn+ikU=";
   };
   sourceRoot = "source/glade";
 
