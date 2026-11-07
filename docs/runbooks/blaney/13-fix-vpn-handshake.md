@@ -7,7 +7,7 @@ where the firewall's replies are being lost and get the VPN connecting again.
 
 **Where:**
 - `hosts/blaney-pc/networking.nix` — `customConfig.services.wireguard.nmClient` (the VPN
-  profile: endpoint `68.184.198.204:51822`, `persistentKeepalive = 25`)
+  profile: endpoint `35.144.13.132:51822`, `persistentKeepalive = 25`)
 - `modules/nixos/services/wireguard-nm-client.nix` — renders the NetworkManager profile
 
 ## What lando already ruled out (2026-10-30, ~20:47 CDT) — do not "fix" these
@@ -15,7 +15,7 @@ where the firewall's replies are being lost and get the VPN connecting again.
 Checked on optiplex-fw (the homelab end) while Blaney was trying to connect:
 - `wg0` is up on 51822 and Blaney's peer (10.10.0.5, key `sG7Al…`) is configured. Other
   peers were handshaking normally.
-- The homelab's public IP is still **68.184.198.204**, the same as the endpoint in the repo.
+- The homelab's public IP is **35.144.13.132** (it was 68.184.198.204 until a router reset on 2026-11-07); check it matches the endpoint in the repo.
 - The pf rule that lets WireGuard in matches, and Blaney's flow has a pf state.
 - **The firewall answers every handshake within a millisecond.** A capture showed:
   ```
@@ -38,7 +38,7 @@ ip -4 addr; ip -4 route
 nmcli -t connection show --active
 ```
 
-In the tcpdump output, look for packets **from** `68.184.198.204.51822`:
+In the tcpdump output, look for packets **from** `35.144.13.132.51822`:
 - **You see them arriving, but there's still no handshake:** the problem is on blaney-pc.
   Check a local firewall (`nft list ruleset`), the key, and the duplicate/stale NM
   profiles from runbook 12.

@@ -55,7 +55,7 @@ in
       };
       endpoint = mkOption {
         type = types.str;
-        example = "68.184.198.204:51822";
+        example = "35.144.13.132:51822";
         description = "Server endpoint as host:port.";
       };
       allowedIPs = mkOption {

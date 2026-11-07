@@ -200,7 +200,7 @@ MusicBrainz's search API being overloaded, nothing about this host.
 
 Split-tunnelling Ombi out of Mullvad was investigated and **rejected on evidence** — the
 house-IP column above is exactly that experiment. Do not re-propose it for this reason.
-(`mullvad-exclude` does work, verified: excluded traffic exits `68.184.198.204` instead of
+(`mullvad-exclude` does work, verified: excluded traffic exits `35.144.13.132` instead of
 the Mullvad relay. It is simply not a fix for *this*.)
 
 So: **prefer Lidarr for getting music in, and treat Ombi as the convenience portal for other

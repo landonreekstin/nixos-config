@@ -16,7 +16,7 @@ Internet
     │
     ▼
 Spectrum Router (SAX2V1S)
-WAN: 68.184.198.204  /  LAN: 192.168.1.1
+WAN: 35.144.13.132  /  LAN: 192.168.1.1
     │
     ├── 192.168.1.x  (Main LAN)
     │   ├── gaming-pc       192.168.1.101  (DHCP reservation; `ssh gaming-pc` from any lando host)
@@ -65,6 +65,40 @@ doas pfctl -si                # statistics
 1. **Router**: add forward in mySpectrum app → 192.168.1.189
 2. **optiplex-fw** `/etc/pf.conf`: add rdr-to rule, then `doas pfctl -f /etc/pf.conf`
 3. Commit change to openbsd-dotfiles repo
+4. Add the port to the table below
+
+## Spectrum router settings (rebuild checklist)
+
+Everything the homelab needs from the router. This is the whole list to re-enter after a
+factory reset (last done 2026-11-07, when the reset also changed the WAN IP from
+`68.184.198.204` to `35.144.13.132`).
+
+**DHCP reservations**
+
+| Device | MAC | IP |
+|---|---|---|
+| optiplex-fw `re0` | `f4:8e:38:89:3a:a0` | `192.168.1.189` (the fw is static; the reservation stops the router handing it out) |
+| gaming-pc `enp8s0` | `10:ff:e0:36:db:4b` | `192.168.1.101` |
+
+`192.168.1.76` is a second, static address on the fw's MAC and cannot be reserved. Keep
+it out of the DHCP pool if the router allows, otherwise watch for an IP conflict.
+
+**Port forwards**, all to `192.168.1.189` (pf then rdr's the game ports to mini-server):
+
+| Port | Proto | Service |
+|---|---|---|
+| 51822 | UDP | WireGuard |
+| 25565, 25566 | TCP | Minecraft Java + minigames |
+| 19134–19137 | UDP | Minecraft Bedrock (two worlds) |
+| 7777, 27777 | UDP | Astroneer |
+| 34216 | TCP | Astroneer RCON (optional) |
+
+Never forward 22: pf passes SSH to the fw from any source.
+
+**If the WAN IP changes**, replace the old IP everywhere: `grep -rn <old-ip>` here (client
+endpoints, gaming-pc's hairpin route) and in openbsd-dotfiles (the two hairpin rdr rules
+in `pf.conf`, `add-vpn-client.sh`, `wireguard-clients/`), the `*-client.conf` copies on
+the NAS's `/mnt/storage/`, and every peer's phone/PC config by hand.
 
 ## WireGuard VPN
 
@@ -277,7 +311,7 @@ address to the table line in `pf.conf` (and to `openbsd-dotfiles`).
 
 ### Hairpin NAT Limitation
 
-The Spectrum router does not support hairpin NAT. Gaming-pc works around this with a static route: `68.184.198.204/32 via 192.168.1.189` (configured in `hosts/gaming-pc/networking.nix` via `networking.networkmanager.dispatcherScripts`). OpenBSD has matching rdr-to rules for this traffic.
+The Spectrum router does not support hairpin NAT. Gaming-pc works around this with a static route: `35.144.13.132/32 via 192.168.1.189` (configured in `hosts/gaming-pc/networking.nix` via `networking.networkmanager.dispatcherScripts`). OpenBSD has matching rdr-to rules for this traffic.
 
 ## Wake-on-LAN
 
