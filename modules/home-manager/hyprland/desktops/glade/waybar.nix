@@ -9,6 +9,9 @@ in
 {
   config = lib.mkIf on {
     programs.waybar.settings.mainBar = {
+      # Behind every window, so a title bar dragged up here can still be grabbed and a
+      # fullscreen game covers it. hyprland.nix keeps it in front of the glade's picture.
+      layer = lib.mkForce "bottom";
       height = lib.mkForce 40;
       spacing = lib.mkForce 0;
       clock = {
