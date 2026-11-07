@@ -626,4 +626,4 @@ Format: `- [ ] **Title** — description`
 ### Not Suitable for sops (Reference)
 
 - **optiplex-nas LUKS key** — The LUKS key at `/root/secrets/private_luks.key` is needed at initrd time, before sops-nix activates. Keep using `boot.initrd.secrets` as-is. If reproducible initrd secrets are ever needed, evaluate `systemd-cryptenroll` with a TPM2 or FIDO2 key instead.
-- **WireGuard peer public keys / endpoint IPs** — Public keys are not secret by design. The endpoint IP `35.144.13.132:51822` is semi-sensitive but hardcoding it in the Nix config is acceptable; it's not a credential.
+- **WireGuard peer public keys / endpoint IPs** — Public keys are not secret by design. The endpoint IP `68.184.198.204:51822` is semi-sensitive but hardcoding it in the Nix config is acceptable; it's not a credential.

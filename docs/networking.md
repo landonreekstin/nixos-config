@@ -16,7 +16,7 @@ Internet
     │
     ▼
 Spectrum Router (SAX2V1S)
-WAN: 35.144.13.132  /  LAN: 192.168.1.1
+WAN: 68.184.198.204  /  LAN: 192.168.1.1
     │
     ├── 192.168.1.x  (Main LAN)
     │   ├── gaming-pc       192.168.1.101  (DHCP reservation; `ssh gaming-pc` from any lando host)
@@ -70,8 +70,14 @@ doas pfctl -si                # statistics
 ## Spectrum router settings (rebuild checklist)
 
 Everything the homelab needs from the router. This is the whole list to re-enter after a
-factory reset (last done 2026-11-07, when the reset also changed the WAN IP from
-`68.184.198.204` to `35.144.13.132`).
+factory reset (last done 2026-11-07).
+
+**The WAN IP survives a reset, but not right away.** For a while after the 2026-11-07 reset
+the router reported a different public IP (`35.144.13.132`), and within a few hours it was
+back to `68.184.198.204`. Don't change any endpoint until the new IP has held for a day
+(`curl -4 ifconfig.me` from gaming-pc), and test a forward from outside first: from the
+NAS, whose traffic leaves through Mullvad, run `echo x > /dev/udp/<wan-ip>/51822` while
+`doas tcpdump -n -i re0 udp port 51822` runs on the fw.
 
 **DHCP reservations**
 
@@ -328,7 +334,7 @@ address to the table line in `pf.conf` (and to `openbsd-dotfiles`).
 
 ### Hairpin NAT Limitation
 
-The Spectrum router does not support hairpin NAT. Gaming-pc works around this with a static route: `35.144.13.132/32 via 192.168.1.189` (configured in `hosts/gaming-pc/networking.nix` via `networking.networkmanager.dispatcherScripts`). OpenBSD has matching rdr-to rules for this traffic.
+The Spectrum router does not support hairpin NAT. Gaming-pc works around this with a static route: `68.184.198.204/32 via 192.168.1.189` (configured in `hosts/gaming-pc/networking.nix` via `networking.networkmanager.dispatcherScripts`). OpenBSD has matching rdr-to rules for this traffic.
 
 ## Wake-on-LAN
 
