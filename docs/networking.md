@@ -83,17 +83,34 @@ factory reset (last done 2026-11-07, when the reset also changed the WAN IP from
 `192.168.1.76` is a second, static address on the fw's MAC and cannot be reserved. Keep
 it out of the DHCP pool if the router allows, otherwise watch for an IP conflict.
 
-**Port forwards**, all to `192.168.1.189` (pf then rdr's the game ports to mini-server):
+**Port forwards**, all to `192.168.1.189` (pf then rdr's the game ports to mini-server).
+pf already has an rdr rule for every one of these, so turning a game on only needs the
+router forward:
 
-| Port | Proto | Service |
-|---|---|---|
-| 51822 | UDP | WireGuard |
-| 25565, 25566 | TCP | Minecraft Java + minigames |
-| 19134–19137 | UDP | Minecraft Bedrock (two worlds) |
-| 7777, 27777 | UDP | Astroneer |
-| 34216 | TCP | Astroneer RCON (optional) |
+| Port | Proto | Service | Router forward |
+|---|---|---|---|
+| 51822 | UDP | WireGuard | **on** |
+| 7777, 27777 | UDP | Astroneer | **on** |
+| 25565, 25566 | TCP | Minecraft Java + minigames | off: server not running |
+| 19134–19137 | UDP | Minecraft Bedrock (two worlds) | off: server not running |
+| 34216 | TCP | Astroneer RCON | off: not needed |
+
+Before turning the **Minecraft** forwards back on (2026-11-07): start the server first, and
+make sure mini-server's kernel has the fix for **CVE-2026-98432** (remote root via TCP
+connections carrying IPv4 options; mini-server was on an unconfirmed 6.12.110 when this was
+written). Java is TCP, so it is the exposed one; Bedrock is UDP and unaffected. pf already
+drops packets with IP options (there is no `allow-opts` in `pf.conf`), so the fw blocks the
+known attack path, but don't rely on that alone. Keep a forward off while nothing listens behind it.
 
 Never forward 22: pf passes SSH to the fw from any source.
+
+The Spectrum app only port-forwards to a device with a DHCP reservation, and only reserves
+devices that got their address from it by DHCP. The fw is static, so to reserve it, run
+`doas ifconfig re0 inet autoconf` (dhcpleased asks for the fw's current .189, so nothing
+moves), reserve it in the app, then `doas ifconfig re0 inet -autoconf` **and** re-apply the
+boot config with `doas sh /etc/netstart re0` from a detached shell, since dropping the lease
+can drop .189. **Not `-inet autoconf`**: `-inet` deletes every IPv4 address on re0,
+including the `.76` alias.
 
 **If the WAN IP changes**, replace the old IP everywhere: `grep -rn <old-ip>` here (client
 endpoints, gaming-pc's hairpin route) and in openbsd-dotfiles (the two hairpin rdr rules
