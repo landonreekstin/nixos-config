@@ -55,7 +55,7 @@ in
       # services by IP, so `.lan` resolution is not needed here.
       peer = {
         publicKey = "Z1ZtZiXE59cBZvmjkvcWr5nlEtmHVJJ16P0pb4QtFiY=";
-        endpoint = "35.144.13.132:51822";
+        endpoint = "68.184.198.204:51822";
         # restricted: NAS only — plus lando's two gaming-pc peers (10.10.0.2 roaming,
         # 10.10.0.11 wg-nas), so his SSH into this host (remoteAdmin above) is accepted
         # by WireGuard and the replies go back into the tunnel. optiplex-fw passes only

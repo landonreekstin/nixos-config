@@ -9,7 +9,7 @@ the network.
 **Where:**
 - `hosts/blaney-pc/networking.nix`: `customConfig.services.wireguard.nmClient` (the
   `homelab-vpn` NetworkManager profile, `wg-homelab`, 10.10.0.5, endpoint
-  `35.144.13.132:51822`, allowed-ips `192.168.1.76/32;10.10.0.2/32;10.10.0.11/32;`)
+  `68.184.198.204:51822`, allowed-ips `192.168.1.76/32;10.10.0.2/32;10.10.0.11/32;`)
 - `modules/nixos/services/wireguard-nm-client.nix`: renders that profile
 - `hosts/blaney-pc/apps.nix`: `programs.r62d = { enable = true; openFirewall = true; }`
   (opens TCP 6262 on blaney-pc)
@@ -26,7 +26,7 @@ From gaming-pc and optiplex-fw:
   That's intended, so don't widen it or `allowed-ips`.
 - **Lando's side: fine.** gaming-pc's `wg-nas` (10.10.0.11) handshakes every minute and
   routes 10.10.0.0/24.
-- **The homelab public IP is 35.144.13.132** (68.184.198.204 until a router reset on 2026-11-07); check it matches the repo endpoint.
+- **The homelab public IP is still 68.184.198.204**, the same as the repo endpoint.
   Other remote peers handshake normally, so the router forwards 51822.
 - **Blaney's peer (key `sG7Al…`) last handshook ~24 h earlier** (from `66.124.124.73`).
   Over ~2 minutes of capture on optiplex-fw's re0, **one** packet arrived from him and then
