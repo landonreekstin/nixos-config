@@ -13,6 +13,9 @@
         enable = true;
         # Color/brightness managed at runtime via ~/.cache/ckb-color-state
       };
+      # Case fans on the B650's D_LED1 header (CASE widget in the century-series bar).
+      # Never enable openrgb alongside it: OpenRGB's init freezes these fans.
+      caseRgb.enable = true;
     };
     bluetooth = {
       waybar.enable = true;

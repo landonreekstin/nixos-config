@@ -9,6 +9,7 @@ let
   c = colorsModule.centuryColors;
 
   ckbScripts = import ./ckb-scripts.nix { inherit pkgs; };
+  caseRgbScripts = import ./case-rgb-scripts.nix { inherit pkgs; };
 
   claudeRwrScript = pkgs.writeShellApplication {
     name = "claude-rwr";
@@ -253,6 +254,20 @@ in {
             on-click = "${ckbScripts.colorCycleScript}";
             on-scroll-up = "${ckbScripts.brightnessScript} up";
             on-scroll-down = "${ckbScripts.brightnessScript} down";
+            smooth-scrolling-threshold = 1;
+          } // optionalAttrs customConfig.hardware.peripherals.caseRgb.enable {
+            # Link/unlink keyboard and case fans (case-rgb-scripts.nix)
+            on-click-middle = "${caseRgbScripts.linkToggleScript}";
+          };
+
+          # Case fan selector - same switch as KBD, plus a STEADY/PULSE effect toggle
+          "custom/case-rgb" = {
+            format = mkForce "CASE {}";
+            on-click = "${caseRgbScripts.colorCycleScript}";
+            on-click-right = "${caseRgbScripts.effectCycleScript}";
+            on-click-middle = "${caseRgbScripts.linkToggleScript}";
+            on-scroll-up = "${caseRgbScripts.brightnessScript} up";
+            on-scroll-down = "${caseRgbScripts.brightnessScript} down";
             smooth-scrolling-threshold = 1;
           };
 
@@ -529,7 +544,8 @@ in {
         }
 
         /* Keyboard color selector - Cockpit lighting mode switch */
-        #custom-ckb-color {
+        #custom-ckb-color,
+        #custom-case-rgb {
           padding: 0 10px;
           margin: 2px 0 2px 0;
           background-color: @c_bg_tertiary;
@@ -541,7 +557,8 @@ in {
           opacity: 0.6;
         }
 
-        #custom-ckb-color.radar {
+        #custom-ckb-color.radar,
+        #custom-case-rgb.radar {
           color: @c_kbd_radar;
           border-color: @c_kbd_radar;
           opacity: 1.0;
@@ -549,7 +566,8 @@ in {
           text-shadow: 0 0 6px alpha(@c_kbd_radar, 0.8);
         }
 
-        #custom-ckb-color.amber {
+        #custom-ckb-color.amber,
+        #custom-case-rgb.amber {
           color: @c_kbd_amber;
           border-color: @c_kbd_amber;
           opacity: 1.0;
@@ -557,7 +575,8 @@ in {
           text-shadow: 0 0 6px alpha(@c_kbd_amber, 0.8);
         }
 
-        #custom-ckb-color.red {
+        #custom-ckb-color.red,
+        #custom-case-rgb.red {
           color: @c_kbd_red;
           border-color: @c_kbd_red;
           opacity: 1.0;
@@ -565,7 +584,8 @@ in {
           text-shadow: 0 0 6px alpha(@c_kbd_red, 0.8);
         }
 
-        #custom-ckb-color.mig {
+        #custom-ckb-color.mig,
+        #custom-case-rgb.mig {
           color: @c_kbd_mig;
           border-color: @c_kbd_mig;
           opacity: 1.0;
@@ -573,7 +593,14 @@ in {
           text-shadow: 0 0 6px alpha(@c_kbd_mig, 0.8);
         }
 
-        #custom-ckb-color:hover {
+        /* KBD + CASE linked: a heavier lower rail on both, in their shared colour */
+        #custom-ckb-color.linked,
+        #custom-case-rgb.linked {
+          border-bottom-width: 3px;
+        }
+
+        #custom-ckb-color:hover,
+        #custom-case-rgb:hover {
           background-color: @c_bg_secondary;
           opacity: 1.0;
         }

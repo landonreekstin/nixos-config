@@ -28,6 +28,8 @@ let
   hasBluetoothWidget = customConfig.hardware.bluetooth.waybar.enable;
   hasWifiWidget = customConfig.hardware.wifi.waybar.enable;
   ckbScripts = import ../../hyprland/desktops/century-series/ckb-scripts.nix { inherit pkgs; };
+  hasCaseRgb = customConfig.hardware.peripherals.caseRgb.enable;
+  caseRgbScripts = import ../../hyprland/desktops/century-series/case-rgb-scripts.nix { inherit pkgs; };
   weatherLocation = customConfig.desktop.hyprland.weather.location;
   weatherUseFahrenheit = customConfig.desktop.hyprland.weather.useFahrenheit;
   sinkMappings = customConfig.desktop.hyprland.audioSinkMappings;
@@ -471,7 +473,8 @@ in
             modules-left = [
               "hyprland/workspaces"
               "hyprland/mode"
-            ] ++ lib.optionals hasCkbNext [ "custom/special-workspace" "custom/ckb-color" ];
+            ] ++ lib.optionals hasCkbNext [ "custom/special-workspace" "custom/ckb-color" ]
+              ++ lib.optionals hasCaseRgb [ "custom/case-rgb" ];
             modules-center = [
               "hyprland/window"
             ];
@@ -627,6 +630,14 @@ in
             return-type = "json";
             interval = 30;  # infrequent poll; cycle/brightness scripts signal on change
             signal = 14;    # pkill -RTMIN+14 waybar forces an immediate refresh
+          };
+
+          # Case fans (RGB Fusion 2 D_LED1). Actions are set by the theme, like ckb-color.
+          "custom/case-rgb" = lib.mkIf hasCaseRgb {
+            exec = "${caseRgbScripts.statusScript}";
+            return-type = "json";
+            interval = 30;  # infrequent poll; the action scripts signal on change
+            signal = 18;    # pkill -RTMIN+18 waybar forces an immediate refresh
           };
 
           "custom/bluetooth" = lib.mkIf hasBluetoothWidget {

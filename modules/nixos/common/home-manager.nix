@@ -700,6 +700,16 @@ in
             script uses, it does not lock it.
           '';
         };
+        caseFans = mkOption {
+          type = types.bool;
+          default = true;
+          description = ''
+            Put the case fans on RED at night and restore the previous colour by
+            day, keeping their brightness and effect. Only has an effect when
+            hardware.peripherals.caseRgb.enable is also set. A click on the CASE
+            widget still wins until the next boundary.
+          '';
+        };
       };
       xfce = mkOption {
         type = types.enum [ "windows7" "none" ];
