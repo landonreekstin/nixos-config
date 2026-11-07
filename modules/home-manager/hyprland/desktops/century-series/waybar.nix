@@ -138,7 +138,7 @@ let
   #   century-notif log    rofi list; picking an entry re-shows it
   #   century-notif dnd    toggle Do Not Disturb (dunst pause)
   #   century-notif clear  empty the history
-  notifSignal = 18;
+  notifSignal = 19;
   notifScript = pkgs.writeShellApplication {
     name = "century-notif";
     # rofi deliberately comes from PATH: that is the user's themed rofi.
