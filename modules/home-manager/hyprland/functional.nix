@@ -4,6 +4,11 @@
 
 let
   apps = customConfig.apps.programs;
+  # Super+Tab window overview (pkgs/hypr-overview): live thumbnails of every
+  # window on every monitor, from all workspaces. Click one, or hold Super and
+  # tap Tab, letting go to switch. A functional exec-once line, so the daemon
+  # lives as long as the compositor and survives `hypr-desktop switch`.
+  hyprOverview = pkgs.callPackage ../../../pkgs/hypr-overview { };
   desktopLib = import ./desktops/lib.nix { inherit lib; };
   # Hyprland desktops that run without the shared waybar (desktops/lib.nix `waybar`).
   barless = lib.filter (n: n != customConfig.homeManager.hyprland.desktops.default
@@ -258,6 +263,7 @@ in
           ++ lib.optionals customConfig.homeManager.services.hyprsunset.enable [
             "hyprsunset-init"
           ]
+          ++ [ "${hyprOverview}/bin/hypr-overview > /tmp/hypr-overview.log 2>&1" ]
           ++ [
             # Import Wayland session vars into systemd/dbus so user services can use them
             "dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_MENU_PREFIX"
@@ -389,6 +395,10 @@ in
           # Launcher and rebuild — infrastructure, not user applications.
           "$mainMod, SPACE, exec, $menu"
           "$ctrlMod $mainMod, R, exec, $terminal -e rebuild"
+          # Window overview. While it is open it holds the keyboard, but these
+          # binds still fire, so a further Tab steps the highlight.
+          "$mainMod, Tab, exec, ${hyprOverview}/bin/hypr-overview-ipc open"
+          "$mainMod SHIFT, Tab, exec, ${hyprOverview}/bin/hypr-overview-ipc prev"
         ]
         # User application binds, generated from customConfig.apps.programs so
         # that dropping an app from a host also drops its keybind.
