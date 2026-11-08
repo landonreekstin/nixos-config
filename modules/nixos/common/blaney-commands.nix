@@ -797,6 +797,69 @@ in
         fi
       '')
 
+      # The list of bad internet moments recorded by net-watch (modules/nixos/services/net-watch.nix),
+      # newest first, with whose fault each one was.
+      (pkgs.writeShellScriptBin "net-log" ''
+        #!${pkgs.stdenv.shell}
+        DIR=/var/lib/net-watch
+        R=$'\e[0m' B=$'\e[1m' DIM=$'\e[2m'
+        WHO=("THIS COMPUTER" ROUTER "INTERNET PROVIDER" "DISCORD'S SIDE" "CLAUDE'S SIDE" "LANDO'S SIDE" "NOT SURE")
+        colour() {
+          case "$1" in
+            "THIS COMPUTER") printf '\e[38;5;213m' ;;
+            ROUTER) printf '\e[38;5;221m' ;;
+            "INTERNET PROVIDER") printf '\e[38;5;117m' ;;
+            "DISCORD'S SIDE") printf '\e[38;5;141m' ;;
+            "CLAUDE'S SIDE") printf '\e[38;5;216m' ;;
+            "LANDO'S SIDE") printf '\e[38;5;79m' ;;
+            *) printf '\e[38;5;250m' ;;
+          esac
+        }
+        dur() {
+          local s=$1
+          if [ "$s" -eq 0 ]; then printf -- '-'
+          elif [ "$s" -ge 3600 ]; then printf '%dh%02dm' $((s / 3600)) $((s % 3600 / 60))
+          elif [ "$s" -ge 60 ]; then printf '%dm%02ds' $((s / 60)) $((s % 60))
+          else printf '%ds' "$s"; fi
+        }
+
+        if [ ! -s "$DIR/now" ]; then
+          echo "''${B}Right now:''${R} the recorder isn't running yet"
+        elif grep -q '^OK' "$DIR/now"; then
+          echo "''${B}Right now:''${R} $(printf '\e[38;5;120m')everything working fine''${R}"
+        else
+          echo "''${B}Right now:''${R}"
+          while IFS='|' read -r _ who what for; do
+            echo "  $(colour "$who")$who''${R} — $what (for $for so far)"
+          done < "$DIR/now"
+        fi
+        echo
+
+        if [ ! -s "$DIR/events.log" ]; then
+          echo "Nothing bad recorded yet."
+          exit 0
+        fi
+
+        week=$(date -d '7 days ago' '+%F %T')
+        echo "''${B}Last 7 days:''${R}"
+        for who in "''${WHO[@]}"; do
+          n=$(awk -F'|' -v w="$week" -v who="$who" '$1 >= w && $3 == who' "$DIR/events.log" | wc -l)
+          [ "$n" -gt 0 ] && printf '  %s%-18s%s %d\n' "$(colour "$who")" "$who" "$R" "$n"
+        done
+        echo
+        printf '%s%-17s %-8s %-18s %s%s\n' "$DIM" "When" "Lasted" "Whose fault" "What happened" "$R"
+        sort -t'|' -k1,1 "$DIR/events.log" | tail -n "''${1:-30}" | tac | while IFS='|' read -r when secs who what; do
+          printf '%-17s %-8s %s%-18s%s %s\n' "''${when:0:16}" "$(dur "$secs")" "$(colour "$who")" "$who" "$R" "$what"
+        done
+      '')
+
+      # The "Internet" tree squid on his Glade (~/projects/internet-log below): net-log in a
+      # window that refreshes itself.
+      (pkgs.writeShellScriptBin "net-log-window" ''
+        #!${pkgs.stdenv.shell}
+        exec setsid kitty --title "Internet log" sh -c 'while true; do clear; net-log 40; sleep 10; done' >/dev/null 2>&1
+      '')
+
       (pkgs.writeShellScriptBin "blaney-help" ''
         #!${pkgs.stdenv.shell}
         cat <<'EOF'
@@ -831,6 +894,9 @@ in
           batman coop    The Batman: two players on this PC (also in the start menu)
 
         OTHER
+          net-log        See every time the internet, Discord, Claude or
+                         Lando's VPN went wrong, and whose fault it was
+                         (also the Internet squid in your trees)
           rebuild-test   Try a rebuild temporarily (undone on reboot)
           ipr            Open the input-remapper (button remap) app
           whats-new      Show Lando's release notes again
@@ -839,6 +905,18 @@ in
           ccn            Old way to talk to Claude — now part of vibe
         EOF
       '')
+    ];
+
+    # The "Internet" squid for net-watch (enabled in hosts/blaney-pc/networking.nix): the
+    # Glade's trees hold the folders in
+    # ~/projects that have a .vibe-project, so this one is a folder of just that file.
+    systemd.tmpfiles.rules = [
+      "d ${cfg.user.home}/projects/internet-log 0755 ${userName} ${userGroup} -"
+      "L+ ${cfg.user.home}/projects/internet-log/.vibe-project - - - - ${pkgs.writeText "internet-log.vibe-project" ''
+        name=Internet
+        play=net-log-window
+        icon=${../../../assets/blaney/internet-squid.svg}
+      ''}"
     ];
 
     # The config chat is one of `vibe`'s menu entries (modules/nixos/programs/vibe-projects.nix).
