@@ -410,6 +410,8 @@ in {
             # rises as the screen gets warmer. The colour class carries the
             # same gradient; the exact kelvin is in the tooltip.
             format = mkForce "{icon}";
+            # One step per wheel notch (functional.nix sets 1 = two or three notches)
+            smooth-scrolling-threshold = mkForce 0.3;
             format-icons = {
               off = "󱔱";      # md-thermometer_off
               day = "󱣖";      # md-sun_thermometer (auto, daytime)
@@ -449,7 +451,7 @@ in {
             on-click = "${ckbScripts.colorCycleScript}";
             on-scroll-up = "${ckbScripts.brightnessScript} up";
             on-scroll-down = "${ckbScripts.brightnessScript} down";
-            smooth-scrolling-threshold = 1;
+            smooth-scrolling-threshold = 0.3;  # one step per wheel notch (see custom/screen-dim)
           } // optionalAttrs customConfig.hardware.peripherals.caseRgb.enable {
             # Link/unlink keyboard and case fans (case-rgb-scripts.nix)
             on-click-middle = "${caseRgbScripts.linkToggleScript}";
@@ -463,7 +465,7 @@ in {
             on-click-middle = "${caseRgbScripts.linkToggleScript}";
             on-scroll-up = "${caseRgbScripts.brightnessScript} up";
             on-scroll-down = "${caseRgbScripts.brightnessScript} down";
-            smooth-scrolling-threshold = 1;
+            smooth-scrolling-threshold = 0.3;  # one step per wheel notch
           };
 
           # Claude RWR - Radar Warning Receiver for Claude Code session state
