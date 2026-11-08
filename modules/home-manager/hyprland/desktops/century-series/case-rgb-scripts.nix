@@ -45,6 +45,8 @@ in
     if [ "$EFFECT" = "pulse" ]; then TEXT="$LABEL·P"; EFF="PULSE"; else TEXT="$LABEL"; EFF="STEADY"; fi
     LINK=""; LINKCLASS=""
     if [ -f "$HOME/.cache/rgb-link" ]; then LINK=" — LINKED to KBD"; LINKCLASS=',"linked"'; fi
+    # The century bar shows a bare fan glyph, so PULSE has to travel as a class.
+    if [ "$EFFECT" = "pulse" ]; then LINKCLASS="$LINKCLASS"',"pulse"'; fi
     printf '{"text":"%s","class":["%s"%s],"tooltip":"CASE: %s %s%% %s%s — click: colour — right-click: effect — scroll: brightness — middle-click: link with KBD"}' \
       "$TEXT" "$CLASS" "$LINKCLASS" "$LABEL" "$BRIGHT" "$EFF" "$LINK"
   '';

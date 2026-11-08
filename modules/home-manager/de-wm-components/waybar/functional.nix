@@ -484,8 +484,12 @@ in
             modules-right = lib.optionals hasScreenBacklight [ "backlight" ]
               ++ lib.optionals hasKbdBacklight [ "custom/kbd-brightness" ]
               ++ lib.optionals hasWifiWidget [ "network" ]
-              ++ lib.optionals hasVpnClient [ "custom/vpn" ]
-              ++ lib.optionals hasBluetoothWidget [ "custom/bluetooth" ]
+              # century-series folds VPN, BT and the notification log into one
+              # drawer ("group/systray", defined by its waybar.nix) so the bar
+              # fits the portrait monitors; every other desktop keeps them inline.
+              ++ (if hasCenturyNotif then [ "group/systray" ] else
+                    lib.optionals hasVpnClient [ "custom/vpn" ]
+                    ++ lib.optionals hasBluetoothWidget [ "custom/bluetooth" ])
               ++ lib.optionals hasBattery [ "battery" ]
               ++ lib.optionals hasWeather [ "custom/weather" ]
               ++ lib.optionals hasHyprsunset [ "custom/hyprsunset" ]
@@ -494,7 +498,7 @@ in
               "custom/audio-sink"
               "cpu"
               "memory"
-            ] ++ lib.optionals hasCenturyNotif [ "custom/notifications" ] ++ [
+            ] ++ [
               "clock"
               "tray"
               "custom/power"
