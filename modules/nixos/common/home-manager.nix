@@ -733,8 +733,10 @@ in
           description = ''
             At the night switch, lower every screen (screen-dim), the ckb-next
             keyboard and the case fans to this percentage. Anything already at or
-            below it is left alone. At the day switch each one goes back to its
-            pre-night level, unless it was changed by hand during the night.
+            below it is left alone. At the day switch every screen returns to
+            its last daytime level (100 unless it was set lower during the
+            day), whatever was done to it overnight. The keyboard and fans
+            return to their pre-night level unless changed by hand overnight.
             Each part only applies when its feature is enabled
             (homeManager.services.screenDim, hardware.peripherals.ckb-next,
             hardware.peripherals.caseRgb). null turns this off.

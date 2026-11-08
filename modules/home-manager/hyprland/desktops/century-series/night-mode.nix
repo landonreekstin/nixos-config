@@ -471,8 +471,14 @@ let
   # alone. Like the colours above, this happens only on the FIRST crossing:
   # the saved-dir doubles as the "already done tonight" marker, so the
   # 5-minute re-assert never pushes back a level raised by hand during the
-  # night. At the day switch, each saved level is restored, but only if the
-  # device still sits at the cap. A level changed by hand overnight is kept.
+  # night.
+  #
+  # At the day switch the two kinds of device differ:
+  #  - screens go back to their last DAYTIME level (snapshotted at the night
+  #    switch; 100 if none). Turning one up to 75 at night therefore never
+  #    carries into the day.
+  #  - keyboard and fans get their saved level back only if they still sit at
+  #    the cap, so a level changed by hand overnight is kept.
   #
   # Runs after ckbApply/caseRgbApply, so it reads the colour index they set.
   brightCap = cfg.brightnessCap;
@@ -504,6 +510,7 @@ let
       ${pkgs.procps}/bin/pkill -RTMIN+18 -f 'bin/waybar( |$)' 2>/dev/null || true
     }
   '' + optionalString hasScreenDim ''
+    SD_STATE="''${XDG_STATE_HOME:-$HOME/.local/state}/screen-dim"
     # Every output wl-gammarelay knows: /outputs/DP_1 -> DP-1.
     screen_list() {
       ${pkgs.systemd}/bin/busctl --user --list tree rs.wl-gammarelay 2>/dev/null \
@@ -534,8 +541,19 @@ let
       }
       ${concatMapStringsSep "\n" (d: ''br_cap ${d.key} "$(${d.get})" ${d.set}'') brightnessDevices}
       ${optionalString hasScreenDim ''
+        # Snapshot EVERY screen's daytime level, not just the ones being
+        # capped: this is what the day switch returns to. screen-dim's own
+        # saved levels (no file = 100) cover screens that are off right now,
+        # and live readings override them.
+        ${pkgs.coreutils}/bin/mkdir -p "$BR_DIR/screens"
+        for f in "$SD_STATE"/*; do
+          [ -f "$f" ] && ${pkgs.coreutils}/bin/cp "$f" "$BR_DIR/screens/"
+        done
         for out in $(screen_list); do
-          br_cap "screen-$out" "$(screen_get "$out")" screen_set "$out"
+          cur=$(screen_get "$out")
+          case "$cur" in ""|*[!0-9]*) continue ;; esac
+          echo "$cur" > "$BR_DIR/screens/$out"
+          [ "$cur" -gt "$BR_CAP" ] && screen_set "$out" "$BR_CAP"
         done
       ''}
     fi
@@ -550,10 +568,24 @@ let
       }
       ${concatMapStringsSep "\n" (d: ''br_restore ${d.key} "$(${d.get})" ${d.set}'') brightnessDevices}
       ${optionalString hasScreenDim ''
-        for f in "$BR_DIR"/screen-*; do
+        # Screens ignore night-time changes: each goes back to its daytime
+        # level from the night snapshot, or 100 if it had none (it was at
+        # full, or first appeared during the night).
+        live=" $(screen_list | ${pkgs.coreutils}/bin/tr '\n' ' ') "
+        for out in $live; do
+          want=$(cat "$BR_DIR/screens/$out" 2>/dev/null || echo 100)
+          screen_set "$out" "$want"
+        done
+        # A screen that is off now gets its daytime level written straight to
+        # screen-dim's state, which wl-gammarelay applies when it comes back.
+        ${pkgs.coreutils}/bin/mkdir -p "$SD_STATE"
+        for f in "$BR_DIR"/screens/*; do
           [ -f "$f" ] || continue
-          out=''${f##*/screen-}
-          br_restore "screen-$out" "$(screen_get "$out")" screen_set "$out"
+          out=''${f##*/}
+          case "$live" in *" $out "*) continue ;; esac
+          want=$(cat "$f")
+          if [ "$want" = 100 ]; then ${pkgs.coreutils}/bin/rm -f "$SD_STATE/$out"
+          else echo "$want" > "$SD_STATE/$out"; fi
         done
       ''}
       ${pkgs.coreutils}/bin/rm -rf "$BR_DIR"
