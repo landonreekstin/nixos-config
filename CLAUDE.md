@@ -16,7 +16,7 @@ in `docs/` — read the matching file when the task calls for it:
 | [docs/architecture.md](docs/architecture.md) | adding a host file, deciding where an option is *declared*, or refactoring/moving config (incl. the no-op proof recipes) |
 | [docs/theming.md](docs/theming.md) | Plasma / SDDM / Hyprland themes, or any `modules/home-manager/themes/*` work |
 | [docs/networking.md](docs/networking.md) | the OpenBSD firewall, WireGuard peers, port forwards, `.lan` DNS, NAS addressing, wake-on-LAN |
-| [docs/flake-updates.md](docs/flake-updates.md) | blocking / fixing / explaining a weekly `update/*` PR, beta-host tracking, or a **NixOS release upgrade** (25.11 → 26.05 and the next one) |
+| [docs/flake-updates.md](docs/flake-updates.md) | starting a **gaming-pc-only feature** (branch from `update/*`), blocking / fixing / explaining a weekly `update/*` PR, beta-host tracking, or a **NixOS release upgrade** (25.11 → 26.05 and the next one) |
 | [docs/test-vms-and-ci.md](docs/test-vms-and-ci.md) | using `vm-sandbox` / `vm-blaney`, **driving a VM headlessly to screenshot a GUI change over SSH**, or changing the CI workflow / NAS runner |
 | [docs/remote-xfce-rdp.md](docs/remote-xfce-rdp.md) | XFCE-over-xrdp work, or a `rebuild` that didn't visibly change a live XFCE session |
 | [docs/installation.md](docs/installation.md) | deploying a new host or re-installing an existing one |
@@ -426,6 +426,12 @@ rebuild-test
 - **Feature/PR branches**: anything being developed on this machine (rebuild and verify on
   the branch, then PR), and anything only testable elsewhere (note in the PR that in-person
   testing on the target is needed).
+- **gaming-pc-only features branch from the current `update/*` branch, not `main`**, and
+  are merged back into it (and pushed), so they ride the weekly update PR into `main`.
+  Branch from `main` only when the change is for other hosts. Rebuilding gaming-pc onto a
+  `main`-based branch rolls back every flake input and restarts PipeWire, which silences
+  every running app. See
+  [Developing on the beta host](docs/flake-updates.md#developing-on-the-beta-host).
 - **Never commit broken changes to main.** Merge only once rebuilt, tested, and verified.
 
 ### Merging PRs: `--admin` on lando's machines
