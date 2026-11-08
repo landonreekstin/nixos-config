@@ -89,6 +89,8 @@ let
       mkdir -p "$state"
       if [ "$new" -eq 100 ]; then rm -f "$state/$out"; else echo "$new" > "$state/$out"; fi
 
+      # SCREEN_DIM_QUIET=1: no OSD popup (night mode sets every screen at once).
+      [ -n "''${SCREEN_DIM_QUIET:-}" ] && exit 0
       notify-send -a screen-dim -t 1500 \
         -h string:x-canonical-private-synchronous:screen-dim -h "int:value:$new" \
         "Screen brightness" "$out: $new%" || true
