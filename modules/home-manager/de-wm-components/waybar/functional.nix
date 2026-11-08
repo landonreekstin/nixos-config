@@ -33,6 +33,8 @@ let
   ckbScripts = import ../../hyprland/desktops/century-series/ckb-scripts.nix { inherit pkgs; };
   hasCaseRgb = customConfig.hardware.peripherals.caseRgb.enable;
   caseRgbScripts = import ../../hyprland/desktops/century-series/case-rgb-scripts.nix { inherit pkgs; };
+  # Keyboard + case-fan RGB switches; left side normally, right side on century-series.
+  rgbModules = lib.optionals hasCkbNext [ "custom/ckb-color" ] ++ lib.optionals hasCaseRgb [ "custom/case-rgb" ];
   weatherLocation = customConfig.desktop.hyprland.weather.location;
   weatherUseFahrenheit = customConfig.desktop.hyprland.weather.useFahrenheit;
   sinkMappings = customConfig.desktop.hyprland.audioSinkMappings;
@@ -473,34 +475,40 @@ in
             spacing = 4; # Base spacing, can be overridden
             # Note: omitting 'output' field means show on all monitors
 
+            # century-series (hasCenturyNotif = it is the default desktop) uses
+            # its own layout to fit the portrait monitors: the Claude RWR and
+            # the app tray sit beside the workspaces, the KBD/CASE glyphs move
+            # right beside the night-light controls, weather sits by the clock,
+            # and VPN/BT/notifications fold into "group/systray". Those modules
+            # are defined in its waybar.nix. Every other desktop keeps the
+            # classic layout.
             modules-left = [
               "hyprland/workspaces"
-              "hyprland/mode"
-            ] ++ lib.optionals hasCkbNext [ "custom/special-workspace" "custom/ckb-color" ]
-              ++ lib.optionals hasCaseRgb [ "custom/case-rgb" ];
+            ]
+              ++ lib.optionals hasCenturyNotif [ "custom/claude-rwr" "tray" ]
+              ++ [ "hyprland/mode" ]
+              ++ lib.optionals hasCkbNext [ "custom/special-workspace" ]
+              ++ lib.optionals (!hasCenturyNotif) rgbModules;
             modules-center = [
               "hyprland/window"
             ];
             modules-right = lib.optionals hasScreenBacklight [ "backlight" ]
               ++ lib.optionals hasKbdBacklight [ "custom/kbd-brightness" ]
               ++ lib.optionals hasWifiWidget [ "network" ]
-              # century-series folds VPN, BT and the notification log into one
-              # drawer ("group/systray", defined by its waybar.nix) so the bar
-              # fits the portrait monitors; every other desktop keeps them inline.
               ++ (if hasCenturyNotif then [ "group/systray" ] else
                     lib.optionals hasVpnClient [ "custom/vpn" ]
                     ++ lib.optionals hasBluetoothWidget [ "custom/bluetooth" ])
               ++ lib.optionals hasBattery [ "battery" ]
-              ++ lib.optionals hasWeather [ "custom/weather" ]
+              ++ lib.optionals (!hasCenturyNotif && hasWeather) [ "custom/weather" ]
+              ++ lib.optionals hasCenturyNotif rgbModules
               ++ lib.optionals hasHyprsunset [ "custom/hyprsunset" ]
               ++ lib.optionals hasCenturyNight [ "custom/century-night" ]
               ++ [
               "custom/audio-sink"
               "cpu"
               "memory"
+            ] ++ lib.optionals (hasCenturyNotif && hasWeather) [ "custom/weather" ] ++ [
               "clock"
-            # century-series moves the app tray to the far left of this list
-            # (its waybar.nix prepends it ahead of the Claude RWR).
             ] ++ lib.optionals (!hasCenturyNotif) [ "tray" ] ++ [
               "custom/power"
             ];

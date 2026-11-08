@@ -484,9 +484,6 @@ in {
             tooltip-format = "SYSTEM TRAY — click to expand";
           };
 
-          # Running-app icons (Steam, Discord...) lead the right side, then the
-          # RWR. functional.nix drops its own "tray" entry for this desktop.
-          modules-right = mkBefore [ "tray" "custom/claude-rwr" ];
         };
       } // lib.optionalAttrs launcherEnabled {
         # Launcher bar - Cockpit control panel styling
