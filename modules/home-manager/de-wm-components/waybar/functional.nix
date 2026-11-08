@@ -230,23 +230,32 @@ let
     if [ "$MODE" = "disabled" ]; then
       TEXT="OFF"
       CLASS="inactive"
+      ALT="off"
       TOOLTIP="Night light off (''${TEMP}K preset) — click to enable"
     elif [ "$MODE" = "manual" ]; then
       TEXT="''${TEMP}K"
-      CLASS="manual"
+      # The band class rides along so a theme can show where a manual
+      # value sits on the gradient, not just that it is manual.
+      BAND="$(temp_class ''${TEMP})"
+      CLASS="manual $BAND"
+      ALT="''${BAND#temp-}"
       TOOLTIP="Manual override: ''${TEMP}K — scroll to adjust — click to disable — right-click for auto"
     elif [ "$IS_DAY" = "1" ]; then
       TEXT="''${TEMP}K"
       CLASS="temp-day"
+      ALT="day"
       TOOLTIP="Auto day (${hyprsunsetDayTemp}K active) — night preset: ''${TEMP}K — scroll to adjust — right-click for manual override"
     else
       ACTIVE=$(cat "$HOME/.cache/hyprsunset-active-temp" 2>/dev/null || echo "''${TEMP}")
       TEXT="''${ACTIVE}K"
       CLASS="$(temp_class ''${ACTIVE})"
+      ALT="''${CLASS#temp-}"
       TOOLTIP="Auto night: ''${ACTIVE}K — preset: ''${TEMP}K — scroll to adjust — click to disable — right-click for manual"
     fi
 
-    printf '{"text":"%s","class":"%s","tooltip":"%s"}' "$TEXT" "$CLASS" "$TOOLTIP"
+    # "alt" (off/day/cool/neutral/amber/warm/hot) lets a theme pick an icon
+    # per state via format-icons; the default "{}" format still shows TEXT.
+    printf '{"text":"%s","alt":"%s","class":"%s","tooltip":"%s"}' "$TEXT" "$ALT" "$CLASS" "$TOOLTIP"
   '';
 
   gammastepAdjustScript = pkgs.writeShellScript "gammastep-waybar-adjust" ''
@@ -485,9 +494,11 @@ in
             modules-left = [
               "hyprland/workspaces"
             ]
+              # century-series: the UTIL special workspace joins the tabs
+              ++ lib.optionals (hasCenturyNotif && hasCkbNext) [ "custom/special-workspace" ]
               ++ lib.optionals hasCenturyNotif [ "custom/claude-rwr" "tray" ]
               ++ [ "hyprland/mode" ]
-              ++ lib.optionals hasCkbNext [ "custom/special-workspace" ]
+              ++ lib.optionals (!hasCenturyNotif && hasCkbNext) [ "custom/special-workspace" ]
               ++ lib.optionals (!hasCenturyNotif) rgbModules;
             modules-center = [
               "hyprland/window"

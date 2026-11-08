@@ -374,9 +374,21 @@ in {
             };
           };
 
-          # Night light - Cockpit display thermal control
+          # Night light - cockpit display thermal gauge
           "custom/hyprsunset" = {
-            format = mkForce "{}";  # Just the colour temperature (e.g. 2500K / OFF)
+            # EGT-style gauge: a thermometer plus a strip-gauge tape that
+            # rises as the screen gets warmer. The colour class carries the
+            # same gradient; the exact kelvin is in the tooltip.
+            format = mkForce "{icon}";
+            format-icons = {
+              off = "󱔱";      # md-thermometer_off
+              day = "󱣖";      # md-sun_thermometer (auto, daytime)
+              cool = "󰔏▁";    # 5501-6500K
+              neutral = "󰔏▃"; # 4501-5500K
+              amber = "󰔏▄";   # 3501-4500K
+              warm = "󰔏▆";    # 2001-3500K
+              hot = "󰔏█";     # 1000-2000K
+            };
           };
 
           # Day/night palette switch - sun or moon, chosen by the script's "alt"
@@ -827,7 +839,7 @@ in {
 
         /* Glyph-only switches read a touch larger than the 13px text */
         #custom-ckb-color, #custom-case-rgb, #custom-century-night, #custom-systray,
-        #custom-power {
+        #custom-power, #custom-hyprsunset {
           font-size: 16px;
         }
 
@@ -976,7 +988,9 @@ in {
           text-shadow: 0 0 6px alpha(@c_info_blue, 0.533);
         }
 
-        /* MANUAL - manual override, dashed amber border = "override engaged" */
+        /* MANUAL - dashed border = "override engaged". The script also adds the
+           band class (temp-*), defined below, so its colour wins and the
+           gauge still shows where the manual value sits on the gradient. */
         #custom-hyprsunset.manual {
           color: @c_accent_amber;
           border-color: @c_accent_amber;
