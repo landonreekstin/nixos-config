@@ -44,7 +44,33 @@
     ${pkgs.kbd}/bin/chvt 12
     sleep 1
     ${pkgs.kbd}/bin/chvt "$vt"
+
+    # The receiver came back from scratch, so put the teal back on the keys.
+    systemctl restart --no-block g915-teal.service
   '';
+
+  # Keep his G915 keys a soft Glade teal. Solaar can't make lighting stick over the
+  # wireless receiver, but OpenRGB 1.1 drives it; without this the server grabs the
+  # keyboard and the keys go dark. The server finds devices a while after it starts,
+  # so wait for the keyboard to show up before setting it.
+  systemd.services.g915-teal = {
+    description = "Set the G915 keyboard lights to teal";
+    after = [ "openrgb.service" ];
+    requires = [ "openrgb.service" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig.Type = "oneshot";
+    path = [ config.services.hardware.openrgb.package pkgs.gnugrep ];
+    script = ''
+      for _ in $(seq 60); do
+        if openrgb --client localhost:6742 --list-devices 2>/dev/null | grep -q '^0: G915'; then
+          exec openrgb --client localhost:6742 -d 0 -m Direct -c 00B4A0 -b 40
+        fi
+        sleep 2
+      done
+      echo "G915 never showed up in OpenRGB" >&2
+      exit 1
+    '';
+  };
 
   # Firmware updates (`fwupdmgr refresh && fwupdmgr update`). This used to arrive as a
   # `mkDefault true` from services.desktopManager.plasma6 and silently disappeared when

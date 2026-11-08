@@ -7,6 +7,7 @@
   {
     date = "2026-11-07";
     changes = [
+      "Your keyboard lights are a soft teal now, and they stay lit while you type."
       "War Thunder opens full screen now, so the top bar no longer covers the top of it."
       "Hold the Windows key and press Tab to see every open window on both screens. Click the one you want, or keep tapping Tab and let go of the Windows key to jump to it. (Alt+Tab still works like before.)"
     ];
