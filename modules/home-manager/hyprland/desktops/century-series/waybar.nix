@@ -274,6 +274,30 @@ let
   hasVpnClient = customConfig.services.wireguard.client.enable;
   hasBluetoothWidget = customConfig.hardware.bluetooth.waybar.enable;
 
+  # Per-screen brightness (screen-dim.nix). waybar sets WAYBAR_OUTPUT_NAME
+  # for a custom module's exec, so each bar reports its OWN screen. Its
+  # click/scroll actions get no output name, but Hyprland moves monitor focus
+  # with the pointer, so screen-dim's default (the focused monitor) is the
+  # screen whose bar is being scrolled.
+  screenDimSignal = 20;
+  screenDimRefresh = "pkill -RTMIN+${toString screenDimSignal} -f 'bin/waybar( |$)'";
+  screenDimStatus = pkgs.writeShellScript "century-screen-dim-status" ''
+    out="''${WAYBAR_OUTPUT_NAME:-}"
+    # screen-dim comes from PATH (home.packages), like century-night.
+    if [ -z "$out" ] || ! lvl=$(screen-dim "$out" get 2>/dev/null) || [ -z "$lvl" ]; then
+      printf '{"text":"--","alt":"off","class":"unavailable","tooltip":"BRT: screen dimming unavailable"}\n'
+      exit 0
+    fi
+    if   [ "$lvl" -ge 100 ]; then alt=b5; cls=full
+    elif [ "$lvl" -gt 75 ];  then alt=b4; cls=dimmed
+    elif [ "$lvl" -gt 55 ];  then alt=b3; cls=dimmed
+    elif [ "$lvl" -gt 35 ];  then alt=b2; cls=dimmed
+    else                          alt=b1; cls=dimmed
+    fi
+    printf '{"text":"%s","alt":"%s","class":"%s","tooltip":"BRT %s: %s%%\\nscroll to dim — click for full"}\n' \
+      "$lvl" "$alt" "$cls" "$out" "$lvl"
+  '';
+
 in {
   config = mkIf centurySeriesThemeCondition {
     programs.waybar = {
@@ -500,6 +524,31 @@ in {
             format = "";  # fa-satellite_dish (U+EF60)
             tooltip = true;
             tooltip-format = "SYSTEM TRAY — click to expand";
+          };
+
+          # Screen brightness - an MFD "BRT" rocker in the EGT gauge's style:
+          # glyph + strip tape, no number. Only listed when screenDim is on.
+          "custom/screen-dim" = {
+            exec = "${screenDimStatus}";
+            return-type = "json";
+            interval = 30;  # safety net; every action repaints via the signal
+            signal = screenDimSignal;
+            format = "{icon}";
+            format-icons = {
+              off = "󰃠";
+              b1 = "󰃠▁";  # ≤35%
+              b2 = "󰃠▃";  # ≤55%
+              b3 = "󰃠▄";  # ≤75%
+              b4 = "󰃠▆";  # <100%
+              b5 = "󰃠█";  # full
+            };
+            on-scroll-up = "screen-dim +5; ${screenDimRefresh}";
+            on-scroll-down = "screen-dim -5; ${screenDimRefresh}";
+            on-click = "screen-dim reset; ${screenDimRefresh}";
+            # waybar fires only once the summed delta goes ABOVE this. A wheel
+            # notch arrives as 1.0 or 0.5 depending on the device, so the usual
+            # 1 needs two or three notches per step; 0.3 gives one per notch.
+            smooth-scrolling-threshold = 0.3;
           };
 
         };
@@ -996,6 +1045,32 @@ in {
           color: @c_info_blue;
           border-color: @c_info_blue;
           text-shadow: 0 0 6px alpha(@c_info_blue, 0.533);
+        }
+
+        /* Screen brightness (BRT) - amber while dimmed, plain at full */
+        #custom-screen-dim {
+          padding: 0 8px;
+          margin: 2px;
+          background-color: @c_bg_tertiary;
+          border: 1px solid @c_accent_amber_dim;
+          color: @c_accent_amber;
+          font-size: 16px;
+          transition: color 0.3s ease, border-color 0.3s ease;
+        }
+
+        #custom-screen-dim.full {
+          color: @c_text_primary;
+          border-color: @c_border_secondary;
+        }
+
+        #custom-screen-dim.unavailable {
+          color: @c_text_tertiary;
+          border-color: @c_border_primary;
+          opacity: 0.4;
+        }
+
+        #custom-screen-dim:hover {
+          background-color: @c_bg_secondary;
         }
 
         /* MANUAL - dashed border = "override engaged". The script also adds the

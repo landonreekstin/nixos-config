@@ -514,6 +514,9 @@ in
               ++ lib.optionals hasBattery [ "battery" ]
               ++ lib.optionals (!hasCenturyNotif && hasWeather) [ "custom/weather" ]
               ++ lib.optionals hasCenturyNotif rgbModules
+              # century-series per-screen brightness gauge (screen-dim), beside the night light
+              ++ lib.optionals (hasCenturyNotif && customConfig.homeManager.services.screenDim.enable)
+                   [ "custom/screen-dim" ]
               ++ lib.optionals hasHyprsunset [ "custom/hyprsunset" ]
               ++ lib.optionals hasCenturyNight [ "custom/century-night" ]
               ++ [
