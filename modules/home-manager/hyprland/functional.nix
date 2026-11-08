@@ -375,6 +375,15 @@ in
           vfr = false;
         };
 
+        # Held-key repeat: dim/brighten the focused screen (screen-dim.nix).
+        binde = lib.optionals customConfig.homeManager.services.screenDim.enable [
+          "$ctrlMod $mainMod, Next, exec, screen-dim -5"
+          "$ctrlMod $mainMod, Prior, exec, screen-dim +5"
+          # The numpad's PgDn/PgUp (NumLock off) are different keysyms.
+          "$ctrlMod $mainMod, KP_Next, exec, screen-dim -5"
+          "$ctrlMod $mainMod, KP_Prior, exec, screen-dim +5"
+        ];
+
         # Keybindings
         bind = [
           # Launcher and rebuild — infrastructure, not user applications.
@@ -494,6 +503,10 @@ in
           "$mainMod SHIFT, S, exec, ${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp)\" ${config.home.homeDirectory}/Pictures/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
           "$mainMod SHIFT, R, exec, hyprctl reload"
           "$mainMod SHIFT, Q, exit,"
+        ] ++ lib.optionals customConfig.homeManager.services.screenDim.enable [
+          # Back to full software brightness on the focused screen (screen-dim.nix).
+          "$ctrlMod $mainMod, Home, exec, screen-dim reset"
+          "$ctrlMod $mainMod, KP_Home, exec, screen-dim reset"
         ] ++ lib.optionals (lib.length customConfig.homeManager.hyprland.desktops.enabled > 1) [
           # Switch to another Hyprland desktop without logging out (hyprland/desktops.nix).
           "$mainMod SHIFT, D, exec, hypr-desktop pick"

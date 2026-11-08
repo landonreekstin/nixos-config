@@ -342,6 +342,23 @@ in
       description = "Whether Home Manager is configured for the primary user.";
     };
     services = {
+      # modules/home-manager/hyprland/screen-dim.nix
+      screenDim = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = ''
+            Per-screen software dimming for Hyprland (wl-gammarelay-rs), for screens
+            the PC can't set the backlight of. `screen-dim` and SUPER+CTRL+PageUp/
+            PageDown/Home act on the focused screen.
+          '';
+        };
+        minPercent = mkOption {
+          type = types.ints.between 1 100;
+          default = 20;
+          description = "Lowest level screen-dim goes to, so a screen never turns fully black.";
+        };
+      };
       hyprsunset = {
         enable = mkOption {
           type = types.bool;

@@ -8,5 +8,6 @@
     ./functional.nix
     ./desktops.nix
     ./desktop-apps.nix
+    ./screen-dim.nix
   ];
 }
