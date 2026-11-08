@@ -1,6 +1,7 @@
 <!-- ~/nixos-config/docs/flake-updates.md -->
 > **Read this when**: an `update/*` branch or weekly-update PR needs blocking, fixing,
-> or explaining, or when the beta-host (gaming-pc) tracking behaviour is in question.
+> or explaining, when the beta-host (gaming-pc) tracking behaviour is in question, or when
+> starting a gaming-pc-only feature (it branches from `update/*`, not `main`).
 
 # Automated Weekly Flake Updates (CI/CD Pipeline)
 
@@ -50,6 +51,51 @@ NIXPKGS_ALLOW_UNFREE=1 nix build --impure --no-link --option fallback false \
 ## Beta host behavior
 
 On gaming-pc, running `update` when an `update/*` branch exists on remote will automatically switch to it. When no update branch exists (post-merge), `update` falls back to main. This is transparent — no user action needed.
+
+## Developing on the beta host
+
+gaming-pc spends almost all its time on an `update/*` branch, so **a feature that only
+affects gaming-pc starts from the update branch and goes back into it**:
+
+```bash
+git fetch origin
+BR=$(git branch -r --list 'origin/update/*' | sort -V | tail -1 | tr -d ' ')   # e.g. origin/update/2026-W45
+wt new feat/<name> --from "$BR"
+cd ~/nixos-config-worktrees/<name>
+# edit → chown → rebuild --take → verify → commit
+```
+
+Once it is verified, merge it into the update branch **and push**, then hand the live
+system back to the main checkout:
+
+```bash
+cd /home/lando/nixos-config               # the checkout on update/YYYY-WNN
+git pull --rebase origin update/YYYY-WNN
+git merge --no-edit feat/<name>
+git push origin update/YYYY-WNN
+rebuild --take
+```
+
+The feature then reaches `main` with the weekly PR on the next Monday auto-merge, after
+a week of soaking with that update. No separate feature PR is needed.
+
+**Branch from `main` only when the change is for other hosts** (or for every host),
+following the normal PR workflow in CLAUDE.md. To test such a change live on gaming-pc,
+apply its diff onto the update branch rather than rebuilding onto the `main`-based branch.
+
+Why the update branch:
+- **Rebuilding onto a `main`-based branch rolls back every flake input.** That cost
+  1.3 GB of downloads when it was measured, and every user service that changed gets
+  restarted, PipeWire included. On 2026-11-07 that left Firefox, Discord, Signal and a
+  running game disconnected from audio until each was restarted, and switching back
+  restarted everything again.
+- **Pushing is not optional.** When next week's branch appears, `update` runs
+  `git checkout -B update/<next> origin/update/<next>`, a fresh branch cut from `main`.
+  A commit that exists only in the local update branch then silently drops off the
+  running system and never reaches `main`.
+- **A blocked update holds the feature too.** If the week's PR gets the
+  `update-blocked` label, the features merged into it wait with it. To ship one on its
+  own, cherry-pick it onto a `main`-based branch and open a normal PR.
 
 ## Desktop hosts: the shutdown guard
 
