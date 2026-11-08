@@ -498,9 +498,10 @@ in
               "custom/audio-sink"
               "cpu"
               "memory"
-            ] ++ [
               "clock"
-              "tray"
+            # century-series moves the app tray to the far left of this list
+            # (its waybar.nix prepends it ahead of the Claude RWR).
+            ] ++ lib.optionals (!hasCenturyNotif) [ "tray" ] ++ [
               "custom/power"
             ];
 

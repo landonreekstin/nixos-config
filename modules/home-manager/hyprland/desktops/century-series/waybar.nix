@@ -388,10 +388,10 @@ in {
             };
           };
 
-          # Power button - Engine control
+          # Power button - ejection handle (opens the wlogout menu)
           "custom/power" = {
-            format = mkForce "PWR";  # Aviation style label
-            tooltip-format = mkForce "ENG PWR MENU";  # Aviation terminology
+            format = mkForce "󰲴";  # md-parachute (U+F0CB4): eject
+            tooltip-format = mkForce "EJECT — PWR MENU";
           };
 
           # Special workspace indicator - Utility bay access light
@@ -484,7 +484,9 @@ in {
             tooltip-format = "SYSTEM TRAY — click to expand";
           };
 
-          modules-right = mkBefore [ "custom/claude-rwr" ];
+          # Running-app icons (Steam, Discord...) lead the right side, then the
+          # RWR. functional.nix drops its own "tray" entry for this desktop.
+          modules-right = mkBefore [ "tray" "custom/claude-rwr" ];
         };
       } // lib.optionalAttrs launcherEnabled {
         # Launcher bar - Cockpit control panel styling
@@ -827,7 +829,8 @@ in {
         }
 
         /* Glyph-only switches read a touch larger than the 13px text */
-        #custom-ckb-color, #custom-case-rgb, #custom-century-night, #custom-systray {
+        #custom-ckb-color, #custom-case-rgb, #custom-century-night, #custom-systray,
+        #custom-power {
           font-size: 16px;
         }
 
