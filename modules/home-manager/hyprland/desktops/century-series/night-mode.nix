@@ -465,6 +465,101 @@ let
     fi
   '';
 
+  # ---- night brightness cap (screens, keyboard, case fans) ---------------
+  # At the night switch, everything brighter than the cap drops to it and its
+  # previous level is saved; anything already at or under the cap is left
+  # alone. Like the colours above, this happens only on the FIRST crossing:
+  # the saved-dir doubles as the "already done tonight" marker, so the
+  # 5-minute re-assert never pushes back a level raised by hand during the
+  # night. At the day switch, each saved level is restored, but only if the
+  # device still sits at the cap. A level changed by hand overnight is kept.
+  #
+  # Runs after ckbApply/caseRgbApply, so it reads the colour index they set.
+  brightCap = cfg.brightnessCap;
+  hasScreenDim = customConfig.homeManager.services.screenDim.enable;
+  hasCkbBright = customConfig.hardware.peripherals.ckb-next.enable;
+  hasCaseBright = customConfig.hardware.peripherals.caseRgb.enable;
+  brightSavedDir = "${homeDir}/.cache/century-night-bright-saved";
+
+  # Shell helpers per device: <dev>_get prints the level, <dev>_set sets it.
+  brightnessHelpers = ''
+    BR_DIR="${brightSavedDir}"
+    BR_CAP=${toString brightCap}
+  '' + optionalString hasCkbBright ''
+    kbd_get() {
+      local s; s=$(cat "${homeDir}/.cache/ckb-color-state" 2>/dev/null || echo "0:80")
+      echo "''${s##*:}"
+    }
+    kbd_set() {
+      local s; s=$(cat "${homeDir}/.cache/ckb-color-state" 2>/dev/null || echo "0:80")
+      echo "''${s%%:*}:$1" > "${homeDir}/.cache/ckb-color-state"
+      ${ckbScripts.applyCurrentScript} || true
+      ${pkgs.procps}/bin/pkill -RTMIN+14 -f 'bin/waybar( |$)' 2>/dev/null || true
+    }
+  '' + optionalString hasCaseBright ''
+    case_get() { "${caseRgbScripts.caseRgb}/bin/case-rgb" get | ${pkgs.gawk}/bin/awk '{ print $2 }'; }
+    case_set() {
+      local idx; read -r idx _ _ < <("${caseRgbScripts.caseRgb}/bin/case-rgb" get)
+      "${caseRgbScripts.caseRgb}/bin/case-rgb" set "$idx" "$1" || true
+      ${pkgs.procps}/bin/pkill -RTMIN+18 -f 'bin/waybar( |$)' 2>/dev/null || true
+    }
+  '' + optionalString hasScreenDim ''
+    # Every output wl-gammarelay knows: /outputs/DP_1 -> DP-1.
+    screen_list() {
+      ${pkgs.systemd}/bin/busctl --user --list tree rs.wl-gammarelay 2>/dev/null \
+        | ${pkgs.gnused}/bin/sed -n 's|^/outputs/||p' | ${pkgs.coreutils}/bin/tr '_' '-'
+    }
+    screen_get() { "${config.home.profileDirectory}/bin/screen-dim" "$1" get 2>/dev/null; }
+    screen_set() {
+      SCREEN_DIM_QUIET=1 "${config.home.profileDirectory}/bin/screen-dim" "$1" "$2" >/dev/null 2>&1 || true
+      ${pkgs.procps}/bin/pkill -RTMIN+20 -f 'bin/waybar( |$)' 2>/dev/null || true
+    }
+  '';
+
+  # Devices with a plain get/set pair (screens are looped per output below).
+  brightnessDevices =
+    optional hasCkbBright { key = "kbd"; get = "kbd_get"; set = "kbd_set"; }
+    ++ optional hasCaseBright { key = "case"; get = "case_get"; set = "case_set"; };
+
+  brightnessApply = side: optionalString (brightCap != null) (brightnessHelpers + (if side == "night" then ''
+    if [ ! -d "$BR_DIR" ]; then
+      ${pkgs.coreutils}/bin/mkdir -p "$BR_DIR"
+      br_cap() {  # key, current, setter...
+        local key=$1 cur=$2; shift 2
+        case "$cur" in ""|*[!0-9]*) return ;; esac
+        if [ "$cur" -gt "$BR_CAP" ]; then
+          echo "$cur" > "$BR_DIR/$key"
+          "$@" "$BR_CAP"
+        fi
+      }
+      ${concatMapStringsSep "\n" (d: ''br_cap ${d.key} "$(${d.get})" ${d.set}'') brightnessDevices}
+      ${optionalString hasScreenDim ''
+        for out in $(screen_list); do
+          br_cap "screen-$out" "$(screen_get "$out")" screen_set "$out"
+        done
+      ''}
+    fi
+  '' else ''
+    if [ -d "$BR_DIR" ]; then
+      br_restore() {  # key, current, setter...
+        local key=$1 cur=$2 want; shift 2
+        [ -f "$BR_DIR/$key" ] || return 0
+        want=$(cat "$BR_DIR/$key")
+        # Only if it still sits at the cap: a hand-set level wins.
+        if [ "$cur" = "$BR_CAP" ]; then "$@" "$want"; fi
+      }
+      ${concatMapStringsSep "\n" (d: ''br_restore ${d.key} "$(${d.get})" ${d.set}'') brightnessDevices}
+      ${optionalString hasScreenDim ''
+        for f in "$BR_DIR"/screen-*; do
+          [ -f "$f" ] || continue
+          out=''${f##*/screen-}
+          br_restore "screen-$out" "$(screen_get "$out")" screen_set "$out"
+        done
+      ''}
+      ${pkgs.coreutils}/bin/rm -rf "$BR_DIR"
+    fi
+  ''));
+
   dunstApply = side: ''
     ${pkgs.dunst}/bin/dunstctl reload ${
       if side == "night" then dunstNightRc else dunstDayRc
@@ -480,7 +575,8 @@ let
       ${pkgs.coreutils}/bin/mv -f ${escapeShellArg (e.live + ".new")} ${escapeShellArg e.live}
       ${e.reload}
     fi
-  '') swappable) + "\n" + dunstApply side + "\n" + ckbApply side + "\n" + caseRgbApply side;
+  '') swappable) + "\n" + dunstApply side + "\n" + ckbApply side + "\n" + caseRgbApply side
+    + "\n" + brightnessApply side;
 
   appThemeScript = pkgs.writeShellScriptBin "century-apps-apply" ''
     set -u

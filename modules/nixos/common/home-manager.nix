@@ -727,6 +727,19 @@ in
             widget still wins until the next boundary.
           '';
         };
+        brightnessCap = mkOption {
+          type = types.nullOr (types.ints.between 1 100);
+          default = 70;
+          description = ''
+            At the night switch, lower every screen (screen-dim), the ckb-next
+            keyboard and the case fans to this percentage. Anything already at or
+            below it is left alone. At the day switch each one goes back to its
+            pre-night level, unless it was changed by hand during the night.
+            Each part only applies when its feature is enabled
+            (homeManager.services.screenDim, hardware.peripherals.ckb-next,
+            hardware.peripherals.caseRgb). null turns this off.
+          '';
+        };
       };
       xfce = mkOption {
         type = types.enum [ "windows7" "none" ];
