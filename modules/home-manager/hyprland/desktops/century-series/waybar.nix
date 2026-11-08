@@ -374,6 +374,12 @@ in {
             };
           };
 
+          # Weather - unit implied: the script's unit-less "alt" ("☀ 44°").
+          # The tooltip still carries both units.
+          "custom/weather" = {
+            format = "{alt}";
+          };
+
           # Night light - cockpit display thermal gauge
           "custom/hyprsunset" = {
             # EGT-style gauge: a thermometer plus a strip-gauge tape that
@@ -578,6 +584,7 @@ in {
           color: @c_accent_amber;
           font-weight: bold;
           padding: 0 12px;
+          margin: 2px;  /* same inset as the other readouts, so the box matches */
           background-color: @c_bg_tertiary;
           border: 1px solid @c_accent_amber_dim;
         }
@@ -877,10 +884,13 @@ in {
           box-shadow: 0 0 6px alpha(@c_info_blue, 0.4);
         }
 
-        /* System tray */
+        /* App tray - boxed and inset like the readouts so it no longer
+           covers the bar's bottom rail */
         #tray {
           padding: 0 8px;
-          background-color: @c_bg_secondary;
+          margin: 2px;
+          background-color: @c_bg_tertiary;
+          border: 1px solid @c_border_secondary;
         }
 
         /* Power button - Engine control switch */

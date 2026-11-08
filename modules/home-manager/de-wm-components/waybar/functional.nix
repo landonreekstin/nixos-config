@@ -91,9 +91,11 @@ let
     fi
 
     TEXT="''${ICON} ''${TEMP}"
+    # Unit-less reading ("☀ 44°") for themes that leave the unit implied.
+    ALT="''${TEMP%[FC]}"; ALT="''${ICON} ''${ALT}"
     TOOLTIP="WX: ''${DESC}\nTEMP: ''${TEMP_F}°F / ''${TEMP_C}°C\nFEELS: ''${FEELS}\nHUMID: ''${HUMIDITY}%\nWIND: ''${WIND}mph ''${WIND_DIR}\nLOC: ''${AREA}"
 
-    printf '{"text":"%s","tooltip":"%s","class":"%s"}' "$TEXT" "$TOOLTIP" "$CLASS"
+    printf '{"text":"%s","alt":"%s","tooltip":"%s","class":"%s"}' "$TEXT" "$ALT" "$TOOLTIP" "$CLASS"
   '';
 
   # Clicking the weather widget opens a full wttr.in forecast in the terminal.
