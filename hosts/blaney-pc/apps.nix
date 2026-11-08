@@ -107,6 +107,8 @@
         kdePackages.kdenlive
         desmume
         mgba
+        # Minecraft launcher; opens CurseForge modpacks (the CurseForge app has no Linux build).
+        prismlauncher
         claude-code
         wireguard-ui
         (callPackage ../../pkgs/worldmonitor { })
