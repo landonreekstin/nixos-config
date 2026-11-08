@@ -5,10 +5,18 @@
 # New blaney-todo tasks are listed automatically — don't add notes for them.
 [
   {
+    date = "2026-11-08";
+    changes = [
+      "A new \"Internet\" squid in your trees shows every time the internet dropped or got laggy, Discord said \"No Route\", Claude had errors, or Lando's VPN or games could not be reached, and whose fault it was: your PC, your router, your internet provider, or Discord, Claude or Lando's side. You can also type net-log."
+    ];
+  }
+  {
     date = "2026-11-07";
     changes = [
+      "Your keyboard lights are a soft teal now, and they stay lit while you type."
       "War Thunder opens full screen now, so the top bar no longer covers the top of it."
       "Hold the Windows key and press Tab to see every open window on both screens. Click the one you want, or keep tapping Tab and let go of the Windows key to jump to it. (Alt+Tab still works like before.)"
+      "Your main screen now runs at 120 Hz instead of 60, so everything (games too) moves twice as smoothly."
     ];
   }
   {

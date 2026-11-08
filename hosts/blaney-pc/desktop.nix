@@ -11,7 +11,7 @@
         name = "main";
         identifier = "DP-1";
         edid = "KB272";
-        resolution = "1920x1080@60";
+        resolution = "1920x1080@120";
         position = "0x0";
       }
       {

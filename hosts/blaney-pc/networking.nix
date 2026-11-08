@@ -15,6 +15,17 @@ in
     ssh.enable = false;
     vscodeServer.enable = false;
 
+    # Records every internet drop/slowdown (and Discord, Claude and VPN trouble) and whose
+    # fault it was; he reads it with `net-log` or the Internet squid.
+    netWatch = {
+      enable = true;
+      # Over the homelab VPN: the R62D server is always on; Batman only while he is joining.
+      vpn.games = {
+        R62D.port = 6262;
+        Batman = { port = 7845; whileRunning = "libexec/batman/batman.*--join"; };
+      };
+    };
+
     # Weekly automated git sync + rebuild, then power off. Desktop-safe settings:
     autoUpdate = {
       enable = true;
