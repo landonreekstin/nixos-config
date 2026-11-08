@@ -955,8 +955,9 @@ let
         fi
         [ "$MODE" != auto ] && CLASS="$CLASS manual"
         if [ "$MODE" = auto ]; then HINT="AUTO — follows the sun"; else HINT="MANUAL — right-click for AUTO"; fi
-        printf '{"text":"%s","class":"%s","tooltip":"Night mode: %s%s\\n%s\\nclick to toggle"}\n' \
-          "$TEXT" "$CLASS" "$SIDE" "$RAMP" "$HINT"
+        # "alt" picks the sun/moon glyph from the widget's format-icons.
+        printf '{"text":"%s","alt":"%s","class":"%s","tooltip":"Night mode: %s%s\\n%s\\nclick to toggle"}\n' \
+          "$TEXT" "$SIDE" "$CLASS" "$SIDE" "$RAMP" "$HINT"
         ;;
       *)
         echo "usage: century-night {status|json|init|day|night|auto|toggle|reconcile|now day|now night}" >&2

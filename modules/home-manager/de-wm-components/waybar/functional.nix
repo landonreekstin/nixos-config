@@ -33,6 +33,8 @@ let
   ckbScripts = import ../../hyprland/desktops/century-series/ckb-scripts.nix { inherit pkgs; };
   hasCaseRgb = customConfig.hardware.peripherals.caseRgb.enable;
   caseRgbScripts = import ../../hyprland/desktops/century-series/case-rgb-scripts.nix { inherit pkgs; };
+  # Keyboard + case-fan RGB switches; left side normally, right side on century-series.
+  rgbModules = lib.optionals hasCkbNext [ "custom/ckb-color" ] ++ lib.optionals hasCaseRgb [ "custom/case-rgb" ];
   weatherLocation = customConfig.desktop.hyprland.weather.location;
   weatherUseFahrenheit = customConfig.desktop.hyprland.weather.useFahrenheit;
   sinkMappings = customConfig.desktop.hyprland.audioSinkMappings;
@@ -89,9 +91,11 @@ let
     fi
 
     TEXT="''${ICON} ''${TEMP}"
+    # Unit-less reading ("☀ 44°") for themes that leave the unit implied.
+    ALT="''${TEMP%[FC]}"; ALT="''${ICON} ''${ALT}"
     TOOLTIP="WX: ''${DESC}\nTEMP: ''${TEMP_F}°F / ''${TEMP_C}°C\nFEELS: ''${FEELS}\nHUMID: ''${HUMIDITY}%\nWIND: ''${WIND}mph ''${WIND_DIR}\nLOC: ''${AREA}"
 
-    printf '{"text":"%s","tooltip":"%s","class":"%s"}' "$TEXT" "$TOOLTIP" "$CLASS"
+    printf '{"text":"%s","alt":"%s","tooltip":"%s","class":"%s"}' "$TEXT" "$ALT" "$TOOLTIP" "$CLASS"
   '';
 
   # Clicking the weather widget opens a full wttr.in forecast in the terminal.
@@ -228,23 +232,32 @@ let
     if [ "$MODE" = "disabled" ]; then
       TEXT="OFF"
       CLASS="inactive"
+      ALT="off"
       TOOLTIP="Night light off (''${TEMP}K preset) — click to enable"
     elif [ "$MODE" = "manual" ]; then
       TEXT="''${TEMP}K"
-      CLASS="manual"
+      # The band class rides along so a theme can show where a manual
+      # value sits on the gradient, not just that it is manual.
+      BAND="$(temp_class ''${TEMP})"
+      CLASS="manual $BAND"
+      ALT="''${BAND#temp-}"
       TOOLTIP="Manual override: ''${TEMP}K — scroll to adjust — click to disable — right-click for auto"
     elif [ "$IS_DAY" = "1" ]; then
       TEXT="''${TEMP}K"
       CLASS="temp-day"
+      ALT="day"
       TOOLTIP="Auto day (${hyprsunsetDayTemp}K active) — night preset: ''${TEMP}K — scroll to adjust — right-click for manual override"
     else
       ACTIVE=$(cat "$HOME/.cache/hyprsunset-active-temp" 2>/dev/null || echo "''${TEMP}")
       TEXT="''${ACTIVE}K"
       CLASS="$(temp_class ''${ACTIVE})"
+      ALT="''${CLASS#temp-}"
       TOOLTIP="Auto night: ''${ACTIVE}K — preset: ''${TEMP}K — scroll to adjust — click to disable — right-click for manual"
     fi
 
-    printf '{"text":"%s","class":"%s","tooltip":"%s"}' "$TEXT" "$CLASS" "$TOOLTIP"
+    # "alt" (off/day/cool/neutral/amber/warm/hot) lets a theme pick an icon
+    # per state via format-icons; the default "{}" format still shows TEXT.
+    printf '{"text":"%s","alt":"%s","class":"%s","tooltip":"%s"}' "$TEXT" "$ALT" "$CLASS" "$TOOLTIP"
   '';
 
   gammastepAdjustScript = pkgs.writeShellScript "gammastep-waybar-adjust" ''
@@ -473,30 +486,43 @@ in
             spacing = 4; # Base spacing, can be overridden
             # Note: omitting 'output' field means show on all monitors
 
+            # century-series (hasCenturyNotif = it is the default desktop) uses
+            # its own layout to fit the portrait monitors: the Claude RWR and
+            # the app tray sit beside the workspaces, the KBD/CASE glyphs move
+            # right beside the night-light controls, weather sits by the clock,
+            # and VPN/BT/notifications fold into "group/systray". Those modules
+            # are defined in its waybar.nix. Every other desktop keeps the
+            # classic layout.
             modules-left = [
               "hyprland/workspaces"
-              "hyprland/mode"
-            ] ++ lib.optionals hasCkbNext [ "custom/special-workspace" "custom/ckb-color" ]
-              ++ lib.optionals hasCaseRgb [ "custom/case-rgb" ];
+            ]
+              # century-series: the UTIL special workspace joins the tabs
+              ++ lib.optionals (hasCenturyNotif && hasCkbNext) [ "custom/special-workspace" ]
+              ++ lib.optionals hasCenturyNotif [ "custom/claude-rwr" "tray" ]
+              ++ [ "hyprland/mode" ]
+              ++ lib.optionals (!hasCenturyNotif && hasCkbNext) [ "custom/special-workspace" ]
+              ++ lib.optionals (!hasCenturyNotif) rgbModules;
             modules-center = [
               "hyprland/window"
             ];
             modules-right = lib.optionals hasScreenBacklight [ "backlight" ]
               ++ lib.optionals hasKbdBacklight [ "custom/kbd-brightness" ]
               ++ lib.optionals hasWifiWidget [ "network" ]
-              ++ lib.optionals hasVpnClient [ "custom/vpn" ]
-              ++ lib.optionals hasBluetoothWidget [ "custom/bluetooth" ]
+              ++ (if hasCenturyNotif then [ "group/systray" ] else
+                    lib.optionals hasVpnClient [ "custom/vpn" ]
+                    ++ lib.optionals hasBluetoothWidget [ "custom/bluetooth" ])
               ++ lib.optionals hasBattery [ "battery" ]
-              ++ lib.optionals hasWeather [ "custom/weather" ]
+              ++ lib.optionals (!hasCenturyNotif && hasWeather) [ "custom/weather" ]
+              ++ lib.optionals hasCenturyNotif rgbModules
               ++ lib.optionals hasHyprsunset [ "custom/hyprsunset" ]
               ++ lib.optionals hasCenturyNight [ "custom/century-night" ]
               ++ [
               "custom/audio-sink"
               "cpu"
               "memory"
-            ] ++ lib.optionals hasCenturyNotif [ "custom/notifications" ] ++ [
+            ] ++ lib.optionals (hasCenturyNotif && hasWeather) [ "custom/weather" ] ++ [
               "clock"
-              "tray"
+            ] ++ lib.optionals (!hasCenturyNotif) [ "tray" ] ++ [
               "custom/power"
             ];
 

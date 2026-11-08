@@ -271,6 +271,8 @@ let
   hasKbdBacklight = customConfig.hardware.kbdBacklight.enable;
   hasBattery = customConfig.hardware.battery.enable;
   hasWifiWidget = customConfig.hardware.wifi.waybar.enable;
+  hasVpnClient = customConfig.services.wireguard.client.enable;
+  hasBluetoothWidget = customConfig.hardware.bluetooth.waybar.enable;
 
 in {
   config = mkIf centurySeriesThemeCondition {
@@ -314,12 +316,21 @@ in {
           };
 
           # Override specific module styling to match cockpit theme
+          # Engine power - an RPM dial whose needle swings with load. A
+          # different dial family from MEM so the two read apart at a glance.
           cpu = {
-            format = "PWR {usage}%";  # Engine power style
+            format = "{icon} {usage}";
+            format-icons = [ "󰾆" "󰾅" "󰓅" ];  # speedometer slow / medium / full
+            tooltip-format = "PWR {usage}%";
+            states = { warning = 60; critical = 85; };
           };
 
+          # Fuel quantity - a fuel-gauge dial.
           memory = {
-            format = "MEM {}%";       # Fuel quantity style  
+            format = "{icon} {percentage}";
+            format-icons = [ "󰡳" "󰡵" "󰊚" "󰡴" ];  # gauge empty / low / mid / full
+            tooltip-format = "MEM {used:0.1f}/{total:0.1f} GiB ({percentage}%)";
+            states = { warning = 60; critical = 85; };
           };
 
           temperature = {
@@ -363,15 +374,42 @@ in {
             };
           };
 
-          # Night light - Cockpit display thermal control
-          "custom/hyprsunset" = {
-            format = mkForce "NL {}";  # Night Light
+          # Weather - unit implied: the script's unit-less "alt" ("☀ 44°").
+          # The tooltip still carries both units.
+          "custom/weather" = {
+            format = "{alt}";
           };
 
-          # Power button - Engine control
+          # Night light - cockpit display thermal gauge
+          "custom/hyprsunset" = {
+            # EGT-style gauge: a thermometer plus a strip-gauge tape that
+            # rises as the screen gets warmer. The colour class carries the
+            # same gradient; the exact kelvin is in the tooltip.
+            format = mkForce "{icon}";
+            format-icons = {
+              off = "󱔱";      # md-thermometer_off
+              day = "󱣖";      # md-sun_thermometer (auto, daytime)
+              cool = "󰔏▁";    # 5501-6500K
+              neutral = "󰔏▃"; # 4501-5500K
+              amber = "󰔏▄";   # 3501-4500K
+              warm = "󰔏▆";    # 2001-3500K
+              hot = "󰔏█";     # 1000-2000K
+            };
+          };
+
+          # Day/night palette switch - sun or moon, chosen by the script's "alt"
+          "custom/century-night" = {
+            format = "{icon}";
+            format-icons = {
+              day = "󰖙";    # md-weather_sunny
+              night = "󰖔";  # md-weather_night
+            };
+          };
+
+          # Power button - ejection handle (opens the wlogout menu)
           "custom/power" = {
-            format = mkForce "PWR";  # Aviation style label
-            tooltip-format = mkForce "ENG PWR MENU";  # Aviation terminology
+            format = mkForce "󰲴";  # md-parachute (U+F0CB4): eject
+            tooltip-format = mkForce "EJECT — PWR MENU";
           };
 
           # Special workspace indicator - Utility bay access light
@@ -382,7 +420,8 @@ in {
 
           # Keyboard color selector - Cockpit lighting mode switch
           "custom/ckb-color" = {
-            format = mkForce "KBD {}";
+            # Bare glyph; the colour class and tooltip carry the state.
+            format = mkForce "󰌌";  # md-keyboard
             on-click = "${ckbScripts.colorCycleScript}";
             on-scroll-up = "${ckbScripts.brightnessScript} up";
             on-scroll-down = "${ckbScripts.brightnessScript} down";
@@ -394,7 +433,7 @@ in {
 
           # Case fan selector - same switch as KBD, plus a STEADY/PULSE effect toggle
           "custom/case-rgb" = {
-            format = mkForce "CASE {}";
+            format = mkForce "󰈐";  # md-fan; PULSE shows as the .pulse class
             on-click = "${caseRgbScripts.colorCycleScript}";
             on-click-right = "${caseRgbScripts.effectCycleScript}";
             on-click-middle = "${caseRgbScripts.linkToggleScript}";
@@ -429,7 +468,40 @@ in {
             on-click-middle = "${notifScript}/bin/century-notif clear";
           };
 
-          modules-right = mkBefore [ "custom/claude-rwr" ];
+          # System tray - a drawer behind a radar dish holding VPN, BT and the
+          # comms log. The functional module list puts "group/systray" in
+          # place of those three for this desktop.
+          "group/systray" = {
+            orientation = "inherit";
+            drawer = {
+              transition-duration = 300;
+              children-class = "systray-child";
+              transition-left-to-right = false;
+              click-to-reveal = true;
+            };
+            modules = [ "custom/systray" ]
+              ++ optional hasVpnClient "custom/vpn"
+              ++ optional hasBluetoothWidget "custom/bluetooth"
+              ++ [ "custom/notifications" ];
+          };
+
+          # The dish itself. It runs the comms-log status so it inherits the
+          # unread/dnd classes: with the drawer shut, new traffic still lights
+          # it. Fixed format, so the MSG text never shows here.
+          #
+          # Give it NO on-click* actions: in waybar 0.15 a module with any
+          # click action swallows every button press (AModule::handleUserEvent
+          # returns true), so the group's click-to-reveal never fires.
+          "custom/systray" = {
+            exec = "${notifScript}/bin/century-notif json";
+            return-type = "json";
+            interval = 2;
+            signal = notifSignal;
+            format = "";  # fa-satellite_dish (U+EF60)
+            tooltip = true;
+            tooltip-format = "SYSTEM TRAY — click to expand";
+          };
+
         };
       } // lib.optionalAttrs launcherEnabled {
         # Launcher bar - Cockpit control panel styling
@@ -464,7 +536,7 @@ in {
         @import url("file://${config.home.homeDirectory}/.config/waybar/century-palette.css");
 
         * {
-          font-family: "JetBrains Mono", "Fira Code", monospace;
+          font-family: "JetBrainsMono Nerd Font", "JetBrains Mono", "Fira Code", monospace;
           font-size: 13px;
           font-weight: 600;
           min-height: 0;
@@ -512,6 +584,7 @@ in {
           color: @c_accent_amber;
           font-weight: bold;
           padding: 0 12px;
+          margin: 2px;  /* same inset as the other readouts, so the box matches */
           background-color: @c_bg_tertiary;
           border: 1px solid @c_accent_amber_dim;
         }
@@ -524,7 +597,25 @@ in {
           background-color: @c_bg_tertiary;
           border: 1px solid @c_border_secondary;
           color: @c_text_primary;
-          font-family: "JetBrains Mono", monospace;
+          font-family: "JetBrainsMono Nerd Font", "JetBrains Mono", monospace;
+        }
+
+        /* PWR / MEM dials - green in the normal band, amber caution, red warning */
+        #cpu, #memory {
+          color: @c_accent_green;
+          border-color: @c_accent_green_dim;
+          transition: color 0.3s ease, border-color 0.3s ease;
+        }
+
+        #cpu.warning, #memory.warning {
+          color: @c_accent_amber;
+          border-color: @c_accent_amber_dim;
+        }
+
+        #cpu.critical, #memory.critical {
+          color: @c_warning_red;
+          border-color: @c_warning_red;
+          text-shadow: 0 0 6px alpha(@c_warning_red, 0.667);
         }
 
         /* Screen brightness - Illumination readout */
@@ -753,6 +844,21 @@ in {
           opacity: 1.0;
         }
 
+        /* Glyph-only switches read a touch larger than the 13px text */
+        #custom-ckb-color, #custom-case-rgb, #custom-century-night, #custom-systray,
+        #custom-power, #custom-hyprsunset {
+          font-size: 16px;
+        }
+
+        /* Case fans on PULSE - the glyph breathes */
+        #custom-case-rgb.pulse {
+          animation-name: blink;
+          animation-duration: 1.5s;
+          animation-timing-function: ease-in-out;
+          animation-iteration-count: infinite;
+          animation-direction: alternate;
+        }
+
         /* Audio sink indicator - device type states */
         #custom-audio-sink.speakers {
           color: @c_accent_amber;
@@ -778,10 +884,13 @@ in {
           box-shadow: 0 0 6px alpha(@c_info_blue, 0.4);
         }
 
-        /* System tray */
+        /* App tray - boxed and inset like the readouts so it no longer
+           covers the bar's bottom rail */
         #tray {
           padding: 0 8px;
-          background-color: @c_bg_secondary;
+          margin: 2px;
+          background-color: @c_bg_tertiary;
+          border: 1px solid @c_border_secondary;
         }
 
         /* Power button - Engine control switch */
@@ -808,7 +917,7 @@ in {
           background-color: @c_bg_tertiary;
           border: 1px solid @c_border_secondary;
           color: @c_text_primary;
-          font-family: "JetBrains Mono", monospace;
+          font-family: "JetBrainsMono Nerd Font", "JetBrains Mono", monospace;
           letter-spacing: 1px;
         }
 
@@ -871,7 +980,7 @@ in {
           background-color: @c_bg_tertiary;
           border: 1px solid @c_border_secondary;
           color: @c_text_primary;
-          font-family: "JetBrains Mono", monospace;
+          font-family: "JetBrainsMono Nerd Font", "JetBrains Mono", monospace;
           transition: color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
         }
 
@@ -889,7 +998,9 @@ in {
           text-shadow: 0 0 6px alpha(@c_info_blue, 0.533);
         }
 
-        /* MANUAL - manual override, dashed amber border = "override engaged" */
+        /* MANUAL - dashed border = "override engaged". The script also adds the
+           band class (temp-*), defined below, so its colour wins and the
+           gauge still shows where the manual value sits on the gradient. */
         #custom-hyprsunset.manual {
           color: @c_accent_amber;
           border-color: @c_accent_amber;
@@ -942,7 +1053,7 @@ in {
           background-color: @c_bg_tertiary;
           border: 1px solid @c_border_secondary;
           color: @c_text_primary;
-          font-family: "JetBrains Mono", monospace;
+          font-family: "JetBrainsMono Nerd Font", "JetBrains Mono", monospace;
           font-weight: bold;
           letter-spacing: 1px;
           transition: color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
@@ -1013,6 +1124,34 @@ in {
         #custom-notifications:hover {
           background-color: @c_bg_secondary;
           opacity: 1.0;
+        }
+
+        /* System tray - radar dish that opens the VPN / BT / comms drawer.
+           Runs the comms-log status, so it lights like the MSG annunciator. */
+        #custom-systray {
+          padding: 0 10px;
+          margin: 2px;
+          background-color: @c_bg_tertiary;
+          border: 1px solid @c_border_primary;
+          color: @c_accent_radar;
+          transition: color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        #custom-systray.unread {
+          color: @c_accent_amber;
+          border-color: @c_accent_amber;
+          box-shadow: 0 0 8px alpha(@c_accent_amber, 0.4);
+          text-shadow: 0 0 6px alpha(@c_accent_amber, 0.8);
+        }
+
+        #custom-systray.dnd {
+          color: @c_warning_red;
+          border-color: @c_warning_red;
+          border-style: dashed;
+        }
+
+        #custom-systray:hover {
+          background-color: @c_bg_secondary;
         }
 
         /* Tooltip styling - Info displays */
@@ -1089,7 +1228,7 @@ in {
 
         /* Claude RWR - Radar Warning Receiver */
         #custom-claude-rwr {
-          font-family: "JetBrains Mono", monospace;
+          font-family: "JetBrainsMono Nerd Font", "JetBrains Mono", monospace;
           font-size: 9px;
           font-weight: 700;
           padding: 1px 8px;
