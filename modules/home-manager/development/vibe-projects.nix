@@ -48,9 +48,21 @@ let
 
     A game whose `.vibe-project` has a `shared=owner/repo` line (prin-rpg) is **lando's
     repo**, which he works on too. `vibe` cloned it and added it to the menu. There, the
-    project's own `CLAUDE.md` section "Working together: git and PRs" is binding, and it
-    **replaces** two rules above: "The project repo is his — commit to main freely" and
-    "Where his app's code is allowed to live".
+    project's own `CLAUDE.md` section "Working together" is binding, and it **replaces**
+    two rules above: "The project repo is his — commit to main freely" and "Where his
+    app's code is allowed to live". `vibe`'s opening prompt says which of the two ways
+    below the game uses.
+
+    **Games on our own git server** (`http://192.168.1.76:3000`, prin-rpg). He commits to
+    `main`, like lando:
+    - `git pull --rebase` at the start of every session and again right before every push,
+      so neither of you overwrites the other. A conflict you can't sort out cleanly: stop
+      and tell him to ask Lando.
+    - Push **as him**, after the `chown` from "File ownership":
+      `sudo -u ${userName} -H git push`. The server is only reachable with the VPN on;
+      if a push can't connect, tell him to switch it on.
+
+    **Games on GitHub** (sub-of-seas). Lando reviews his changes:
     - Every change goes on a `blaney/` branch and into a PR (`gh pr create --base main`),
       and then you **stop**. Lando merges it. **Never commit to `main`, push to `main`, or
       merge anything.** The clone's git hooks refuse it; never use `--no-verify`.
@@ -60,6 +72,8 @@ let
       login is `cblaney00`, and this session's root may not have one.
       `sudo -u ${userName} -H git push -u origin <branch>` and
       `sudo -u ${userName} -H gh pr create ...`.
+
+    Either way:
     - **His look-and-feel calls are what he brings to it, so none may get lost.** Whenever
       he says how something should look, sound or feel, playtest remarks included ("the
       trees are too dark"), log it in the project's `docs/style.md` direction log, in his
@@ -278,6 +292,12 @@ let
 
     Use the shell named on the `shell=` line of the project's `.vibe-project`. The
     available ones are: ${shellList}.
+
+    Every project is a tree squid in his Glade desktop, which starts the project when he
+    clicks it. A Godot project, `play.sh` or `run.sh` is found by itself; anything else
+    needs a `play=<command>` line in `.vibe-project` (run from inside the project). The
+    squid's picture is the `icon=<path>` line (in the project, or `~/...`), else
+    `icon.png`/`icon.svg` in it; `name=` overrides the name it shows.
 
     **Never put `sudo` in front of that.** This session is already root, and a second,
     nested `sudo` resets `SUDO_UID` to 0, which makes nix refuse to read the config repo:

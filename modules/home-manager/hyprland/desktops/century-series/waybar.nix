@@ -9,6 +9,7 @@ let
   c = colorsModule.centuryColors;
 
   ckbScripts = import ./ckb-scripts.nix { inherit pkgs; };
+  caseRgbScripts = import ./case-rgb-scripts.nix { inherit pkgs; };
 
   claudeRwrScript = pkgs.writeShellApplication {
     name = "claude-rwr";
@@ -125,6 +126,138 @@ let
 
       jq -nc --arg t "$text" --arg c "$cls" --arg tt "$tooltip_lines" \
         '{text: $t, class: $c, tooltip: $tt}'
+    '';
+  };
+
+  # Notification center for the bar. This desktop runs dunst (see dunst.nix),
+  # which has no panel of its own, so the "center" is dunst's history shown
+  # through rofi. "Unread" means logged since the log was last opened; the
+  # last-seen id lives in ~/.local/state.
+  #
+  #   century-notif json   bar status (MSG n / MSG -- / DND)
+  #   century-notif log    rofi list; picking an entry re-shows it
+  #   century-notif dnd    toggle Do Not Disturb (dunst pause)
+  #   century-notif clear  empty the history
+  notifSignal = 19;
+  notifScript = pkgs.writeShellApplication {
+    name = "century-notif";
+    # rofi deliberately comes from PATH: that is the user's themed rofi.
+    runtimeInputs = with pkgs; [ dunst jq coreutils procps ];
+    text = ''
+      state_dir="''${XDG_STATE_HOME:-$HOME/.local/state}/century-notif"
+      seen_file="$state_dir/seen-id"
+      mkdir -p "$state_dir"
+
+      history_json() {
+        dunstctl history 2>/dev/null \
+          | jq -c '[.data[0][]? | with_entries(.value |= .data)]' 2>/dev/null \
+          || echo '[]'
+      }
+
+      max_id() { jq -r 'map(.id) | max // 0' <<<"$1"; }
+
+      seen_id() {
+        local s
+        s="$(cat "$seen_file" 2>/dev/null || echo 0)"
+        [[ "$s" =~ ^[0-9]+$ ]] || s=0
+        echo "$s"
+      }
+
+      mark_seen() { echo "$1" > "$seen_file.tmp" && mv "$seen_file.tmp" "$seen_file"; }
+
+      # Repaint the widget now instead of on the next poll. Match the real bars
+      # only: a bare `pkill waybar` also hits the waybar-start wrapper, which
+      # has no handler for this signal and would die from it.
+      refresh() { pkill -RTMIN+${toString notifSignal} -f 'bin/waybar( |$)' 2>/dev/null || true; }
+
+      cmd_json() {
+        local hist max seen paused waiting unread total latest text cls
+        hist="$(history_json)"
+        max="$(max_id "$hist")"
+        seen="$(seen_id)"
+        # dunst restarts its ids at 1; a seen-id above anything logged means
+        # it restarted, so everything in the new log is unread.
+        if (( seen > max )); then seen=0; mark_seen 0; fi
+        unread="$(jq --argjson s "$seen" 'map(select(.id > $s)) | length' <<<"$hist")"
+        total="$(jq 'length' <<<"$hist")"
+        paused="$(dunstctl is-paused 2>/dev/null || echo false)"
+        waiting="$(dunstctl count waiting 2>/dev/null || echo 0)"
+        latest="$(jq -r '(max_by(.id) // {}) | .summary // ""' <<<"$hist")"
+
+        if [ "$paused" = "true" ]; then
+          cls="dnd"
+          if (( waiting > 0 )); then text="DND $waiting"; else text="DND"; fi
+        elif (( unread > 0 )); then
+          cls="unread"; text="MSG $unread"
+        else
+          cls="empty"; text="MSG --"
+        fi
+
+        jq -nc --arg t "$text" --arg c "$cls" \
+          --argjson u "$unread" --argjson n "$total" --argjson w "$waiting" \
+          --arg p "$paused" --arg l "$latest" '
+          def esc: gsub("&"; "&amp;") | gsub("<"; "&lt;") | gsub(">"; "&gt;");
+          {text: $t, class: $c,
+           tooltip: ([
+             "COMMS LOG",
+             "Unread: \($u)   Logged: \($n)",
+             (if $p == "true" then "DND ENGAGED — \($w) held" else empty end),
+             (if $l != "" then "Latest: \($l | esc)" else empty end),
+             "",
+             "Click: open log   Right: DND   Middle: clear"
+           ] | join("\n"))}'
+      }
+
+      cmd_log() {
+        local hist paused now up rows choice idx id dnd_label
+        hist="$(history_json)"
+        mark_seen "$(max_id "$hist")"
+        refresh
+
+        paused="$(dunstctl is-paused 2>/dev/null || echo false)"
+        if [ "$paused" = "true" ]; then dnd_label="[ DND: ON  — disengage ]"; else dnd_label="[ DND: OFF — engage ]"; fi
+
+        # dunst timestamps are microseconds of CLOCK_MONOTONIC; turn them into
+        # wall-clock times via the current uptime.
+        now="$(date +%s)"
+        up="$(cut -d' ' -f1 /proc/uptime)"
+        rows="$(jq -r --argjson now "$now" --argjson up "$up" '
+          sort_by(-.id)[]
+          | (($now - ($up - .timestamp / 1000000)) | floor | strflocaltime("%H:%M")) as $t
+          | ((.body | split("\n")[0]) // "" | if length > 70 then .[:69] + "…" else . end) as $b
+          | "\($t)  \(.appname | ascii_upcase | .[:12])  \(.summary)\(if $b != "" then " — " + $b else "" end)"
+        ' <<<"$hist")"
+
+        choice="$({
+          printf '%s\n' "$dnd_label" "[ CLEAR LOG ]"
+          if [ -n "$rows" ]; then printf '%s\n' "$rows"; fi
+        } | rofi -dmenu -i -no-custom -format i -p "COMMS LOG" \
+              -mesg "Enter: re-show notification   Esc: close")" || exit 0
+
+        [[ "$choice" =~ ^[0-9]+$ ]] || exit 0
+        case "$choice" in
+          0) cmd_dnd ;;
+          1) cmd_clear ;;
+          *)
+            idx=$(( choice - 2 ))
+            id="$(jq -r --argjson i "$idx" 'sort_by(-.id)[$i].id // empty' <<<"$hist")"
+            if [ -n "$id" ]; then dunstctl history-pop "$id"; fi
+            refresh
+            ;;
+        esac
+      }
+
+      cmd_dnd() { dunstctl set-paused toggle; refresh; }
+
+      cmd_clear() { dunstctl history-clear; mark_seen 0; refresh; }
+
+      case "''${1:-json}" in
+        json)  cmd_json ;;
+        log)   cmd_log ;;
+        dnd)   cmd_dnd ;;
+        clear) cmd_clear ;;
+        *) echo "usage: century-notif [json|log|dnd|clear]" >&2; exit 2 ;;
+      esac
     '';
   };
 
@@ -254,6 +387,20 @@ in {
             on-scroll-up = "${ckbScripts.brightnessScript} up";
             on-scroll-down = "${ckbScripts.brightnessScript} down";
             smooth-scrolling-threshold = 1;
+          } // optionalAttrs customConfig.hardware.peripherals.caseRgb.enable {
+            # Link/unlink keyboard and case fans (case-rgb-scripts.nix)
+            on-click-middle = "${caseRgbScripts.linkToggleScript}";
+          };
+
+          # Case fan selector - same switch as KBD, plus a STEADY/PULSE effect toggle
+          "custom/case-rgb" = {
+            format = mkForce "CASE {}";
+            on-click = "${caseRgbScripts.colorCycleScript}";
+            on-click-right = "${caseRgbScripts.effectCycleScript}";
+            on-click-middle = "${caseRgbScripts.linkToggleScript}";
+            on-scroll-up = "${caseRgbScripts.brightnessScript} up";
+            on-scroll-down = "${caseRgbScripts.brightnessScript} down";
+            smooth-scrolling-threshold = 1;
           };
 
           # Claude RWR - Radar Warning Receiver for Claude Code session state
@@ -264,6 +411,22 @@ in {
             return-type = "json";
             format = "{}";
             tooltip = true;
+          };
+
+          # Notification center - Comms log (dunst history). Placed beside the
+          # clock by the functional module list.
+          "custom/notifications" = {
+            exec = "${notifScript}/bin/century-notif json";
+            return-type = "json";
+            # Polling is cheap (two dbus calls) and catches new notifications;
+            # the clicks also poke the signal for an instant repaint.
+            interval = 2;
+            signal = notifSignal;
+            format = "{}";
+            tooltip = true;
+            on-click = "${notifScript}/bin/century-notif log";
+            on-click-right = "${notifScript}/bin/century-notif dnd";
+            on-click-middle = "${notifScript}/bin/century-notif clear";
           };
 
           modules-right = mkBefore [ "custom/claude-rwr" ];
@@ -529,7 +692,8 @@ in {
         }
 
         /* Keyboard color selector - Cockpit lighting mode switch */
-        #custom-ckb-color {
+        #custom-ckb-color,
+        #custom-case-rgb {
           padding: 0 10px;
           margin: 2px 0 2px 0;
           background-color: @c_bg_tertiary;
@@ -541,7 +705,8 @@ in {
           opacity: 0.6;
         }
 
-        #custom-ckb-color.radar {
+        #custom-ckb-color.radar,
+        #custom-case-rgb.radar {
           color: @c_kbd_radar;
           border-color: @c_kbd_radar;
           opacity: 1.0;
@@ -549,7 +714,8 @@ in {
           text-shadow: 0 0 6px alpha(@c_kbd_radar, 0.8);
         }
 
-        #custom-ckb-color.amber {
+        #custom-ckb-color.amber,
+        #custom-case-rgb.amber {
           color: @c_kbd_amber;
           border-color: @c_kbd_amber;
           opacity: 1.0;
@@ -557,7 +723,8 @@ in {
           text-shadow: 0 0 6px alpha(@c_kbd_amber, 0.8);
         }
 
-        #custom-ckb-color.red {
+        #custom-ckb-color.red,
+        #custom-case-rgb.red {
           color: @c_kbd_red;
           border-color: @c_kbd_red;
           opacity: 1.0;
@@ -565,7 +732,8 @@ in {
           text-shadow: 0 0 6px alpha(@c_kbd_red, 0.8);
         }
 
-        #custom-ckb-color.mig {
+        #custom-ckb-color.mig,
+        #custom-case-rgb.mig {
           color: @c_kbd_mig;
           border-color: @c_kbd_mig;
           opacity: 1.0;
@@ -573,7 +741,14 @@ in {
           text-shadow: 0 0 6px alpha(@c_kbd_mig, 0.8);
         }
 
-        #custom-ckb-color:hover {
+        /* KBD + CASE linked: a heavier lower rail on both, in their shared colour */
+        #custom-ckb-color.linked,
+        #custom-case-rgb.linked {
+          border-bottom-width: 3px;
+        }
+
+        #custom-ckb-color:hover,
+        #custom-case-rgb:hover {
           background-color: @c_bg_secondary;
           opacity: 1.0;
         }
@@ -800,6 +975,44 @@ in {
 
         #custom-century-night:hover {
           background-color: @c_bg_secondary;
+        }
+
+        /* Notification center - Comms log annunciator */
+        #custom-notifications {
+          padding: 0 10px;
+          margin: 2px;
+          background-color: @c_bg_tertiary;
+          border: 1px solid @c_border_primary;
+          color: @c_text_tertiary;
+          font-weight: bold;
+          letter-spacing: 1px;
+          transition: color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        /* Nothing new - dark lamp */
+        #custom-notifications.empty {
+          opacity: 0.5;
+        }
+
+        /* Unread traffic - master caution amber */
+        #custom-notifications.unread {
+          color: @c_accent_amber;
+          border-color: @c_accent_amber;
+          box-shadow: 0 0 8px alpha(@c_accent_amber, 0.4);
+          text-shadow: 0 0 6px alpha(@c_accent_amber, 0.8);
+        }
+
+        /* Do Not Disturb - comms silenced, dashed red = "override engaged" */
+        #custom-notifications.dnd {
+          color: @c_warning_red;
+          border-color: @c_warning_red;
+          border-style: dashed;
+          text-shadow: 0 0 6px alpha(@c_warning_red, 0.533);
+        }
+
+        #custom-notifications:hover {
+          background-color: @c_bg_secondary;
+          opacity: 1.0;
         }
 
         /* Tooltip styling - Info displays */

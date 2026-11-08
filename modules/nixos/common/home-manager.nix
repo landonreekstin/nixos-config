@@ -342,6 +342,23 @@ in
       description = "Whether Home Manager is configured for the primary user.";
     };
     services = {
+      # modules/home-manager/hyprland/screen-dim.nix
+      screenDim = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = ''
+            Per-screen software dimming for Hyprland (wl-gammarelay-rs), for screens
+            the PC can't set the backlight of. `screen-dim` and SUPER+CTRL+PageUp/
+            PageDown/Home act on the focused screen.
+          '';
+        };
+        minPercent = mkOption {
+          type = types.ints.between 1 100;
+          default = 20;
+          description = "Lowest level screen-dim goes to, so a screen never turns fully black.";
+        };
+      };
       hyprsunset = {
         enable = mkOption {
           type = types.bool;
@@ -698,6 +715,16 @@ in
             A manual cycle with SUPER+CTRL+K still wins until the next
             boundary: this writes the same ~/.cache/ckb-color-state the cycle
             script uses, it does not lock it.
+          '';
+        };
+        caseFans = mkOption {
+          type = types.bool;
+          default = true;
+          description = ''
+            Put the case fans on RED at night and restore the previous colour by
+            day, keeping their brightness and effect. Only has an effect when
+            hardware.peripherals.caseRgb.enable is also set. A click on the CASE
+            widget still wins until the next boundary.
           '';
         };
       };

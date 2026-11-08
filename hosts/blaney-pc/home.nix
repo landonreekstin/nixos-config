@@ -131,7 +131,7 @@
     in {
       # in app search (the Apps menu) and pinned in the Glade's dock ...
       xdg.desktopEntries.f-117 = f117;
-      # ... and on his Desktop, so the Glade gives it a tree squid
+      # ... and on his Desktop
       home.file."Desktop/F-117.desktop".text = ''
         [Desktop Entry]
         Type=Application
@@ -142,7 +142,7 @@
         Terminal=false
         StartupWMClass=${f117.settings.StartupWMClass}
       '';
-      # VibeNote (modules/nixos/programs/vibenote.nix) on his Desktop too, for its tree squid
+      # VibeNote (modules/nixos/programs/vibenote.nix) on his Desktop too
       home.file."Desktop/VibeNote.desktop".text = ''
         [Desktop Entry]
         Type=Application
@@ -153,6 +153,17 @@
         Terminal=false
         StartupWMClass=vibenote
       '';
+      # kitty's own cat picture, swapped for a plain green-on-black terminal screen (he
+      # asked): this entry stands in for kitty's in the dock and the Apps menu
+      xdg.desktopEntries.kitty = {
+        name = "Terminal";
+        genericName = "Terminal emulator";
+        exec = "kitty";
+        icon = "xterm-color";
+        terminal = false;
+        categories = [ "System" "TerminalEmulator" ];
+        settings.StartupWMClass = "kitty";
+      };
       # Open one fresh Dolphin window like Explorer/Finder, not every tab from last time.
       # plasma-manager writes this as a key, not a symlink, since Dolphin rewrites
       # dolphinrc itself.

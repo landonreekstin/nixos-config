@@ -5,6 +5,25 @@
 # New blaney-todo tasks are listed automatically — don't add notes for them.
 [
   {
+    date = "2026-11-06";
+    changes = [
+      "prin-rpg now lives on Lando's own server instead of GitHub, and you save your changes straight into the game: no more waiting for Lando to merge. Turn the VPN on (top bar) when you work on it."
+    ];
+  }
+  {
+    date = "2026-11-05";
+    changes = [
+      "The squids and owls in the Glade's trees now hold only your own projects. Click one to start that project and try it. New projects get a squid by themselves."
+      "The terminal on your dock has a green-on-black screen picture instead of the cat."
+    ];
+  }
+  {
+    date = "2026-11-04";
+    changes = [
+      "The top bar now sits behind your windows, so you can always grab a window that was stuck under it, and fullscreen games cover it."
+    ];
+  }
+  {
     date = "2026-10-30";
     changes = [
       "Sub of Seas got a big update: sounds, music, a settings menu, bot crewmen and a rec room. It also starts without the homelab VPN now (you still need it to join Lando)."

@@ -5,6 +5,9 @@
   customConfig.homeManager = {
     enable = true;
     services.updateNotification.enable = true;
+    # The TV (HDMI-A-1) has no PC-settable brightness and is already on its
+    # darkest preset, so dim its picture in software.
+    services.screenDim.enable = true;
     # The right speaker (LG monitor's 3.5mm out) is quieter; 70/100 set by ear. The LG is a
     # DP pro-audio sink with no ports, so it is picked by EDID name rather than by port.
     services.audioBalance = {

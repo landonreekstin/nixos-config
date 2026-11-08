@@ -23,6 +23,10 @@ in
     hyprDesktops.glade.ownApps = true;
 
     hyprDesktops.glade.settings = {
+      # The bar shares the bottom layer with the glade's picture (waybar.nix). A lower
+      # order draws later, so the bar stays on top even when the glade is reopened.
+      layerrule = [ "order -1, match:namespace waybar" ];
+
       general = {
         gaps_in = 6;
         gaps_out = 12;

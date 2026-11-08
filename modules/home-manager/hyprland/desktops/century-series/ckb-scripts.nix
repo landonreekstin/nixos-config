@@ -11,7 +11,20 @@
 # Brightness is applied by scaling each RGB channel directly (R * BRIGHT/100).
 # The ckb-next CMD pipe `brightness N` command is unreliable after `rgb RRGGBB`;
 # scaling the color value itself ensures accurate dimming on all keyboard models.
+#
+# Link with the case fans: while ~/.cache/rgb-link exists (toggled by a middle-click
+# on the KBD or CASE widget, see case-rgb-scripts.nix), a colour or brightness change
+# here is mirrored to the fans with `case-rgb set`. It is looked up on PATH so hosts
+# without caseRgb neither build nor need it; there the flag can never be set.
 
+let
+  linkMirror = ''
+    if [ -f "$HOME/.cache/rgb-link" ] && command -v case-rgb >/dev/null 2>&1; then
+      case-rgb set "$IDX" "$BRIGHT" >/dev/null 2>&1 || true
+      pkill -RTMIN+18 waybar 2>/dev/null || true
+    fi
+  '';
+in
 {
   # Output JSON for the waybar custom/ckb-color module.
   colorStatusScript = pkgs.writeShellScript "ckb-color-status" ''
@@ -26,8 +39,10 @@
     [[ "$BRIGHT" =~ ^[0-9]+$ ]] && [ "$BRIGHT" -le 100 ] || BRIGHT=80
     LABEL="''${LABELS[$IDX]}"
     CLASS=$(echo "$LABEL" | tr '[:upper:]' '[:lower:]')
-    printf '{"text":"%s","class":"%s","tooltip":"KBD: %s %s%% — click to cycle — scroll for brightness"}' \
-      "$LABEL" "$CLASS" "$LABEL" "$BRIGHT"
+    LINK=""; LINKCLASS=""
+    if [ -f "$HOME/.cache/rgb-link" ]; then LINK=" — LINKED to CASE"; LINKCLASS=',"linked"'; fi
+    printf '{"text":"%s","class":["%s"%s],"tooltip":"KBD: %s %s%%%s — click to cycle — scroll for brightness"}' \
+      "$LABEL" "$CLASS" "$LINKCLASS" "$LABEL" "$BRIGHT" "$LINK"
   '';
 
   # Advance to the next color in the palette, apply immediately, signal waybar.
@@ -51,6 +66,7 @@
     CMD_PIPE=$(ls /dev/input/ckb*/cmd 2>/dev/null | grep -v '/ckb0/' | head -1)
     [ -n "$CMD_PIPE" ] && echo "rgb $SCALED" > "$CMD_PIPE"
     pkill -RTMIN+14 waybar 2>/dev/null || true
+    ${linkMirror}
   '';
 
   # Adjust brightness by ±10. Takes "up" or "down" (default: down).
@@ -82,6 +98,7 @@
     CMD_PIPE=$(ls /dev/input/ckb*/cmd 2>/dev/null | grep -v '/ckb0/' | head -1)
     [ -n "$CMD_PIPE" ] && echo "rgb $SCALED" > "$CMD_PIPE"
     pkill -RTMIN+14 waybar 2>/dev/null || true
+    ${linkMirror}
   '';
 
   # Apply whatever is already in the state file, changing nothing. Used by

@@ -32,6 +32,7 @@
     ./game-control.nix
     ./browser-puck.nix
     ./r62d.nix
+    ./forgejo.nix
     ./game-backup.nix
     ./private-backup.nix
     ./dns.nix

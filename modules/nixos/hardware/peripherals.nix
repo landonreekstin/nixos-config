@@ -5,6 +5,9 @@ let
   cfg = config.customConfig.hardware.peripherals;
   user = config.customConfig.user.name;
 
+  # `case-rgb` CLI for the case fans on the B650's D_LED1 header (RGB Fusion 2 chip).
+  caseRgb = import ./case-rgb.nix { inherit pkgs; };
+
   # Override ckb-next to disable dbusmenu (requires removed dbusmenu-qt5 in 25.11)
   # and to pin the GUI to XWayland.
   #
@@ -175,6 +178,19 @@ in
       # Color and brightness are managed at runtime via ~/.cache/ckb-color-state
       # and cycled through the century-series waybar widget / keybinds.
     };
+    caseRgb = {
+      enable = mkOption {
+        type = types.bool;
+        default = false;
+        description = ''
+          Drive the case fans on a Gigabyte RGB Fusion 2 board's D_LED1 header
+          (ITE 048d:5702) with the `case-rgb` CLI: colour, brightness and effect,
+          saved in ~/.cache/case-rgb-state and re-applied at login. The
+          century-series waybar has a CASE widget for it. Mutually exclusive with
+          OpenRGB, whose init freezes the fans (see case-rgb.nix).
+        '';
+      };
+    };
     input-remapper = {
       enable = mkOption {
         type = types.bool;
@@ -199,6 +215,42 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+
+    assertions = [{
+      assertion = !(cfg.caseRgb.enable && cfg.openrgb.enable);
+      message = "peripherals.caseRgb and peripherals.openrgb cannot both be enabled: OpenRGB's init (CC 32 1b) freezes the D_LED fans that case-rgb drives.";
+    }];
+
+    # === Case fan RGB (RGB Fusion 2 D_LED1) ===
+    # hidraw nodes are root-only by default; the waybar widget runs as the user.
+    services.udev.extraRules = lib.mkIf cfg.caseRgb.enable ''
+      SUBSYSTEM=="hidraw", ATTRS{idVendor}=="048d", ATTRS{idProduct}=="5702", GROUP="users", MODE="0660"
+    '';
+
+    # The board resets the chip to its rainbow at every boot and the chip's own
+    # save (CC 5E) does not survive that, so re-apply the saved state at login.
+    # default.target for the same reason as ckb-next-set-lighting below.
+    systemd.user.services.case-rgb-apply = lib.mkIf cfg.caseRgb.enable {
+      description = "Apply the saved case fan colour and effect";
+      wantedBy = [ "default.target" ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${caseRgb}/bin/case-rgb apply --wait 60";
+      };
+    };
+
+    # PULSE is animated in software (the chip's own pulse ignores the colour, see
+    # case-rgb.nix). It idles on a 0.5 s state-file poll while the effect is STEADY.
+    systemd.user.services.case-rgb-pulse = lib.mkIf cfg.caseRgb.enable {
+      description = "Animate the case fan PULSE effect";
+      wantedBy = [ "default.target" ];
+      after = [ "case-rgb-apply.service" ];
+      serviceConfig = {
+        ExecStart = "${caseRgb}/bin/case-rgb pulse-daemon";
+        Restart = "always";
+        RestartSec = 5;
+      };
+    };
 
     # === OpenRGB for RGB Lighting Control ===
     services.hardware.openrgb = lib.mkIf cfg.openrgb.enable {
@@ -318,6 +370,8 @@ in
       ++ optionals cfg.openrazer.enable [ openrazer-daemon polychromatic ]
       # Corsair
       ++ optionals cfg.ckb-next.enable [ ckb-next-fixed ]
+      # Case fans (RGB Fusion 2 D_LED1)
+      ++ optionals cfg.caseRgb.enable [ caseRgb ]
       # Logitech
       ++ optionals cfg.solaar.enable [ solaar ]
       # Input Remapper
