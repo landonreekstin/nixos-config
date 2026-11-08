@@ -8,6 +8,9 @@
     date = "2026-11-08";
     changes = [
       "A new \"Internet\" squid in your trees shows every time the internet dropped or got laggy, Discord said \"No Route\", Claude had errors, or Lando's VPN or games could not be reached, and whose fault it was: your PC, your router, your internet provider, or Discord, Claude or Lando's side. You can also type net-log."
+      "Prism Launcher is installed for Minecraft. It opens CurseForge modpacks, so you can play your modded Minecraft here."
+      "Minecraft is in your Games tab: click it and it goes straight into your Immersed With Shaders modpack."
+      "Minecraft LAN worlds on your home network now show up in your server list."
     ];
   }
   {

@@ -164,6 +164,17 @@
         categories = [ "System" "TerminalEmulator" ];
         settings.StartupWMClass = "kitty";
       };
+      # Minecraft straight into his CurseForge modpack, skipping Prism's window: the
+      # Game category puts it in the Glade's Games tab. The instance lives in his
+      # home (~/.local/share/PrismLauncher/instances), imported from a friend's export.
+      xdg.desktopEntries.minecraft-immersed = {
+        name = "Minecraft";
+        comment = "Immersed With Shaders modpack";
+        exec = ''prismlauncher --launch "Immersed With Shaders (1)-v11.0"'';
+        icon = "org.prismlauncher.PrismLauncher";
+        terminal = false;
+        categories = [ "Game" ];
+      };
       # Open one fresh Dolphin window like Explorer/Finder, not every tab from last time.
       # plasma-manager writes this as a key, not a symlink, since Dolphin rewrites
       # dolphinrc itself.

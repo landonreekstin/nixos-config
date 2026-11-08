@@ -77,4 +77,8 @@ in
       };
     };
   };
+
+  # Minecraft "Open to LAN": worlds hosted on the home network announce themselves on
+  # UDP 4445 (multicast), so they show up in his server list.
+  networking.firewall.allowedUDPPorts = [ 4445 ];
 }
