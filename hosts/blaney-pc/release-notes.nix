@@ -5,6 +5,12 @@
 # New blaney-todo tasks are listed automatically — don't add notes for them.
 [
   {
+    date = "2026-11-07";
+    changes = [
+      "Your keyboard lights are a soft teal now, and they stay lit while you type."
+    ];
+  }
+  {
     date = "2026-11-06";
     changes = [
       "prin-rpg now lives on Lando's own server instead of GitHub, and you save your changes straight into the game: no more waiting for Lando to merge. Turn the VPN on (top bar) when you work on it."
