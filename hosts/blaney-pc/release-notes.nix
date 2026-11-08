@@ -5,6 +5,13 @@
 # New blaney-todo tasks are listed automatically — don't add notes for them.
 [
   {
+    date = "2026-11-07";
+    changes = [
+      "War Thunder opens full screen now, so the top bar no longer covers the top of it."
+      "Hold the Windows key and press Tab to see every open window on both screens. Click the one you want, or keep tapping Tab and let go of the Windows key to jump to it. (Alt+Tab still works like before.)"
+    ];
+  }
+  {
     date = "2026-11-06";
     changes = [
       "prin-rpg now lives on Lando's own server instead of GitHub, and you save your changes straight into the game: no more waiting for Lando to merge. Turn the VPN on (top bar) when you work on it."

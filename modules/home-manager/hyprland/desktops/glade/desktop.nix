@@ -178,6 +178,10 @@ in
           # side by side, not one above the other. steam_app_* is Steam and Heroic (umu)
           # games, *.exe is Lutris's wine games.
           "monitor ${mainMonitor.identifier}, match:class ^(steam_app_.*|.*\\.exe)$"
+        ] ++ [
+          # War Thunder's own launcher opens the game as a plain floating window, so
+          # the top bar covered its top edge; open it full screen instead.
+          "fullscreen true, match:class ^(War Thunder.*)$"
         ];
 
         plugin.hyprbars = {
