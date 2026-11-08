@@ -11,5 +11,6 @@
     ./airplay-receiver.nix
     ./ios-device.nix
     ./remote-admin.nix
+    ./net-watch.nix
   ];
 }
