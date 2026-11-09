@@ -292,7 +292,15 @@
         # insideabush's news-briefing app, from its github:cblaney00/f-117 pin
         (callPackage ../../pkgs/f-117 { })
         zoom-us
-        gurk-rs
+        # unstable's gurk-rs 0.10.2 fails to build: it links -lsqlite3 (sqlx-macros)
+        # and -lsqlcipher (gurk itself) but the package only lists openssl. Add
+        # both (from the same unstable set) until nixpkgs fixes it. Not dropped to
+        # stable: that is 0.9.3, and a Signal client shouldn't be downgraded onto
+        # a migrated database.
+        (gurk-rs.overrideAttrs (old: {
+          buildInputs = (old.buildInputs or [ ])
+            ++ [ pkgs.unstable.sqlite pkgs.unstable.sqlcipher ];
+        }))
         vlc
         keepassxc
       ];
