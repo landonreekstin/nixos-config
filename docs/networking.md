@@ -221,6 +221,19 @@ dedicated LAN WireGuard tunnel (`wg-nas`, peer `10.10.0.11`, allowed-ips
 pushes to the NAS at `192.168.100.76` (reachable via this tunnel / directly from the
 server subnet).
 
+**The private share has its own password.** The NAS's encrypted `/mnt/private` drive is
+served by a second smbd (`samba-private`, port 4445) with a **separate passdb**
+(`/var/lib/samba-private/passdb.tdb`, `modules/nixos/homelab/samba.nix`), so the
+`smb-credentials` login every client host decrypts for `/mnt/nas` is rejected there. The
+password lives only on the NAS, hashed, never in sops or this repo. Set or change it on
+the NAS with:
+```bash
+sudo smbpasswd -c /etc/smb-private.conf -a lando
+```
+Until it is set, nothing can mount the share. On gaming-pc the only way in is
+`private-share` (also what `comfy-start` runs), which asks for that password at a prompt
+every time and hands it to mount.cifs on stdin, never as an argument or a file.
+
 ### Adding a New Peer
 
 Run `~/openbsd-dotfiles/scripts/add-vpn-client.sh <name> [--jellyfin]` from optiplex-fw. The script:

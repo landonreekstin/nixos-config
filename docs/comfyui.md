@@ -112,7 +112,9 @@ back to `input/`, `output/`, `workflows/` under `/var/lib/comfyui`.
 
 ## Operating it
 
-ComfyUI does **not** start at boot. Two commands, run as lando (they ask for sudo):
+ComfyUI does **not** start at boot. Two commands, run as lando (they ask for sudo, and
+`comfy-start` also asks for the private share's own password; see
+[networking.md](networking.md#nas-behind-firewall-specifics)):
 
 ```bash
 comfy-start   # mount the private share (private-share), start ComfyUI, print its URLs
