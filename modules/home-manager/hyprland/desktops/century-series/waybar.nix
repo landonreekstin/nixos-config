@@ -119,7 +119,10 @@ let
         line3="$line3''${slot["$m,SW"]} ''${slot["$m,S"]} ''${slot["$m,SE"]}"
       done
 
-      text="$line1"$'\n'"$line2"$'\n'"$line3"
+      # Three text rows make this the tallest widget, so it sets the whole
+      # bar's height (it pushed the bar to 47px against a configured 36).
+      # GTK3 CSS has no line-height, so pack the rows with Pango's instead.
+      text="<span line_height='0.8'>$line1"$'\n'"$line2"$'\n'"$line3</span>"
 
       cls="rwr-idle"
       if [ "$any_active" = "1" ]; then cls="rwr-active"; fi
@@ -1308,8 +1311,8 @@ in {
           font-family: "JetBrainsMono Nerd Font", "JetBrains Mono", monospace;
           font-size: 9px;
           font-weight: 700;
-          padding: 1px 8px;
-          margin: 2px 4px;
+          padding: 0 8px;  /* no vertical slack: this widget sets the bar height */
+          margin: 0 4px;
           background-color: @c_bg_primary;
           border: 1px solid @c_border_primary;
           border-radius: 3px;

@@ -25,7 +25,8 @@ let
 
     MOUNTPOINT_BIN=${pkgs.util-linux}/bin/mountpoint
     UMOUNT=${pkgs.util-linux}/bin/umount
-    MOUNT_CIFS=${pkgs.cifs-utils}/bin/mount.cifs
+    # getBin: cifs-utils 7.5 moved its programs to a separate "bin" output
+    MOUNT_CIFS=${lib.getBin pkgs.cifs-utils}/bin/mount.cifs
     BASH=${pkgs.bash}/bin/bash
     TIMEOUT=${pkgs.coreutils}/bin/timeout
 
