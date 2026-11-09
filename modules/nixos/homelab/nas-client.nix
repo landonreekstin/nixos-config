@@ -16,6 +16,8 @@ let
   # drive mounted at /mnt/private there. It is deliberately not a `fileSystems` entry
   # on this host: no fstab line, no x-systemd.automount, no _netdev unit. Nothing
   # mounts it except someone running this command, and `private-share -u` puts it away.
+  # It is protected by its own password (separate passdb on the NAS), typed at the
+  # prompt each time and never stored on this host.
   #
   # mount.cifs is invoked directly rather than through `mount -t cifs` so the mount
   # helper never has to be found on PATH under sudo.
@@ -34,7 +36,7 @@ let
     SHARE=${lib.escapeShellArg cfg.privateShare.share}
     PORT=${toString cfg.privateShare.port}
     DIR=${lib.escapeShellArg cfg.privateShare.mountPoint}
-    CREDS=${lib.escapeShellArg config.sops.secrets.smb-credentials.path}
+    SMBUSER=${lib.escapeShellArg cfg.privateShare.username}
     OWNER=${lib.escapeShellArg config.customConfig.user.name}
     FILEMANAGER=${lib.escapeShellArg fileManager}
 
@@ -91,8 +93,41 @@ let
       # whoever reads the mount or every write fails with EACCES. `lando` is uid 1000
       # on some hosts and 1002 on gaming-pc (uid is auto-allocated — users.users.<u>.uid
       # is null repo-wide), so a numeric literal here would only ever be right by luck.
-      if ! "$SUDO" "$MOUNT_CIFS" "//$SERVER/$SHARE" "$DIR" \
-             -o "credentials=$CREDS,port=$PORT,uid=$OWNER,gid=100,iocharset=utf8"; then
+      # The private share has its OWN password (a separate passdb on the NAS), asked
+      # for every time and never stored on this host. It is deliberately not the
+      # `smb-credentials` login: that file sits decrypted in /run/secrets, so anyone
+      # with root here could have mounted the share with it.
+      #
+      # The password reaches mount.cifs on stdin via PASSWD_FD=0, never as an argument
+      # (arguments are world-readable in /proc). printf is a shell builtin, so it never
+      # shows up in a process list either. sudo was already authorised by the mkdir
+      # above, so its own prompt can't interleave with this one.
+      if ! { : </dev/tty; } 2>/dev/null; then
+        echo "private-share needs a terminal to ask for the private share's password." >&2
+        "$SUDO" ${pkgs.coreutils}/bin/rmdir "$DIR" 2>/dev/null || true
+        exit 1
+      fi
+      mounted=0
+      for attempt in 1 2 3; do
+        PW=
+        IFS= read -r -s -p "Password for the private share: " PW </dev/tty || PW=
+        echo >/dev/tty
+        if [ -z "$PW" ]; then
+          echo "No password entered." >&2
+          continue
+        fi
+        if printf '%s' "$PW" | "$SUDO" ${pkgs.coreutils}/bin/env PASSWD_FD=0 "$MOUNT_CIFS" \
+             "//$SERVER/$SHARE" "$DIR" \
+             -o "username=$SMBUSER,port=$PORT,uid=$OWNER,gid=100,iocharset=utf8"; then
+          mounted=1
+          break
+        fi
+        echo "Mount failed (wrong password?) — attempt $attempt of 3." >&2
+      done
+      PW=
+      unset PW
+
+      if [ "$mounted" -ne 1 ]; then
         # Leave no empty directory behind on failure: an unmounted /mnt/... that still
         # exists is a place for a stray write to land on the LOCAL disk, which is
         # exactly how the NAS ended up serving a "private" share off its root fs.
@@ -173,8 +208,22 @@ in
           This deliberately creates no `fileSystems` entry: there is no fstab line,
           no `x-systemd.automount`, and nothing mounts at boot or on first access.
           The share is mounted only by running the command and stays mounted until
-          `private-share -u`. Uses the same `smb-credentials` sops secret as the
-          storage share above, so it works with `enable = false` too.
+          `private-share -u`.
+
+          The share is protected by its own password, held only (hashed) in the
+          NAS private smbd's separate passdb — see modules/nixos/homelab/samba.nix.
+          The command prompts for it on every mount; it is never stored on this host,
+          and the `smb-credentials` login used by the storage share is rejected.
+        '';
+      };
+      username = mkOption {
+        type = types.str;
+        default = config.customConfig.user.name;
+        defaultText = "config.customConfig.user.name";
+        description = ''
+          Samba account to log in to the private share as. Must match
+          `customConfig.homelab.samba.private.user` on the NAS, the one account
+          allowed on it.
         '';
       };
       mountPoint = mkOption {
@@ -203,13 +252,15 @@ in
   };
 
   config = lib.mkMerge [
-    # Shared by both mounts: the mount helper and the credentials secret. Declared
-    # for either half so the private share can be used on a host that doesn't
-    # automount the storage share.
+    # Shared by both mounts: the mount helper.
     (lib.mkIf (cfg.enable || cfg.privateShare.enable) {
       # cifs-utils provides the mount.cifs helper required for CIFS fileSystems
       environment.systemPackages = [ pkgs.cifs-utils ];
+    })
 
+    # The storage share's login. The private share never uses it (it has its own
+    # password, typed at `private-share`), so it is only decrypted where needed.
+    (lib.mkIf cfg.enable {
       sops.secrets.smb-credentials = {
         sopsFile = ../../../secrets/common.yaml;
       };
