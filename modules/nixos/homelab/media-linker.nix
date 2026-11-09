@@ -37,9 +37,13 @@ let
     jq=${lib.getExe pkgs.jq}
     curl="${pkgs.curl}/bin/curl"
 
+    # Retry for up to a minute: systemd marks Radarr/Sonarr/Seerr started
+    # several seconds before they accept connections, so a run that lands
+    # during a rebuild's restarts would otherwise fail on "connection refused".
     api() {
       local url="$1" key="$2"
-      $curl -sf -H "X-Api-Key: $key" "$url"
+      $curl -sf --retry 10 --retry-delay 5 --retry-connrefused --retry-max-time 60 \
+        -H "X-Api-Key: $key" "$url"
     }
 
     # ---------------------------------------------------------------
@@ -249,7 +253,7 @@ in
 
     systemd.services.media-linker = {
       description = "Sync per-user Jellyfin libraries via hardlinks";
-      after = [ "network.target" "jellyseerr.service" "radarr.service" "sonarr.service" ];
+      after = [ "network.target" "seerr.service" "radarr.service" "sonarr.service" ];
       wants = [ "network.target" ];
 
       serviceConfig = {
