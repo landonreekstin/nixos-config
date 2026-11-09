@@ -38,8 +38,8 @@
         command = "flatpak run com.discordapp.Discord";
       };
 
-      # Alternative browser (Super+Alt+B) is Chromium here rather than the
-      # default Brave. ungoogled-chromium's binary is named `chromium`, so `exe`
+      # Alternative browser (Super+Alt+B) is ungoogled-chromium here rather than
+      # the default Chromium. ungoogled-chromium's binary is named `chromium`, so `exe`
       # must be set alongside the package. It used to be installed via
       # packages.homeManager; the role owns the install now, so it is not listed
       # in both places.
@@ -262,7 +262,6 @@
       unstable-override = [
         "obs-studio"
         "vscode"
-        "brave"
         "ungoogled-chromium"
         "claude-code"
         "gurk-rs"
@@ -270,8 +269,8 @@
         "signal-desktop"
       ];
       # vscode, firefox, discord and signal-desktop now come from
-      # customConfig.apps.programs (ide, browser, chat, chatAlt). browserAlt is
-      # Chromium here, so brave is listed below to keep it installed.
+      # customConfig.apps.programs (ide, browser, chat, chatAlt). Brave is a
+      # Flathub app now (nixpkgs removed it), see flatpak.packages below.
       homeManager = with pkgs; [
         # Kept installed alongside Firefox, but no longer on the browser role and
         # deliberately NOT managed by customConfig.homeManager.browser — its
@@ -284,7 +283,6 @@
         jamesdsp
         remmina
         md-tui
-        brave  # no longer installed by the browserAlt role (now Chromium)
         qbittorrent
         obs-studio
         kdePackages.konversation
@@ -313,6 +311,7 @@
         packages = [
           "com.discordapp.Discord"
           "io.mrarm.mcpelauncher"
+          "com.brave.Browser"  # nixpkgs removed brave (2026-W46)
         ];
       };
     };
