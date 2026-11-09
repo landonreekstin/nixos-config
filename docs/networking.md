@@ -150,7 +150,7 @@ the NAS's `/mnt/storage/`, and every peer's phone/PC config by hand.
 | Lucas | 10.10.0.15 | Restricted | NAS only |
 | Justus | 10.10.0.16 | Restricted | NAS only |
 | Blaney (mobile) | 10.10.0.17 | Restricted | NAS only. Same access as Blaney; none of blaney-pc's inbound SSH/R62D exceptions. |
-| Lando (Android, private) | 10.10.0.18 | Private only | Private split tunnel: NAS private share + ComfyUI, nothing else. Client config `~/openbsd-dotfiles/wireguard-clients/lando-phone-private-client.conf` on optiplex-fw. See [lando's phone: two tunnels](#landos-phone-two-tunnels). |
+| Lando (Android, private) | 10.10.0.18 | Private only | Private split tunnel: NAS private share + ComfyUI, nothing else. Client config `~/openbsd-dotfiles/wireguard-clients/lando-phone-private-client.conf` on optiplex-fw, copy on the NAS **private** share (`/mnt/private/`, not storage: the everyday tunnel can reach storage). See [lando's phone: two tunnels](#landos-phone-two-tunnels). |
 
 Restricted peers can reach (all via the legacy 192.168.1.76 alias, rdr'd to the NAS at 192.168.100.76, except The Batman, which goes to gaming-pc): The Batman netplay (7845, see below), Jellyfin (8096), Jellyseerr (5055), article2pod/reader (8100) on the NAS, and game-control dashboard (8080) + Vaultwarden (8222) + browser-puck (8787) + R62D (6262), both see below, on mini-server. Blaney's two peers (.5, .17) can also reach Forgejo (3000) on mini-server, see [Forgejo](#forgejo-port-3000). Transmission is no longer exposed to restricted peers. All other traffic blocked via `<restricted_peers>` PF table.
 
