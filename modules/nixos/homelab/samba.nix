@@ -4,6 +4,11 @@
 let
   # Pull the customConfig settings into a local variable for easier access.
   cfg = config.customConfig.homelab.samba;
+
+  # Separate passdb for the private smbd (see smb-private.conf below). On the root
+  # filesystem, not the private drive, so it exists before that drive is unlocked
+  # and the password can be set while the share is down.
+  privatePassdbDir = "/var/lib/samba-private";
 in
 {
   options.customConfig.homelab.samba = with lib; {
@@ -94,6 +99,14 @@ in
           pid directory = /run/samba-private
           # Also set the ncalrpc directory to avoid conflicts
           ncalrpc dir = /run/samba-private/ncalrpc
+          # Its OWN password database. Without this both smbds read the default
+          # passdb, so the storage-share login (the `smb-credentials` sops secret,
+          # decrypted onto every client host) also opened the private share. With a
+          # separate passdb the private share has a password of its own that is
+          # stored nowhere but here, hashed. Set or change it on this host with:
+          #   sudo smbpasswd -c /etc/smb-private.conf -a ${cfg.private.user}
+          # Until it is set, nobody can log in to the private share.
+          passdb backend = tdbsam:${privatePassdbDir}/passdb.tdb
 
           [private]
           # Values are NOT quoted: smb.conf takes the rest of the line verbatim, so a
@@ -106,6 +119,7 @@ in
           browseable = yes
           read only = no
           guest ok = no
+          valid users = ${cfg.private.user}
           force user = ${cfg.private.user}
           # Set sane default permissions for new files and directories.
           create mask = 0664
@@ -147,6 +161,9 @@ in
           ${pkgs.coreutils}/bin/mkdir -p /run/samba-private/ncalrpc
         '';
       };
+
+      # Root-only home for the private passdb (password hashes).
+      systemd.tmpfiles.rules = [ "d ${privatePassdbDir} 0700 root root -" ];
 
       # 3. Ensure our new service is started at boot.
       systemd.targets.multi-user.wants = [ "samba-private.service" ];

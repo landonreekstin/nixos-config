@@ -376,14 +376,19 @@ in
           StandardInput = "null";
           StandardOutput = "null";
           StandardError = "journal";
+          # Back off from 10s to 30min between retries instead of giving up. A
+          # start limit used to stop the unit for good, so a two-minute internet
+          # outage (DNS failing) left it dead until someone noticed. The backoff
+          # still keeps a lasting failure (expired login) from hot-looping
+          # against Anthropic's servers: once it reaches the cap, it's one try
+          # every 30 minutes.
           Restart = "always";
           RestartSec = 10;
+          RestartSteps = 8;
+          RestartMaxDelaySec = "30min";
         };
 
-        # A failure that survives a restart (expired login, say) should stop rather
-        # than hot-loop against Anthropic's servers.
-        startLimitIntervalSec = 300;
-        startLimitBurst = 5;
+        startLimitIntervalSec = 0;
       }) rcServers));
   };
 }
