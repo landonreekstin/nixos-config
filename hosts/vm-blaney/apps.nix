@@ -26,7 +26,7 @@
 
     packages = {
       nixos = with pkgs; [ ];
-      unstable-override = [ ];
+      unstable-override = [ "vscode" ];
       homeManager = with pkgs; [
         kitty
         notes
