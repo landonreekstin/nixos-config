@@ -8,8 +8,8 @@ ComfyUI runs on **gaming-pc** in a GPU container (`customConfig.programs.comfyui
 | From | Address |
 |---|---|
 | gaming-pc itself | `http://localhost:8188` |
-| lando's full VPN peers (10.10.0.2, 10.10.0.3) | `http://10.10.0.11:8188` (gaming-pc's `wg-nas` address) |
-| Main LAN, restricted VPN peers, anything else | blocked |
+| gaming-pc's roaming peer (10.10.0.2), lando's phone on its private tunnel (10.10.0.18) | `http://10.10.0.11:8188` (gaming-pc's `wg-nas` address) |
+| Main LAN, the phone's everyday tunnel (10.10.0.3), restricted VPN peers, anything else | blocked |
 
 The container itself has no internet (see [Offline](#offline-no-way-out)). A small host
 proxy (`comfyui-proxy.service`, socat) listens on 8188 and carries connections in to it, so

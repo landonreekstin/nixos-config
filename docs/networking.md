@@ -136,7 +136,7 @@ the NAS's `/mnt/storage/`, and every peer's phone/PC config by hand.
 | Name | VPN IP | Access | Notes |
 |------|--------|--------|-------|
 | Lando (gaming-pc) | 10.10.0.2 | Full | |
-| Lando (Android) | 10.10.0.3 | Full | full tunnel (0.0.0.0/0) |
+| Lando (Android) | 10.10.0.3 | Full, minus private | Everyday tunnel, full (0.0.0.0/0). pf blocks it from the NAS private share (4445) and ComfyUI (8188/8189); those go through 10.10.0.18. See [lando's phone: two tunnels](#landos-phone-two-tunnels). |
 | Chris | 10.10.0.4 | Restricted | NAS only (192.168.1.76) |
 | Blaney | 10.10.0.5 | Restricted | NAS only. Re-keyed 2026-08-02 (`52c397b`); client is the declarative NM profile in `hosts/blaney-pc/networking.nix`, key in `secrets/blaney-pc.yaml`. Inbound exception: pf passes tcp/22 from 10.10.0.2/10.10.0.11 to it (lando's `ssh blaney`, see [hosts/blaney-pc.md](hosts/blaney-pc.md#lando-over-ssh)). Also tcp/6262 from the same two (lando joining an R62D game hosted on blaney-pc at `http://10.10.0.5:6262`); the shared server is now on mini-server, see [R62D](#r62d-port-6262). |
 | Emily | 10.10.0.6 | Restricted | NAS only |
@@ -150,6 +150,7 @@ the NAS's `/mnt/storage/`, and every peer's phone/PC config by hand.
 | Lucas | 10.10.0.15 | Restricted | NAS only |
 | Justus | 10.10.0.16 | Restricted | NAS only |
 | Blaney (mobile) | 10.10.0.17 | Restricted | NAS only. Same access as Blaney; none of blaney-pc's inbound SSH/R62D exceptions. |
+| Lando (Android, private) | 10.10.0.18 | Private only | Private split tunnel: NAS private share + ComfyUI, nothing else. Client config `~/openbsd-dotfiles/wireguard-clients/lando-phone-private-client.conf` on optiplex-fw. See [lando's phone: two tunnels](#landos-phone-two-tunnels). |
 
 Restricted peers can reach (all via the legacy 192.168.1.76 alias, rdr'd to the NAS at 192.168.100.76, except The Batman, which goes to gaming-pc): The Batman netplay (7845, see below), Jellyfin (8096), Jellyseerr (5055), article2pod/reader (8100) on the NAS, and game-control dashboard (8080) + Vaultwarden (8222) + browser-puck (8787) + R62D (6262), both see below, on mini-server. Blaney's two peers (.5, .17) can also reach Forgejo (3000) on mini-server, see [Forgejo](#forgejo-port-3000). Transmission is no longer exposed to restricted peers. All other traffic blocked via `<restricted_peers>` PF table.
 
@@ -269,7 +270,38 @@ applied. That rule was removed on 2026-10-18. The file from before any of this i
 
 ### ComfyUI (port 8188)
 
-ComfyUI runs on gaming-pc and is for full peers only. They reach it at **`http://10.10.0.11:8188`** (gaming-pc's wg-nas address) over the same no-NAT path as The Batman, and gaming-pc's firewall accepts 8188 on `wg-nas` from 10.10.0.2 and 10.10.0.3 only. No pf rule and no `.76` forward, so restricted peers never reach it. See [comfyui.md](comfyui.md).
+ComfyUI runs on gaming-pc. It is reached at **`http://10.10.0.11:8188`** (gaming-pc's wg-nas address) over the same no-NAT path as The Batman, and gaming-pc's firewall accepts 8188 on `wg-nas` from 10.10.0.2 and 10.10.0.18 (the phone's private tunnel) only. No `.76` forward, so restricted peers never reach it; pf also blocks the phone's everyday 10.10.0.3 from it (see below). See [comfyui.md](comfyui.md).
+
+### lando's phone: two tunnels
+
+lando's Android has two WireGuard tunnels, so everyday use never touches the private data:
+
+| Tunnel | VPN IP | Client `AllowedIPs` | Reaches |
+|---|---|---|---|
+| everyday | 10.10.0.3 | `0.0.0.0/0` | everything **except** the private share and ComfyUI |
+| private | 10.10.0.18 | `192.168.100.76/32, 10.10.0.11/32` | **only** `smb://192.168.100.76:4445/private` and `http://10.10.0.11:8188` (8189 for `comfy-maintenance`) |
+
+Android runs one tunnel at a time: switch to *private* for the share or ComfyUI. gaming-pc
+itself (10.10.0.2/.11) is untouched and still reaches everything. ComfyUI is enforced
+twice (pf, plus gaming-pc's `allowedSources`); the private share once (pf; the NAS runs
+no host firewall). In `/etc/pf.conf`, placed before the `<restricted_peers>` block:
+
+```
+lando_phone      = "10.10.0.3"
+lando_phone_priv = "10.10.0.18"
+private_smb_port = "4445"
+comfy_ports      = "{ 8188 8189 }"
+gaming_pc_wg     = "10.10.0.11"
+gaming_pc_lan    = "192.168.1.101"
+block in quick on wg0 proto { tcp udp } from $lando_phone to { $nas_host, $nas_legacy_ip } port $private_smb_port
+block in quick on wg0 proto { tcp udp } from $lando_phone to { $gaming_pc_wg, $gaming_pc_lan } port $comfy_ports
+pass  in quick on wg0 proto tcp from $lando_phone_priv to $nas_host port $private_smb_port keep state
+pass  in quick on wg0 proto tcp from $lando_phone_priv to $gaming_pc_wg port $comfy_ports keep state
+block in quick on wg0 from $lando_phone_priv
+```
+
+The files from before this are `/etc/pf.conf.bak-before-phone-private` and
+`/etc/hostname.wg0.bak-before-phone-private`.
 
 ### browser-puck (port 8787)
 
