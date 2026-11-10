@@ -5,7 +5,13 @@ let
 
   isHyprlandHost = lib.elem "hyprland" customConfig.desktop.environments;
   launcherEnabled = customConfig.desktop.hyprland.launcher.enable;
-  pinnedApps = customConfig.desktop.hyprland.launcher.pinnedApps;
+  # Launcher buttons: the pinned apps, then one per app preset (hyprland/presets.nix).
+  pinnedApps = customConfig.desktop.hyprland.launcher.pinnedApps
+    ++ lib.mapAttrsToList (n: p: {
+      inherit (p) label;
+      command = "hypr-preset ${n}";
+      tooltip = "${lib.optionalString (p.key != null) "SUPER+${p.key} — "}${n} layout";
+    }) customConfig.homeManager.hyprland.presets;
   hasScreenBacklight = customConfig.hardware.display.backlight.enable;
   hasKbdBacklight = customConfig.hardware.kbdBacklight.enable;
   hasBattery = customConfig.hardware.battery.enable;
@@ -472,6 +478,12 @@ in
   ];
 
   config = lib.mkIf isHyprlandHost {
+    # The themes style #custom-launcher0 through #custom-launcher9 only.
+    assertions = [{
+      assertion = !launcherEnabled || lib.length pinnedApps <= 10;
+      message = "The launcher bar holds at most 10 buttons (pinnedApps plus hyprland presets); this host has ${toString (lib.length pinnedApps)}.";
+    }];
+
     programs.waybar = {
       enable = true;
       systemd.enable = false; # Ensures Waybar must be launched implicitly by the wayland compositor such as Hyprland

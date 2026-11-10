@@ -22,6 +22,21 @@
       enabled = [ "century-series" "xbox360" ];
       default = "century-series";
     };
+    # App layouts: Super+F1-F4, and buttons at the end of the launcher bar. Workspaces
+    # are per monitor (slot 1 = the one it shows now, 2 = a new empty one); apps
+    # already open are moved instead of started again.
+    hyprland.presets = {
+      gaming = {
+        key = "F1";
+        label = "SORTIE";
+        apps = [
+          { command = config.customConfig.apps.programs.browser.command; class = "firefox"; monitor = "main"; }
+          { command = "steam"; class = "steam"; monitor = "main"; slot = 2; }
+          { command = config.customConfig.apps.programs.chat.command; class = "discord"; monitor = "right"; }
+          { command = "signal-desktop"; class = "signal"; monitor = "right"; }
+        ];
+      };
+    };
     themes = {
       xbox360 = {
         transmissionUrl = "http://transmission.lan/transmission/rpc";

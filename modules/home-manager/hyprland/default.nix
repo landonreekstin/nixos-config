@@ -10,5 +10,6 @@
     ./desktop-apps.nix
     ./screen-dim.nix
     ./screen-light.nix
+    ./presets.nix
   ];
 }
