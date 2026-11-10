@@ -18,6 +18,52 @@ let
   colors = import ./colors.nix;
   rgb = c: "rgb(${lib.removePrefix "#" c})";
 
+  # Right-click on the volume board: a small menu of every sound output that works right
+  # now (a plugged-in jack, a connected screen, a Bluetooth speaker), the one in use
+  # marked with a dot. Picking one makes it the default and moves playing sound onto it.
+  soundOutputs = pkgs.writeShellScript "glade-sound-outputs" ''
+    export PATH=${lib.makeBinPath [ pkgs.pulseaudio pkgs.jq pkgs.rofi pkgs.coreutils ]}:$PATH
+    def=$(pactl get-default-sink)
+    cur=$(pactl -f json list sinks | jq -r --arg d "$def" \
+      '.[] | select(.name == $d) | "\(.properties["device.name"])/\(.active_port)"')
+    # card<TAB>port<TAB>profile to switch to<TAB>label, one line per working output.
+    list=$(pactl -f json list cards | jq -r '
+      .[] | . as $c | .ports | to_entries[]
+      | select(.value.direction == "output" or (.value.direction == null and (.key | test("output"))))
+      | select(.value.availability == "available"
+               or (($c.name | startswith("bluez")) and .value.availability != "not available"))
+      | (if (.value.profiles | index($c.active_profile)) then $c.active_profile
+         else ([.value.profiles[] | select($c.profiles[.].available) | {n: ., p: $c.profiles[.].priority}]
+               | max_by(.p) | .n // empty) end) as $prof
+      | [ $c.name, .key, $prof,
+          (if ($c.name | startswith("bluez")) then $c.properties["device.description"]
+           elif .value.type == "HDMI" then "Screen: \(.value.properties["device.product.name"] // .value.description)"
+           elif .key == "analog-output-headphones" then "Headphones"
+           elif .key == "analog-output-lineout" then "Speakers"
+           else .value.description end) ] | @tsv')
+    [ -n "$list" ] || exit 0
+    n=$(printf '%s\n' "$list" | wc -l)
+    h=$(( n * 60 + 60 ))
+    pick=$(printf '%s\n' "$list" | while IFS=$'\t' read -r card port prof label; do
+        if [ "$card/$port" = "$cur" ]; then echo "●  $label"; else echo "    $label"; fi
+      done | rofi -dmenu -i -format i -no-custom -p "" \
+        -theme-str "mainbox { margin: calc(50% - $(( h / 2 ))px) calc(50% - 200px); } inputbar { enabled: false; } listview { columns: 1; lines: $n; fixed-height: false; }")
+    [ -n "$pick" ] || exit 0
+    IFS=$'\t' read -r card port prof label < <(printf '%s\n' "$list" | sed -n "$(( pick + 1 ))p")
+    [ "$prof" = "$(pactl -f json list cards | jq -r --arg c "$card" '.[] | select(.name == $c) | .active_profile')" ] \
+      || pactl set-card-profile "$card" "$prof"
+    sink=""
+    for _ in $(seq 20); do
+      sink=$(pactl -f json list sinks | jq -r --arg c "$card" '[.[] | select(.properties["device.name"] == $c)][0].name // empty')
+      [ -n "$sink" ] && break
+      sleep 0.1
+    done
+    [ -n "$sink" ] || exit 1
+    pactl set-sink-port "$sink" "$port" 2>/dev/null || true
+    pactl set-default-sink "$sink"
+    for s in $(pactl list short sink-inputs | cut -f1); do pactl move-sink-input "$s" "$sink"; done
+  '';
+
   # The homelab VPN board in the bar: "VPN on" / "VPN off", and a click switches it.
   vpn = customConfig.services.wireguard.nmClient;
   nmcli = "${pkgs.networkmanager}/bin/nmcli";
@@ -268,8 +314,9 @@ in
       pulseaudio = {
         format = "🔊 {volume}%";
         format-muted = "🔇 muted";
-        tooltip-format = "Volume — scroll to change it, click for sound settings";
+        tooltip-format = "Volume — scroll to change it, click for sound settings, right-click to pick where sound plays";
         on-click = "${pkgs.pavucontrol}/bin/pavucontrol";
+        on-click-right = "${soundOutputs}";
         scroll-step = 5;
       };
       "custom/vpn" = lib.mkIf vpn.enable {
