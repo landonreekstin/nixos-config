@@ -16,13 +16,11 @@
       ];
       unstable-override = [
         "vscode"
-        "brave"
         "ungoogled-chromium"
       ];
       homeManager = with pkgs; [
         vscode
         librewolf
-        brave
         notes
         CuboCore.corepaint
         kdePackages.kdenlive
@@ -32,6 +30,7 @@
         packages = [
           "com.spotify.Client"
           "com.discordapp.Discord"
+          "com.brave.Browser"  # nixpkgs removed brave (2026-W46)
         ];
       };
     };

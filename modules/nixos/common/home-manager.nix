@@ -563,6 +563,58 @@ in
         '';
       };
     };
+    # App presets: one keybind or launcher-bar button lays out a set of apps across
+    # monitors and workspaces (`hypr-preset <name>`, modules/home-manager/hyprland/presets.nix).
+    hyprland.presets = mkOption {
+      default = { };
+      description = ''
+        Named Hyprland app layouts. Running one starts each app (or moves its already
+        open windows) onto a workspace of the given monitor. Each preset is bound to
+        Super+`key` and gets a button on the launcher bar when that is enabled.
+      '';
+      type = types.attrsOf (types.submodule {
+        options = {
+          key = mkOption {
+            type = types.nullOr types.str;
+            default = null;
+            example = "F1";
+            description = "Key bound with Super to run the preset, or null for none.";
+          };
+          label = mkOption {
+            type = types.str;
+            description = "Launcher-bar button text.";
+          };
+          apps = mkOption {
+            description = "The apps the preset places.";
+            type = types.listOf (types.submodule {
+              options = {
+                command = mkOption {
+                  type = types.str;
+                  description = "Command that starts the app when none of its windows are open.";
+                };
+                class = mkOption {
+                  type = types.str;
+                  description = "Case-insensitive regex for the app's Hyprland window class.";
+                };
+                monitor = mkOption {
+                  type = types.str;
+                  description = "The `name` of an entry in customConfig.desktop.monitors.";
+                };
+                slot = mkOption {
+                  type = types.ints.positive;
+                  default = 1;
+                  description = ''
+                    Which workspace on that monitor: 1 is the one it is showing when the
+                    preset runs; 2, 3, ... are new empty workspaces created on it. Apps
+                    with the same monitor and slot share a workspace.
+                  '';
+                };
+              };
+            });
+          };
+        };
+      });
+    };
     themes = {
       kde = mkOption {
         type = types.enum [ "windows7" "windows7-alt" "default" "bigsur" "none" ];

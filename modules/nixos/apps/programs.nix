@@ -112,7 +112,9 @@ in
         description = "Primary web browser (Super+B).";
       };
       browserAlt = mkAppRole {
-        package = pkgs.brave; exe = "brave";
+        # Was Brave until nixpkgs removed it (2026-W46); hosts that want it use
+        # the Flathub build (com.brave.Browser) via package = null + command.
+        package = pkgs.chromium; exe = "chromium";
         description = "Alternative web browser (Super+Alt+B).";
       };
 

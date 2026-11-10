@@ -9,5 +9,6 @@
     ./desktops.nix
     ./desktop-apps.nix
     ./screen-dim.nix
+    ./presets.nix
   ];
 }

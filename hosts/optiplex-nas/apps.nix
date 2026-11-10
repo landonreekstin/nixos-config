@@ -23,6 +23,7 @@
         claude-code
       ];
       unstable-override = [
+        "vscode"
         "claude-code"
       ];
       homeManager = with pkgs; [
