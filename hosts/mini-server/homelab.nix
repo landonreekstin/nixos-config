@@ -79,7 +79,7 @@
     browserPuck.enable = true;
 
     # R62D (insideabush's 5v5 browser game) for every VPN player: http://192.168.1.76:6262
-    r62d.enable = false;
+    r62d.enable = true;
 
     # Our own git server (prin-rpg): http://192.168.1.76:3000, docs/forgejo.md
     forgejo.enable = true;
