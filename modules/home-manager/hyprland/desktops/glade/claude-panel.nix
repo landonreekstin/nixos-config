@@ -42,6 +42,7 @@ in
       `${gladeStatus} attention "<why>"`, and `${gladeStatus} calm` once he has answered.
     The panel then says "Open terminal" in orange; clicking the panel always brings up your
     terminal. Never skip a question because he might be on the other screen.
+    Never send Hyprland a command that acts on the window in front (`hyprctl dispatch fullscreen`, `resizeactive`, `setfloating active`, anything with `active`) without first focusing the window you mean (`focuswindow pid:<pid>`) and checking `hyprctl activewindow` shows that pid: the window in front is often a Claude terminal, and it went full screen on him every time a test script did this.
 
   '';
 
@@ -51,5 +52,6 @@ in
       steps use `${gladeStatus} progress N "<first>"` then `${gladeStatus} step "<done>" "<next>"`
       after EVERY step; and `${gladeStatus} attention "<why>"` (then `calm`) when he should come
       to the terminal. Never skip a question because he might be on the other screen.
+    - Never send Hyprland a command that acts on the window in front (`hyprctl dispatch fullscreen`, `resizeactive`, `setfloating active`, anything with `active`) without first focusing the window you mean (`focuswindow pid:<pid>`) and checking `hyprctl activewindow` shows that pid: the window in front is often a Claude terminal, and it went full screen on him every time a test script did this.
   '';
 }
