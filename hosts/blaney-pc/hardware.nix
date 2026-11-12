@@ -56,18 +56,40 @@
   # Keep his G915 keys a soft Glade teal. Solaar can't make lighting stick over the
   # wireless receiver, but OpenRGB 1.1 drives it; without this the server grabs the
   # keyboard and the keys go dark. The server finds devices a while after it starts,
-  # so wait for the keyboard to show up before setting it.
+  # so wait for the keyboard to show up before setting it. Over the cable it is listed
+  # as "Logitech G915 ... (Wired)" and not always first, so find it by name.
+  # OpenRGB only looks for devices when it starts, so plugging the keyboard's cable in or
+  # out later left the keys on their own rainbow. Each time, restart OpenRGB and re-apply.
+  services.udev.extraRules = ''
+    ACTION=="add|remove", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ENV{PRODUCT}=="46d/c33e/*", RUN+="${pkgs.systemd}/bin/systemctl --no-block restart g915-replug.service"
+  '';
+  systemd.services.g915-replug = {
+    description = "Re-find the G915 after its cable is plugged in or out";
+    serviceConfig.Type = "oneshot";
+    script = ''
+      sleep 3   # let it reconnect (wired, or back on the wireless receiver)
+      ${pkgs.systemd}/bin/systemctl restart openrgb.service
+      ${pkgs.systemd}/bin/systemctl restart g915-teal.service
+    '';
+  };
+
   systemd.services.g915-teal = {
     description = "Set the G915 keyboard lights to teal";
     after = [ "openrgb.service" ];
     requires = [ "openrgb.service" ];
     wantedBy = [ "multi-user.target" ];
     serviceConfig.Type = "oneshot";
-    path = [ config.services.hardware.openrgb.package pkgs.gnugrep ];
+    path = [ config.services.hardware.openrgb.package pkgs.gnugrep pkgs.coreutils ];
     script = ''
       for _ in $(seq 60); do
-        if openrgb --client localhost:6742 --list-devices 2>/dev/null | grep -q '^0: G915'; then
-          exec openrgb --client localhost:6742 -d 0 -m Direct -c 00B4A0 -b 40
+        ids=$(openrgb --client localhost:6742 --list-devices 2>/dev/null \
+          | grep -E '^[0-9]+: .*G915' | cut -d: -f1 || true)
+        if [ -n "$ids" ]; then
+          # The server can list one keyboard twice; set every entry.
+          for id in $ids; do
+            openrgb --client localhost:6742 -d "$id" -m Direct -c 00B4A0 -b 40
+          done
+          exit 0
         fi
         sleep 2
       done
