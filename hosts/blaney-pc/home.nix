@@ -20,6 +20,19 @@
       showNewTasks = true;
     };
     # His headphones sit heavier on the left; matches the 50L/67R balance he set on Windows.
+    # Screens follow the sun and weather in Frederick, MD (true colours for fullscreen
+    # games). It drives warmth itself, so the stock night light is off; screenDim provides
+    # the per-screen gamma daemon it uses.
+    services.hyprsunset.enable = false;
+    services.screenDim.enable = true;
+    services.screenLight = {
+      enable = true;
+      latitude = "39.41";
+      longitude = "-77.41";
+      # He found the defaults (70 / 35) a little dim.
+      dayBrightness = 85;
+      nightBrightness = 50;
+    };
     services.audioBalance = {
       enable = true;
       left = 50;

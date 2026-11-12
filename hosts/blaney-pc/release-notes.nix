@@ -5,6 +5,12 @@
 # New blaney-todo tasks are listed automatically — don't add notes for them.
 [
   {
+    date = "2026-11-12";
+    changes = [
+      "Your screens now follow the sun and the weather in Frederick: brighter on sunny days, a bit dimmer on cloudy or rainy ones, and warmer and dimmer at night. Full-screen games get true colours and a little extra brightness; full-screen movies stay easy on the eyes."
+    ];
+  }
+  {
     date = "2026-11-09";
     changes = [
       "Right-click the volume button to pick where sound plays: your headphones, either screen, or a Bluetooth speaker."
