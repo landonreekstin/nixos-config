@@ -18,6 +18,10 @@
     wifi.waybar.enable = true;  # USB WiFi dongle (wlp38s0f3u1) — picker in the Hyprland bar
   };
 
+  # Lets his session talk to the Acer's brightness over DDC/CI (screen-light, home.nix).
+  hardware.i2c.enable = true;
+  services.udev.packages = [ pkgs.ddcutil ];
+
   # The AMD 500-series chipset xHCI controller (0000:02:00.0, USB bus 1/2 — the G915
   # receiver lives there) fails S3 resume: "xHC error in resume, USBSTS 0x401, Reinit",
   # then Logitech HID++ protocol errors and dead input until the receiver is replugged.

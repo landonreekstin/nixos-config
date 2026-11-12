@@ -359,6 +359,28 @@ in
           description = "Lowest level screen-dim goes to, so a screen never turns fully black.";
         };
       };
+      # modules/home-manager/hyprland/screen-light.nix
+      screenLight = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = ''
+            Set screen brightness (DDC/CI where the screen answers, software otherwise) and
+            warmth from the time of day and the weather at latitude/longitude, with true
+            colours for fullscreen games. Needs screenDim on and hyprsunset off.
+          '';
+        };
+        latitude = mkOption { type = types.str; example = "39.41"; description = "Decimal latitude for sun and weather."; };
+        longitude = mkOption { type = types.str; example = "-77.41"; description = "Decimal longitude (west is negative)."; };
+        dayBrightness = mkOption { type = types.ints.between 10 100; default = 70; description = "Daytime brightness % before weather."; };
+        nightBrightness = mkOption { type = types.ints.between 10 100; default = 35; description = "Night brightness %."; };
+        nightTemp = mkOption { type = types.ints.between 2500 6500; default = 3800; description = "Night warmth in Kelvin (6500 = neutral)."; };
+        movieClasses = mkOption {
+          type = types.str;
+          default = "*mpv*|*vlc*|*celluloid*|*haruna*|*totem*|*jellyfin*|*firefox*|*librewolf*|*chrom*|*brave*|*freetube*";
+          description = "Shell case pattern of lowercased window classes that count as a movie when fullscreen; any other fullscreen window is a game.";
+        };
+      };
       hyprsunset = {
         enable = mkOption {
           type = types.bool;
