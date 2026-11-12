@@ -9,6 +9,7 @@
     changes = [
       "Your keyboard stays soft teal when it's plugged in by cable, and when you plug or unplug the cable while the computer is on."
       "Your screens now follow the sun and the weather in Frederick: brighter on sunny days, a bit dimmer on cloudy or rainy ones, and warmer and dimmer at night. Full-screen games get true colours and a little extra brightness; full-screen movies stay easy on the eyes."
+      "VibeNote opens in its new silk window now, from the dock and the menu too."
     ];
   }
   {
