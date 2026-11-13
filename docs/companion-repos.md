@@ -220,3 +220,13 @@ echo "hash = \"$HASH\";"
 Then update `rev` and `hash` in `modules/home-manager/scripts/hyprland-keys.nix`,
 eval-check all hosts, rebuild on gaming-pc to verify, then commit and push.
 
+
+## keyripple
+
+- **Repo:** `github.com/cblaney00/keyripple`: insideabush's gold key-press ripple for his G915
+  (his vibe project `~/projects/keyripple`).
+- **Pinned in:** `pkgs/keyripple/default.nix` (`rev`, `hash`)
+- **Service:** `systemd.services.keyripple` in `hosts/blaney-pc/hardware.nix`. It paints
+  through the OpenRGB server and is `partOf` it.
+- **Release:** same as glade; blaney-pc builds it from `~/projects/keyripple`. A single Python
+  file (evdev + openrgb-python).

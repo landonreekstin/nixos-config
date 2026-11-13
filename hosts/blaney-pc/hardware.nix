@@ -87,7 +87,7 @@
         if [ -n "$ids" ]; then
           # The server can list one keyboard twice; set every entry.
           for id in $ids; do
-            openrgb --client localhost:6742 -d "$id" -m Direct -c 00B4A0 -b 40
+            openrgb --client localhost:6742 -d "$id" -m Direct -c 00B4A0 -b 100
           done
           exit 0
         fi
@@ -96,6 +96,28 @@
       echo "G915 never showed up in OpenRGB" >&2
       exit 1
     '';
+  };
+
+  # A soft gold ripple on each key press, over the teal (his own app, pkgs/keyripple,
+  # built here from ~/projects/keyripple). It paints through the OpenRGB server, so it
+  # restarts with it (including after the cable is plugged in or out, g915-replug).
+  # Reads key presses from /dev/input, so it runs as a throwaway user in group input.
+  systemd.services.keyripple = {
+    description = "Gold ripple on the G915 keys when typing";
+    after = [ "openrgb.service" "g915-teal.service" ];
+    requires = [ "openrgb.service" ];
+    partOf = [ "openrgb.service" ];
+    wantedBy = [ "multi-user.target" "openrgb.service" ];
+    serviceConfig = {
+      ExecStart = lib.getExe (pkgs.callPackage ../../pkgs/keyripple
+        (import ../../pkgs/vibe-local-src.nix config.customConfig "keyripple"));
+      DynamicUser = true;
+      SupplementaryGroups = [ "input" ];
+      Restart = "always";
+      RestartSec = 5;
+      # Resting teal at full strength (the app defaults to it at 40 %); he wanted it brighter.
+      Environment = "KEYRIPPLE_BASE=00B4A0";
+    };
   };
 
   # Firmware updates (`fwupdmgr refresh && fwupdmgr update`). This used to arrive as a
