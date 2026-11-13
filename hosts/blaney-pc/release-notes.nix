@@ -39,6 +39,7 @@
     date = "2026-11-06";
     changes = [
       "prin-rpg now lives on Lando's own server instead of GitHub, and you save your changes straight into the game: no more waiting for Lando to merge. Turn the VPN on (top bar) when you work on it."
+      "VR is ready: plug your Quest 2 into the PC and click DCS World (VR), War Thunder (VR) or Phasmophobia (VR) in your app menu. Steam's own Play button still starts them on the monitor."
     ];
   }
   {

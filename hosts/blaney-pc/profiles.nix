@@ -4,6 +4,8 @@
 {
   customConfig.profiles = {
     gaming.enable = true;
+    # Quest 2 over USB (WiVRn) + the DCS / War Thunder / Phasmophobia VR launchers. See docs/vr.md.
+    vr.enable = true;
     development.gbdk.enable = true;
     # Toolchains for his own vibe-coded apps, reached through each project's .envrc
     # (customConfig.programs.vibeProjects in ./apps.nix).
