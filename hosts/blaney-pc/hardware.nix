@@ -87,7 +87,7 @@
         if [ -n "$ids" ]; then
           # The server can list one keyboard twice; set every entry.
           for id in $ids; do
-            openrgb --client localhost:6742 -d "$id" -m Direct -c 00B4A0 -b 40
+            openrgb --client localhost:6742 -d "$id" -m Direct -c 00B4A0 -b 100
           done
           exit 0
         fi
@@ -115,6 +115,8 @@
       SupplementaryGroups = [ "input" ];
       Restart = "always";
       RestartSec = 5;
+      # Resting teal at full strength (the app defaults to it at 40 %); he wanted it brighter.
+      Environment = "KEYRIPPLE_BASE=00B4A0";
     };
   };
 
