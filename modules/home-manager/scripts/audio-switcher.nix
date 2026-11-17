@@ -22,24 +22,13 @@ let
       ICON="${m.icon}"; LABEL="${lib.optionalString (m.label != "") "${m.label}  "}"; CLASS="${m.class}" ;;
   '') sinkMappings;
 
-  # Script: interactively pick an audio output via rofi (century-series themed).
-  # Shows icon + label + description for each sink, then switches to the selection.
-  switchAudioSinkScript = pkgs.writeShellScriptBin "switch-audio-sink" ''
-    #!${pkgs.stdenv.shell}
-
-    # Reset any active L/R flip first so we switch between real hardware sinks
-    # (and the virtual flip sink never appears in the picker).
-    if [ -f "$XDG_RUNTIME_DIR/audio-flip-lr.state" ]; then
-      toggle-audio-flip off
-    fi
-
-    # Build a list of "name|description|device" triples from pactl. The device name is
-    # alsa.name, which on HDMI/DP is the display's EDID name ("LG ULTRAGEAR") — both the
-    # stable thing to match a mapping against and the only human-readable label here,
-    # since every output on one GPU shares a description ("... Controller Pro 7").
-    # It is printed per sink rather than on the Description line because alsa.name comes
-    # later, inside the sink's Properties block.
-    SINK_DATA=$(${pkgs.pulseaudio}/bin/pactl list sinks | ${pkgs.gawk}/bin/awk '
+  # Build a list of "name|description|device" triples from pactl. The device name is
+  # alsa.name, which on HDMI/DP is the display's EDID name ("LG ULTRAGEAR") — both the
+  # stable thing to match a mapping against and the only human-readable label here,
+  # since every output on one GPU shares a description ("... Controller Pro 7").
+  # It is printed per sink rather than on the Description line because alsa.name comes
+  # later, inside the sink's Properties block.
+  sinkDataCmd = ''${pkgs.pulseaudio}/bin/pactl list sinks | ${pkgs.gawk}/bin/awk '
       function flush() { if (name != "") print name "|" desc "|" dev; name = ""; desc = ""; dev = "" }
       /^Sink #/ { flush(); next }
       /^[[:space:]]*Name:/ { name = $2; next }
@@ -52,7 +41,35 @@ let
         dev = substr($0, RSTART + 1, RLENGTH - 2); next
       }
       END { flush() }
-    ' | grep -v '^flip-lr-sink|')
+    ' | grep -v '^flip-lr-sink|'
+  '';
+
+  # Make `sink` the default and move every playing stream onto it.
+  switchToSink = sink: ''
+    ${pkgs.pulseaudio}/bin/pactl set-default-sink "${sink}"
+    # Move all active streams to the new sink
+    ${pkgs.pulseaudio}/bin/pactl list short sink-inputs | ${pkgs.gawk}/bin/awk '{print $1}' | while read -r INPUT_ID; do
+      ${pkgs.pulseaudio}/bin/pactl move-sink-input "$INPUT_ID" "${sink}"
+    done
+    # Initialize WirePlumber's mixer node for the new sink so wpctl get-volume works
+    # immediately (without this, the widget shows 100% until real audio plays through it)
+    ${pkgs.pulseaudio}/bin/paplay --volume=0 ${initSilenceWav} 2>/dev/null
+    # Signal waybar to refresh the audio widget
+    pkill -RTMIN+11 waybar 2>/dev/null || true
+  '';
+
+  # Script: interactively pick an audio output via rofi (century-series themed).
+  # Shows icon + label + description for each sink, then switches to the selection.
+  switchAudioSinkScript = pkgs.writeShellScriptBin "switch-audio-sink" ''
+    #!${pkgs.stdenv.shell}
+
+    # Reset any active L/R flip first so we switch between real hardware sinks
+    # (and the virtual flip sink never appears in the picker).
+    if [ -f "$XDG_RUNTIME_DIR/audio-flip-lr.state" ]; then
+      toggle-audio-flip off
+    fi
+
+    SINK_DATA=$(${sinkDataCmd})
 
     if [ -z "$SINK_DATA" ]; then
       exit 1
@@ -93,17 +110,38 @@ let
     done <<< "$SINK_DATA"
 
     if [ -n "$CHOSEN_SINK" ]; then
-      ${pkgs.pulseaudio}/bin/pactl set-default-sink "$CHOSEN_SINK"
-      # Move all active streams to the new sink
-      ${pkgs.pulseaudio}/bin/pactl list short sink-inputs | ${pkgs.gawk}/bin/awk '{print $1}' | while read -r INPUT_ID; do
-        ${pkgs.pulseaudio}/bin/pactl move-sink-input "$INPUT_ID" "$CHOSEN_SINK"
-      done
-      # Initialize WirePlumber's mixer node for the new sink so wpctl get-volume works
-      # immediately (without this, the widget shows 100% until real audio plays through it)
-      ${pkgs.pulseaudio}/bin/paplay --volume=0 ${initSilenceWav} 2>/dev/null
-      # Signal waybar to refresh the audio widget
-      pkill -RTMIN+11 waybar 2>/dev/null || true
+      ${switchToSink "$CHOSEN_SINK"}
     fi
+  '';
+
+  # Script: switch to the output whose "name|description|device" contains $1 — the
+  # same strings audioSinkMappings match, e.g. `set-audio-sink S27R65x`. Used by the
+  # Hyprland app presets (hyprland/presets.nix).
+  setAudioSinkScript = pkgs.writeShellScriptBin "set-audio-sink" ''
+    #!${pkgs.stdenv.shell}
+
+    WANT="$1"
+    if [ -z "$WANT" ]; then
+      echo "usage: set-audio-sink <part of the sink's name, description or device name>" >&2
+      exit 2
+    fi
+
+    if [ -f "$XDG_RUNTIME_DIR/audio-flip-lr.state" ]; then
+      toggle-audio-flip off
+    fi
+
+    TARGET=""
+    while IFS='|' read -r NAME DESC DEVNAME; do
+      case "$NAME|$DESC|$DEVNAME" in
+        *"$WANT"*) TARGET="$NAME"; break ;;
+      esac
+    done <<< "$(${sinkDataCmd})"
+
+    if [ -z "$TARGET" ]; then
+      echo "set-audio-sink: no output matches '$WANT'" >&2
+      exit 1
+    fi
+    ${switchToSink "$TARGET"}
   '';
 
   # Script: cycle to the next or previous audio output sink.
@@ -153,16 +191,7 @@ let
     NEXT_SINK=$(echo "$SINKS" | ${pkgs.gnused}/bin/sed -n "$((NEXT_IDX + 1))p")
 
     if [ -n "$NEXT_SINK" ]; then
-      ${pkgs.pulseaudio}/bin/pactl set-default-sink "$NEXT_SINK"
-      # Move all active streams to the new sink
-      ${pkgs.pulseaudio}/bin/pactl list short sink-inputs | ${pkgs.gawk}/bin/awk '{print $1}' | while read -r INPUT_ID; do
-        ${pkgs.pulseaudio}/bin/pactl move-sink-input "$INPUT_ID" "$NEXT_SINK"
-      done
-      # Initialize WirePlumber's mixer node for the new sink so wpctl get-volume works
-      # immediately (without this, the widget shows 100% until real audio plays through it)
-      ${pkgs.pulseaudio}/bin/paplay --volume=0 ${initSilenceWav} 2>/dev/null
-      # Signal waybar to refresh the audio widget
-      pkill -RTMIN+11 waybar 2>/dev/null || true
+      ${switchToSink "$NEXT_SINK"}
     fi
   '';
 
@@ -171,6 +200,7 @@ in
   home.packages = [
     switchAudioSinkScript
     cycleAudioSinkScript
+    setAudioSinkScript
     pkgs.pulseaudio  # For pactl commands
     pkgs.gawk
     pkgs.gnused

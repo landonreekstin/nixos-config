@@ -584,6 +584,16 @@ in
             type = types.str;
             description = "Launcher-bar button text.";
           };
+          audioSink = mkOption {
+            type = types.nullOr types.str;
+            default = null;
+            example = "S27R65x";
+            description = ''
+              Audio output to switch to (moving playing streams with it): part of the
+              sink's name, description or device name, as in
+              customConfig.desktop.hyprland.audioSinkMappings. Null leaves audio alone.
+            '';
+          };
           apps = mkOption {
             description = "The apps the preset places.";
             type = types.listOf (types.submodule {
