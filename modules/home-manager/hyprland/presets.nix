@@ -9,6 +9,9 @@
 # a check that the workspace really is on the target monitor (a new one is created
 # on whichever monitor has focus, often the TV).
 #
+# A preset can also switch the audio output first (`audioSink`, via set-audio-sink
+# from scripts/audio-switcher.nix).
+#
 # Apps already open are moved rather than started again. An app with a window
 # already on its target monitor is left alone, which makes re-running a preset a
 # no-op instead of a workspace factory. Windows on special or named workspaces
@@ -36,7 +39,7 @@ let
     (map (a: a.monitor) p.apps)) (lib.attrValues presets));
 
   spec = pkgs.writeText "hypr-presets.json" (builtins.toJSON (lib.mapAttrs (_: p: {
-    inherit (p) label key;
+    inherit (p) label key audioSink;
     apps = map (a: {
       inherit (a) command class slot;
       monitor = let m = monitorNamed a.monitor; in if m == null then a.monitor else hyprId m;
@@ -59,6 +62,12 @@ let
       if [ -z "$preset" ]; then
         echo "hypr-preset: no preset '$name' (try: hypr-preset list)" >&2
         exit 1
+      fi
+
+      # Audio first: it is instant, and the apps below may take a while to appear.
+      sink=$(jq -r '.audioSink // empty' <<<"$preset")
+      if [ -n "$sink" ] && ! set-audio-sink "$sink"; then
+        notify-send -a hypr-preset "Preset $name" "No audio output matches $sink"
       fi
 
       monitors=$(hyprctl -j monitors)

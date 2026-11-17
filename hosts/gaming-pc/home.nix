@@ -29,6 +29,7 @@
       gaming = {
         key = "F1";
         label = "SORTIE";
+        audioSink = "S27R65x";   # headphones, on the right monitor's jack
         apps = [
           { command = config.customConfig.apps.programs.browser.command; class = "firefox"; monitor = "main"; }
           { command = "steam"; class = "steam"; monitor = "main"; slot = 2; }
