@@ -4,10 +4,12 @@
 #
 # A small user daemon, re-evaluated every 20 s:
 #   - time of day: real sunrise/sunset from Open-Meteo (no API key) at the configured
-#     coordinates; bright and neutral by day, dimmer and warmer at night, with an hour-long
+#     coordinates; bright and neutral by day, dimmer and warmer at night, with a three-hour
 #     ramp centred on sunrise and sunset;
 #   - weather (fetched every 15 min, same request): sunny days get brighter, cloudy days a
 #     little dimmer/warmer, rain/snow/storms more so. Weather only matters in daylight;
+#   - every change drifts slowly (about 1 % brightness and 30 K a minute) so it is barely
+#     noticed; only a fullscreen game/movie starting or ending changes at once;
 #   - a fullscreen window on the focused screen: a video player or browser ("movie") keeps
 #     the brightness but caps the warmth; anything else ("game") gets true colours and a
 #     brightness boost.
@@ -84,9 +86,9 @@ let
         awk -v now="$now" -v sr="$sr" -v ss="$ss" -v code="$code" -v cloud="$cloud" -v mode="$mode" '
           function clamp(x, lo, hi) { return x < lo ? lo : (x > hi ? hi : x) }
           BEGIN {
-            # Daylight 0..1, ramping over the hour centred on sunrise and on sunset.
-            f = clamp((now - (sr - 1800)) / 3600, 0, 1)
-            g = clamp(((ss + 1800) - now) / 3600, 0, 1)
+            # Daylight 0..1, ramping over the three hours centred on sunrise and on sunset.
+            f = clamp((now - (sr - 5400)) / 10800, 0, 1)
+            g = clamp(((ss + 5400) - now) / 10800, 0, 1)
             if (g < f) f = g
             b = ${toString cfg.nightBrightness} + f * (${toString cfg.dayBrightness} - ${toString cfg.nightBrightness})
             t = ${toString cfg.nightTemp} + f * (6500 - ${toString cfg.nightTemp})
@@ -102,8 +104,9 @@ let
           }'
       }
 
-      # Move a toward b by at most step.
-      approach() { awk -v a="$1" -v b="$2" -v s="$3" 'BEGIN { d = b - a; if (d > s) d = s; if (d < -s) d = -s; printf "%d\n", a + d }'; }
+      # Move a toward b by at most step (fractional, so the drift can be very slow).
+      approach() { awk -v a="$1" -v b="$2" -v s="$3" 'BEGIN { d = b - a; if (d > s) d = s; if (d < -s) d = -s; printf "%.2f\n", a + d }'; }
+      round() { awk -v x="$1" 'BEGIN { printf "%d\n", x + 0.5 }'; }
 
       apply() {
         local b=$1 t=$2 out soft
@@ -121,7 +124,7 @@ let
       }
 
       find_ddc
-      cur_b=""; cur_t=""; last_ddc=""; last_mode=""; tick=0
+      cur_b=""; cur_t=""; shown_b=""; shown_t=""; last_ddc=""; last_mode=""; tick=0
       while true; do
         fetch_weather
         read -r tb tt label < <(target)
@@ -129,15 +132,18 @@ let
         if [ -z "$cur_b" ] || [ "$mode" != "$last_mode" ]; then
           nb=$tb; nt=$tt          # first run, or a game/movie started or ended: jump
         else
-          nb=$(approach "$cur_b" "$tb" 2); nt=$(approach "$cur_t" "$tt" 100)
+          # Every 20 s: 1/3 % brightness and 10 K, i.e. ~1 % and 30 K a minute.
+          nb=$(approach "$cur_b" "$tb" 0.34); nt=$(approach "$cur_t" "$tt" 10)
         fi
+        rb=$(round "$nb"); rt=$(round "$nt")
         # Re-assert every 5 min too: the gamma daemon or a screen may have restarted.
-        if [ "$nb" != "$cur_b" ] || [ "$nt" != "$cur_t" ] || [ $((tick % 15)) -eq 0 ]; then
+        if [ "$rb" != "$shown_b" ] || [ "$rt" != "$shown_t" ] || [ $((tick % 15)) -eq 0 ]; then
           [ $((tick % 15)) -eq 0 ] && last_ddc=""
-          apply "$nb" "$nt"
+          apply "$rb" "$rt"
+          shown_b=$rb; shown_t=$rt
         fi
         cur_b=$nb; cur_t=$nt; last_mode=$mode; tick=$((tick + 1))
-        echo "$(date '+%F %T') brightness=$cur_b temp=''${cur_t}K target=$tb/''${tt}K ($label) ddc=''${ddc_out:-none}" > "$state/status"
+        echo "$(date '+%F %T') brightness=$rb temp=''${rt}K target=$tb/''${tt}K ($label) ddc=''${ddc_out:-none}" > "$state/status"
         sleep 20
       done
     '';
