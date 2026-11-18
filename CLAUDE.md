@@ -305,6 +305,10 @@ docs(claude): add blaney-pc guidelines
 builds all hosts, and opens a PR. **gaming-pc** (`betaTesterHost = true`) auto-tracks the
 latest `update/*` branch on `update`, soaking the update a week early; the following
 Monday's run auto-merges the prior PR unless it carries the `update-blocked` label.
+A daily `flake-updater-sync` merges `main` into the open update branch (conflict or eval
+failure → it blocks the PR). An unmerged week is **carried forward** into the next week's
+branch, which closes the old PR as superseded. Every block is pushed to lando's phone via ntfy,
+and `update` on lando's hosts warns about blocked PRs.
 
 For Claude, the two common requests:
 - **"approve the update" / "let it merge"** — do nothing. The NAS auto-merges on the next

@@ -11,8 +11,52 @@ Flake updates are automated via a systemd service on `optiplex-nas` that runs ev
 
 1. NAS creates branch `update/YYYY-WNN`, runs `nix flake update`, builds all 9 hosts, opens a GitHub PR
 2. **gaming-pc** (`betaTesterHost = true`) automatically tracks the latest `update/*` branch on the next `update` — it receives the update one week before everyone else
-3. On the **following Monday's run** (about 6 days later, since the check runs before the new PR is opened), the NAS auto-merges the prior week's PR if no `update-blocked` label is present. Auto-merge uses `--admin` so it bypasses the `protect-main-merges` ruleset.
-4. All other hosts pick up the update on their next `update` after the merge
+3. **Every day at 15:00** (`flake-updater-sync`) the NAS merges `main` into each open
+   update branch, eval-checks every host, and pushes. Conflicts and eval failures are caught
+   the day they appear, not on Monday, and gaming-pc never runs a week behind `main`.
+4. On the **following Monday's run** (about 6 days later, since the check runs before the new PR is opened), the NAS syncs once more, then auto-merges the prior week's PR if no `update-blocked` label is present. Auto-merge uses `--admin` so it bypasses the `protect-main-merges` ruleset.
+5. All other hosts pick up the update on their next `update` after the merge
+
+## When an update can't merge: carry-forward
+
+If a PR is still open when the next week's branch is cut, because it was blocked or
+conflicted, the new branch is **cut from that unmerged update branch** (with `main` merged
+in), not from `main`. Its fixes and any beta-host features riding on it stay on gaming-pc
+and arrive with the next merge. The old PR is closed as "Superseded by #N" and its branch
+deleted.
+
+Before this existed, 2026-W46 conflicted with `main`, sat blocked for a week, and W47 was
+cut from `main`. Every W46-only commit silently dropped off gaming-pc.
+
+If the old branch itself conflicts with `main`, the week falls back to `main`. The new PR
+gets a "⚠ Not carried forward" section listing the commits to port by hand, an alert is
+sent, and the old PR stays open.
+
+## Alerts
+
+Anything that needs a human is pushed to a secret **ntfy.sh** topic (sops key `ntfy-topic` in
+`secrets/optiplex-nas.yaml`; read it with `sudo cat /run/secrets/ntfy-topic` on the NAS) and
+subscribe to it in the ntfy phone app:
+- the updater adding `update-blocked`: build failure, merge conflict, or eval failure after a
+  sync. These alert only when the label is newly added, and the reason goes in a PR comment.
+- a failed auto-merge
+- a week that could not be carried forward
+- a crash of `flake-updater` or `flake-updater-sync` (`OnFailure=`)
+
+A PR @mention would not work: the updater uses lando's own token, and GitHub never notifies
+you about your own comments. As a second net, **`update` on lando's hosts prints a warning box
+listing every open `update-blocked` PR**.
+
+## Testing the updater
+
+Run it as `lando` with `DRY_RUN=1`: every push, `gh` write and alert is only logged, and
+builds become evals. `WEEK=` pretends it is another week. For example, to rehearse next
+Monday, including carry-forward:
+```bash
+S=$(systemctl cat flake-updater | sed -n 's/^ExecStart=\(\S*\) run/\1/p')
+sudo -u lando env DRY_RUN=1 WEEK=2026-W48 NIXPKGS_ALLOW_UNFREE=1 HOME=/home/lando PATH="$PATH" "$S" run
+```
+`sudo systemctl start flake-updater-sync` runs a real sync at any time.
 
 ## Blocking a bad update
 
