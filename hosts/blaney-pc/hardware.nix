@@ -60,8 +60,12 @@
   # as "Logitech G915 ... (Wired)" and not always first, so find it by name.
   # OpenRGB only looks for devices when it starts, so plugging the keyboard's cable in or
   # out later left the keys on their own rainbow. Each time, restart OpenRGB and re-apply.
+  # The same goes for the wireless receiver (c547): when it drops off and comes back (or
+  # after the resume rebind above) OpenRGB kept talking to the old one and the keys went
+  # rainbow for good (2026-11-18).
   services.udev.extraRules = ''
     ACTION=="add|remove", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ENV{PRODUCT}=="46d/c33e/*", RUN+="${pkgs.systemd}/bin/systemctl --no-block restart g915-replug.service"
+    ACTION=="add|remove", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ENV{PRODUCT}=="46d/c547/*", RUN+="${pkgs.systemd}/bin/systemctl --no-block restart g915-replug.service"
   '';
   systemd.services.g915-replug = {
     description = "Re-find the G915 after its cable is plugged in or out";
@@ -101,6 +105,8 @@
   # A soft gold ripple on each key press, over the teal (his own app, pkgs/keyripple,
   # built here from ~/projects/keyripple). It paints through the OpenRGB server, so it
   # restarts with it (including after the cable is plugged in or out, g915-replug).
+  # The keyboard falls back to its built-in rainbow when it naps, so the app takes the
+  # lights back every few seconds.
   # Reads key presses from /dev/input, so it runs as a throwaway user in group input.
   systemd.services.keyripple = {
     description = "Gold ripple on the G915 keys when typing";
@@ -108,6 +114,8 @@
     requires = [ "openrgb.service" ];
     partOf = [ "openrgb.service" ];
     wantedBy = [ "multi-user.target" "openrgb.service" ];
+    # Never give up restarting it (the default stops after 5 quick failures).
+    startLimitIntervalSec = 0;
     serviceConfig = {
       ExecStart = lib.getExe (pkgs.callPackage ../../pkgs/keyripple
         (import ../../pkgs/vibe-local-src.nix config.customConfig "keyripple"));
