@@ -11,6 +11,7 @@
     # Mirror blaney-pc: the release-notes popup, with his real notes.
     services.releaseNotes = {
       enable = true;
+      entriesDir = ../blaney-pc/release-notes;
       entries = import ../blaney-pc/release-notes.nix;
       showNewTasks = true;
     };

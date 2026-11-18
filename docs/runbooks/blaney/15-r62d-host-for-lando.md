@@ -95,5 +95,5 @@ a PR: add a short "if Blaney's VPN won't connect" note with the cause and fix un
 **Notes:**
 - You need GitHub yourself. If runbook 12 isn't fixed, push and open the PR with the VPN
   **off**, then leave it the way Blaney had it.
-- Any change he'd notice needs a line in `hosts/blaney-pc/release-notes.nix`
+- Any change he'd notice needs a note file in `hosts/blaney-pc/release-notes/` (see its README)
   (e.g. "The homelab VPN connects again, so Lando can join your R62D games").

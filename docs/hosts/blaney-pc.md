@@ -198,11 +198,17 @@ listing what changed for him and any new `blaney-todo` tasks. It comes from
 `modules/nixos/common/home-manager.nix`, implemented in
 `modules/home-manager/services/release-notes.nix`).
 
-- **The notes are `hosts/blaney-pc/release-notes.nix`**, a plain list, newest first. Whoever
-  makes a change he would notice adds `{ date = "YYYY-MM-DD"; changes = [ "…" ]; }` (or
-  a line to today's entry) in the same PR, from whichever host the work happens on. Write
-  it for him: one short sentence per change, what he will see or can now do, no jargon, and
-  nothing that only touches other machines. Dependency bumps and refactors get no note.
+- **The notes are one file each in `hosts/blaney-pc/release-notes/`**, named
+  `YYYY-MM-DD-<slug>.nix` and holding a list of lines: `[ "…" ]`. The date comes from the
+  name, and any other `.nix` name fails eval. Whoever makes a change he would notice adds a
+  **new** file in the same PR, from whichever host the work happens on. Write it for him: one
+  short sentence per change, what he will see or can now do, no jargon, and nothing that
+  only touches other machines. Dependency bumps and refactors get no note. A file per note
+  is what stops two `blaney/*` branches from conflicting, which they did constantly when
+  everyone inserted at the top of one list (it also blocked update/2026-W46). Several files
+  from one day show under a single date heading (folder: `entriesDir`).
+- **`hosts/blaney-pc/release-notes.nix` is the frozen archive** of the notes from before the
+  folder existed (`entries`, shown after the folder's). Don't add to it, and don't reword it.
 - **New tasks are automatic.** Every runbook in `docs/runbooks/blaney/` that he hasn't been
   shown yet is listed under "New tasks from Lando". Don't write notes for them.
 - **Both lists are baked in at build time**, so a note only appears once the commit that

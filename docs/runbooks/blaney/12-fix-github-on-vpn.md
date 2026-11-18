@@ -73,5 +73,5 @@ VPN). Put the on/off diagnosis output and the cause in the PR description.
 **Notes:**
 - If you can't reproduce it (GitHub works with the VPN on), say so in the PR with the
   diagnosis output and make no changes beyond the SSH check.
-- Any change he'd notice needs a line in `hosts/blaney-pc/release-notes.nix`
+- Any change he'd notice needs a note file in `hosts/blaney-pc/release-notes/` (see its README)
   (e.g. "GitHub works now even with the VPN on").

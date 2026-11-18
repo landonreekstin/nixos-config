@@ -13,9 +13,11 @@
       offerTasks = true;
     };
     # "Lando's nix release notes for you": pops up after an update that brings notes or new
-    # blaney-todo tasks. Add a line to release-notes.nix for every change he would notice.
+    # blaney-todo tasks. Every change he would notice adds a file to release-notes/ (see its
+    # README); release-notes.nix is the frozen archive of older notes.
     services.releaseNotes = {
       enable = true;
+      entriesDir = ./release-notes;
       entries = import ./release-notes.nix;
       showNewTasks = true;
     };
