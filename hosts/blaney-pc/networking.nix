@@ -26,6 +26,13 @@ in
       };
     };
 
+    # net-watch showed big downloads here filling the line and lagging everything (pings
+    # 30 -> 200-800ms). He chose a bit less download speed for no lag (2026-11-18).
+    downloadSmoother = {
+      enable = true;
+      device = "enp10s0";
+    };
+
     # Weekly automated git sync + rebuild, then power off. Desktop-safe settings:
     autoUpdate = {
       enable = true;

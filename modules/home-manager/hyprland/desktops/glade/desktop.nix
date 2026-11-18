@@ -221,6 +221,9 @@ in
         # Clicking a window in the bar's list must bring it forward even when it is
         # on another workspace.
         misc.focus_on_activate = true;
+        # Never move the pointer on a focus change: Steam's menus (STORE, LIBRARY...) kept
+        # flinging it around on hover. Together with the steam popup rules below (2026-11-18).
+        cursor.no_warps = true;
 
         # Every window floats: opens over the glade at its own size and can overlap,
         # like Windows. (The maximise button fills the monitor when wanted.)
@@ -229,6 +232,10 @@ in
           # The terminal's own default (640x400) is cramped for the Claude sessions he
           # spends his time in.
           "size 1100 700, match:class ^(kitty)$"
+          # Steam's drop-down menus are untitled windows: keep them from fighting the main
+          # window for focus, which flickered them and threw the pointer around.
+          "stay_focused true, match:class ^(steam)$, match:title ^()$"
+          "no_initial_focus true, match:class ^(steam)$, match:title ^()$"
         ] ++ lib.optionals (mainMonitor != null) [
           # Games open on the main (top) screen. On the lower one, Windows games under
           # Proton put his clicks in the wrong place: XWayland lays the two screens out
