@@ -40,6 +40,10 @@
       r62d = { enable = true; openFirewall = true; };
       # His VibeNote notes app (github.com/cblaney00/vibenote): "VibeNote" in the start menu.
       vibenote.enable = true;
+      # His soft gold ripple on the G915 keys (github.com/cblaney00/keyripple), over the
+      # teal that g915-replug sets in hardware.nix. Resting teal at full strength: he
+      # wanted it brighter than the app's own 40 %.
+      keyripple = { enable = true; baseColor = "00B4A0"; };
       # His own vibe-coded app projects: the `vibe` command, ~/projects, and the dev
       # shells its .envrc files point at (customConfig.profiles.development.vibe-* in
       # ./profiles.nix). See docs/hosts/blaney-vibe-projects.md.

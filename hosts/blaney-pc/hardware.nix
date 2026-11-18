@@ -102,32 +102,6 @@
     '';
   };
 
-  # A soft gold ripple on each key press, over the teal (his own app, pkgs/keyripple,
-  # built here from ~/projects/keyripple). It paints through the OpenRGB server, so it
-  # restarts with it (including after the cable is plugged in or out, g915-replug).
-  # The keyboard falls back to its built-in rainbow when it naps, so the app takes the
-  # lights back every few seconds.
-  # Reads key presses from /dev/input, so it runs as a throwaway user in group input.
-  systemd.services.keyripple = {
-    description = "Gold ripple on the G915 keys when typing";
-    after = [ "openrgb.service" "g915-teal.service" ];
-    requires = [ "openrgb.service" ];
-    partOf = [ "openrgb.service" ];
-    wantedBy = [ "multi-user.target" "openrgb.service" ];
-    # Never give up restarting it (the default stops after 5 quick failures).
-    startLimitIntervalSec = 0;
-    serviceConfig = {
-      ExecStart = lib.getExe (pkgs.callPackage ../../pkgs/keyripple
-        (import ../../pkgs/vibe-local-src.nix config.customConfig "keyripple"));
-      DynamicUser = true;
-      SupplementaryGroups = [ "input" ];
-      Restart = "always";
-      RestartSec = 5;
-      # Resting teal at full strength (the app defaults to it at 40 %); he wanted it brighter.
-      Environment = "KEYRIPPLE_BASE=00B4A0";
-    };
-  };
-
   # Firmware updates (`fwupdmgr refresh && fwupdmgr update`). This used to arrive as a
   # `mkDefault true` from services.desktopManager.plasma6 and silently disappeared when
   # KDE was dropped from desktop.environments — it has nothing to do with the desktop, so
