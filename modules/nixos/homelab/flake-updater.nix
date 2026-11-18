@@ -11,13 +11,24 @@ let
   remainingHostsStr = lib.strings.concatStringsSep " "
     (lib.filter (h: h != betaHost) cfg.allHosts);
   buildTimeoutSec = toString (cfg.buildTimeoutMinutes * 60);
+  ntfyTopicFile = if cfg.ntfyTopicFile == null then "" else toString cfg.ntfyTopicFile;
 
+  # Two modes, one script:
+  #   run  (Monday timer) — sync + auto-merge open update PRs, then cut this week's
+  #                         branch (carrying forward an unmerged one), build, open the PR.
+  #   sync (daily timer)  — merge origin/main into every open update branch, so a
+  #                         conflict shows up (and alerts) the day it appears instead of
+  #                         silently wedging the Monday merge (2026-W46, PR #307).
+  # Env knobs for testing by hand (as the git user):
+  #   DRY_RUN=1   log every push / gh write / alert instead of doing it; builds are evals
+  #   WEEK=YYYY-WNN  pretend it is that week
   updaterScript = pkgs.writeShellScript "flake-updater" ''
     set -euo pipefail
 
-    log() { echo "[flake-updater] $(date '+%Y-%m-%d %H:%M:%S') $*"; }
+    MODE="''${1:-run}"
+    log() { echo "[flake-updater/''${MODE}] $(date '+%Y-%m-%d %H:%M:%S') $*"; }
 
-    WEEK=$(date +%Y-W%V)
+    WEEK="''${WEEK:-$(date +%Y-W%V)}"
     BRANCH="update/''${WEEK}"
     REPO="${cfg.repoOwner}/${cfg.repoName}"
     BLOCK_LABEL="${cfg.blockLabel}"
@@ -25,14 +36,213 @@ let
     BETA_HOST="${betaHost}"
     REMAINING_HOSTS=(${remainingHostsStr})
     BUILD_TIMEOUT=${buildTimeoutSec}
+    DRY_RUN="''${DRY_RUN:-0}"
+    NTFY_TOPIC_FILE="${ntfyTopicFile}"
+    GH=${pkgs.gh}/bin/gh
+    GIT_ID=(-c "user.name=${cfg.gitUser}" -c "user.email=${gitEmail}")
+    SYNC_WT="$HOME/.cache/flake-updater-sync"
 
     export GH_TOKEN=$(cat "${cfg.githubTokenFile}")
     export GIT_SSH_COMMAND="ssh -i /home/${cfg.gitUser}/.ssh/id_ed25519 -o StrictHostKeyChecking=accept-new -o BatchMode=yes"
 
     cd "${cfg.repoDir}"
 
-    # Always return to main when the script exits so `update` works correctly afterward
-    trap 'git checkout main 2>/dev/null || true' EXIT
+    # One updater at a time: the Monday run waits for a sync in progress; a sync
+    # that finds the Monday run going just skips (the run syncs on its own).
+    mkdir -p "$HOME/.cache"
+    exec 9>"$HOME/.cache/flake-updater.lock"
+    if [ "''${MODE}" = "sync" ]; then
+      flock -n 9 || { log "Weekly run in progress — skipping sync"; exit 0; }
+    else
+      flock 9
+    fi
+
+    remove_sync_wt() {
+      git worktree remove --force "''${SYNC_WT}" 2>/dev/null || true
+      rm -rf "''${SYNC_WT}"
+      git worktree prune 2>/dev/null || true
+    }
+
+    on_exit() {
+      remove_sync_wt
+      if [ "''${MODE}" = "run" ]; then
+        # Return to main so `update` works correctly afterward
+        git checkout -q main 2>/dev/null || true
+        if [ "''${DRY_RUN}" = "1" ]; then
+          git branch -D "''${BRANCH}" >/dev/null 2>&1 || true
+        fi
+      fi
+    }
+    trap on_exit EXIT
+
+    # dry <cmd...>: run it, or under DRY_RUN=1 only log it.
+    dry() {
+      if [ "''${DRY_RUN}" = "1" ]; then
+        log "DRY_RUN: would run: $*"
+      else
+        "$@"
+      fi
+    }
+
+    # ---------------------------------------------------------------
+    # notify <title> <body> [click-url] [priority]
+    # Push alert through ntfy.sh. Never fails the run: a missing topic or a
+    # failed push is only logged. Keep the title ASCII (it is an HTTP header).
+    # ---------------------------------------------------------------
+    notify() {
+      local title="$1" body="$2" url="''${3:-}" prio="''${4:-default}"
+      if [ -z "''${NTFY_TOPIC_FILE}" ] || [ ! -r "''${NTFY_TOPIC_FILE}" ]; then
+        log "ALERT (no ntfy topic configured): ''${title} — ''${body}"
+        return 0
+      fi
+      if [ "''${DRY_RUN}" = "1" ]; then
+        log "DRY_RUN: would alert: ''${title} — ''${body}"
+        return 0
+      fi
+      local topic
+      topic=$(tr -d '[:space:]' < "''${NTFY_TOPIC_FILE}")
+      local args=(-fsS -m 15 -o /dev/null
+        -H "Title: ''${title}" -H "Tags: warning" -H "Priority: ''${prio}")
+      if [ -n "''${url}" ]; then
+        args+=(-H "Click: ''${url}")
+      fi
+      if curl "''${args[@]}" -d "''${body}" "https://ntfy.sh/''${topic}"; then
+        log "Alert sent: ''${title}"
+      else
+        log "Alert push failed: ''${title}"
+      fi
+    }
+
+    pr_url() { echo "https://github.com/''${REPO}/pull/$1"; }
+
+    has_block_label() {
+      ''${GH} pr view "$1" --repo "''${REPO}" --json labels \
+        -q '.labels[].name' 2>/dev/null | grep -xF "''${BLOCK_LABEL}" >/dev/null
+    }
+
+    # ---------------------------------------------------------------
+    # block_pr <pr> <reason>
+    # Adds the block label, explains why on the PR, and pushes an alert — but
+    # only when the label is new, so the daily sync can't alert every day about
+    # the same stuck PR.
+    # ---------------------------------------------------------------
+    block_pr() {
+      local pr="$1" reason="$2"
+      if has_block_label "''${pr}"; then
+        log "PR #''${pr} already has '$BLOCK_LABEL' — not re-alerting (''${reason})"
+        return 0
+      fi
+      log "Blocking PR #''${pr}: ''${reason}"
+      dry ''${GH} pr edit "''${pr}" --repo "''${REPO}" --add-label "''${BLOCK_LABEL}" >/dev/null || true
+      dry ''${GH} pr comment "''${pr}" --repo "''${REPO}" --body "**flake-updater added \`''${BLOCK_LABEL}\`:** ''${reason}
+
+Logs: \`journalctl -u flake-updater -u flake-updater-sync\` on optiplex-nas. Fix it on the branch, then remove the label so the next Monday run can merge it." >/dev/null || true
+      notify "Update PR #''${pr} blocked" "''${reason}" "$(pr_url "''${pr}")" high
+    }
+
+    # ---------------------------------------------------------------
+    # merge_main_in <dir>: merge origin/main into the checkout at <dir>.
+    # 0 = merged (or nothing to do); 2 = conflicts (merge aborted, files in
+    # CONFLICT_FILES). A flake.lock-only conflict is resolved by keeping the
+    # update branch's lock and re-locking so any input main added gets locked.
+    # ---------------------------------------------------------------
+    CONFLICT_FILES=""
+    merge_main_in() {
+      local dir="$1"
+      CONFLICT_FILES=""
+      if git -C "''${dir}" "''${GIT_ID[@]}" merge -q --no-edit origin/main >/dev/null 2>&1; then
+        return 0
+      fi
+      CONFLICT_FILES=$(git -C "''${dir}" diff --name-only --diff-filter=U | tr '\n' ' ' | sed 's/ $//')
+      if [ "''${CONFLICT_FILES}" = "flake.lock" ]; then
+        git -C "''${dir}" checkout -q --ours flake.lock
+        (cd "''${dir}" && nix flake lock 2>&1 | tail -3)
+        git -C "''${dir}" add flake.lock
+        git -C "''${dir}" "''${GIT_ID[@]}" commit -q --no-edit
+        log "flake.lock-only conflict resolved (kept the update's lock, re-locked)"
+        return 0
+      fi
+      git -C "''${dir}" merge --abort 2>/dev/null || true
+      CONFLICT_FILES="''${CONFLICT_FILES:-<merge failed without conflict markers>}"
+      return 2
+    }
+
+    # ---------------------------------------------------------------
+    # eval_all <dir>: evaluate every nixosConfiguration (vm-* and installer
+    # included — the same set CI checks). Failing hosts go in EVAL_FAILED.
+    # ---------------------------------------------------------------
+    EVAL_FAILED=""
+    eval_all() {
+      local dir="$1" hosts h
+      EVAL_FAILED=""
+      hosts=$(nix eval --impure --raw "''${dir}#nixosConfigurations" \
+        --apply 'c: builtins.concatStringsSep " " (builtins.attrNames c)' 2>/dev/null) || {
+        EVAL_FAILED="<flake>"; return 1; }
+      for h in ''${hosts}; do
+        if ! nix eval --impure "''${dir}#nixosConfigurations.''${h}.config.system.build.toplevel.drvPath" \
+            > "/tmp/flake-updater-eval-''${h}.log" 2>&1; then
+          EVAL_FAILED="''${EVAL_FAILED:+''${EVAL_FAILED} }''${h}"
+        fi
+      done
+      [ -z "''${EVAL_FAILED}" ]
+    }
+
+    # ---------------------------------------------------------------
+    # sync_branch <branch> <pr>: bring origin/main into an open update branch,
+    # in a throwaway worktree so the repo checkout is never moved.
+    # 0 = branch contains main (now or already); 1 = blocked.
+    # ---------------------------------------------------------------
+    sync_branch() {
+      local br="$1" pr="$2"
+      if ! git rev-parse -q --verify "origin/''${br}" >/dev/null; then
+        log "origin/''${br} not found — skipping sync"
+        return 1
+      fi
+      if git merge-base --is-ancestor origin/main "origin/''${br}"; then
+        log "''${br} already contains main"
+        return 0
+      fi
+      log "Merging main into ''${br}..."
+      remove_sync_wt
+      git worktree add -q --detach "''${SYNC_WT}" "origin/''${br}"
+      local rc=0
+      merge_main_in "''${SYNC_WT}" || rc=$?
+      if [ "''${rc}" -ne 0 ]; then
+        remove_sync_wt
+        block_pr "''${pr}" "Merging main into ''${br} conflicts in: ''${CONFLICT_FILES}. Merge origin/main into the branch by hand and push."
+        return 1
+      fi
+      if ! eval_all "''${SYNC_WT}"; then
+        remove_sync_wt
+        block_pr "''${pr}" "With main merged in, ''${br} fails to evaluate: ''${EVAL_FAILED} (see /tmp/flake-updater-eval-<host>.log). The merge was not pushed."
+        return 1
+      fi
+      dry git -C "''${SYNC_WT}" push -q origin "HEAD:refs/heads/''${br}"
+      log "Merged main into ''${br} and pushed"
+      remove_sync_wt
+      return 0
+    }
+
+    # "<number> <branch>" per open flake-update PR, oldest week first.
+    list_open_prs() {
+      ''${GH} pr list --repo "''${REPO}" --label "flake-update" --state open \
+        --json number,headRefName --jq '.[] | "\(.number) \(.headRefName)"' 2>/dev/null \
+        | sort -k2 -V || true
+    }
+
+    git fetch -q origin
+
+    # ===============================================================
+    # sync mode: keep every open update branch merged with main, then stop.
+    # ===============================================================
+    if [ "''${MODE}" = "sync" ]; then
+      while read -r num br <&3; do
+        [ -n "''${num}" ] || continue
+        sync_branch "''${br}" "''${num}" || true
+      done 3<<< "$(list_open_prs)"
+      log "Sync complete"
+      exit 0
+    fi
 
     # ---------------------------------------------------------------
     # build_host <name>: builds with timeout; sets BUILD_STATUS[name]
@@ -70,6 +280,18 @@ let
       local host="$1"
       local logfile="/tmp/flake-updater-build-''${host}.log"
       local attempt ec
+
+      if [ "''${DRY_RUN}" = "1" ]; then
+        log "DRY_RUN: evaluating ''${host} instead of building"
+        if nix eval --impure ".#nixosConfigurations.''${host}.config.system.build.toplevel.drvPath" \
+            > "''${logfile}" 2>&1; then
+          BUILD_STATUS["''${host}"]="PASS"
+        else
+          BUILD_STATUS["''${host}"]="FAIL"
+        fi
+        log "''${host}: ''${BUILD_STATUS["''${host}"]} (eval only)"
+        return
+      fi
 
       for attempt in 1 2; do
         if [ "''${attempt}" -eq 1 ]; then
@@ -115,6 +337,11 @@ let
       tail -5 "''${logfile}" | sed 's/^/    /' >&2
     }
 
+    # Set in Step 3; shown in the PR body.
+    CARRIED_FROM=""
+    NOT_CARRIED=""
+    NOT_CARRIED_LOG=""
+
     # ---------------------------------------------------------------
     # pr_body: generate markdown table from BUILD_STATUS
     # ---------------------------------------------------------------
@@ -131,6 +358,13 @@ let
         esac
       done
 
+      local carry=""
+      if [ -n "''${CARRIED_FROM}" ]; then
+        carry=$'\n'"### Carried forward"$'\n\n'"Cut from \`''${CARRIED_FROM}\`, which never merged, so its fixes and features stay on the beta host. That PR is closed as superseded."$'\n'
+      elif [ -n "''${NOT_CARRIED}" ]; then
+        carry=$'\n'"### ⚠ Not carried forward from \`''${NOT_CARRIED}\`"$'\n\n'"That branch never merged and conflicts with main, so this week was cut from main instead. These commits are only on \`''${NOT_CARRIED}\` — port what is still needed by hand:"$'\n\n```\n'"''${NOT_CARRIED_LOG}"$'\n```\n'
+      fi
+
       cat <<BODY
 ## Weekly Flake Update — ''${WEEK}
 
@@ -138,14 +372,14 @@ let
 
 | Host | Status |
 |------|--------|''${rows}
-
+''${carry}
 ### Beta Rollout
 
 **''${BETA_HOST}** tracks this branch immediately as the beta host and will receive the update on its next \`update\`. All other hosts remain on \`main\` until this PR merges.
 
 ### Auto-merge
 
-This PR auto-merges on the **following Monday's run** (~''${AUTO_MERGE_DAYS} days after creation) unless the \`''${BLOCK_LABEL}\` label is applied.
+This PR auto-merges on the **following Monday's run** (~''${AUTO_MERGE_DAYS} days after creation) unless the \`''${BLOCK_LABEL}\` label is applied. \`main\` is merged into this branch daily; a conflict or eval failure blocks it and sends an alert.
 
 **To block:** add the \`''${BLOCK_LABEL}\` label to this PR.
 **To unblock:** push a fix to the branch, then remove the label.
@@ -154,17 +388,10 @@ BODY
     }
 
     # ---------------------------------------------------------------
-    # Step 1: Auto-merge any eligible open flake-update PRs
+    # Step 1: Sync, then auto-merge any eligible open flake-update PRs
     # Runs every invocation — fixes the old "Path A" bug where only
     # the current week's branch was checked, causing PRs to pile up.
     # ---------------------------------------------------------------
-    OPEN_PRS=$(${pkgs.gh}/bin/gh pr list \
-      --repo "''${REPO}" \
-      --label "flake-update" \
-      --state open \
-      --json number \
-      --jq '.[].number' 2>/dev/null || true)
-
     # Probe REST mergeable_state (clean/unstable/blocked/dirty/behind/unknown).
     # GraphQL's `mergeable` field is a known GitHub quirk: it can stay UNKNOWN
     # for weeks on untouched PRs, which previously wedged this loop and let
@@ -173,16 +400,17 @@ BODY
     # so an initial UNKNOWN is retried once after a short delay.
     probe_merge_state() {
       local pr="$1"
-      ${pkgs.gh}/bin/gh api "repos/''${REPO}/pulls/''${pr}" \
+      ''${GH} api "repos/''${REPO}/pulls/''${pr}" \
         --jq '.mergeable_state' 2>/dev/null || echo "unknown"
     }
 
-    for PR_NUM in ''${OPEN_PRS}; do
-      LABELS=$(${pkgs.gh}/bin/gh pr view "''${PR_NUM}" \
-        --repo "''${REPO}" \
-        --json labels -q '[.labels[].name] | join(",")')
+    while read -r PR_NUM PR_BRANCH <&3; do
+      [ -n "''${PR_NUM}" ] || continue
 
-      if echo "''${LABELS}" | grep -qF "''${BLOCK_LABEL}"; then
+      # Merge main in first: most "dirty" PRs are just behind a change on main.
+      sync_branch "''${PR_BRANCH}" "''${PR_NUM}" || true
+
+      if has_block_label "''${PR_NUM}"; then
         log "PR #''${PR_NUM} has block label '${cfg.blockLabel}' — skipping auto-merge"
         continue
       fi
@@ -203,9 +431,7 @@ BODY
           # behind   = base branch moved; --merge creates a merge commit anyway
           ;;
         dirty)
-          log "PR #''${PR_NUM} has merge conflicts — flagging '${cfg.blockLabel}' and skipping"
-          ${pkgs.gh}/bin/gh pr edit "''${PR_NUM}" --repo "''${REPO}" \
-            --add-label "''${BLOCK_LABEL}" 2>/dev/null || true
+          block_pr "''${PR_NUM}" "GitHub reports merge conflicts with main, so it could not auto-merge."
           continue
           ;;
         unknown|*)
@@ -214,7 +440,7 @@ BODY
           ;;
       esac
 
-      CREATED=$(${pkgs.gh}/bin/gh pr view "''${PR_NUM}" \
+      CREATED=$(''${GH} pr view "''${PR_NUM}" \
         --repo "''${REPO}" \
         --json createdAt -q '.createdAt')
       AGE=$(( ($(date +%s) - $(date -d "''${CREATED}" +%s)) / 86400 ))
@@ -225,13 +451,16 @@ BODY
         # --admin bypasses the protect-main-merges ruleset (which blocks non-admin
         # contributors like cblaney00 from merging to main). The updater's PAT
         # belongs to the repo admin, so the bypass is legitimate.
-        MERGE_ERR=$(${pkgs.gh}/bin/gh pr merge "''${PR_NUM}" --repo "''${REPO}" --merge --admin --delete-branch 2>&1) \
-          && log "PR #''${PR_NUM} merged" \
-          || log "Auto-merge failed for PR #''${PR_NUM}: ''${MERGE_ERR}"
+        if MERGE_ERR=$(dry ''${GH} pr merge "''${PR_NUM}" --repo "''${REPO}" --merge --admin --delete-branch 2>&1); then
+          log "PR #''${PR_NUM} merged"
+        else
+          log "Auto-merge failed for PR #''${PR_NUM}: ''${MERGE_ERR}"
+          notify "Update PR #''${PR_NUM} failed to merge" "''${MERGE_ERR}" "$(pr_url "''${PR_NUM}")" high
+        fi
       else
         log "Not old enough yet (''${AGE}/''${AUTO_MERGE_DAYS} days) — skipping"
       fi
-    done
+    done 3<<< "$(list_open_prs)"
 
     # ---------------------------------------------------------------
     # Step 2: If this week's branch already exists, nothing left to do
@@ -246,46 +475,86 @@ BODY
     # ---------------------------------------------------------------
     log "Starting weekly flake update for ''${BRANCH}"
 
-    git fetch origin
+    git fetch -q origin
+
+    # Carry forward: a PR still open here never merged (blocked or conflicting).
+    # Cutting the new week from main would silently drop its fixes and any
+    # beta-host features riding on it (2026-W46 → W47), so cut from it instead.
+    STILL_OPEN=$(list_open_prs)
+    PREV_BRANCH=$(echo "''${STILL_OPEN}" | awk 'NF {print $2}' | sort -V | tail -1)
 
     # Use -B to reset branch if it exists locally from a previous failed run
-    git -c user.name="${cfg.gitUser}" -c user.email="${gitEmail}" \
-      checkout -B "''${BRANCH}" origin/main
+    if [ -n "''${PREV_BRANCH}" ] && git rev-parse -q --verify "origin/''${PREV_BRANCH}" >/dev/null; then
+      git "''${GIT_ID[@]}" checkout -q -B "''${BRANCH}" "origin/''${PREV_BRANCH}"
+      if merge_main_in "$PWD"; then
+        CARRIED_FROM="''${PREV_BRANCH}"
+        log "Carrying forward unmerged ''${PREV_BRANCH} (main merged in)"
+      else
+        NOT_CARRIED="''${PREV_BRANCH}"
+        NOT_CARRIED_LOG=$(git log --oneline --no-merges "origin/main..origin/''${PREV_BRANCH}" \
+          | grep -v 'chore(flake): weekly update' || true)
+        log "''${PREV_BRANCH} conflicts with main (''${CONFLICT_FILES}) — cutting from main instead"
+        git "''${GIT_ID[@]}" checkout -q -B "''${BRANCH}" origin/main
+      fi
+    else
+      git "''${GIT_ID[@]}" checkout -q -B "''${BRANCH}" origin/main
+    fi
 
     log "Running nix flake update..."
     nix flake update
     log "Flake update complete"
 
-    git -c user.name="${cfg.gitUser}" -c user.email="${gitEmail}" \
-      add flake.lock
-    git -c user.name="${cfg.gitUser}" -c user.email="${gitEmail}" \
-      commit -m "chore(flake): weekly update ''${WEEK}"
+    git "''${GIT_ID[@]}" add flake.lock
+    git "''${GIT_ID[@]}" commit -q -m "chore(flake): weekly update ''${WEEK}"
 
     # Step 1: Build beta host first
     build_host "''${BETA_HOST}"
 
     # Step 2: Push branch and open PR immediately so beta soak starts
-    git push origin "''${BRANCH}"
+    dry git push -q origin "''${BRANCH}"
 
-    ${pkgs.gh}/bin/gh label create "flake-update" \
+    dry ''${GH} label create "flake-update" \
       --repo "''${REPO}" \
       --color "0075ca" \
       --description "Automated weekly flake update" 2>/dev/null || true
 
-    ${pkgs.gh}/bin/gh pr create \
+    dry ''${GH} pr create \
       --repo "''${REPO}" \
       --title "chore(flake): weekly update ''${WEEK}" \
       --body "$(pr_body)" \
       --label "flake-update" \
       --base main
 
-    PR_NUM=$(${pkgs.gh}/bin/gh pr list \
-      --repo "''${REPO}" \
-      --head "''${BRANCH}" \
-      --state open \
-      --json number -q '.[0].number')
+    if [ "''${DRY_RUN}" = "1" ]; then
+      PR_NUM="DRY"
+    else
+      PR_NUM=$(''${GH} pr list \
+        --repo "''${REPO}" \
+        --head "''${BRANCH}" \
+        --state open \
+        --json number -q '.[0].number')
+    fi
 
     log "PR #''${PR_NUM} opened — building remaining hosts"
+
+    # Close the PRs this week now contains. One that was not carried forward
+    # stays open: its commits are not in this branch.
+    while read -r OLD_NUM OLD_BRANCH <&3; do
+      [ -n "''${OLD_NUM}" ] || continue
+      [ "''${OLD_BRANCH}" != "''${BRANCH}" ] || continue
+      if git merge-base --is-ancestor "origin/''${OLD_BRANCH}" HEAD; then
+        log "Closing PR #''${OLD_NUM} (''${OLD_BRANCH}) as superseded by #''${PR_NUM}"
+        dry ''${GH} pr comment "''${OLD_NUM}" --repo "''${REPO}" \
+          --body "Superseded by #''${PR_NUM}: \`''${BRANCH}\` was cut from this branch, so all of its commits carry forward." >/dev/null || true
+        dry ''${GH} pr close "''${OLD_NUM}" --repo "''${REPO}" --delete-branch >/dev/null || true
+      fi
+    done 3<<< "''${STILL_OPEN}"
+
+    if [ -n "''${NOT_CARRIED}" ]; then
+      notify "''${NOT_CARRIED} not carried forward" \
+        "It conflicts with main, so ''${BRANCH} was cut from main. Its commits are listed in the new PR; port them by hand." \
+        "$(pr_url "''${PR_NUM}")" high
+    fi
 
     # Step 3: Build remaining hosts with per-host timeout
     for host in "''${REMAINING_HOSTS[@]}"; do
@@ -293,26 +562,48 @@ BODY
     done
 
     # Step 4: Update PR body with final results
-    ${pkgs.gh}/bin/gh pr edit "''${PR_NUM}" \
+    dry ''${GH} pr edit "''${PR_NUM}" \
       --repo "''${REPO}" \
-      --body "$(pr_body)"
+      --body "$(pr_body)" >/dev/null
 
     # Step 5: Auto-block if any host FAILED (not just timed out)
-    HAS_FAILURE=0
+    FAILED_HOSTS=""
     for host in "''${BETA_HOST}" "''${REMAINING_HOSTS[@]}"; do
       if [ "''${BUILD_STATUS["''${host}"]:-}" = "FAIL" ]; then
-        HAS_FAILURE=1
-        break
+        FAILED_HOSTS="''${FAILED_HOSTS:+''${FAILED_HOSTS} }''${host}"
       fi
     done
-    if [ "''${HAS_FAILURE}" -eq 1 ]; then
-      log "Build failures detected — adding ''${BLOCK_LABEL} to PR #''${PR_NUM}"
-      ${pkgs.gh}/bin/gh pr edit "''${PR_NUM}" --repo "''${REPO}" --add-label "''${BLOCK_LABEL}"
-      log "PR #''${PR_NUM} blocked; fix the failures and remove the label to allow auto-merge"
+    if [ -n "''${FAILED_HOSTS}" ]; then
+      block_pr "''${PR_NUM}" "''${WEEK} failed to build: ''${FAILED_HOSTS} (logs: /tmp/flake-updater-build-<host>.log on optiplex-nas)."
     fi
 
     log "Weekly update complete — PR #''${PR_NUM} updated with full build results"
   '';
+
+  # OnFailure= target for both units: a crash of the script itself (as opposed
+  # to a blocked PR, which the script reports) still reaches the phone.
+  crashAlert = pkgs.writeShellScript "flake-updater-alert" ''
+    unit="''${1:-flake-updater}"
+    topic_file="${ntfyTopicFile}"
+    [ -n "$topic_file" ] && [ -r "$topic_file" ] || exit 0
+    ${pkgs.curl}/bin/curl -fsS -m 15 -o /dev/null \
+      -H "Title: $unit crashed on optiplex-nas" -H "Tags: rotating_light" -H "Priority: high" \
+      -d "journalctl -u $unit -b on optiplex-nas for the error." \
+      "https://ntfy.sh/$(tr -d '[:space:]' < "$topic_file")"
+  '';
+
+  serviceCommon = {
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+    # A rebuild of this host mid-run must not kill a multi-hour update run.
+    restartIfChanged = false;
+    path = with pkgs; [ nix git openssh gnutar gzip coreutils gnugrep gnused gawk curl util-linux ];
+    environment = {
+      NIXPKGS_ALLOW_UNFREE = "1";
+      HOME = "/home/${cfg.gitUser}";
+      NIX_REMOTE = "";
+    };
+  };
 
 in
 {
@@ -373,6 +664,24 @@ in
       default = "/run/secrets/github-token";
       description = "Path to file containing a GitHub fine-grained PAT with contents:write and pull_requests:write.";
     };
+    syncSchedule = mkOption {
+      type = types.str;
+      default = "*-*-* 15:00:00";
+      description = ''
+        systemd OnCalendar for the daily sync that merges main into every open update
+        branch (eval-checked before pushing), so conflicts surface the day they appear.
+      '';
+    };
+    ntfyTopicFile = mkOption {
+      type = types.nullOr types.path;
+      default = null;
+      description = ''
+        File holding a secret ntfy.sh topic name. When set, a blocked PR, a failed
+        auto-merge, a week that could not be carried forward, or a crash of either unit
+        is pushed to https://ntfy.sh/<topic> (subscribe in the ntfy app). When null,
+        those alerts are only logged.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -393,23 +702,14 @@ in
       };
     };
 
-    systemd.services.flake-updater = {
+    systemd.services.flake-updater = serviceCommon // {
       description = "Weekly NixOS flake update orchestrator";
-      after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
-      # A rebuild of this host mid-run must not kill a multi-hour update run.
-      restartIfChanged = false;
-      path = with pkgs; [ nix git openssh gnutar gzip coreutils gnugrep gnused ];
-      environment = {
-        NIXPKGS_ALLOW_UNFREE = "1";
-        HOME = "/home/${cfg.gitUser}";
-        NIX_REMOTE = "";
-      };
+      unitConfig.OnFailure = [ "flake-updater-alert@flake-updater.service" ];
       serviceConfig = {
         Type = "oneshot";
         User = cfg.gitUser;
         Group = "users";
-        ExecStart = updaterScript;
+        ExecStart = "${updaterScript} run";
         # Headroom for the whole run: 9 hosts, each now able to retry once,
         # with a per-host cap of buildTimeoutMinutes. Must stay comfortably
         # above that product or a slow week gets killed mid-flight.
@@ -417,6 +717,39 @@ in
         StandardOutput = "journal";
         StandardError = "journal";
         SyslogIdentifier = "flake-updater";
+      };
+    };
+
+    systemd.timers.flake-updater-sync = {
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = cfg.syncSchedule;
+        Persistent = true;
+        RandomizedDelaySec = "15min";
+      };
+    };
+
+    systemd.services.flake-updater-sync = serviceCommon // {
+      description = "Merge main into open flake-update branches";
+      unitConfig.OnFailure = [ "flake-updater-alert@flake-updater-sync.service" ];
+      serviceConfig = {
+        Type = "oneshot";
+        User = cfg.gitUser;
+        Group = "users";
+        ExecStart = "${updaterScript} sync";
+        TimeoutStartSec = "2h";
+        StandardOutput = "journal";
+        StandardError = "journal";
+        SyslogIdentifier = "flake-updater-sync";
+      };
+    };
+
+    systemd.services."flake-updater-alert@" = {
+      description = "Push an alert that %i failed";
+      serviceConfig = {
+        Type = "oneshot";
+        User = cfg.gitUser;
+        ExecStart = "${crashAlert} %i";
       };
     };
 

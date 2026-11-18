@@ -97,6 +97,8 @@
       # this runs ahead of Hydra on a fresh nixpkgs-unstable rev, and because
       # a host can now build twice under the retry.
       buildTimeoutMinutes = 180;
+      # Blocked PRs, failed merges and crashes are pushed to this secret ntfy.sh topic.
+      ntfyTopicFile = config.sops.secrets."ntfy-topic".path;
     };
     localCA.trustCA = true;
 
@@ -145,4 +147,8 @@
   # SLSKD_SLSK_PASSWORD (the slsknet.org account) and SLSKD_USERNAME /
   # SLSKD_PASSWORD (the web UI login). Also from defaultSopsFile.
   sops.secrets."slskd-credentials" = { };
+
+  # Secret ntfy.sh topic name for the flake-updater alerts (subscribe to it in the
+  # ntfy app). Read by the updater units, which run as lando. From defaultSopsFile.
+  sops.secrets."ntfy-topic".owner = "lando";
 }

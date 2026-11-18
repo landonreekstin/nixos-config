@@ -442,6 +442,27 @@ in
       echo "Fetching latest changes from remote repository..."
       git fetch
 
+      ${lib.optionalString (userName == "lando") ''
+        # Shout about weekly update PRs the NAS updater (or anyone) has blocked: a
+        # blocked PR never merges on its own, and the label alone went unnoticed
+        # for a week in 2026-W46. Silent when gh is missing, logged out or offline.
+        if command -v gh >/dev/null 2>&1; then
+          BLOCKED=$(timeout 10 gh pr list --repo landonreekstin/nixos-config \
+            --label update-blocked --state open \
+            --json number,title,url --jq '.[] | "  #\(.number) \(.title)\n     \(.url)"' \
+            2>/dev/null || true)
+          if [ -n "$BLOCKED" ]; then
+            echo
+            echo "!!! ======================================================== !!!"
+            echo "!!!  Weekly update PR(s) are BLOCKED and will not auto-merge  !!!"
+            echo "!!! ======================================================== !!!"
+            printf '%b\n' "$BLOCKED"
+            echo "  Why: see the PR comments. How to fix: docs/flake-updates.md"
+            echo
+          fi
+        fi
+      ''}
+
       ${lib.optionalString cfg.system.betaTesterHost ''
         # Beta host: track latest open update/* branch if one exists
         BETA_BRANCH=$(git branch -r --list 'origin/update/*' \
