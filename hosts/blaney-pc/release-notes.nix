@@ -14,6 +14,8 @@
   {
     date = "2026-11-12";
     changes = [
+      "Each key you press now sends out a soft gold ripple over the teal, and the teal is brighter."
+      "Your keyboard lights no longer slip back to rainbow, even after the keyboard naps or its wireless plug reconnects."
       "Your keyboard stays soft teal when it's plugged in by cable, and when you plug or unplug the cable while the computer is on."
       "Your screens now follow the sun and the weather in Frederick: brighter on sunny days, a bit dimmer on cloudy or rainy ones, and warmer and dimmer at night. Full-screen games get true colours and a little extra brightness; full-screen movies stay easy on the eyes."
       "Night-time on your screens is brighter and only a little warm now, instead of dark and red, and any change in screen brightness now drifts slowly so you barely notice it."

@@ -60,8 +60,12 @@
   # as "Logitech G915 ... (Wired)" and not always first, so find it by name.
   # OpenRGB only looks for devices when it starts, so plugging the keyboard's cable in or
   # out later left the keys on their own rainbow. Each time, restart OpenRGB and re-apply.
+  # The same goes for the wireless receiver (c547): when it drops off and comes back (or
+  # after the resume rebind above) OpenRGB kept talking to the old one and the keys went
+  # rainbow for good (2026-11-18).
   services.udev.extraRules = ''
     ACTION=="add|remove", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ENV{PRODUCT}=="46d/c33e/*", RUN+="${pkgs.systemd}/bin/systemctl --no-block restart g915-replug.service"
+    ACTION=="add|remove", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ENV{PRODUCT}=="46d/c547/*", RUN+="${pkgs.systemd}/bin/systemctl --no-block restart g915-replug.service"
   '';
   systemd.services.g915-replug = {
     description = "Re-find the G915 after its cable is plugged in or out";
@@ -87,7 +91,7 @@
         if [ -n "$ids" ]; then
           # The server can list one keyboard twice; set every entry.
           for id in $ids; do
-            openrgb --client localhost:6742 -d "$id" -m Direct -c 00B4A0 -b 40
+            openrgb --client localhost:6742 -d "$id" -m Direct -c 00B4A0 -b 100
           done
           exit 0
         fi
