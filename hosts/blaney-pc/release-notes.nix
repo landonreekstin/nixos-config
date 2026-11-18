@@ -5,11 +5,19 @@
 # New blaney-todo tasks are listed automatically — don't add notes for them.
 [
   {
+    date = "2026-11-18";
+    changes = [
+      "Clicking a window's top bar always brings it to the front."
+      "Win+Tab puts away a full-screen window so you can see what's behind it. Click it in your dock or top bar to bring it back."
+    ];
+  }
+  {
     date = "2026-11-12";
     changes = [
       "Your keyboard stays soft teal when it's plugged in by cable, and when you plug or unplug the cable while the computer is on."
       "Your screens now follow the sun and the weather in Frederick: brighter on sunny days, a bit dimmer on cloudy or rainy ones, and warmer and dimmer at night. Full-screen games get true colours and a little extra brightness; full-screen movies stay easy on the eyes."
       "Night-time on your screens is brighter and only a little warm now, instead of dark and red, and any change in screen brightness now drifts slowly so you barely notice it."
+      "VibeNote opens in its new silk window now, from the dock and the menu too."
     ];
   }
   {
