@@ -1,0 +1,11 @@
+--- a/barDeco.cpp	2026-11-18 03:29:33.575300491 -0500
++++ b/barDeco.cpp	2026-11-18 03:29:33.581216668 -0500
+@@ -87,7 +87,7 @@
+         return false;
+ 
+     const auto WINDOWATCURSOR = g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(),
+-                                                                     Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
++                                                                     Desktop::View::RESERVED_EXTENTS | Desktop::View::ALLOW_FLOATING);
+ 
+     auto       focusState = Desktop::focusState();
+     auto       window     = focusState->window();

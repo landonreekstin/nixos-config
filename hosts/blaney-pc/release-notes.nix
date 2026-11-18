@@ -5,6 +5,13 @@
 # New blaney-todo tasks are listed automatically — don't add notes for them.
 [
   {
+    date = "2026-11-18";
+    changes = [
+      "Clicking a window's top bar always brings it to the front."
+      "Win+Tab puts away a full-screen window so you can see what's behind it. Click it in your dock or top bar to bring it back."
+    ];
+  }
+  {
     date = "2026-11-12";
     changes = [
       "Your keyboard stays soft teal when it's plugged in by cable, and when you plug or unplug the cable while the computer is on."

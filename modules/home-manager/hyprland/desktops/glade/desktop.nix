@@ -142,6 +142,15 @@ let
     [ -n "$pick" ] && hyprctl --batch "dispatch focuswindow address:$pick; dispatch alterzorder top"
   '';
 
+  # Win+Tab, as he asked: every full-screen or maximised window on screen goes down into
+  # the dock (the same as its title bar's – button), so he can see what is behind it.
+  # A click on it in the dock or the top bar brings it back.
+  peekBehind = pkgs.writeShellScript "glade-peek-behind" ''
+    hyprctl clients -j | ${pkgs.jq}/bin/jq -r '
+      .[] | select(.mapped and .fullscreen != 0 and (.workspace.name | startswith("special") | not)) | .address' |
+      while read -r addr; do ${glade}/bin/glade-dock minimize "$addr"; done
+  '';
+
   gladeCtl = pkgs.writeShellScriptBin "glade-ctl" ''
     pipe="''${XDG_RUNTIME_DIR:-/tmp}/glade.ctl"
     [ -p "$pipe" ] || exit 0
@@ -195,7 +204,9 @@ in
       # two buttons below. Built against the same nixpkgs Hyprland, so the ABI matches.
       # Patched to run a command when a drag starts and ends, for snap.nix.
       plugins = [ (pkgs.hyprlandPlugins.hyprbars.overrideAttrs (old: {
-        patches = (old.patches or [ ]) ++ [ ./hyprbars-drag-hooks.patch ];
+        # click-raise: a click on a title bar always brings that window to the front, even
+        # right beside another window's edge (whose resize grab used to take the click).
+        patches = (old.patches or [ ]) ++ [ ./hyprbars-drag-hooks.patch ./hyprbars-click-raise.patch ];
       })) ];
 
       settings = {
@@ -260,6 +271,10 @@ in
         bind = ALT, Tab, exec, ${altTab} back
         bind = ALT SHIFT, Tab, exec, ${altTab} round
         bind = ALT, F4, killactive,
+        # Win+Tab: put away the full-screen window to see behind it (in place of the
+        # window overview the other desktops have there).
+        unbind = SUPER, Tab
+        bind = SUPER, Tab, exec, ${peekBehind}
         bind = SUPER, E, exec, ${pkgs.kdePackages.dolphin}/bin/dolphin
         bind = , Print, exec, ${pkgs.grim}/bin/grim -g "$(${pkgs.slurp}/bin/slurp)" ${config.home.homeDirectory}/Pictures/Screenshots/$(date +%Y-%m-%d_%H-%M-%S).png
 
