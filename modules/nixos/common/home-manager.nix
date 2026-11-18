@@ -527,7 +527,20 @@ in
             };
           });
           default = [ ];
-          description = "Release notes, newest first (blaney-pc: hosts/blaney-pc/release-notes.nix).";
+          description = ''
+            Release notes, newest first, written inline. Shown after the notes in entriesDir.
+            blaney-pc: hosts/blaney-pc/release-notes.nix, the frozen archive.
+          '';
+        };
+        entriesDir = mkOption {
+          type = types.nullOr types.path;
+          default = null;
+          description = ''
+            Folder with one release note per file, named YYYY-MM-DD-<slug>.nix, each holding a
+            list of plain-English lines (the date comes from the name). Shown newest first,
+            ahead of `entries`. One file per note means two branches adding notes never
+            conflict (blaney-pc: hosts/blaney-pc/release-notes/).
+          '';
         };
         showNewTasks = mkOption {
           type = types.bool;

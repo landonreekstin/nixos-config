@@ -5,7 +5,26 @@ let
 
   # Both lists are baked in at build time, so a note (or a new task) only pops up once the
   # commit that adds it has actually been built on this machine — i.e. after an update.
-  entriesJson = pkgs.writeText "release-notes.json" (builtins.toJSON cfg.entries);
+  #
+  # entriesDir holds one note per file (YYYY-MM-DD-<slug>.nix → a list of lines), so two
+  # branches adding notes never touch the same lines. Each file stays its own entry: grouping
+  # a day's files into one entry would change that entry's hash whenever a note is added
+  # and re-show the ones already seen. markup() merges same-date headings for display instead.
+  noteFileRe = "[0-9]{4}-[0-9]{2}-[0-9]{2}-.+\\.nix";
+  dirEntries =
+    if cfg.entriesDir == null then [ ] else
+      map
+        (file:
+          if builtins.match noteFileRe file == null then
+            throw "release notes: '${file}' must be named YYYY-MM-DD-<slug>.nix"
+          else {
+            date = builtins.substring 0 10 file;
+            changes = import (cfg.entriesDir + "/${file}");
+          })
+        (lib.reverseList (lib.sort lib.lessThan (lib.filter (f: lib.hasSuffix ".nix" f)
+          (lib.attrNames (lib.filterAttrs (_: t: t == "regular")
+            (builtins.readDir cfg.entriesDir))))));
+  entriesJson = pkgs.writeText "release-notes.json" (builtins.toJSON (dirEntries ++ cfg.entries));
 
   # Same folder and the same title rule as `blaney-todo` (modules/nixos/common/blaney-commands.nix):
   # every .md except README.md, titled by its first `# ` heading minus any "Runbook: ".
@@ -76,9 +95,13 @@ let
         out = []
         if entries:
             out.append("<b>What's new</b>")
+            last_date = None
             for e in entries:
-                out.append("")
-                out.append("<i>%s</i>" % html.escape(e.get("date", "")))
+                # One heading per day, even when that day's notes are separate entries.
+                if e.get("date", "") != last_date:
+                    last_date = e.get("date", "")
+                    out.append("")
+                    out.append("<i>%s</i>" % html.escape(last_date))
                 for c in e.get("changes", []):
                     out.append("•  " + html.escape(c))
         if tasks:

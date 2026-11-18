@@ -17,7 +17,7 @@ is his own Quest 2 and is **not** in Developer Mode yet.
 
 1. Branch `blaney/vr-quest-2`. In `hosts/blaney-pc/profiles.nix` add `vr.enable = true;` to
    `customConfig.profiles`, with a one-line comment pointing at docs/vr.md.
-2. Add a line to `hosts/blaney-pc/release-notes.nix`, newest first, plain English, e.g.
+2. Add a note file to `hosts/blaney-pc/release-notes/` (see its README), plain English, e.g.
    "VR is ready: plug your Quest 2 into the PC and click DCS World (VR), War Thunder (VR) or
    Phasmophobia (VR) in your app menu."
 3. chown, `rebuild`. **No headset may be streaming during the rebuild** (the switch crashes

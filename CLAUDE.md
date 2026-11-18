@@ -485,8 +485,9 @@ general workflow above. The rules in brief, none of which are optional:
   non-`blaney/` branch, and never merge a `blaney/` branch anywhere — open a PR and let
   lando merge it.
 - `docs/runbooks/blaney/*.md` is his task queue, surfaced by the `blaney-todo` command.
-- **Any change he would notice on blaney-pc adds a line to `hosts/blaney-pc/release-notes.nix`**
-  (from any host, in the same PR). Plain English, very short, nothing technical. It pops up
+- **Any change he would notice on blaney-pc adds a note file to `hosts/blaney-pc/release-notes/`**
+  (`YYYY-MM-DD-<slug>.nix`, a list of lines; from any host, in the same PR; never add to the
+  frozen `release-notes.nix`). Plain English, very short, nothing technical. It pops up
   for him after the update; new runbooks are listed automatically.
   See [Release notes](docs/hosts/blaney-pc.md#release-notes).
 

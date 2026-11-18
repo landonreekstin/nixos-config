@@ -1,8 +1,8 @@
 # ~/nixos-config/hosts/blaney-pc/release-notes.nix
 # "Lando's nix release notes for you" — shown to Blaney in a popup after an update.
-# Not a module: a plain list imported by home.nix. NEWEST FIRST. One short, plain-English
-# line per change he would actually notice; no jargon, nothing about other machines.
-# New blaney-todo tasks are listed automatically — don't add notes for them.
+# FROZEN ARCHIVE — do not add notes here. New notes are one file each in release-notes/
+# (see its README), so two branches adding notes never conflict. These older entries stay
+# byte-for-byte as they are: the popup remembers notes by their text.
 [
   {
     date = "2026-11-18";

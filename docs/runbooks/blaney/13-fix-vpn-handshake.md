@@ -71,5 +71,5 @@ deletes this runbook, with the findings in the description.
 **Notes:**
 - You need GitHub yourself, so do the push/PR with the VPN **off** if runbook 12 isn't
   fixed yet. Leave the VPN in the state Blaney had it.
-- Any change he'd notice needs a line in `hosts/blaney-pc/release-notes.nix`
+- Any change he'd notice needs a note file in `hosts/blaney-pc/release-notes/` (see its README)
   (e.g. "The homelab VPN connects again").
