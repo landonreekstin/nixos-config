@@ -3,7 +3,7 @@
 # Key Ripple: insideabush's soft gold key-press ripple for his G915, painted through the
 # OpenRGB server. One Python file (evdev + openrgb-python).
 # Source: github.com/cblaney00/keyripple (his vibe project ~/projects/keyripple). The
-# service that runs it is in hosts/blaney-pc/hardware.nix. Bumping the pin:
+# service that runs it is modules/nixos/programs/keyripple.nix. Bumping the pin:
 # docs/companion-repos.md.
 {
   lib,
