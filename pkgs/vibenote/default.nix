@@ -1,7 +1,8 @@
 # ~/nixos-config/pkgs/vibenote/default.nix
 #
-# VibeNote: insideabush's idea pad for his other vibe projects, a small Tk window.
-# Plain Python, standard library only (tkinter). Source: github.com/cblaney00/vibenote
+# VibeNote: insideabush's idea pad for his other vibe projects. Plain Python; its "Silk"
+# window is Qt Quick through PyQt6 (on the graphics card), opened by main.py whenever PyQt6
+# and silk/ are there, else the older Tk window. Source: github.com/cblaney00/vibenote
 # (his vibe project ~/projects/vibenote). This is the source plus a `vibenote` command;
 # the menu entry is in modules/nixos/programs/vibenote.nix. Bumping the pin:
 # docs/companion-repos.md.
@@ -16,7 +17,9 @@
 }:
 
 let
-  python = python3.withPackages (ps: [ ps.tkinter ]);
+  # pyqt6 for the Silk window, as the vibe-python dev shell has it (Qt Quick, Quick 3D,
+  # Effects, Shapes); tkinter for the older Tk window (main.py --tk)
+  python = python3.withPackages (ps: [ ps.tkinter ps.pyqt6 ]);
 in
 stdenvNoCC.mkDerivation {
   pname = "vibenote";
@@ -38,6 +41,13 @@ stdenvNoCC.mkDerivation {
     runHook preInstall
     mkdir -p $out/share/vibenote
     cp main.py projects.py sender.py store.py open_chat.sh $out/share/vibenote/
+    # the Silk window (QML, compiled shaders) and its pictures; a release from before Silk
+    # has no silk/, and main.py then stays the Tk window
+    if [ -d silk ]; then
+      cp -r silk $out/share/vibenote/
+      find $out/share/vibenote/silk -name __pycache__ -prune -exec rm -rf {} +
+    fi
+    if [ -d assets ]; then cp -r assets $out/share/vibenote/; fi
     # its own icon (his pick: a glowing green notepad); a release from before it had none
     if [ -f assets/icon.svg ]; then
       install -Dm644 assets/icon.svg $out/share/icons/hicolor/scalable/apps/vibenote.svg
