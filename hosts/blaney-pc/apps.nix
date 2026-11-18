@@ -10,6 +10,24 @@
   services.dbus.packages = [ pkgs.kdePackages.ksystemstats ];
   systemd.packages = [ pkgs.kdePackages.ksystemstats ];
 
+  # Game downloads must never make the desktop lag. ananicy-cpp keeps the download and
+  # install work of game launchers below everything else: the CachyOS rules already push
+  # Steam's shader building (fossilize_replay) and Heroic's GOG/Epic downloaders down and
+  # lift known games up; these add Steam, Lutris and Amazon's downloader. steam gets a
+  # little CPU priority too (its downloading, unpacking and disk work all happen inside
+  # it), lutris only disk priority because it also runs the games. Download speed is not
+  # capped: he chose full speed (2026-11-18), and these priorities keep the desktop smooth.
+  services.ananicy = {
+    enable = true;
+    package = pkgs.ananicy-cpp;
+    rulesProvider = pkgs.ananicy-rules-cachyos;
+    extraRules = [
+      { name = "steam"; nice = 5; ioclass = "best-effort"; ionice = 7; }
+      { name = "lutris"; ioclass = "best-effort"; ionice = 7; }
+      { name = "nile"; type = "BG_CPUIO"; }
+    ];
+  };
+
   customConfig = {
 
     apps = {
