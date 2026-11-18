@@ -31,7 +31,10 @@
       longitude = "-77.41";
       # He found the defaults (70 / 35) a little dim.
       dayBrightness = 85;
-      nightBrightness = 50;
+      # Night was too dark and red at 50 % / 3800 K; he picked 72, then found that a
+      # tad dim in a fully dark room.
+      nightBrightness = 80;
+      nightTemp = 5200;
     };
     services.audioBalance = {
       enable = true;
