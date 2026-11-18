@@ -217,7 +217,12 @@ let
     ninja
     gnumake
     wineWow64Packages.stable  # run original Windows binaries (32- and 64-bit) for differential tests; the cached build
-    unstable.objdiff        # function-level byte diff, recompile vs original
+    # function-level byte diff, recompile vs original. nixpkgs' Rust hook now
+    # exports AWS_LC_SYS_USE_SYSTEM=1, but objdiff 3.8.3 doesn't list aws-lc, so
+    # its build panics (2026-W47). Add it until nixpkgs does.
+    (unstable.objdiff.overrideAttrs (old: {
+      buildInputs = (old.buildInputs or [ ]) ++ [ unstable.aws-lc ];
+    }))
     SDL2          # front ends for reconstructed games (sdl2-compat, on SDL3)
     pkg-config
     upx
