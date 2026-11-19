@@ -32,7 +32,7 @@ Everything except autoUpdate is gated by `atlSecrets` in `hosts/atl-mini-pc/netw
 | Flip `atlSecrets`, mom runs `update && rebuild` | — |
 | Verify | — |
 | Offsite backup: rest-server here + mini-server job, gated | **done 2026-11-19**, see below |
-| Offline kit (admin age key + restic password) | restic password in Vaultwarden 2026-11-19; kit by hand |
+| Offline kit (admin age key + restic password) | restic password in Vaultwarden + KeePassDX (phone) 2026-11-19; admin key into the kit by hand |
 | Admin key one-off copy from asus-laptop | on the visit (below) |
 | Flip `gameBackup.offsite.enable` on mini-server, first run, test restore | after Verify |
 
@@ -105,9 +105,10 @@ safe place). Without them the encrypted secrets in nixos-config are gone."* It h
 - **This repo's restic password.** It is in sops too, but recovering from losing the
   age key is the reason the kit exists, and that password would be locked inside the same
   loss. Written once to `~/offsite-restic-password.txt` on gaming-pc (mode 600) on
-  2026-11-19, and **saved in Vaultwarden** the same day. Vaultwarden runs on mini-server and is
-  in this very backup, so the kit still needs its own copy. Bitwarden apps keep an offline
-  copy of the vault, but don't lean on that alone. Delete the file once the kit has it.
+  2026-11-19, then saved the same day in **Vaultwarden** and in **KeePassDX on lando's phone**.
+  The KeePassDX copy is the one that matters for recovery, since it doesn't depend on
+  mini-server (Vaultwarden runs there and is in this very backup). The file was deleted
+  the same day.
 
 ### The admin key offsite too (on the visit, from asus-laptop)
 
