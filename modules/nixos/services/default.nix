@@ -12,6 +12,5 @@
     ./ios-device.nix
     ./remote-admin.nix
     ./net-watch.nix
-    ./download-smoother.nix
   ];
 }
