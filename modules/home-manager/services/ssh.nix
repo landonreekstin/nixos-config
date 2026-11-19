@@ -49,8 +49,15 @@ in
                 user = "lando";
             };
 
+            # On her LAN, in person only.
             "atl-mini-pc" = {
                 hostname = "192.168.1.206";
+                user = "heather";
+            };
+
+            # Mom's, from anywhere: over the always-on homelab VPN (hosts/atl-mini-pc/networking.nix).
+            "atl" = {
+                hostname = "10.10.0.19";
                 user = "heather";
             };
 

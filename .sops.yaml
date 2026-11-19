@@ -39,6 +39,12 @@ creation_rules:
     key_groups:
       - age: [*justus-pc, *lando]
 
+  # Wi-Fi + homelab VPN key. The atl-mini-pc anchor above is a placeholder until mom sends
+  # /etc/ssh/ssh_host_ed25519_key.pub (docs/hosts/atl-mini-pc.md).
+  - path_regex: secrets/atl-mini-pc\.yaml$
+    key_groups:
+      - age: [*atl-mini-pc, *lando]
+
   - path_regex: secrets/asus-m15\.yaml$
     key_groups:
       - age: [*asus-m15, *lando]
