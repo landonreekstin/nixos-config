@@ -7,8 +7,7 @@
 #   Pre-dawn (Mon/Tue/Wed/Thu): Standing lamp on deep red 5% at 5:45 AM
 #   Morning (Mon/Tue/Wed/Thu): On 100% warm white at 6:14 AM, off at 7:15 AM
 #   Evening (every day): On 100% warm white 1hr before sunset
-#   Every day: Shift warm white -> amber from sunset to dusk, -> deep red by 1hr after dusk,
-#              dim to 25% from 9-10 PM (starts later in summer, once the lights are red)
+#   Every day: Shift warm white -> amber 6-7 PM, -> deep red 7-8 PM, dim to 25% from 9-10 PM
 
 # ==================== PRE-DAWN LAMP (Mon/Tue/Wed/Thu) ====================
 
@@ -113,36 +112,29 @@
         brightness_pct: 100
 
 # ==================== EVENING COLOR SHIFT (Every Day) ====================
-# Two phases, starting at sunset (lights have been warm white since sunset-1hr):
-#   1. sunset -> civil dusk:  warm white (hs 40,40) -> amber    (hs 35,85)
-#   2. dusk -> dusk + 1hr:    amber      (hs 35,85) -> deep red (hs 0,100)
-# Civil dusk = sun 6 degrees below the horizon (dark outside), ~30-40 min after
-# sunset. Full red lands ~6:15 PM in December, ~10:10 PM at the June solstice.
+# Fixed clock times, year-round (only lamps that are on get changed):
+#   6-7 PM:  warm white (hs 40,40) -> amber    (hs 35,85)
+#   7-8 PM:  amber      (hs 35,85) -> deep red (hs 0,100)
+# In summer the lamps don't come on until sunset-1hr (~7:30 PM), so they join
+# partway through, already close to red.
 
 - id: evening_color_shift
   alias: "Evening Color Shift"
-  description: "Warm white to amber from sunset to dusk, then amber to deep red over the hour after dusk"
+  description: "Warm white to amber from 6-7 PM, then amber to deep red from 7-8 PM"
   triggers:
-    - trigger: sun
-      event: sunset
+    - trigger: time
+      at: "18:00:00"
   mode: restart
   actions:
     - variables:
         step_seconds: 120
-        # Fired at sunset, so sensor.sun_next_dusk is still today's dusk.
-        # Falls back to 35 min out if the sun sensor is unavailable.
-        dusk_seconds: >
-          {% set dusk = states('sensor.sun_next_dusk') | as_datetime(none) %}
-          {% set secs = (dusk - now()).total_seconds() if dusk else 2100 %}
-          {{ [[secs | int, 600] | max, 7200] | min }}
-        dusk_steps: "{{ [(dusk_seconds / step_seconds) | int, 1] | max }}"
-        red_steps: "{{ (3600 / step_seconds) | int }}"
-    # Phase 1: warm white -> amber, sunset to dusk
+        phase_steps: "{{ (3600 / step_seconds) | int }}"
+    # Phase 1: warm white -> amber, 6-7 PM
     - repeat:
-        count: "{{ dusk_steps }}"
+        count: "{{ phase_steps }}"
         sequence:
           - variables:
-              progress: "{{ repeat.index / dusk_steps }}"
+              progress: "{{ repeat.index / phase_steps }}"
               hue: "{{ (40 - 5 * progress) | round(1) }}"
               sat: "{{ (40 + 45 * progress) | round(1) }}"
           - service: light.turn_on
@@ -158,12 +150,12 @@
               transition: 5
           - delay:
               seconds: "{{ step_seconds }}"
-    # Phase 2: amber -> deep red, over the hour after dusk
+    # Phase 2: amber -> deep red, 7-8 PM
     - repeat:
-        count: "{{ red_steps }}"
+        count: "{{ phase_steps }}"
         sequence:
           - variables:
-              progress: "{{ repeat.index / red_steps }}"
+              progress: "{{ repeat.index / phase_steps }}"
               hue: "{{ (35 * (1 - progress)) | round(1) }}"
               sat: "{{ (85 + 15 * progress) | round(1) }}"
           - service: light.turn_on
@@ -181,9 +173,8 @@
               seconds: "{{ step_seconds }}"
 
 # ==================== EVENING DIMMING (Every Day) ====================
-# Hold deep red, then dim 100% -> 25% from 9-10 PM. From ~April to ~August the
-# lights aren't red until after 9 PM (up to ~10:10 PM at the June solstice), so
-# wait for the color shift to finish first; the dim then starts later.
+# Hold deep red, then dim 100% -> 25% from 9-10 PM. The color shift is done by
+# ~8 PM; the wait is just a guard in case it was started late by hand.
 
 - id: evening_dim
   alias: "Evening Dim"
@@ -194,7 +185,7 @@
   mode: restart
   actions:
     - wait_template: "{{ state_attr('automation.evening_color_shift', 'current') | int(0) == 0 }}"
-      timeout: "02:00:00"
+      timeout: "01:00:00"
     - variables:
         total_steps: 12
         step_seconds: 300
