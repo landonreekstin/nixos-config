@@ -66,7 +66,7 @@ gets a "Work on <title> with Lando" entry; see
 | Game | Where | Credential helper | Blaney |
 |---|---|---|---|
 | prin-rpg | our Forgejo, `http://192.168.1.76:3000/lando/prin-rpg` ([forgejo.md](forgejo.md)) | `homelab` (the host's Forgejo token) | commits to `main` |
-| sub-of-seas | GitHub `landonreekstin/sub-of-seas` | `gh auth git-credential` | `blaney/` branches + PRs that lando merges |
+| sub-of-seas | GitHub `landonreekstin/sub-of-seas` | `gh auth git-credential` | commits to `main` (PRs until 2026-11-19) |
 
 The rules are written in each project's own `CLAUDE.md` and summarised in
 `~/gamedev/CLAUDE.md`. Verify before you commit, either way. GitHub's free plan can't

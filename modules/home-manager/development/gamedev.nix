@@ -33,14 +33,15 @@ let
     section of the project's own `CLAUDE.md`, and they are binding. In short:
     - lando may commit to `main`. Bigger or riskier work goes on a `feat/`, `fix/` or
       `tweak/` branch, as in the NixOS config.
-    - On our Forgejo (`http://192.168.1.76:3000`), Blaney commits to `main` as well. Start
+    - Where a project above says "Blaney commits to `main` too", he does, like lando. Start
       every session with `git pull --rebase`, and pull again right before every push.
-      The clone's credential helper is `homelab` (this host's Forgejo token).
-    - On GitHub, Blaney works only on `blaney/` branches through PRs. His clone has hooks
-      that refuse `main`. Merge his PRs only when lando asks, and only after the branch has
-      been run and played: `gh pr checkout <n>`, `make test`, play it, then
-      `gh pr merge <n> --merge`. Start every session with `git fetch` and a look at the
-      open PRs.
+    - Any other project is a PR flow: Blaney works only on `blaney/` branches through PRs,
+      and his clone has hooks that refuse `main`. Merge his PRs only when lando asks, and
+      only after the branch has been run and played: `gh pr checkout <n>`, `make test`,
+      play it, then `gh pr merge <n> --merge`. Start every session with `git fetch` and a
+      look at the open PRs.
+    - On our Forgejo (`http://192.168.1.76:3000`), the clone's credential helper is
+      `homelab` (this host's Forgejo token).
     - Look and feel are in the project's `docs/style.md`. Read it before any visible
       change. Log every look-and-feel direction from either person in its direction log,
       and update its current style in the same commit. Blaney's calls count as much as

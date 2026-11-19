@@ -18,14 +18,17 @@
       # Godot/LÖVE/pygame + the gamedev skills, the `gd` launcher and ~/gamedev.
       gamedev = {
         enable = true;
-        # Shared with Blaney (`vibe`). prin-rpg is on our Forgejo (docs/forgejo.md) and he
-        # commits to main; sub-of-seas is on GitHub and he goes through PRs.
+        # Shared with Blaney (`vibe`); he commits to main on both. prin-rpg is on our Forgejo
+        # (docs/forgejo.md), sub-of-seas on GitHub.
         forgejo.tokenFile = config.sops.secrets.forgejo-token.path;
         sharedProjects.prin-rpg = {
           repo = "lando/prin-rpg"; forge = "forgejo"; blaneyCommitsToMain = true;
           title = "prin-rpg (the Principia campus game)";
         };
-        sharedProjects.sub-of-seas = { repo = "landonreekstin/sub-of-seas"; title = "sub-of-seas (the co-op WWII submarine game)"; };
+        sharedProjects.sub-of-seas = {
+          repo = "landonreekstin/sub-of-seas"; blaneyCommitsToMain = true;
+          title = "sub-of-seas (the co-op WWII submarine game)";
+        };
       };
       # Not used on this host. flake.nix builds every devShell from THIS host's
       # evaluated config (referenceHostConfig), so a shell left disabled here does not
