@@ -118,11 +118,26 @@ the rebuild applied it:
 dig @127.0.0.1 files.lan +short     # expect 192.168.1.76
 ```
 
-### 4. No firewall change
+### 4. Restricted peers land on :8081, not :80 (changed 2026-11-19)
 
-Deliberate. Port 80 to `$nas_legacy_ip` is already passed for `<restricted_peers>` and
-already `rdr-to $nas_host`. If you find yourself editing `pf.conf`, stop and re-read —
-something else is wrong.
+~~No firewall change.~~ **Superseded.** Sending restricted peers to nginx's :80 let them
+reach **every** vhost there by spoofing the Host header: on 2026-11-19 `Host: qbittorrent.lan`
+returned the qBittorrent API with no login (it whitelists 127.0.0.1, and nginx proxies from
+127.0.0.1), and Transmission's RPC answered 409, not 401, so it has no auth either.
+
+Now the module also serves `/public/` on a **second listener, `restrictedPort` (8081)**, which
+has no other server block and returns 404 for everything else. optiplex-fw redirects only
+restricted peers there, with port 80 split out of their allow-list rule:
+
+```
+pass in quick on wg0 proto tcp from <restricted_peers> to $nas_legacy_ip port 80 rdr-to $nas_host port 8081 keep state
+```
+
+Peers keep using `http://192.168.1.76/public/`. Nothing changes for them. LAN and full peers
+still reach :80 as before. **Order:** the NAS has to serve 8081 before pf points at it.
+
+Check it from a restricted peer (or from the fw with `-H 'Host: qbittorrent.lan' http://192.168.100.76:8081/`):
+`curl -s -o /dev/null -w '%{http_code}' -H 'Host: qbittorrent.lan' http://192.168.1.76/` should print **404**.
 
 ## Verification
 

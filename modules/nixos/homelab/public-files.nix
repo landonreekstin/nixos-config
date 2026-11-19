@@ -38,6 +38,17 @@ in
       defaultText = "config.customConfig.user.name";
       description = "Owner of the drop directory.";
     };
+    restrictedPort = mkOption {
+      type = types.port;
+      default = 8081;
+      description = ''
+        A second listener that serves /public/ and NOTHING else, whatever the Host
+        header says. optiplex-fw redirects restricted VPN peers' port 80 here, so they
+        never reach nginx's :80, where every admin vhost (qbittorrent.lan,
+        transmission.lan, ...) is one spoofed Host header away. Found 2026-11-19:
+        qBittorrent and Transmission both answered such requests with no login.
+      '';
+    };
     serverAliases = mkOption {
       type = types.listOf types.str;
       default = [ "192.168.1.76" ];
@@ -70,5 +81,25 @@ in
         '';
       };
     };
+
+    # Restricted peers only ever land here (pf rdr :80 -> :8081). The only listener on
+    # this port, so it is the default server for every Host; nothing but /public/.
+    services.nginx.virtualHosts."public-files-restricted" = {
+      serverName = "_";
+      listen = [ { addr = "0.0.0.0"; port = cfg.restrictedPort; } ];
+      locations."/public/" = {
+        alias = "${cfg.path}/";
+        extraConfig = ''
+          autoindex on;
+          autoindex_exact_size off;
+          autoindex_localtime on;
+          # GET/HEAD only -- nothing here should ever accept an upload.
+          limit_except GET HEAD { deny all; }
+        '';
+      };
+      locations."/".return = "404";
+    };
+
+    networking.firewall.allowedTCPPorts = [ cfg.restrictedPort ];
   };
 }
