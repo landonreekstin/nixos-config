@@ -7,7 +7,8 @@
 #   Pre-dawn (Mon/Tue/Wed/Thu): Standing lamp on deep red 5% at 5:45 AM
 #   Morning (Mon/Tue/Wed/Thu): On 100% warm white at 6:14 AM, off at 7:15 AM
 #   Evening (every day): On 100% warm white 1hr before sunset
-#   Every day: Shift warm white -> amber 6-7 PM, -> deep red 7-8 PM, dim to 25% from 9-10 PM
+#   Every day: From sunset or 6 PM (whichever first) shift warm white -> amber by dusk/7 PM,
+#              -> deep red by dusk+1hr/8 PM, then dim to 25% from 9-10 PM
 
 # ==================== PRE-DAWN LAMP (Mon/Tue/Wed/Thu) ====================
 
@@ -112,29 +113,68 @@
         brightness_pct: 100
 
 # ==================== EVENING COLOR SHIFT (Every Day) ====================
-# Fixed clock times, year-round (only lamps that are on get changed):
-#   6-7 PM:  warm white (hs 40,40) -> amber    (hs 35,85)
-#   7-8 PM:  amber      (hs 35,85) -> deep red (hs 0,100)
+# Follows the sun in winter, capped by the clock in summer. Each milestone is
+# whichever comes FIRST (only lamps that are on get changed):
+#   start (warm white, hs 40,40): sunset           or 6 PM
+#   amber (hs 35,85):             civil dusk        or 7 PM
+#   deep red (hs 0,100):          dusk + 1hr        or 8 PM
+# St. Louis: mid-Nov ~4:42 -> 5:12 -> 6:12 PM; June 6 -> 7 -> 8 PM.
 # In summer the lamps don't come on until sunset-1hr (~7:30 PM), so they join
 # partway through, already close to red.
 
 - id: evening_color_shift
   alias: "Evening Color Shift"
-  description: "Warm white to amber from 6-7 PM, then amber to deep red from 7-8 PM"
+  description: "Warm white to amber by dusk or 7 PM, then deep red by dusk+1hr or 8 PM, starting at sunset or 6 PM, whichever is first"
   triggers:
+    - trigger: sun
+      event: sunset
+      id: sunset
     - trigger: time
       at: "18:00:00"
-  mode: restart
+      id: clock
+  # Run only on whichever trigger comes first today: sunset counts only before
+  # 6 PM, and 6 PM counts only while the sun is still up.
+  conditions:
+    - condition: or
+      conditions:
+        - condition: and
+          conditions:
+            - condition: trigger
+              id: sunset
+            - condition: time
+              before: "18:00:00"
+        - condition: and
+          conditions:
+            - condition: trigger
+              id: clock
+            - condition: state
+              entity_id: sun.sun
+              state: above_horizon
+  mode: single
+  max_exceeded: silent
   actions:
     - variables:
         step_seconds: 120
-        phase_steps: "{{ (3600 / step_seconds) | int }}"
-    # Phase 1: warm white -> amber, 6-7 PM
+        # Fired at sunset or 6 PM before sunset, so sensor.sun_next_dusk is still
+        # today's dusk. If the sensor is unavailable, fall back to the clock times.
+        amber_at: >
+          {% set d = states('sensor.sun_next_dusk') | as_datetime(none) %}
+          {% set clock = today_at('19:00') %}
+          {{ ([d | as_local, clock] | min) if d else clock }}
+        red_at: >
+          {% set d = states('sensor.sun_next_dusk') | as_datetime(none) %}
+          {% set clock = today_at('20:00') %}
+          {{ ([(d | as_local) + timedelta(hours=1), clock] | min) if d else clock }}
+        amber_steps: >
+          {{ [((as_datetime(amber_at) - now()).total_seconds() / step_seconds) | int, 1] | max }}
+        red_steps: >
+          {{ [((as_datetime(red_at) - as_datetime(amber_at)).total_seconds() / step_seconds) | int, 1] | max }}
+    # Phase 1: warm white -> amber, until dusk or 7 PM
     - repeat:
-        count: "{{ phase_steps }}"
+        count: "{{ amber_steps }}"
         sequence:
           - variables:
-              progress: "{{ repeat.index / phase_steps }}"
+              progress: "{{ repeat.index / amber_steps }}"
               hue: "{{ (40 - 5 * progress) | round(1) }}"
               sat: "{{ (40 + 45 * progress) | round(1) }}"
           - service: light.turn_on
@@ -150,12 +190,12 @@
               transition: 5
           - delay:
               seconds: "{{ step_seconds }}"
-    # Phase 2: amber -> deep red, 7-8 PM
+    # Phase 2: amber -> deep red, until dusk+1hr or 8 PM
     - repeat:
-        count: "{{ phase_steps }}"
+        count: "{{ red_steps }}"
         sequence:
           - variables:
-              progress: "{{ repeat.index / phase_steps }}"
+              progress: "{{ repeat.index / red_steps }}"
               hue: "{{ (35 * (1 - progress)) | round(1) }}"
               sat: "{{ (85 + 15 * progress) | round(1) }}"
           - service: light.turn_on
