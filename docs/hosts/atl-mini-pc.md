@@ -31,6 +31,9 @@ Everything except autoUpdate is gated by `atlSecrets` in `hosts/atl-mini-pc/netw
 | `secrets/atl-mini-pc.yaml` | waiting on the age key |
 | Flip `atlSecrets`, mom runs `update && rebuild` | — |
 | Verify | — |
+| Offsite backup: rest-server here + mini-server job, gated | **done 2026-11-19**, see below |
+| Offline kit (admin age key + restic password) | lando, by hand |
+| Flip `gameBackup.offsite.enable` on mini-server, first run, test restore | after Verify |
 
 ## Bootstrap (remote; no visit needed)
 
@@ -52,6 +55,56 @@ Everything except autoUpdate is gated by `atlSecrets` in `hosts/atl-mini-pc/netw
 4. **Mom runs `update && rebuild`.** Nothing changes for her, apart from a second Wi-Fi entry.
 5. **Verify:** run `ssh atl`, then `sudo wg show wg-homelab` should show a recent handshake. Then
    the real test: have her **reboot and not log in**, and `ssh atl` again.
+
+## Offsite backup
+
+Stage 0 of the Homelab 2.0 doc: *"a small restic backup of irreplaceable files to
+atl-mini-pc"*. It is the doc's copy 2 of 3-2-1, built the way the doc says: **restic to a
+rest-server in append-only mode, over WireGuard.**
+
+| | |
+|---|---|
+| **Pushed by** | mini-server, nightly **04:45**, after its 04:00 NAS run (`gameBackup.offsite` in `modules/nixos/homelab/game-backup.nix`) |
+| **Holds** | the same set as the NAS job: Home Assistant, Vaultwarden, game-server worlds, Forgejo's 03:30 dump |
+| **Lands at** | `/var/lib/restic/mini-server` here, via `rest:http://10.10.0.19:8000/mini-server` |
+| **Repo password** | `secrets/mini-server-offsite.yaml` (mini-server + admin key), **and the offline kit** |
+| **Network** | mini-server → fw (passes the server subnet) → wg0 → here. `192.168.100.103/32` is in this host's AllowedIPs; port 8000 is open on `wg-homelab` only. No pf change was needed |
+
+- **Append-only** means a compromised pusher can add snapshots and never delete one, so
+  there is no `forget --prune` in the job (the server would refuse it and fail the unit).
+  **Retention runs here**, by hand, occasionally: `ssh atl`, then
+  `sudo restic -r /var/lib/restic/mini-server forget --keep-daily 14 --keep-monthly 12 --prune`
+  and paste the password. The set is small and deduplicated, so growth is slow.
+- **No auth on the server, on purpose.** WireGuard AllowedIPs are the access list. restic
+  encrypts on mini-server, so nothing on this machine can read the data.
+- **Check the disk on the visit:** `df -h /var`. Today's set is a few GB (the NAS repo for it
+  is 6.5 GB).
+
+### Turning it on (after Verify above)
+
+1. Set `gameBackup.offsite.enable = true` in `hosts/mini-server/homelab.nix`, commit, and
+   rebuild mini-server.
+2. Run it once: `sudo systemctl start restic-backups-offsite` on mini-server, then read
+   `journalctl -u restic-backups-offsite`. `initialize = true` creates the repo on the first
+   run.
+3. **Prove append-only:** from mini-server,
+   `sudo restic -r rest:http://10.10.0.19:8000/mini-server --password-file /run/secrets/restic-offsite-password forget --keep-last 1 --prune`
+   must **fail**.
+4. **Test restore** (the doc's gate: a backup is only real once restored): restore
+   `/var/lib/hass` from the latest snapshot into `/tmp/restore-test` on mini-server and
+   diff it against the live directory.
+
+### The offline kit
+
+The doc: *"Back up the sops/age keys separately and offline (printed, or on a USB stick in a
+safe place). Without them the encrypted secrets in nixos-config are gone."* It holds:
+
+- **The admin age key**, `~/.config/sops/age/keys.txt` on **asus-laptop**. The file of the
+  same name on gaming-pc is **gaming-pc's own host key**, not this one.
+- **This repo's restic password.** It is in sops too, but recovering from losing the
+  age key is the reason the kit exists, and that password would be locked inside the same
+  loss. Written once to `~/offsite-restic-password.txt` on gaming-pc (mode 600) on
+  2026-11-19. Copy it into the kit and Vaultwarden, then delete it.
 
 ## Still worth doing on the next visit
 

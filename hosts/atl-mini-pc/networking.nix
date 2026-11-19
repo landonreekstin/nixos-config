@@ -27,11 +27,12 @@ in
         # A residential IP. If Spectrum ever changes it, this line is the fix, and
         # autoUpdate (or mom's `update && rebuild`) is how the fix reaches this machine.
         endpoint = "68.184.198.204:51822";
-        # Split tunnel: lando's two gaming-pc peers (his SSH in), plus the NAS alias for
-        # Jellyfin (http://192.168.1.76:8096) and Jellyseerr (:5055). She is an ordinary
+        # Split tunnel: lando's two gaming-pc peers (his SSH in), the NAS alias for
+        # Jellyfin (http://192.168.1.76:8096) and Jellyseerr (:5055), and mini-server, which
+        # pushes the offsite restic backup to the rest-server below. She is an ordinary
         # restricted peer on optiplex-fw. Everything else of hers stays local, so the VPN
         # can't break her internet. (If her own LAN ever has a device at .76, this /32 wins.)
-        allowedIPs = [ "10.10.0.2/32" "10.10.0.11/32" "192.168.1.76/32" ];
+        allowedIPs = [ "10.10.0.2/32" "10.10.0.11/32" "192.168.1.76/32" "192.168.100.103/32" ];
         persistentKeepalive = 25; # behind her router's NAT; keep the mapping open
       };
     };
@@ -48,6 +49,19 @@ in
   }
 
   (lib.mkIf atlSecrets {
+    # Offsite backup target (Homelab 2.0 doc, Stage 0). mini-server pushes its HA, Vaultwarden,
+    # game-server and Forgejo state here nightly with restic, encrypted on its side, so
+    # nothing here can read it. APPEND-ONLY: a compromised pusher can add snapshots but
+    # cannot delete old ones. No auth: the only clients that can reach it are the
+    # WireGuard AllowedIPs above, and the port is open on wg-homelab alone.
+    services.restic.server = {
+      enable = true;
+      appendOnly = true;
+      listenAddress = "8000";
+      extraFlags = [ "--no-auth" ];
+    };
+    networking.firewall.interfaces."wg-homelab".allowedTCPPorts = [ 8000 ];
+
     sops.secrets.wg-homelab-key = { };
     sops.secrets.wifi-env = { };   # WIFI_SSID=… and WIFI_PSK=… lines
 

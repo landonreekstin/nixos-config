@@ -45,6 +45,12 @@ creation_rules:
     key_groups:
       - age: [*atl-mini-pc, *lando]
 
+  # Repo password for mini-server's offsite restic copy to atl-mini-pc. Own file so it can be
+  # created with public keys only. The same password is in the offline kit (admin key).
+  - path_regex: secrets/mini-server-offsite\.yaml$
+    key_groups:
+      - age: [*mini-server, *lando]
+
   - path_regex: secrets/asus-m15\.yaml$
     key_groups:
       - age: [*asus-m15, *lando]
