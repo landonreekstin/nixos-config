@@ -85,6 +85,9 @@
     forgejo.enable = true;
 
     gameBackup.enable = true;
+    # Offsite copy to atl-mini-pc (mom's). Flip once her VPN and rest-server are up:
+    # docs/hosts/atl-mini-pc.md, "Offsite backup".
+    gameBackup.offsite.enable = false;
 
     localCA.enable = true;
     localCA.trustCA = true;
