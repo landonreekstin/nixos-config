@@ -1,0 +1,21 @@
+# Custom Assist sentences for the day's forecast.
+#
+# Custom sentences win over HA's built-in intents, so these phrasings no longer
+# reach HassGetWeather (current conditions only). "What's the temperature" is
+# deliberately not matched here and still answers with the current temperature.
+# The response is built by intent_script.WeatherForecast in hosts/mini-server/homelab.nix.
+language: "en"
+intents:
+  WeatherForecast:
+    data:
+      - sentences:
+          - "(what's|whats|what is) the weather [going to be] [like] [(today|for today|outside)]"
+          - "(what's|whats|what is) (the|today's|todays) forecast [for today]"
+          - "how's the weather [(today|looking)]"
+          - "how is the weather [(today|looking)]"
+          - "what's it going to be like [outside] today"
+          - "what is it going to be like [outside] today"
+          - "(what's|what is) the weather forecast [for today]"
+          - "weather (today|forecast)"
+          - "[(give|tell) me] [the] forecast"
+          - "(is it|will it) (going to rain|rain) today"

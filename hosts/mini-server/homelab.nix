@@ -101,7 +101,115 @@
   # Version-control HA config files alongside this host config.
   # The NixOS HA module manages configuration.yaml the same way.
   environment.etc."home-assistant/automations.yaml".source = ./home-assistant/automations.yaml;
+  environment.etc."home-assistant/custom_sentences/en/weather.yaml".source =
+    ./home-assistant/custom_sentences/en/weather.yaml;
   systemd.services.home-assistant.preStart = lib.mkAfter ''
     ln -sf /etc/home-assistant/automations.yaml /var/lib/hass/automations.yaml
+    mkdir -p /var/lib/hass/custom_sentences/en
+    ln -sf /etc/home-assistant/custom_sentences/en/weather.yaml /var/lib/hass/custom_sentences/en/weather.yaml
   '';
+
+  # Voice forecasts from the National Weather Service. The NWS integration has no YAML
+  # setup: add it once in the UI (any email as the API key) and type KSTL as the station.
+  # NWS auto-picks KCPS (Cahokia), which drops half its hourly readings, so the current
+  # temperature went stale. The entity id still ends in _kcps: HA keys it by home
+  # coordinates only and restored the first id when the entry was re-added on KSTL.
+  #
+  # Two paths reach the forecast:
+  #  - intent_script.WeatherForecast answers the custom sentences in
+  #    home-assistant/custom_sentences/en/weather.yaml locally, so "what's the weather
+  #    today" works even when the Google AI entry failed setup.
+  #  - script.weather_forecast is the tool Gemini calls for anything else ("will it
+  #    rain tomorrow?"). It must be exposed to Assist in the UI to be callable.
+  services.home-assistant.config =
+    let
+      weather = "weather.nws_38_595803_90_2206566_kcps";
+
+      # weather.get_forecasts carries the numbers (temperature, precipitation_probability,
+      # is_daytime) but not NWS's wording; nws.get_forecasts_extra carries only the wording
+      # (short_description "Sunny", detailed_description). Both come from the same NWS
+      # period list, so merge them index by index into `forecast`.
+      getForecast = type: [
+        {
+          action = "weather.get_forecasts";
+          target.entity_id = weather;
+          data.type = type;
+          response_variable = "fc";
+        }
+        {
+          action = "nws.get_forecasts_extra";
+          target.entity_id = weather;
+          data.type = type;
+          response_variable = "fx";
+        }
+        {
+          variables.forecast = ''
+            {%- set p = fc['${weather}'].forecast -%}
+            {%- set x = fx['${weather}'].forecast -%}
+            {%- set ns = namespace(out=[]) -%}
+            {%- for i in range(p | count) -%}
+              {%- set ns.out = ns.out + [dict(p[i], **(x[i] if x | count > i else {}))] -%}
+            {%- endfor -%}
+            {{ ns.out }}
+          '';
+        }
+      ];
+    in
+    {
+      intent_script.WeatherForecast = {
+        # Action-local variables don't reach the speech template; only the sequence's
+        # own response does, as `action_response`, so stop with the forecast as it.
+        action = getForecast "twice_daily" ++ [
+          { variables.result.forecast = "{{ forecast }}"; }
+          { stop = ""; response_variable = "result"; }
+        ];
+        # twice_daily periods alternate day/night; the first one is whatever period
+        # we are in now, so after ~6 PM it is "tonight".
+        speech.text = ''
+          {%- set p = action_response.forecast -%}
+          {%- set cur = state_attr('${weather}', 'temperature') -%}
+          {%- macro rain(x) -%}
+            {%- if (x.precipitation_probability or 0) >= 10 %} {{ x.precipitation_probability }} percent chance of rain.{% endif -%}
+          {%- endmacro -%}
+          {%- macro desc(x) -%}
+            {{ x.short_description or (x.condition or "") | replace("partlycloudy", "partly cloudy") }}
+          {%- endmacro -%}
+          {%- if p | count == 0 -%}
+            Sorry, I couldn't get the forecast right now.
+          {%- elif p[0].is_daytime -%}
+            Today: {{ desc(p[0]) }}. High of {{ p[0].temperature | round }}
+            {%- if p | count > 1 %}, low of {{ p[1].temperature | round }}{% endif %}.
+            {{- rain(p[0]) }}
+            {%- if cur is number %} It's {{ cur | round }} degrees right now.{% endif %}
+          {%- else -%}
+            Tonight: {{ desc(p[0]) }}. Low of {{ p[0].temperature | round }}.
+            {{- rain(p[0]) }}
+            {%- if p | count > 1 %} Tomorrow: {{ desc(p[1]) }}, high of {{ p[1].temperature | round }}.{% endif %}
+          {%- endif -%}
+        '';
+      };
+
+      script.weather_forecast = {
+        alias = "Weather forecast";
+        description = ''
+          Get the weather forecast from the National Weather Service: highs, lows,
+          conditions, NWS's written forecast and percent chance of rain. Use this for any
+          question about the weather today, tonight, tomorrow or later this week.
+          "twice_daily" gives day/night periods for about a week; "hourly" gives the
+          next hours.
+        '';
+        fields.type = {
+          description = "Forecast resolution: twice_daily (default) or hourly.";
+          example = "twice_daily";
+          selector.select.options = [ "twice_daily" "hourly" ];
+        };
+        sequence = getForecast "{{ type | default('twice_daily') }}" ++ [
+          # Hourly is ~150 entries; trim to the next 12 hours to keep the LLM context small.
+          {
+            variables.result.forecast = "{{ forecast[:12] if type | default('twice_daily') == 'hourly' else forecast }}";
+          }
+          { stop = "Forecast retrieved"; response_variable = "result"; }
+        ];
+      };
+    };
 }
