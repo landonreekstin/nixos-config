@@ -77,6 +77,7 @@ in
         "cync"
         "wyoming"
         "radio_browser"
+        "nws"
         "google_translate"
         "google_generative_ai_conversation"
       ];
