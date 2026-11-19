@@ -22,12 +22,15 @@
     development.gamedev = {
       enable = true;
       workspace.enable = false;
-      # lando's games, worked on from `vibe` through blaney/ branches and PRs.
+      # lando's games, worked on from `vibe`; Blaney commits to main on both.
       sharedProjects.prin-rpg = {
         repo = "lando/prin-rpg"; forge = "forgejo"; blaneyCommitsToMain = true;
         title = "prin-rpg (the Principia campus game)";
       };
-      sharedProjects.sub-of-seas = { repo = "landonreekstin/sub-of-seas"; title = "sub-of-seas (the co-op WWII submarine game)"; };
+      sharedProjects.sub-of-seas = {
+        repo = "landonreekstin/sub-of-seas"; blaneyCommitsToMain = true;
+        title = "sub-of-seas (the co-op WWII submarine game)";
+      };
     };
   };
 }

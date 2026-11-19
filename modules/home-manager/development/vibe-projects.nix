@@ -46,23 +46,25 @@ let
 
     ### Games shared with lando (`shared=` in `.vibe-project`)
 
-    A game whose `.vibe-project` has a `shared=owner/repo` line (prin-rpg) is **lando's
+    A game whose `.vibe-project` has a `shared=owner/repo` line (prin-rpg, sub-of-seas) is **lando's
     repo**, which he works on too. `vibe` cloned it and added it to the menu. There, the
     project's own `CLAUDE.md` section "Working together" is binding, and it **replaces**
     two rules above: "The project repo is his — commit to main freely" and "Where his
     app's code is allowed to live". `vibe`'s opening prompt says which of the two ways
     below the game uses.
 
-    **Games on our own git server** (`http://192.168.1.76:3000`, prin-rpg). He commits to
-    `main`, like lando:
+    **Games he commits to `main`** (prin-rpg on our own git server
+    `http://192.168.1.76:3000`, sub-of-seas on GitHub), like lando:
     - `git pull --rebase` at the start of every session and again right before every push,
       so neither of you overwrites the other. A conflict you can't sort out cleanly: stop
       and tell him to ask Lando.
     - Push **as him**, after the `chown` from "File ownership":
-      `sudo -u ${userName} -H git push`. The server is only reachable with the VPN on;
-      if a push can't connect, tell him to switch it on.
+      `sudo -u ${userName} -H git push`. On GitHub that uses his login, `cblaney00`. Our
+      own server is only reachable with the VPN on; if a push there can't connect, tell
+      him to switch it on.
 
-    **Games on GitHub** (sub-of-seas). Lando reviews his changes:
+    **PR-flow games** (none at the moment; `vibe`'s opening prompt says when one is).
+    Lando reviews his changes:
     - Every change goes on a `blaney/` branch and into a PR (`gh pr create --base main`),
       and then you **stop**. Lando merges it. **Never commit to `main`, push to `main`, or
       merge anything.** The clone's git hooks refuse it; never use `--no-verify`.

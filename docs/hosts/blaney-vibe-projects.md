@@ -196,10 +196,11 @@ first time the address changes, it first writes a `git bundle` of the whole clon
 [Moving a repo off GitHub](../forgejo.md#moving-a-repo-off-github-without-losing-anyones-work)).
 
 These are **not** his repos. Each game is one of two kinds (`blaneyCommitsToMain`):
-- **He commits to `main`** (prin-rpg, on our Forgejo). `vibe` removes the main-guard
+- **He commits to `main`** (prin-rpg on our Forgejo, sub-of-seas on GitHub since
+  2026-11-19). `vibe` removes the main-guard
   hooks, and his session's prompt says to `git pull --rebase` first and before every
   push, never to discard work left on an old `blaney/` branch, and to push as him.
-- **PR flow** (sub-of-seas, on GitHub). `vibe` sets `core.hooksPath` to
+- **PR flow** (no game at the moment). `vibe` sets `core.hooksPath` to
   `gamedev.mainGuardHooks`, git hooks that refuse a commit on `main` and a push to
   `main`. Those hooks are the only enforcement, because a private repo on a free GitHub
   plan has no server-side branch rules. He works on `blaney/` branches, opens a PR, and
