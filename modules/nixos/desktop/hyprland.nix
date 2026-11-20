@@ -8,7 +8,8 @@ let
   dcfg = config.customConfig.homeManager.hyprland.desktops;
   needsUinput = lib.any (n: (meta n).needsUinput or false) dcfg.enabled;
   sessionDesktops = lib.filter (n: n != dcfg.default) dcfg.enabled;
-  meta = n: import (desktopsDir + "/${n}/meta.nix");
+  # A desktop registered from outside this repo (desktops.extra) lives in its own directory.
+  meta = n: import ((dcfg.extra.${n} or (desktopsDir + "/${n}")) + "/meta.nix");
   desktopLib = import (desktopsDir + "/lib.nix") { inherit lib; };
 in
 {

@@ -4,6 +4,8 @@
 {
   customConfig.homeManager = {
     enable = true;
+    # His `vibe` config-chat shims own ccn/ccnc/ccnr here (blaney-commands.nix).
+    claudeShellShortcuts = false;
     # Mirror blaney-pc: notify at next login if a walk-away rebuild-shutdown failed.
     services.rebuildShutdownNotify.enable = true;
     # Mirror blaney-pc: offer to update first at shutdown when main has new commits.

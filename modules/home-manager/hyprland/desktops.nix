@@ -52,15 +52,21 @@ let
   on = lib.elem "hyprland" customConfig.desktop.environments;
   desktopLib = import ./desktops/lib.nix { inherit lib; };
 
-  # Every subdirectory of desktops/ is a desktop.
-  desktopNames = lib.attrNames (lib.filterAttrs (_: t: t == "directory") (builtins.readDir ./desktops));
+  # Every subdirectory of desktops/ is a desktop, plus those a downstream repo registers
+  # (customConfig.homeManager.hyprland.desktops.extra, name -> directory).
+  desktopDirs = lib.mapAttrs (n: _: ./desktops + "/${n}")
+    (lib.filterAttrs (_: t: t == "directory") (builtins.readDir ./desktops))
+    // dcfg.extra;
+  desktopNames = lib.attrNames desktopDirs;
 
   hyprOpts = options.wayland.windowManager.hyprland;
   declared = options.hyprDesktops;
   forwarded = [ "settings" "extraConfig" "plugins" ];
 
   fromHere = def: lib.hasSuffix "/modules/home-manager/hyprland/desktops.nix" (toString def.file);
-  fromADesktop = def: lib.hasInfix "/modules/home-manager/hyprland/desktops/" (toString def.file);
+  fromADesktop = def: let f = toString def.file; in
+    lib.hasInfix "/modules/home-manager/hyprland/desktops/" f
+    || lib.any (d: lib.hasPrefix "${toString d}/" f) (lib.attrValues dcfg.extra);
 
   # Re-merge one Hyprland option from the functional layer's definitions plus
   # `desktopDefs`.
@@ -312,7 +318,9 @@ let
   '';
 in
 {
-  imports = map (n: ./desktops + "/${n}") desktopNames;
+  # desktops/lib.nix is also handed to every module as `hyprDesktopLib`, so a desktop
+  # registered from outside this repo (desktops.extra) can use it without a relative import.
+  imports = lib.attrValues desktopDirs ++ [ { _module.args.hyprDesktopLib = desktopLib; } ];
 
   options.hyprDesktops = lib.genAttrs desktopNames (_: desktopLib.desktopOptions);
 

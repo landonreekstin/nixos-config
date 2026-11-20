@@ -463,6 +463,13 @@ unset.
    default. `hyprctl configerrors` should be empty, and no bar or daemon from the other
    desktop should be left running.
 
+**A desktop in a downstream repo** (one built with `lib.mkSystem`, see
+[architecture.md](architecture.md#downstream-host-repos)) has the same layout in its own
+directory and is registered with
+`customConfig.homeManager.hyprland.desktops.extra.<name> = ./path/to/<name>;`. It cannot
+`import ../lib.nix`, so it takes `hyprDesktopLib` as a module argument instead
+(`hyprDesktopLib.state customConfig "<name>"`, `hyprDesktopLib.bindTo "<name>"`).
+
 ## The glade theme
 
 `customConfig.homeManager.hyprland.desktops.enabled = [ "glade" ]` (blaney-pc, mirrored on vm-blaney)
