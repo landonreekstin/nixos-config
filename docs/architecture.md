@@ -127,3 +127,49 @@ nix eval --impure --json --expr '
 Note `config.system.build.manual.optionsJSON` is **not** useful here — it documents upstream
 nixpkgs options only and never contains `customConfig`.
 
+
+## Downstream host repos
+
+This repo is also a **module library**: another flake can build hosts on it without
+copying any module. The flake exports:
+
+- `lib.mkSystem { modules; extraSpecialArgs ? {}; }`: what every host here is built with.
+  It adds home-manager, NUR, disko and `hostPlatform`, and passes **this** flake's
+  `inputs` / `unstablePkgs` as specialArgs. The library's modules read `inputs.*` from
+  there, which a consumer could not supply through plain imports.
+- `nixosModules.default`: `modules/nixos/default.nix`, for reference. Hosts import it
+  themselves (as every `hosts/<h>/default.nix` here does).
+
+A downstream flake follows this repo's pins and builds its hosts like this:
+
+```nix
+inputs = {
+  lib.url = "github:landonreekstin/nixos-config";
+  nixpkgs.follows = "lib/nixpkgs";
+  home-manager.follows = "lib/home-manager";
+};
+outputs = { lib, ... }: {
+  nixosConfigurations.<host> = lib.lib.mkSystem {
+    modules = [ ./hosts/<host> ];   # which imports "${lib}/modules/nixos/default.nix"
+  };
+};
+```
+
+Extension points a downstream repo uses instead of editing the library:
+
+| Need | Use |
+|---|---|
+| its own home-manager modules | `home-manager.sharedModules = [ ./modules/home-manager ];` (a list, merges with ours) |
+| its own Hyprland desktop | `customConfig.homeManager.hyprland.desktops.extra.<name> = ./dir;` ([theming.md](theming.md#adding-a-desktop)) |
+| `post-install` cloning its repo | `customConfig.system.configRepo = "<owner>/<repo>";` |
+| its own `ccn`/`ccnc`/`ccnr` commands | `customConfig.homeManager.claudeShellShortcuts = false;` |
+
+**Changing the library's interface** (renaming or removing a `customConfig` option) breaks
+downstream hosts the next time they bump their lock. Leave a
+`lib.mkRenamedOptionModule` / `lib.mkRemovedOptionModule` behind for a while instead of
+just deleting it.
+
+Note that a few hosts (optiplex, asus-m15, atl-mini-pc, vm-sandbox) change drvPath on
+*any* commit: their plasma-manager wallpaper is a repo-relative path coerced to a string,
+which puts the whole repo source in the store path. For those, a no-op proof is a
+`nix-diff` showing only `-source/assets/wallpapers/...` differs.
