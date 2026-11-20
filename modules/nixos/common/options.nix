@@ -80,6 +80,16 @@ in
         description = "The hostname for this system (e.g., 'optiplex', 'gaming-pc').";
         example = "my-nixos-pc";
       };
+      configRepo = mkOption {
+        type = types.str;
+        default = "landonreekstin/nixos-config";
+        example = "cblaney00/nixos-config";
+        description = ''
+          GitHub `owner/name` of the repo this host's config lives in, cloned to
+          ~/nixos-config. A host built from a downstream repo (one that imports this
+          module library through lib.mkSystem) sets this to its own repo.
+        '';
+      };
       stateVersion = mkOption {
         type = types.str;
         default = "24.11"; # Set your preferred default NixOS state version.

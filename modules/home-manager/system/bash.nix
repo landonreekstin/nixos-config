@@ -40,10 +40,10 @@ in
       ipr = "sudo input-remapper-gtk";
     };
 
-    # On blaney-pc these three are the config-chat entry of `vibe` instead, which also hands every
-    # chat the blaney-pc rules (modules/nixos/common/blaney-commands.nix). A shell function would
+    # Off (customConfig.homeManager.claudeShellShortcuts) on a host whose own commands use these
+    # names, e.g. blaney-pc, where they open the config chat of `vibe`. A shell function would
     # shadow the shim commands pointing him there, so they are left out.
-    initExtra = lib.optionalString (customConfig.user.name != "insideabush") ''
+    initExtra = lib.optionalString customConfig.homeManager.claudeShellShortcuts ''
       ccnc() {
         cd "$HOME/nixos-config" || return
         # `claude remote-control` drops an empty <uuid>.jsonl into this project's
