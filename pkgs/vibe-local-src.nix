@@ -17,7 +17,9 @@
 # itself warns if the folder has gone missing, rather than silently going back to it.
 customConfig: name:
 let
-  vibe = customConfig.programs.vibeProjects;
+  # vibeProjects is declared by insideabush's own modules (modules/blaney-nixos.nix); a host
+  # without them just builds every app from its pin.
+  vibe = customConfig.programs.vibeProjects or { enable = false; };
   folder = vibe.localApps.${name} or null;
   dir = "${vibe.dir}/${folder}";
   junk = [ ".git" ".direnv" "node_modules" "__pycache__" "result" ];

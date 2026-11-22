@@ -9,12 +9,12 @@
 # bar/title-bar styling — is in the other files of this desktop. Its Hyprland
 # settings go to hyprDesktops.glade, which keeps them out of every other desktop
 # (../../desktops.nix).
-{ config, pkgs, lib, customConfig, ... }:
+{ hyprDesktopLib, inputs, config, pkgs, lib, customConfig, ... }:
 
 let
-  desktop = (import ../lib.nix { inherit lib; }).state customConfig "glade";
+  desktop = hyprDesktopLib.state customConfig "glade";
 
-  glade = pkgs.callPackage ../../../../../pkgs/glade (import ../../../../../pkgs/vibe-local-src.nix customConfig "glade");
+  glade = pkgs.callPackage ../../../../../pkgs/glade (import "${inputs.self}/pkgs/vibe-local-src.nix" customConfig "glade");
   colors = import ./colors.nix;
   rgb = c: "rgb(${lib.removePrefix "#" c})";
 
@@ -182,7 +182,7 @@ let
   # Shut down through the same "update first?" check as every other shutdown path on
   # a host that has it (modules/home-manager/services/shutdown-guard.nix).
   guarded = action:
-    if customConfig.homeManager.services.shutdownGuard.enable
+    if customConfig.homeManager.services.shutdownGuard.enable or false
     then "shutdown-guard && ${action}" else action;
 in
 {

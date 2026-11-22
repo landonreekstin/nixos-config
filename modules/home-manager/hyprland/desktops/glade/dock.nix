@@ -5,12 +5,12 @@
 # three). Asked for by insideabush: a Mac-style dock of his apps with a dot under each
 # open one, along the bottom of the lower monitor so it doesn't cut across the path
 # between the two screens.
-{ config, pkgs, lib, customConfig, ... }:
+{ hyprDesktopLib, inputs, config, pkgs, lib, customConfig, ... }:
 
 let
-  desktop = (import ../lib.nix { inherit lib; }).state customConfig "glade";
+  desktop = hyprDesktopLib.state customConfig "glade";
   c = import ./colors.nix;
-  glade = pkgs.callPackage ../../../../../pkgs/glade (import ../../../../../pkgs/vibe-local-src.nix customConfig "glade");
+  glade = pkgs.callPackage ../../../../../pkgs/glade (import "${inputs.self}/pkgs/vibe-local-src.nix" customConfig "glade");
 
   # Always in the dock, in this order (the apps the glade's boards open). Anything else
   # that is open joins on the end while it runs.

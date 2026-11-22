@@ -1,5 +1,5 @@
 # ~/nixos-config/hosts/blaney-pc/apps.nix
-{ config, pkgs, lib, ... }:
+{ inputs, config, pkgs, lib, ... }:
 
 {
   # KDE System Monitor, kept when Plasma was dropped from this host. It only draws what
@@ -133,7 +133,7 @@
         prismlauncher
         claude-code
         wireguard-ui
-        (callPackage ../../pkgs/worldmonitor { })
+        (callPackage "${inputs.self}/pkgs/worldmonitor" { })
       ];
       flatpak = {
         enable = true;

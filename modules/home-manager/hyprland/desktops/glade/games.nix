@@ -4,12 +4,12 @@
 # game on the computer as box art — Steam, Heroic (Epic, GOG), Lutris (the EA app), other
 # installed games, and emulator games in ~/Games/ROMs — most recently played first. Asked
 # for by insideabush; clicking a game starts its launcher and then the game.
-{ config, pkgs, lib, customConfig, ... }:
+{ hyprDesktopLib, inputs, config, pkgs, lib, customConfig, ... }:
 
 let
-  desktop = (import ../lib.nix { inherit lib; }).state customConfig "glade";
+  desktop = hyprDesktopLib.state customConfig "glade";
   c = import ./colors.nix;
-  glade = pkgs.callPackage ../../../../../pkgs/glade (import ../../../../../pkgs/vibe-local-src.nix customConfig "glade");
+  glade = pkgs.callPackage ../../../../../pkgs/glade (import "${inputs.self}/pkgs/vibe-local-src.nix" customConfig "glade");
 
   # the stylesheet is passed in, so the panel is made of the same night and boards as the bar
   gladeGames = pkgs.writeShellScriptBin "glade-games" ''

@@ -1,12 +1,12 @@
 # ~/nixos-config/modules/nixos/programs/keyripple.nix
-{ config, pkgs, lib, ... }:
+{ inputs, config, pkgs, lib, ... }:
 
 # Key Ripple (pkgs/keyripple): insideabush's soft gold ripple on each key press of a
 # Logitech G915, painted per-key through the OpenRGB server. A host in
 # vibeProjects.localApps builds it from his project folder; everyone else gets the pin.
 let
   cfg = config.customConfig.programs.keyripple;
-  keyripple = pkgs.callPackage ../../../pkgs/keyripple (import ../../../pkgs/vibe-local-src.nix config.customConfig "keyripple");
+  keyripple = pkgs.callPackage ../../../pkgs/keyripple (import "${inputs.self}/pkgs/vibe-local-src.nix" config.customConfig "keyripple");
 in
 {
   options.customConfig.programs.keyripple = {

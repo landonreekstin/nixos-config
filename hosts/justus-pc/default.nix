@@ -1,7 +1,7 @@
 # ~/nixos-config/hosts/justus-pc/default.nix
 # Importer only — this host's settings live in the per-domain files below, mirroring
 # the layout of modules/nixos/.
-{ ... }:
+{ inputs, ... }:
 
 {
   imports = [
@@ -9,7 +9,8 @@
     ./hardware-configuration.nix
 
     # Top level nixos modules import. All other nixos modules and option definitions are nested.
-    ../../modules/nixos/default.nix
+    # The shared module library (this repo for now; the library flake once split).
+    "${inputs.self}/modules/nixos/default.nix"
 
     # Host specific disk configuration
     ./disko-config.nix
