@@ -93,7 +93,19 @@ Stays in the library:
 - `vibe-local-src.nix`
 - r62d and f-117 (gaming-pc and mini-server use them), and the `release-pins` CI job
 
-## Phase 3 — create `cblaney00/nixos-config`
+## Phase 3 — create `cblaney00/nixos-config`  🟡 drafted
+
+**Draft:** a local git repo at `~/cblaney-nixos-config` on gaming-pc (not pushed anywhere).
+- 388 commits of his history were extracted with `filter-repo`, plus the files below.
+- Its `lib` input points at the local `feat/blaney-split-decouple` branch for now.
+- blaney-pc, justus-pc and vm-blaney evaluate **byte-identical** to the Phase 2 build, and
+  `nix flake check --no-build` passes.
+- Its `CUTOVER.md` is the checklist for steps 3–4 below and Phase 4.
+- `update-lib.yml` evaluates in the same job before merging, because a PR opened with the
+  default `GITHUB_TOKEN` never triggers `check.yml`.
+- Moving the draft: `git -C ~/cblaney-nixos-config bundle create /tmp/his.bundle --all`,
+  then clone the bundle on blaney-pc.
+
 
 1. Scratch clone of the Phase 2 branch, then
    `nix run nixpkgs#git-filter-repo -- --path <each item above>`. No renames: relative
