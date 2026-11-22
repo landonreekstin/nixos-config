@@ -349,6 +349,7 @@ gaming-pc's `wg-nas` address. The rule sits before the `<restricted_peers>` bloc
 
 ```
 pass in quick on wg0 proto tcp from 10.10.0.0/24 to $nas_legacy_ip port $r62d_port rdr-to 10.10.0.11 keep state
+pass in quick on wg0 proto tcp from 10.10.0.0/24 to 10.10.0.11      port $r62d_port keep state   # same game by its direct VPN address
 ```
 
 gaming-pc opens 6262 on `wg-nas` only (`hosts/gaming-pc/networking.nix`), never on the LAN.
