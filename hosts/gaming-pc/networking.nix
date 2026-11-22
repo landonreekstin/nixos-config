@@ -134,4 +134,20 @@ in
       type = "basic";
     }
   ];
+
+  # Mullvad VPN: the daemon plus the GUI (pkgs.mullvad-vpn ships both; the default
+  # pkgs.mullvad is CLI-only). Without the daemon the GUI just says "unable to contact
+  # the Mullvad system service". It was removed in Feb 2026 for "connectivity errors",
+  # so it is kept idle until you press Connect (auto-connect off, re-asserted every
+  # daemon start) and keeps the LAN reachable while connected (NAS, Samba, .lan DNS,
+  # games hosted on this machine).
+  services.mullvad-vpn = {
+    enable = true;
+    package = pkgs.mullvad-vpn;
+  };
+  systemd.services.mullvad-daemon.postStart = ''
+    while ! ${config.services.mullvad-vpn.package}/bin/mullvad status >/dev/null 2>&1; do sleep 1; done
+    ${config.services.mullvad-vpn.package}/bin/mullvad auto-connect set off
+    ${config.services.mullvad-vpn.package}/bin/mullvad lan set allow
+  '';
 }
