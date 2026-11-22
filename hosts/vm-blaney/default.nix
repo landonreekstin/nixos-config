@@ -1,5 +1,5 @@
 # ~/nixos-config/hosts/vm-blaney/default.nix
-{ ... }:
+{ inputs, ... }:
 
 # blaney-pc software mirror — a throwaway QEMU VM that reproduces blaney-pc's KDE/aerotheme
 # + Hyprland + XFCE(windows7) software configuration so his theme/plasma/taskbar can be
@@ -18,8 +18,11 @@
 # the layout of modules/nixos/.
 {
   imports = [
-    ../../modules/nixos/default.nix
-    ../vm-common.nix
+    # The shared module library (this repo for now; the library flake once split).
+    "${inputs.self}/modules/nixos/default.nix"
+    # insideabush's own modules (not part of the library).
+    ../../modules/blaney-nixos.nix
+    "${inputs.self}/hosts/vm-common.nix"
 
     # Host configuration, one file per domain
     ./system.nix

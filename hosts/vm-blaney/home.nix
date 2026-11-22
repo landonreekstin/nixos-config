@@ -17,6 +17,9 @@
       entries = import ../blaney-pc/release-notes.nix;
       showNewTasks = true;
     };
+    # His own desktop, registered from his modules (the library's readDir finds it too
+    # until it leaves this repo; same directory, so the two collapse into one).
+    hyprland.desktops.extra.glade = ../../modules/home-manager/hyprland/desktops/glade;
     hyprland.desktops.enabled = [ "glade" ]; # mirrors blaney-pc
     themes = {
       # XFCE windows7 taskbar — mirror blaney-pc EXACTLY so the pre-PR VM check shows his
@@ -25,7 +28,7 @@
       # longer lists "kde" in desktop.environments.
       xfce = "windows7";
       # Mirror blaney-pc: XFCE gets the aviation wallpaper (no desktop.monitors → f-15 on all).
-      xfceWallpaper = ../../assets/wallpapers/f-15-satellite.jpg;
+      xfceWallpaper = ../../assets/blaney/f-15-satellite.jpg;
       xfcePanel = {
         trayApplets = [ "network" "bluetooth" "power" "clipboard" ];
         pinnedApps = [

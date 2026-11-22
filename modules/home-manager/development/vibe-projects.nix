@@ -1,8 +1,8 @@
 # ~/nixos-config/modules/home-manager/development/vibe-projects.nix
-{ lib, pkgs, config, customConfig, ... }:
+{ inputs, lib, pkgs, config, customConfig, ... }:
 
 let
-  gladePanel = import ../hyprland/desktops/glade/claude-panel.nix { inherit pkgs customConfig; };
+  gladePanel = import ../hyprland/desktops/glade/claude-panel.nix { inherit pkgs customConfig inputs; };
   cfg = customConfig.programs.vibeProjects;
 
   userName = customConfig.user.name;
@@ -89,7 +89,7 @@ let
     The rest of this section, down to the end-of-section line, is the same text lando's
     own game workspace uses.
 
-  '' + import ./gamedev-rules.nix {
+  '' + import "${inputs.self}/modules/home-manager/development/gamedev-rules.nix" {
     runGameRule = ''
       - **To let him play, put it on his screen as him**, from the project folder, after the
         `chown` from "File ownership" above: `play-on-desktop ${userName} godot --path .`
@@ -132,7 +132,7 @@ let
     Everything from here to the end of this file is about reverse-engineering projects
     only.
 
-  '' + import ./reverse-engineering-rules.nix {
+  '' + import "${inputs.self}/modules/home-manager/development/reverse-engineering-rules.nix" {
     runTargetRule = ''
       - **Never run a target as root.** This session is root, and the program being
         taken apart may be hostile. Run every target — and `wine`, `mame`, or a test of

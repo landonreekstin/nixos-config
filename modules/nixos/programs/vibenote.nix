@@ -1,11 +1,11 @@
 # ~/nixos-config/modules/nixos/programs/vibenote.nix
-{ config, pkgs, lib, ... }:
+{ inputs, config, pkgs, lib, ... }:
 
 # VibeNote (pkgs/vibenote): insideabush's notes for each of his vibe projects, as an app.
 # `vibenote` opens the window; notes are kept in ~/.local/share/vibenote/notes.json.
 let
   cfg = config.customConfig.programs.vibenote;
-  vibenote = pkgs.callPackage ../../../pkgs/vibenote (import ../../../pkgs/vibe-local-src.nix config.customConfig "vibenote");
+  vibenote = pkgs.callPackage ../../../pkgs/vibenote (import "${inputs.self}/pkgs/vibe-local-src.nix" config.customConfig "vibenote");
 
   desktop = pkgs.makeDesktopItem {
     name = "vibenote";

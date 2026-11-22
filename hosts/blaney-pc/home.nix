@@ -47,6 +47,9 @@
     };
     # The Glade: his own pixel-art forest (pkgs/glade) as the whole Hyprland desktop,
     # driven by mouse or keyboard. See docs/theming.md.
+    # His own desktop, registered from his modules (the library's readDir finds it too
+    # until it leaves this repo; same directory, so the two collapse into one).
+    hyprland.desktops.extra.glade = ../../modules/home-manager/hyprland/desktops/glade;
     hyprland.desktops.enabled = [ "glade" ];
     themes = {
       # The Win7 XFCE session (X11) is a coexisting login choice beside his glade Hyprland
@@ -56,7 +59,7 @@
       # Fully declarative: every rebuild re-asserts the declared taskbar/theme.
       xfce = "windows7";
       # The XFCE session's wallpaper (the glade draws its own world on Hyprland).
-      xfceWallpaper = ../../assets/wallpapers/f-15-satellite.jpg;
+      xfceWallpaper = ../../assets/blaney/f-15-satellite.jpg;
       # XFCE taskbar pins, using themed/XFCE-native apps where a KDE app used to be the
       # equivalent (Konsole→kitty, Dolphin→Thunar, KCalc→galculator,
       # plasma-systemmonitor→xfce4-taskmanager, systemsettings→xfce4-settings-manager,

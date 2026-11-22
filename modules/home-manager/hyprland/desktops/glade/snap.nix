@@ -9,10 +9,10 @@
 # Hyprland has no event for "a drag ended", and hyprbars swallows the clicks on its bar,
 # so a small patch (hyprbars-drag-hooks.patch, applied in desktop.nix) gives hyprbars
 # on_drag_start / on_drag_end commands, which run glade-snap.
-{ config, pkgs, lib, customConfig, ... }:
+{ hyprDesktopLib, config, pkgs, lib, customConfig, ... }:
 
 let
-  desktop = (import ../lib.nix { inherit lib; }).state customConfig "glade";
+  desktop = hyprDesktopLib.state customConfig "glade";
 
   # Space around a snapped window and between windows that snap together.
   gap = 12;

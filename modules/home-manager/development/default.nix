@@ -7,7 +7,6 @@
     ./fpga-ice40.nix
     ./cpp-practice.nix
     ./emulation.nix
-    ./vibe-projects.nix
     ./reverse-engineering.nix
     ./gamedev.nix
   ];

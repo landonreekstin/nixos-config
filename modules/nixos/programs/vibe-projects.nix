@@ -1,5 +1,5 @@
 # ~/nixos-config/modules/nixos/programs/vibe-projects.nix
-{ config, pkgs, lib, ... }:
+{ inputs, config, pkgs, lib, ... }:
 
 let
   cfg = config.customConfig;
@@ -32,7 +32,7 @@ let
 
   # The Glade Claude-panel hooks every plain project session gets; game sessions pass
   # them through the gamedev launcher too.
-  panelHooks = (import ../../home-manager/hyprland/desktops/glade/claude-panel.nix { inherit pkgs; customConfig = cfg; }).hooks;
+  panelHooks = (import ../../home-manager/hyprland/desktops/glade/claude-panel.nix { inherit pkgs inputs; customConfig = cfg; }).hooks;
 
   # --- Text assets -----------------------------------------------------------------
   # Every multi-line text below is a writeText store file that the script `cat`s or

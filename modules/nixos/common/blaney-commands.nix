@@ -1,5 +1,5 @@
 # ~/nixos-config/modules/nixos/common/blaney-commands.nix
-{ config, pkgs, lib, ... }:
+{ inputs, config, pkgs, lib, ... }:
 
 # insideabush's (blaney-pc) own commands: his deterministic, non-technical-friendly helpers
 # and the `vibe` config chat. Gated to the insideabush user, so this module is a no-op on
@@ -22,7 +22,7 @@ let
   # docs/hosts/blaney-pc.md (and the blaney-todo preface prompts further down).
   # The Glade's Claude panel: its hooks and the rules telling Claude to use it live with the
   # rest of the glade desktop (hyprland/desktops/glade/claude-panel.nix).
-  gladePanel = import ../../home-manager/hyprland/desktops/glade/claude-panel.nix { inherit pkgs; customConfig = cfg; };
+  gladePanel = import ../../home-manager/hyprland/desktops/glade/claude-panel.nix { inherit pkgs inputs; customConfig = cfg; };
   gladeHooks = gladePanel.hooks;
   gladeStatus = gladePanel.status;
   notesList = "${cfg.user.home}/notes-list.txt"; # blaney-pc `add-notes` / `work-notes`

@@ -1,8 +1,8 @@
 # ~/nixos-config/modules/home-manager/hyprland/desktops/glade/hyprland.nix
-{ config, pkgs, lib, customConfig, ... }:
+{ hyprDesktopLib, config, pkgs, lib, customConfig, ... }:
 
 let
-  inherit ((import ../lib.nix { inherit lib; }).state customConfig "glade") enabled;
+  inherit (hyprDesktopLib.state customConfig "glade") enabled;
   c = import ./colors.nix;
   rgb = x: "rgb(${lib.removePrefix "#" x})";
 
