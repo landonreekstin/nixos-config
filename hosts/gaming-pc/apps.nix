@@ -149,6 +149,7 @@
       nixos = with pkgs; [
         kitty
         pavucontrol
+        gnome-disk-utility
         tmux
         mgba
 
