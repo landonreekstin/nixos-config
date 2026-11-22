@@ -4,6 +4,8 @@
 {
   customConfig.homeManager = {
     enable = true; # Enable Home Manager for this host
+    # His `vibe` config-chat shims own ccn/ccnc/ccnr here (blaney-commands.nix).
+    claudeShellShortcuts = false;
     # Notify at next login if a walk-away `rebuild-shutdown` failed.
     services.rebuildShutdownNotify.enable = true;
     # Offer "update now, then shut down" at shutdown whenever origin/main has new commits,

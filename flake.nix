@@ -85,148 +85,49 @@
 
       # Define specialArgs once to pass to all hosts
       specialArgs = { inherit inputs unstablePkgs; };
-    in
-  {
-    # Define NixOS configurations for each host
-    nixosConfigurations = {
 
-      # Configuration for the Optiplex host
-      optiplex = nixpkgs.lib.nixosSystem {
-        # Pass flake inputs down to the modules if needed (good practice)
-        specialArgs = specialArgs;
-        modules = [
-          # Host-specific entrypoint
-          ./hosts/optiplex/default.nix
-          # home-manager module
+      # Build a NixOS host on top of this repo's module library. Exported as
+      # `lib.mkSystem` so downstream host repos build their hosts the same way: the
+      # library's modules read `inputs.*` / `unstablePkgs` from specialArgs, which a
+      # consumer cannot supply through plain imports, so this closes over *this*
+      # flake's inputs. `extraSpecialArgs` is merged on top.
+      mkSystem = { modules, extraSpecialArgs ? { } }: nixpkgs.lib.nixosSystem {
+        specialArgs = specialArgs // extraSpecialArgs;
+        modules = modules ++ [
           inputs.home-manager.nixosModules.default
           # NUR — required for firefox-addons (librewolf extensions)
           inputs.nur.modules.nixos.default
           # Disko — declarative disk partitioning
           inputs.disko.nixosModules.default
-          # Set system architecture
-          { nixpkgs.hostPlatform = "x86_64-linux"; }
+          { nixpkgs.hostPlatform = system; }
         ];
       };
+    in
+  {
+    lib = { inherit mkSystem; };
 
-      # Configuration for the Gaming PC
-      gaming-pc = nixpkgs.lib.nixosSystem {
-         specialArgs = specialArgs;
-         modules = [
-          ./hosts/gaming-pc/default.nix
-          inputs.home-manager.nixosModules.default
-          inputs.nur.modules.nixos.default
-          # Set system architecture
-          { nixpkgs.hostPlatform = "x86_64-linux"; }
-        ];
-      };
+    # The module library, for reference. Hosts should use lib.mkSystem instead, which
+    # also supplies the specialArgs these modules need.
+    nixosModules.default = ./modules/nixos/default.nix;
 
-      # Configuration for Blaney's PC
-      blaney-pc = nixpkgs.lib.nixosSystem {
-         specialArgs = specialArgs;
-         modules = [
-          ./hosts/blaney-pc/default.nix
-          inputs.home-manager.nixosModules.default
-          inputs.nur.modules.nixos.default
-          # Set system architecture
-          { nixpkgs.hostPlatform = "x86_64-linux"; }
-        ];
-      };
+    # Define NixOS configurations for each host
+    nixosConfigurations = {
 
-      # Configuration for Justus's PC
-      justus-pc = nixpkgs.lib.nixosSystem {
-         specialArgs = specialArgs;
-         modules = [
-          ./hosts/justus-pc/default.nix
-          inputs.home-manager.nixosModules.default
-          inputs.disko.nixosModules.default
-          # Set system architecture
-          { nixpkgs.hostPlatform = "x86_64-linux"; }
-        ];
-      };
-
-      # Configuration for the Asus ROG Zephyrus G14 Laptop
-      asus-laptop = nixpkgs.lib.nixosSystem {
-        specialArgs = specialArgs;
-        modules = [
-          ./hosts/asus-laptop/default.nix
-          inputs.home-manager.nixosModules.default
-          # Set system architecture
-          { nixpkgs.hostPlatform = "x86_64-linux"; }
-        ];
-      };
-
-      # Configuration for the Asus ROG Zephyrus M15 Laptop
-      asus-m15 = nixpkgs.lib.nixosSystem {
-        specialArgs = specialArgs;
-        modules = [
-          ./hosts/asus-m15/default.nix
-          inputs.home-manager.nixosModules.default
-          inputs.nur.modules.nixos.default
-          inputs.disko.nixosModules.default
-          # Set system architecture
-          { nixpkgs.hostPlatform = "x86_64-linux"; }
-        ];
-      };
-
-      # Configuration for Atlanta Mini PC
-      atl-mini-pc = nixpkgs.lib.nixosSystem {
-         specialArgs = specialArgs;
-         modules = [
-          ./hosts/atl-mini-pc/default.nix
-          inputs.home-manager.nixosModules.default
-          inputs.disko.nixosModules.default
-          # Set system architecture
-          { nixpkgs.hostPlatform = "x86_64-linux"; }
-        ];
-      };
-
-      # Configuration for the Optiplex NAS
-      optiplex-nas = nixpkgs.lib.nixosSystem {
-        specialArgs = specialArgs;
-        modules = [
-          ./hosts/optiplex-nas/default.nix
-          inputs.home-manager.nixosModules.default
-          inputs.disko.nixosModules.default
-          # Set system architecture
-          { nixpkgs.hostPlatform = "x86_64-linux"; }
-        ];
-      };
-
-      # Configuration for the Mini Server (BeeLink AZW Mini S)
-      mini-server = nixpkgs.lib.nixosSystem {
-        specialArgs = specialArgs;
-        modules = [
-          ./hosts/mini-server/default.nix
-          inputs.home-manager.nixosModules.default
-          inputs.disko.nixosModules.default
-          # Set system architecture
-          { nixpkgs.hostPlatform = "x86_64-linux"; }
-        ];
-      };
-
-      # Throwaway QEMU test-VM hosts — not installed to hardware. Launch with:
+      # Every host is built with mkSystem (defined above, exported as lib.mkSystem).
+      # vm-sandbox / vm-blaney are throwaway QEMU test-VM hosts, not installed to hardware:
       #   nixos-rebuild build-vm --flake .#vm-sandbox --impure && ./result/bin/run-*-vm
-      # See hosts/vm-common.nix. Used for iterating on the fragile software-config surface
-      # (aerothemeplasma, plasma, Hyprland) and for the CI build job. No disko (synthetic disk).
-      vm-sandbox = nixpkgs.lib.nixosSystem {
-        specialArgs = specialArgs;
-        modules = [
-          ./hosts/vm-sandbox/default.nix
-          inputs.home-manager.nixosModules.default
-          inputs.nur.modules.nixos.default
-          { nixpkgs.hostPlatform = "x86_64-linux"; }
-        ];
-      };
-
-      vm-blaney = nixpkgs.lib.nixosSystem {
-        specialArgs = specialArgs;
-        modules = [
-          ./hosts/vm-blaney/default.nix
-          inputs.home-manager.nixosModules.default
-          inputs.nur.modules.nixos.default
-          { nixpkgs.hostPlatform = "x86_64-linux"; }
-        ];
-      };
+      # See hosts/vm-common.nix.
+      optiplex = mkSystem { modules = [ ./hosts/optiplex/default.nix ]; };
+      gaming-pc = mkSystem { modules = [ ./hosts/gaming-pc/default.nix ]; };
+      blaney-pc = mkSystem { modules = [ ./hosts/blaney-pc/default.nix ]; };
+      justus-pc = mkSystem { modules = [ ./hosts/justus-pc/default.nix ]; };
+      asus-laptop = mkSystem { modules = [ ./hosts/asus-laptop/default.nix ]; };
+      asus-m15 = mkSystem { modules = [ ./hosts/asus-m15/default.nix ]; };
+      atl-mini-pc = mkSystem { modules = [ ./hosts/atl-mini-pc/default.nix ]; };
+      optiplex-nas = mkSystem { modules = [ ./hosts/optiplex-nas/default.nix ]; };
+      mini-server = mkSystem { modules = [ ./hosts/mini-server/default.nix ]; };
+      vm-sandbox = mkSystem { modules = [ ./hosts/vm-sandbox/default.nix ]; };
+      vm-blaney = mkSystem { modules = [ ./hosts/vm-blaney/default.nix ]; };
 
       # Bootable installer ISO — flash to USB for zero-touch install target setup.
       # SSH is pre-configured with lando's key so nixos-anywhere can connect immediately.

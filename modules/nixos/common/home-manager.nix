@@ -330,9 +330,11 @@ let
     };
   };
 
-  # Every directory under modules/home-manager/hyprland/desktops/ is a desktop.
+  # Every directory under modules/home-manager/hyprland/desktops/ is a desktop, plus any
+  # a downstream repo registers through hyprland.desktops.extra.
   hyprlandDesktopNames = lib.attrNames (lib.filterAttrs (_: t: t == "directory")
-    (builtins.readDir ../../home-manager/hyprland/desktops));
+    (builtins.readDir ../../home-manager/hyprland/desktops))
+    ++ lib.attrNames config.customConfig.homeManager.hyprland.desktops.extra;
 in
 {
   options.customConfig.homeManager = with lib; {
@@ -340,6 +342,16 @@ in
       type = types.bool;
       default = true; # Generally, if using this structure, HM is enabled for the user.
       description = "Whether Home Manager is configured for the primary user.";
+    };
+    # modules/home-manager/system/bash.nix
+    claudeShellShortcuts = mkOption {
+      type = types.bool;
+      default = true;
+      description = ''
+        Define the ccn / ccnc / ccnr bash functions (open Claude in ~/nixos-config).
+        Turn off on a host that ships its own commands under those names: a shell
+        function would shadow them.
+      '';
     };
     services = {
       # modules/home-manager/hyprland/screen-dim.nix
@@ -595,6 +607,17 @@ in
           other). It is also the one whose app theming
           (waybar, rofi, kitty, GTK, ...) is installed, since those apps read one
           global config file each.
+        '';
+      };
+      extra = mkOption {
+        type = types.attrsOf types.path;
+        default = { };
+        example = literalExpression ''{ glade = ./modules/home-manager/desktops/glade; }'';
+        description = ''
+          Desktops that live outside this module library (in a downstream host repo),
+          as name → directory. Each is imported and declared exactly like a directory
+          under modules/home-manager/hyprland/desktops/, and can then be listed in
+          `enabled`.
         '';
       };
     };

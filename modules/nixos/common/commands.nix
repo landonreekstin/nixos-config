@@ -163,9 +163,9 @@ let
 
     # --- Configuration ---
     # We use the public HTTPS URL for the initial clone, which requires no auth.
-    GIT_HTTPS_URL="https://github.com/landonreekstin/nixos-config.git"
+    GIT_HTTPS_URL="https://github.com/${cfg.system.configRepo}.git"
     # We define the SSH URL for when we need to push later.
-    GIT_SSH_URL="git@github.com:landonreekstin/nixos-config.git"
+    GIT_SSH_URL="git@github.com:${cfg.system.configRepo}.git"
     CONFIG_DIR="$HOME/nixos-config"
 
     # --- Pre-flight Checks ---
