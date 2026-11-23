@@ -8,7 +8,7 @@
 #   Morning (Mon/Tue/Wed/Thu): On 100% warm white at 6:14 AM, off at 7:15 AM
 #   Evening (every day): On 100% warm white 1hr before sunset
 #   Every day: From sunset or 6 PM (whichever first) shift warm white -> amber by dusk/7 PM,
-#              -> deep red by dusk+1hr/8 PM, then dim to 25% from 9-10 PM
+#              -> deep red by dusk+1hr/8 PM, then dim to 50% by 9 PM and 25% by 10 PM
 
 # ==================== PRE-DAWN LAMP (Mon/Tue/Wed/Thu) ====================
 
@@ -213,28 +213,51 @@
               seconds: "{{ step_seconds }}"
 
 # ==================== EVENING DIMMING (Every Day) ====================
-# Hold deep red, then dim 100% -> 25% from 9-10 PM. The color shift is done by
-# ~8 PM; the wait is just a guard in case it was started late by hand.
+# Hold deep red, dim 100% -> 50% by 9 PM, then 50% -> 25% by 10 PM. Starts at
+# 8 PM, when the color shift has reached deep red; the wait is a guard in case
+# the shift is still finishing (or was started late by hand).
 
 - id: evening_dim
   alias: "Evening Dim"
-  description: "Gradually dim lights from 100% to 25% starting at 9 PM"
+  description: "Gradually dim lights to 50% by 9 PM, then to 25% by 10 PM"
   triggers:
     - trigger: time
-      at: "21:00:00"
+      at: "20:00:00"
   mode: restart
   actions:
     - wait_template: "{{ state_attr('automation.evening_color_shift', 'current') | int(0) == 0 }}"
       timeout: "01:00:00"
     - variables:
-        total_steps: 12
         step_seconds: 300
+        # Phase 1 ends at 9 PM sharp, however late the wait let us start.
+        half_steps: >
+          {{ [((today_at('21:00') - now()).total_seconds() / step_seconds) | int, 1] | max }}
+        quarter_steps: 12
+    # Phase 1: 100% -> 50%, until 9 PM
     - repeat:
-        count: "{{ total_steps }}"
+        count: "{{ half_steps }}"
         sequence:
           - variables:
-              progress: "{{ repeat.index / total_steps}}"
-              brightness: "{{ (100 - 75 * progress) | round(0) | int }}"
+              brightness: "{{ (100 - 50 * repeat.index / half_steps) | round(0) | int }}"
+          - service: light.turn_on
+            target:
+              entity_id: >
+                {{ ['light.right_desk_lamp', 'light.standing_lamp', 'light.nightstand_lamp']
+                   | select('is_state', 'on') | list }}
+            data:
+              hs_color:
+                - 0
+                - 100
+              brightness_pct: "{{ brightness }}"
+              transition: 5
+          - delay:
+              seconds: "{{ step_seconds }}"
+    # Phase 2: 50% -> 25%, 9-10 PM
+    - repeat:
+        count: "{{ quarter_steps }}"
+        sequence:
+          - variables:
+              brightness: "{{ (50 - 25 * repeat.index / quarter_steps) | round(0) | int }}"
           - service: light.turn_on
             target:
               entity_id: >
