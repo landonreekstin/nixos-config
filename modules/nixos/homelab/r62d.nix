@@ -2,8 +2,9 @@
 # R62D, insideabush's tactical 5v5 browser game (pkgs/r62d, companion repo cblaney00/r62d),
 # as an always-on server so every VPN player joins the same lobby. One process serves the
 # pages and the WebSocket on one port. Profiles and match history live in /var/lib/r62d.
-# Players reach it at http://192.168.1.76:6262: optiplex-fw redirects that alias's port to
-# this host (docs/networking.md "R62D").
+# Off on mini-server (PR #313): VPN games are hosted on gaming-pc, and optiplex-fw's wg0 rdr
+# for 192.168.1.76:6262 now points at gaming-pc (10.10.0.11). Turning this back on also means
+# moving that rdr back to mini-server (docs/networking.md "R62D").
 { config, lib, pkgs, ... }:
 
 let

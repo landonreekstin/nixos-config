@@ -73,6 +73,10 @@ in
   services.samba.nmbd.enable = true;
   networking.firewall.allowedTCPPorts = [ 139 445 4445 ];
   networking.firewall.allowedUDPPorts = [ 137 138 ];
+  # R62D: VPN players (Blaney and friends) join a game hosted here at http://192.168.1.76:6262.
+  # optiplex-fw rdr's that from wg0 to this host's wg-nas address 10.10.0.11, the same path as
+  # The Batman's 7845 (docs/networking.md "R62D (port 6262)"). VPN only: closed on the LAN.
+  networking.firewall.interfaces."wg-nas".allowedTCPPorts = [ 6262 ];
   # .lan names come from customConfig.networking.lanHosts (modules/nixos/common/lan-hosts.nix),
   # which generates networking.extraHosts from the same record map Unbound is built from.
 
