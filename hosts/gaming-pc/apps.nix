@@ -149,7 +149,7 @@
       nixos = with pkgs; [
         kitty
         pavucontrol
-        mullvad-vpn
+        gnome-disk-utility
         tmux
         mgba
 
