@@ -42,8 +42,24 @@ in
         rpc-host-whitelist-enabled = false;
         umask = 2;
 
-        # Upload cap prevents bufferbloat from saturating the ~20 Mbps WAN uplink.
-        # Download is left uncapped — turtle mode handles the gaming case.
+        # Both directions are capped to keep the link to the server LAN out of
+        # bufferbloat. The bottleneck is NOT the WAN (~1 Gbps): optiplex-fw
+        # reaches the Spectrum router over a powerline adapter that carries
+        # only ~50 Mbps. Everything behind the firewall shares it — this NAS
+        # (Mullvad included), mini-server, and every WireGuard VPN client,
+        # since the VPN terminates on the firewall.
+        #
+        # Download was originally left uncapped, relying on turtle mode being
+        # flipped by hand. That failed twice: on 2026-09-04 (13 torrents at
+        # ~45 Mbps, hop-1 latency 3.5 -> 133 ms) and on 2026-11-25 (one torrent
+        # at ~40 Mbps; LAN pings to the router took 0.5-7 s and SSH over the
+        # VPN crawled; pausing the torrent brought it back to ~3 ms).
+        #
+        # 20 Mbps leaves ~25-30 Mbps of the powerline for the VPN, Jellyfin
+        # and mini-server. Raise or drop this if the firewall ever gets a real
+        # Ethernet run to the router.
+        speed-limit-down = 2500;         # 20 Mbps
+        speed-limit-down-enabled = true;
         speed-limit-up = 1875;           # 15 Mbps
         speed-limit-up-enabled = true;
 
