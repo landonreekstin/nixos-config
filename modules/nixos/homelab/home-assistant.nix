@@ -101,6 +101,7 @@ in
         "nws"
         "google_translate"
         "google_generative_ai_conversation"
+        "mobile_app"
       ];
       config = {
         homeassistant = {
@@ -109,6 +110,11 @@ in
           time_zone = "America/Chicago";
         };
         automation = "!include automations.yaml";
+        # Companion app (iOS/Android). Not covered by default_config here: that
+        # key is never written to configuration.yaml, so extraComponents only
+        # installs its deps. mobile_app pulls in http, webhook, person, tag and
+        # websocket_api itself; push notifications go via HA's free relay.
+        mobile_app = { };
       };
     };
 
