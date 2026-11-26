@@ -28,6 +28,22 @@ let
     + "\n"
     + "    protocol_transport_key = (";
 
+  # For roughly 2-40 s after any light-state change, KL125 bulbs (firmware
+  # 1.1.1 Build 260710) cannot build a response of about 3 KB. Instead they
+  # answer the KLAP request with HTTP 200 and a plain
+  # "<html><body><center>200 OK</center></body></html>" body, which
+  # python-kasa reports as "not a multiple of the block length". HA's 5 s poll
+  # merges every module into one query. With the month's emeter daystat
+  # included, the reply is about 3.2 KB, under python-kasa's 4096-byte
+  # IotBulb limit, so it is never split. The poll right after a command
+  # therefore fails, the light goes unavailable, and HA refuses further
+  # commands. Measured 2026-11-25 on the desk lamp: replies up to 2.7 KB
+  # succeed inside that window. Re-handshaking and retrying does not help.
+  # A 2048 limit splits each update into about 5 small requests, and 12/12
+  # post-toggle updates succeeded (versus 1/12 at 4096).
+  kasaBulbSizeAnchor = "return 4096";
+  kasaBulbSizePatched = "return 2048";
+
   withKasaKlapV2 = hass: hass.override {
     packageOverrides = _self: super: {
       python-kasa = super.python-kasa.overrideAttrs (old: {
@@ -36,7 +52,12 @@ let
         postPatch = (old.postPatch or "") + ''
           substituteInPlace kasa/device_factory.py \
             --replace-fail ${lib.escapeShellArg kasaAnchor} ${lib.escapeShellArg kasaPatched}
+          substituteInPlace kasa/iot/iotbulb.py \
+            --replace-fail ${lib.escapeShellArg kasaBulbSizeAnchor} ${lib.escapeShellArg kasaBulbSizePatched}
         '';
+        # Asserts a bulb's emeter update fits in one request, which the
+        # smaller bulb limit above deliberately changes.
+        disabledTests = (old.disabledTests or [ ]) ++ [ "test_initial_update_emeter" ];
       });
     };
   };
