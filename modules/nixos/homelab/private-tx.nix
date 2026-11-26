@@ -86,7 +86,8 @@ let
         # The source is re-checked (unchanged AND not open) before anything is deleted.
         if cp -R --no-dereference --preserve=timestamps -- "$e" "$work/item" 2>/dev/null \
           && chown -R ${user}:users -- "$work/item" 2>/dev/null \
-          && chmod -R u=rwX,g=rwX,o=rX,ug-s -- "$work/item" 2>/dev/null \
+          && find "$work/item" -type d -exec chmod 0775 {} + 2>/dev/null \
+          && find "$work/item" -type f -exec chmod 0664 {} + 2>/dev/null \
           && [ "$(fingerprint "$e")" = "$before" ] \
           && settled "$e" \
           && mv -T -- "$work/item" "$dest" 2>/dev/null; then

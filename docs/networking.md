@@ -232,6 +232,12 @@ the NAS with:
 ```bash
 sudo smbpasswd -c /etc/smb-private.conf -a lando
 ```
+The private smbd also has its own lock/state/cache dirs under `/var/lib/samba-private`,
+and there is no winbindd. Before 2026-11-26 the two smbds shared the idmap cache, which
+mapped uid 1000 to the *private* server's SID on the storage share, so lando never counted
+as owner there and only group/other bits applied. If an owner-only folder on either share
+says "access denied", check `sudo net cache list | grep UID2SID/1000` against
+`sudo net getlocalsid`.
 Until it is set, nothing can mount the share. On gaming-pc the only way in is
 `private-share` (also what `comfy-start` runs), which asks for that password at a prompt
 every time and hands it to mount.cifs on stdin, never as an argument or a file.

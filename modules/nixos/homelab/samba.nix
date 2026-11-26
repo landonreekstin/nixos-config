@@ -51,12 +51,19 @@ in
       # This is your existing configuration for the main share.
       services.samba = {
         enable = true;
-        winbindd.enable = true;
+        # No winbindd: this is a standalone server (no domain, winbind is not in
+        # nsswitch). With it, both smbds asked the one winbindd for uid->SID and got
+        # a single answer, which can only match one of their two domain SIDs. Without
+        # it each smbd maps local users from its own passdb, which is consistent.
+        winbindd.enable = false;
         nmbd.enable = true;
         openFirewall = true;
         settings = {
           global = {
-            "log level" = 3; # Add this line
+            # 1, not 3: at 3 smbd writes every path it touches into
+            # /var/log/samba/log.smbd on the unencrypted root disk, which would leak
+            # the names of files dropped into TX on their way to the private share.
+            "log level" = 1;
           };
           storage = {
             path = "/mnt/storage";
@@ -99,6 +106,16 @@ in
           pid directory = /run/samba-private
           # Also set the ncalrpc directory to avoid conflicts
           ncalrpc dir = /run/samba-private/ncalrpc
+          # Its OWN cache/lock/state dirs. When these were shared with the main smbd,
+          # both wrote the uid->SID idmap cache (gencache) under different domain SIDs,
+          # and whichever wrote last won: on 2026-11-26 the main share mapped uid 1000
+          # to THIS server's SID, so lando was never recognised as owner of anything on
+          # the storage share and only group/other bits applied (an owner-only 0700
+          # folder there was "access denied"). The private dir (secrets.tdb, which keys
+          # each domain SID by netbios name) stays shared so this server keeps its SID.
+          lock directory = ${privatePassdbDir}/lock
+          state directory = ${privatePassdbDir}/state
+          cache directory = ${privatePassdbDir}/cache
           # Its OWN password database. Without this both smbds read the default
           # passdb, so the storage-share login (the `smb-credentials` sops secret,
           # decrypted onto every client host) also opened the private share. With a
@@ -163,7 +180,12 @@ in
       };
 
       # Root-only home for the private passdb (password hashes).
-      systemd.tmpfiles.rules = [ "d ${privatePassdbDir} 0700 root root -" ];
+      systemd.tmpfiles.rules = [
+        "d ${privatePassdbDir} 0700 root root -"
+        "d ${privatePassdbDir}/lock 0755 root root -"
+        "d ${privatePassdbDir}/state 0755 root root -"
+        "d ${privatePassdbDir}/cache 0755 root root -"
+      ];
 
       # 3. Ensure our new service is started at boot.
       systemd.targets.multi-user.wants = [ "samba-private.service" ];
