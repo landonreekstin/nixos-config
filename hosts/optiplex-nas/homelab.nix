@@ -11,6 +11,9 @@
         # The port defaults to 4445.
       };
     };
+    # TX drop folder: /mnt/storage/TX is moved into /mnt/private/upload on arrival,
+    # without leaving this host. See modules/nixos/homelab/private-tx.nix.
+    privateTx.enable = true;
     jellyfin = {
       enable = true;
       hwTranscoding = true;

@@ -35,6 +35,7 @@
     ./forgejo.nix
     ./game-backup.nix
     ./private-backup.nix
+    ./private-tx.nix
     ./dns.nix
     ./reverse-proxy-nas.nix
     ./reverse-proxy-mini.nix
