@@ -232,9 +232,42 @@ the NAS with:
 ```bash
 sudo smbpasswd -c /etc/smb-private.conf -a lando
 ```
+The private smbd also has its own lock/state/cache dirs under `/var/lib/samba-private`,
+and there is no winbindd. Before 2026-11-26 the two smbds shared the idmap cache, which
+mapped uid 1000 to the *private* server's SID on the storage share, so lando never counted
+as owner there and only group/other bits applied. If an owner-only folder on either share
+says "access denied", check `sudo net cache list | grep UID2SID/1000` against
+`sudo net getlocalsid`.
 Until it is set, nothing can mount the share. On gaming-pc the only way in is
 `private-share` (also what `comfy-start` runs), which asks for that password at a prompt
 every time and hands it to mount.cifs on stdin, never as an argument or a file.
+
+**The TX drop folder.** `/mnt/storage/TX` (`TX` in the storage share) is a one-way
+drop box into the private share: anything put there is moved into `/mnt/private/upload`
+seconds after the upload finishes. So lando can drop media from the everyday tunnel
+(10.10.0.3) and only see it again from the private one (10.10.0.18). The move is a
+sandboxed systemd unit on the NAS (`private-tx.path` / `.service`,
+`modules/nixos/homelab/private-tx.nix`) with no network namespace, no port and no
+credential. Its behaviour:
+- **Fails closed.** Nothing moves unless both `/mnt/storage` and `/mnt/private` are real
+  mountpoints. If the LUKS drive is down, files wait in TX.
+- **Moves only finished items.** An item moves once no process (smbd) has any file in it
+  open and nothing in it changed for 10 s. It goes through `/mnt/private/.tx-staging`
+  and lands with an atomic rename. If the name is already taken it becomes `<name> (TX <time>)`.
+- **Logs only counts.** The journal is on the unencrypted root disk, so no file names go
+  into it.
+- TX is `lando:media 0700`, so Jellyfin, gamarr and the *arr stack can't see into it. Both
+  directories were created by hand on the mounted filesystems:
+  `install -d -m 0700 -o lando -g media /mnt/storage/TX` and
+  `install -d -m 0700 -o root -g root /mnt/private/.tx-staging`.
+
+Residual risks:
+- `/mnt/storage` is **unencrypted** btrfs. A dropped file is deleted after the move, but
+  its blocks stay on the HDD until they are overwritten, and `shred` doesn't work on
+  btrfs. Anyone who has the physical drive could recover recent drops.
+- Anything that can mount the storage share as lando can read an item during its seconds
+  in TX, and can push files into `upload`. Today that is gaming-pc, asus-laptop and
+  mini-server, which all hold `smb-credentials`.
 
 ### Adding a New Peer
 
